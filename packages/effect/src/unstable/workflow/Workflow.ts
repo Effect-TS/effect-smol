@@ -1,24 +1,12 @@
 /**
- * The `Workflow` module defines typed durable workflow descriptions and the
- * helpers used to execute them through a `WorkflowEngine`. A workflow combines
- * a stable name, a struct payload schema, success and error schemas, and an
- * idempotency key so callers can derive deterministic execution IDs, execute or
- * discard runs, poll results, interrupt or resume suspended executions, and
- * register handlers with `toLayer`.
+ * Defines typed durable workflows.
  *
- * Workflows are intended for long-running business processes that coordinate
- * activities, durable deferreds, durable clocks, retries, and compensation.
- * Keep external side effects at activity boundaries so engine implementations
- * can safely persist, suspend, and resume execution state. Running activities
- * can delay workflow suspension until they finish or suspend, and compensation
- * registered with `withCompensation` only applies to top-level workflow
- * effects, not nested activities.
- *
- * When exposing workflows through `WorkflowProxy`, remember that proxy APIs are
- * derived from the workflow tag and schemas. Discard execution returns the
- * `executionId` instead of the workflow result, resume requires the persisted
- * `executionId`, and idempotency keys must remain stable for the same logical
- * request.
+ * A `Workflow` has a stable tag, schemas for payload, success, and failure, and
+ * an idempotency key used to derive execution ids. Workflow definitions can be
+ * executed, discarded, polled, interrupted, resumed, and registered with a
+ * handler layer. This module also includes workflow result types, compensation
+ * and cleanup helpers, suspension support, and settings for defect capture or
+ * failure suspension.
  *
  * @since 4.0.0
  */

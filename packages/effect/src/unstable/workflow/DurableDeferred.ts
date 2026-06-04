@@ -1,23 +1,11 @@
 /**
- * Durable deferreds are named workflow wait points whose result is stored by
- * the workflow engine as an encoded `Exit`. A workflow can `await` one and
- * suspend until an activity, worker, timer, or external callback completes it
- * with `done`, `succeed`, `fail`, or `failCause`.
+ * Defines named wait points for durable workflow executions.
  *
- * Use this module to coordinate work that finishes outside the current
- * workflow turn: durable races, queues that report worker results, timers,
- * human approvals, webhooks, and other callback-style integrations. Tokens
- * encode the workflow name, execution ID, and deferred name so completion can
- * be routed back to the correct workflow execution without keeping an
- * in-memory handle.
- *
- * Deferred names are part of persisted workflow state, so keep them stable
- * across replays and unique for each logical wait. Completion is persisted as
- * an `Exit` and decoded through the success and error schemas when awaited
- * again; changing schemas or reusing a name for a different result type can
- * make old completions fail to decode or resume the wrong wait. Complete a
- * deferred once, and use `withActivityAttempt` when an activity retry needs an
- * attempt-scoped completion name.
+ * A `DurableDeferred` has a stable name and schemas for the value that will be
+ * recorded later. Workflows can await it, suspend when no result exists yet, and
+ * resume after its result is recorded. Tokens identify the workflow name,
+ * execution id, and deferred name so external code can complete the correct
+ * wait point later.
  *
  * @since 4.0.0
  */

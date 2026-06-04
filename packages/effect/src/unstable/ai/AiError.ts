@@ -1,82 +1,13 @@
 /**
- * The `AiError` module provides comprehensive, provider-agnostic error handling
- * for AI operations.
+ * Defines shared errors for AI operations.
  *
- * This module uses the `reason` pattern where `AiError` is a top-level
- * wrapper error containing `module`, `method`, and a `reason` field that holds
- * the semantic error. This design enables ergonomic error handling while
- * preserving rich context about failures.
- *
- * ## Semantic Error Categories
- *
- * - **RateLimitError** - Request throttled (429s, provider-specific limits)
- * - **QuotaExhaustedError** - Account/billing limits reached
- * - **AuthenticationError** - Invalid/expired credentials
- * - **ContentPolicyError** - Input/output violated content policy
- * - **InvalidRequestError** - Malformed request parameters
- * - **InvalidUserInputError** - Prompt contains unsupported content
- * - **InternalProviderError** - Provider-side failures (5xx)
- * - **NetworkError** - Transport-level failures
- * - **InvalidOutputError** - LLM output parsing/validation failures
- * - **StructuredOutputError** - LLM generated text that doesn't conform to structured output schema
- * - **UnsupportedSchemaError** - Codec transformer rejected a schema with unsupported constructs
- * - **UnknownError** - Catch-all for unknown errors
- *
- * ## Tool Call Errors
- *
- * - **ToolNotFoundError** - Model requested non-existent tool
- * - **ToolParameterValidationError** - Tool call params failed validation
- * - **InvalidToolResultError** - Tool handler returned invalid result
- * - **ToolResultEncodingError** - Tool result encoding failed
- * - **ToolConfigurationError** - Provider tool misconfigured
- *
- * ## Retryability
- *
- * Each reason type has an `isRetryable` getter indicating whether the error is
- * transient. Some errors also provide a `retryAfter` duration hint.
- *
- * **Example** (Handling AI errors by reason)
- *
- * ```ts
- * import { Effect, Match } from "effect"
- * import type { AiError } from "effect/unstable/ai"
- *
- * // Handle errors using Match on the reason
- * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.when(
- *     { reason: { _tag: "RateLimitError" } },
- *     (err) => Effect.logWarning(`Rate limited, retry after ${err.retryAfter}`)
- *   ),
- *   Match.when(
- *     { reason: { _tag: "AuthenticationError" } },
- *     (err) => Effect.logError(`Auth failed: ${err.reason.kind}`)
- *   ),
- *   Match.when(
- *     { reason: { isRetryable: true } },
- *     (err) => Effect.logWarning(`Transient error, retrying: ${err.message}`)
- *   ),
- *   Match.orElse((err) => Effect.logError(`Permanent error: ${err.message}`))
- * )
- * ```
- *
- * **Example** (Creating an AI error with a reason)
- *
- * ```ts
- * import { Duration, Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * // Create an AiError with a reason
- * const error = AiError.make({
- *   module: "OpenAI",
- *   method: "completion",
- *   reason: new AiError.RateLimitError({
- *     retryAfter: Duration.seconds(60)
- *   })
- * })
- *
- * console.log(error.isRetryable) // true
- * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
- * ```
+ * `AiError` records where a failure happened and stores the detailed reason in a
+ * `reason` field. Those reasons cover transport problems, provider responses,
+ * rate limits, authentication, content policy failures, invalid requests,
+ * invalid output, unsupported schemas, tool failures, invalid user input, and
+ * unknown failures. This module also includes metadata schemas, guards,
+ * constructors, and helpers for converting HTTP response information into AI
+ * error reasons.
  *
  * @since 4.0.0
  */

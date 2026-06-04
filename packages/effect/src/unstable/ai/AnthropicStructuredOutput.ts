@@ -1,38 +1,13 @@
 /**
- * Adapt Effect Schema codecs to the JSON Schema subset accepted by Anthropic
+ * Adapts Effect Schema codecs to the JSON Schema subset accepted by Anthropic
  * structured output.
  *
- * The main entry point is {@link toCodecAnthropic}. It returns the JSON Schema
- * to send to Anthropic and a codec that preserves the original decoded value
- * type while changing the encoded representation when Anthropic cannot express
- * that shape directly.
- *
- * **Mental model**
- *
- * Anthropic structured output accepts a narrower schema vocabulary than Effect
- * Schema. This module walks the encoded schema AST before JSON Schema
- * generation, rewrites unsupported shapes into provider-safe encodings, and
- * leaves the returned codec responsible for translating model output back into
- * the original application shape.
- *
- * **Common tasks**
- *
- * - Convert a `Schema.Codec` for Anthropic structured output with
- *   {@link toCodecAnthropic}
- * - Decode model output with the returned codec so transformed tuples, records,
- *   and optional properties become the original values again
- * - Preserve provider-compatible descriptions and formats while dropping or
- *   rewriting annotations Anthropic cannot represent
- *
- * **Gotchas**
- *
- * - The emitted JSON Schema may use an encoded shape: tuples become objects
- *   with numeric string keys, records become arrays of `[key, value]` pairs, and
- *   optional properties become required properties that accept `null`.
- * - Unsupported schema kinds throw during conversion rather than producing a
- *   lossy schema.
- * - `oneOf` unions are emitted as `anyOf` unions because Anthropic's structured
- *   output subset does not support the full JSON Schema vocabulary.
+ * The main entry point returns the JSON Schema to send to Anthropic and a codec
+ * for decoding the model response back into the original application type. When
+ * Anthropic cannot express the original schema shape directly, the conversion
+ * rewrites supported cases such as tuples, records, optional properties, and
+ * `oneOf` unions. Schema kinds that cannot be represented throw during
+ * conversion instead of producing a lossy schema.
  *
  * @since 4.0.0
  */

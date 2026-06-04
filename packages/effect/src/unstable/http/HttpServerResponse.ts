@@ -1,45 +1,12 @@
 /**
- * The `HttpServerResponse` module provides immutable response values for Effect
- * HTTP servers. Handlers return an {@link HttpServerResponse}, then the runtime
- * converts it to a platform response such as a Web `Response`.
+ * Describes immutable responses returned by Effect HTTP handlers.
  *
- * **Mental model**
- *
- * - A response is a status, optional status text, headers, cookies, and an HTTP
- *   body.
- * - Constructors set practical defaults: {@link empty} uses `204`,
- *   {@link redirect} uses `302`, and body constructors use `200`.
- * - Body metadata is reflected into headers when a response is created or when
- *   the body is replaced.
- * - Cookies are stored separately from the normal header map and become
- *   `Set-Cookie` headers during conversion.
- * - Constructors that encode data can return effects when encoding may fail.
- *
- * **Common tasks**
- *
- * - Create empty, redirect, text, HTML, JSON, or URL-encoded responses with
- *   {@link empty}, {@link redirect}, {@link text}, {@link html}, {@link json},
- *   {@link schemaJson}, or {@link urlParams}.
- * - Send binary, raw, form-data, stream, or file bodies with {@link uint8Array},
- *   {@link raw}, {@link formData}, {@link stream}, {@link file}, or
- *   {@link fileWeb}.
- * - Adjust status, headers, and bodies with {@link setStatus},
- *   {@link setHeader}, {@link setHeaders}, and {@link setBody}.
- * - Manage cookies with {@link setCookie}, {@link expireCookie},
- *   {@link removeCookie}, and their unsafe variants.
- * - Convert responses with {@link toWeb}, {@link fromWeb},
- *   {@link toClientResponse}, and {@link fromClientResponse}.
- *
- * **Gotchas**
- *
- * - Body content type and content length override existing `content-type` and
- *   `content-length` headers when body metadata is present.
- * - {@link json} and {@link schemaJson} capture encoding failures in the Effect
- *   error channel; {@link jsonUnsafe} throws instead.
- * - {@link setCookie} and {@link expireCookie} validate cookie output in the
- *   Effect error channel; unsafe cookie helpers throw on invalid cookies.
- * - `Set-Cookie` headers are produced from the response cookie collection, not
- *   by manually editing the normal header map.
+ * An `HttpServerResponse` stores the status, optional status text, headers,
+ * cookies, and body that the server runtime later turns into a platform
+ * response such as a Web `Response`. This module includes constructors for
+ * common response bodies, helpers for updating response data, file response
+ * support through `HttpPlatform`, and conversions to or from Web and Effect
+ * HTTP client responses.
  *
  * @since 4.0.0
  */

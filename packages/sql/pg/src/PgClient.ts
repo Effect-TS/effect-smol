@@ -1,38 +1,13 @@
 /**
- * PostgreSQL driver for Effect SQL, backed by the `pg` package.
+ * Connects Effect SQL to PostgreSQL using the `pg` package.
  *
- * Use this module to provide a {@link PgClient} and the generic `SqlClient`
- * service from pool settings, a single managed `pg.Client`, an existing
- * `pg.Pool`, or custom connection acquirers. The client uses Effect SQL's
- * PostgreSQL compiler, classifies common PostgreSQL failures as `SqlError`s,
- * and adds PostgreSQL-specific JSON fragments plus LISTEN/NOTIFY operations.
- *
- * ## Mental model
- *
- * Pool-backed clients acquire a connection for each operation. Transactions and
- * cursor streams keep a dedicated connection for their scope, so they consume
- * pool capacity while active. Clients built from one `pg.Client` serialize
- * query access through that client; set `acquireForStream` in
- * {@link makeClient} when streams or listeners need separate clients.
- *
- * ## Common tasks
- *
- * - Use {@link layer} with concrete pool settings, or {@link layerConfig} when
- *   settings should come from `Config`.
- * - Use {@link make} for a scoped pool-backed client without immediately
- *   turning it into a layer.
- * - Use {@link fromPool} or {@link fromClient} when another component owns
- *   acquisition of the underlying `pg` resources.
- * - Use `client.json`, `client.listen`, and `client.notify` for
- *   PostgreSQL-specific values and notifications.
- *
- * ## Gotchas
- *
- * LISTEN opens a scoped long-lived client and issues `UNLISTEN` when the stream
- * scope closes, so keep listener streams scoped for exactly the period
- * notifications are needed. Long-running transactions, streams, and listeners
- * can hold onto database connections even while other fibers continue to use
- * the same `PgClient`.
+ * This module provides constructors and layers for building a PostgreSQL
+ * client from pool settings, a managed `pg.Client`, an existing `pg.Pool`, or
+ * custom connection code. The client runs Effect SQL queries against
+ * PostgreSQL, including transactions and streamed results, and adds helpers for
+ * JSON values and LISTEN/NOTIFY messages. It also maps common PostgreSQL
+ * failures, such as connection, authentication, constraint, timeout, and
+ * deadlock errors, into Effect SQL errors.
  *
  * @since 4.0.0
  */

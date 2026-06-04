@@ -1,36 +1,12 @@
 /**
- * Type-safe HTTP clients derived from `HttpApi` declarations.
+ * Builds HTTP clients from `HttpApi` declarations.
  *
- * This module turns the groups and endpoints described by an `HttpApi` into
- * callable client methods backed by an `HttpClient`. Use {@link make} or
- * {@link makeWith} to call a remote API with the same schema-driven contract as
- * the server, and use {@link group}, {@link endpoint}, or {@link urlBuilder}
- * when only part of an API or only the encoded URL is needed.
- *
- * **Mental model**
- *
- * A generated client mirrors the API structure: top-level endpoints become
- * methods on the client, and named groups become nested objects. Each call
- * encodes path parameters, query values, headers, and payloads from endpoint
- * schemas, runs client middleware, executes the request, and decodes successful
- * or declared error responses from the returned `HttpClientResponse`.
- *
- * **Common tasks**
- *
- * Use {@link make} when the `HttpClient` service should come from the Effect
- * environment. Use {@link makeWith} when a concrete or transformed client is
- * already available. Use {@link urlBuilder} to reuse endpoint path and query
- * encoding without executing a request. Select `responseMode` per call when
- * code needs the decoded value, the raw response, or both.
- *
- * **Gotchas**
- *
- * Payloads for HTTP methods without request bodies are encoded into URL
- * parameters, and multipart payloads must be supplied as `FormData`.
- * `response-only` skips success and error decoding for custom response
- * handling. Declared error responses decode into the endpoint error type;
- * unknown statuses fail as `HttpClientError.DecodeError`, and response decoding
- * can fail with `SchemaError`.
+ * The client methods are derived from the groups and endpoints in an `HttpApi`
+ * and run through an `HttpClient`. They use the same schema-driven contract as
+ * the server: request parts are encoded from endpoint schemas, client
+ * middleware is applied, the HTTP request is executed, and declared success or
+ * error responses are decoded. This module also includes helpers for building a
+ * client for only one group, one endpoint, or only the encoded URL.
  *
  * @since 4.0.0
  */

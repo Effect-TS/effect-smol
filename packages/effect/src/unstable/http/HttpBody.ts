@@ -1,57 +1,13 @@
 /**
- * Describes the body attached to outgoing HTTP requests and server responses.
+ * Describes HTTP request and response bodies before they reach a platform
+ * adapter.
  *
- * `HttpBody` is the transport-facing representation used by the HTTP modules
- * before a platform adapter turns a request or response into a concrete Web,
- * Node, or other runtime value. Each body variant carries the payload plus the
- * metadata an adapter can safely know ahead of time, such as `contentType` and
- * `contentLength`.
- *
- * **Mental model**
- *
- * - {@link empty} represents an absent body.
- * - {@link uint8Array}, {@link text}, {@link jsonUnsafe}, {@link json}, and
- *   {@link urlParams} build in-memory byte bodies with content metadata.
- * - {@link formData} and {@link formDataRecord} keep multipart data as
- *   `FormData` so the runtime can generate the boundary.
- * - {@link stream} represents a stream of `Uint8Array` chunks and may omit the
- *   content length when the final size is not known.
- * - {@link raw} is the escape hatch for platform-specific body values that an
- *   adapter already knows how to send.
- *
- * **Common tasks**
- *
- * - Send text, bytes, JSON, URL-encoded data, multipart forms, or files.
- * - Use {@link json} or {@link jsonSchema} when JSON encoding failures should
- *   be represented as `HttpBodyError` values.
- * - Use {@link file} or {@link fileFromInfo} when file metadata should become
- *   `contentType` / `contentLength` metadata for the adapter.
- * - Use {@link isHttpBody} when accepting unknown values at an integration
- *   boundary.
- *
- * **Gotchas**
- *
- * - {@link jsonUnsafe} calls `JSON.stringify` directly and can throw; prefer
- *   {@link json} in effectful code.
- * - `FormData` bodies intentionally leave `contentType` unset because setting a
- *   multipart header without the generated boundary produces invalid requests.
- * - Stream bodies may not have a `contentLength`; code that requires one must
- *   provide it explicitly when constructing the stream body.
- *
- * **Example** (Creating common body variants)
- *
- * ```ts
- * import { HttpBody, UrlParams } from "effect/unstable/http"
- * import * as assert from "node:assert"
- *
- * const textBody = HttpBody.text("hello")
- * const jsonBody = HttpBody.jsonUnsafe({ name: "Ada" })
- * const formBody = HttpBody.urlParams(UrlParams.fromInput({ q: "effect" }))
- *
- * assert.equal(textBody.contentType, "text/plain")
- * assert.equal(jsonBody.contentType, "application/json")
- * assert.equal(formBody.contentType, "application/x-www-form-urlencoded")
- * ```
+ * `HttpBody` is the shared body representation used by the HTTP modules. Each
+ * variant stores the payload together with metadata that can be known before
+ * sending it, such as `contentType` and `contentLength`. This module includes
+ * body constructors for common payload shapes, support for schema-encoded JSON
+ * bodies, streaming and file-backed bodies, and the error type used when body
+ * construction fails.
  *
  * @since 4.0.0
  */

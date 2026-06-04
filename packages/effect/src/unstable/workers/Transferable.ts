@@ -8,27 +8,6 @@
  * Worker platforms then pass the collected values as the transfer list for the
  * same `postMessage` call, avoiding copies for large payloads and ports.
  *
- * **Mental model**
- *
- * A `Collector` is an optional context service. During encoding, `getterAddAll`
- * and `schema` add transferable values when a collector is present and leave the
- * encoded value unchanged. The built-in `Uint8Array`, `ImageData`, and
- * `MessagePort` schemas are convenience wrappers around the same behavior.
- *
- * **Common tasks**
- *
- * Wrap a worker message field with `schema` when the transferable is nested or
- * derived from the encoded value. Provide a fresh collector around each message
- * encode, read or clear it after encoding, and pass the resulting list to the
- * worker transport.
- *
- * **Gotchas**
- *
- * Transfer annotations do not make unsupported values structured-cloneable.
- * Ownership moves to the receiver after `postMessage`, so buffers are detached
- * from the sender. For typed array views, collecting `view.buffer` transfers the
- * whole backing buffer, including bytes used by other views.
- *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

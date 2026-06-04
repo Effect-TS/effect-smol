@@ -1,62 +1,12 @@
 /**
- * The `Primitive` module defines the lowest-level value parsers used by the
- * unstable CLI package. A `Primitive<A>` takes one raw command-line string and
- * returns an `Effect` that either produces an `A` or fails with a parser
- * message.
+ * Parses raw command-line strings into typed values.
  *
- * `Argument` and `Flag` build on primitives to add names, aliases, defaults,
- * prompts, config fallbacks, repetition, and help metadata. Use this module
- * directly when defining a custom CLI input shape or when composing parser
- * behavior before it becomes an argument or flag.
- *
- * **Mental model**
- *
- * - A primitive parses one value token; it does not know whether the token came
- *   from a positional argument or a named flag.
- * - Parsing may be pure, such as {@link string}, {@link integer},
- *   {@link boolean}, or {@link choice}, or effectful, such as {@link path},
- *   {@link fileText}, {@link fileParse}, and {@link fileSchema}.
- * - Failure is represented as a string message so higher-level CLI parsers can
- *   attach it to generated usage and help output.
- * - File and path primitives require filesystem and path services through the
- *   parsing effect environment.
- *
- * **Common tasks**
- *
- * - Parse scalar values with {@link string}, {@link integer}, {@link float},
- *   {@link boolean}, and {@link date}.
- * - Restrict input to named alternatives with {@link choice}.
- * - Resolve and validate filesystem paths with {@link path}.
- * - Read raw file content with {@link fileText}, parse structured files with
- *   {@link fileParse}, or decode parsed content with {@link fileSchema}.
- * - Hide sensitive input with {@link redacted}.
- * - Parse `key=value` entries with {@link keyValuePair}.
- *
- * **Example** (Parsing raw CLI values)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { Primitive } from "effect/unstable/cli"
- *
- * const parseValues = Effect.gen(function*() {
- *   const port = yield* Primitive.integer.parse("8080")
- *   const mode = yield* Primitive.choice([
- *     ["dev", "development"],
- *     ["prod", "production"]
- *   ] as const).parse("prod")
- *
- *   return { port, mode }
- * })
- * ```
- *
- * **Gotchas**
- *
- * - `choice` matches input strings exactly; it does not normalize casing or
- *   trim whitespace.
- * - `fileParse` selects a parser from `options.format` or the file extension;
- *   unsupported formats fail before schema decoding.
- * - {@link none} is a sentinel parser that always fails. It is used by higher
- *   layers for parameters that must reject attached values.
+ * A `Primitive<A>` receives one string and returns an `Effect` that either
+ * produces an `A` or fails with a parser message. `Argument` and `Flag` build
+ * on these primitives to add names, aliases, defaults, prompts, configuration
+ * fallbacks, repetition, and help metadata. Primitive parsers cover common
+ * scalar values, paths, files, structured config files, schema-decoded input,
+ * redacted values, and key-value pairs.
  *
  * @since 4.0.0
  */

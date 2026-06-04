@@ -3,40 +3,9 @@
  *
  * This module provides reusable `Schema.ErrorClass` values for common HTTP
  * status codes, plus `HttpApiSchemaError` for request decoding failures raised
- * by the HTTP API runtime. The status errors are ready to use in endpoint or
+ * by the HTTP API runtime. The status errors can be used in endpoint or
  * middleware error declarations and are understood by builders, generated
  * clients, reflection, and OpenAPI generation.
- *
- * **Mental model**
- *
- * Each status error carries an `httpApiStatus` schema annotation and implements
- * `HttpServerRespondable`. Declaring one as an endpoint error tells the server
- * how to encode that failure and tells generated clients how to decode it. Using
- * an instance directly as a server response produces an empty response with the
- * matching HTTP status.
- *
- * **Common tasks**
- *
- * Use classes such as {@link BadRequest}, {@link Unauthorized}, {@link NotFound},
- * or {@link InternalServerError} when an API error should have a typed body.
- * Use the matching `*NoContent` exports when the wire response intentionally has
- * no body but clients should still decode that status into a typed error value.
- * Use {@link HttpApiSchemaError} to identify failures from decoding path
- * params, headers, query values, body values, or payload values.
- *
- * **Gotchas**
- *
- * Custom error schemas need an explicit `HttpApiSchema.status` annotation when
- * they should map to a status other than `500 Internal Server Error`. Request
- * decoding failures are represented separately by {@link HttpApiSchemaError},
- * which responds as `400 Bad Request` unless middleware transforms it into a
- * declared API error.
- *
- * **See also**
- *
- * `HttpApiSchema` for status and no-content annotations, `HttpApiEndpoint` for
- * declaring endpoint errors, `HttpApiMiddleware` for middleware error schemas,
- * and `HttpApiBuilder` for server-side error encoding.
  *
  * @since 4.0.0
  */

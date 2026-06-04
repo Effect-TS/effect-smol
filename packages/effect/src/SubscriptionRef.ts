@@ -1,58 +1,11 @@
 /**
- * The `SubscriptionRef` module combines a fiber-safe mutable reference with a
- * replaying stream of state changes. A `SubscriptionRef<A>` stores the latest
- * value, serializes updates, and publishes each committed value so subscribers
- * can observe state as it evolves.
+ * Stores mutable state and publishes changes as a stream.
  *
- * **Mental model**
- *
- * - {@link make} creates the reference and immediately publishes the initial
- *   value.
- * - {@link get} reads the latest value without subscribing.
- * - {@link set}, {@link update}, and {@link modify} change the value under the
- *   reference semaphore and publish the new value.
- * - {@link changes} returns a stream that first emits the current value and
- *   then emits future published values.
- * - The `Some` variants leave the value unchanged and publish nothing when
- *   their `Option` result is empty.
- *
- * **Common tasks**
- *
- * - Create shared state with {@link make}.
- * - Read once with {@link get} or observe over time with {@link changes}.
- * - Replace state with {@link set}, {@link setAndGet}, or {@link getAndSet}.
- * - Transform state with {@link update}, {@link updateAndGet},
- *   {@link getAndUpdate}, or their effectful variants.
- * - Compute a separate result while updating with {@link modify} or
- *   {@link modifyEffect}.
- *
- * **Example** (Reading the current value through changes)
- *
- * ```ts
- * import { Effect, Stream, SubscriptionRef } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const ref = yield* SubscriptionRef.make(0)
- *
- *   yield* SubscriptionRef.update(ref, (n) => n + 1)
- *
- *   const latest = yield* SubscriptionRef.changes(ref).pipe(
- *     Stream.take(1),
- *     Stream.runCollect
- *   )
- *
- *   return latest
- * })
- * ```
- *
- * **Gotchas**
- *
- * - Every successful set or non-empty update is published, even when the new
- *   value is equal to the old one.
- * - New subscribers receive the current value from the replay buffer before
- *   future updates.
- * - Unsafe helpers bypass the semaphore and should only be used when the caller
- *   already controls access.
+ * A `SubscriptionRef<A>` stores the latest value, publishes the initial value,
+ * and publishes every committed update so subscribers can observe state over
+ * time. Updates are serialized so only one change is applied at a time. This
+ * module includes constructors, current-value reads, the `changes` stream,
+ * writes, updates, partial updates, and effectful update helpers.
  *
  * @since 2.0.0
  */

@@ -1,85 +1,13 @@
 /**
- * Define data shapes, validate unknown input, and transform values between formats.
+ * Describes data shapes and how unknown input becomes trusted values.
  *
- * ## Mental model
- *
- * - **Schema** — a description of a data shape. Every schema carries a decoded
- *   *Type* (the value you work with) and an *Encoded* representation (the
- *   serialized form, e.g. JSON).
- * - **Decoding** — turning unknown external data (API responses, form
- *   submissions, config files) into typed, validated values.
- * - **Encoding** — turning typed values back into a serializable format.
- * - **Codec** — a schema that tracks both Type and Encoded, so it can decode
- *   *and* encode. Most concrete schemas are Codecs.
- * - **Check / Filter** — a constraint attached to a schema (e.g. `isMinLength`,
- *   `isGreaterThan`). Attach them with `.check(...)`.
- * - **Transformation** — a pair of functions (decode + encode) that convert
- *   values between two schemas. Created with {@link decodeTo} / {@link encodeTo}.
- * - **Annotation** — metadata attached to a schema (title, description, custom
- *   keys). Attach with `.annotate(...)`.
- *
- * ## Common tasks
- *
- * - Define a struct: {@link Struct}
- * - Define a union: {@link Union}, {@link TaggedUnion}, {@link Literals}
- * - Define an array: {@link ArraySchema}, {@link NonEmptyArray}
- * - Define a record: {@link Record}
- * - Define a tuple: {@link Tuple}, {@link TupleWithRest}
- * - Validate unknown data synchronously: {@link decodeUnknownSync}
- * - Validate unknown data (Effect): {@link decodeUnknownEffect}
- * - Encode a value: {@link encodeUnknownSync}, {@link encodeUnknownEffect}
- * - Type guard: {@link is}
- * - Assertion: {@link asserts}
- * - Add constraints: `.check(...)` with filters like {@link isMinLength},
- *   {@link isGreaterThan}, {@link isPattern}, {@link isUUID}, {@link isGUID}
- * - Transform between schemas: {@link decodeTo}, {@link encodeTo}
- * - Add a default for missing keys: {@link withDecodingDefault}, {@link withDecodingDefaultKey}
- * - Create branded types: {@link brand}
- * - Define classes with validation: {@link Class}, {@link TaggedClass}
- * - Define error classes: {@link ErrorClass}, {@link TaggedErrorClass}
- * - Generate JSON Schema: {@link toJsonSchemaDocument}
- * - Generate test data: {@link toArbitrary}
- * - Derive equivalence: {@link toEquivalence}
- *
- * ## Gotchas
- *
- * - `Schema.optional` creates `T | undefined` (key can be missing *or*
- *   `undefined`). Use `Schema.optionalKey` for exact optional properties.
- * - `decodeTo` is curried: use `from.pipe(Schema.decodeTo(to, ...))`.
- * - `decodeUnknownSync` throws on failure. Use `decodeUnknownExit` or
- *   `decodeUnknownOption` for non-throwing alternatives.
- * - Filters do not change the TypeScript type. Use {@link refine} or
- *   {@link brand} to narrow the type.
- * - Recursive schemas require {@link suspend} to avoid infinite loops.
- *
- * ## Quickstart
- *
- * **Example** (Validate a user object)
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * const User = Schema.Struct({
- *   name: Schema.String.check(Schema.isMinLength(1)),
- *   age: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)),
- *   email: Schema.optionalKey(Schema.String)
- * })
- *
- * // Decode unknown input — throws on failure
- * const user = Schema.decodeUnknownSync(User)({
- *   name: "Alice",
- *   age: 30
- * })
- *
- * console.log(user)
- * // { name: "Alice", age: 30 }
- * ```
- *
- * @see {@link Schema} — type-level view tracking only the decoded Type
- * @see {@link Codec} — type-level view tracking both Type and Encoded
- * @see {@link Struct} — define object shapes
- * @see {@link decodeUnknownSync} — synchronous validation
- * @see {@link decodeTo} — schema transformations
+ * A schema can validate input, decode it into an application type, and encode
+ * that value back to another representation. This module contains the main
+ * schema, codec, decoder, and encoder APIs, together with schemas for common
+ * JavaScript values and Effect data types. It also supports refinements,
+ * transformations, defaults, classes, JSON Schema generation, test data
+ * generation, formatting, equivalence, optics, and differs derived from schema
+ * definitions.
  *
  * @since 4.0.0
  */

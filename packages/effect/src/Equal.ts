@@ -1,71 +1,11 @@
 /**
- * Structural and custom equality for Effect values.
+ * Compares values with Effect's structural equality rules.
  *
- * The `Equal` module provides deep structural comparison for primitives, plain
- * objects, arrays, Maps, Sets, Dates, and RegExps. Types that implement the
- * {@link Equal} interface can supply their own comparison logic while staying
- * compatible with the rest of the ecosystem (HashMap, HashSet, etc.).
- *
- * ## Mental model
- *
- * - **Structural equality** — two values are equal when their contents match,
- *   not when they share the same reference.
- * - **Hash-first shortcut** — before comparing fields, the module checks
- *   {@link Hash.hash}. If the hashes differ the objects are unequal without
- *   further traversal.
- * - **Equal interface** — any object that implements both {@link symbol} (the
- *   equality method) and `Hash.symbol` (the hash method) can define custom
- *   comparison logic.
- * - **Caching** — comparison results for object pairs are cached in a WeakMap.
- *   This makes repeated checks fast but **requires immutability** after the
- *   first comparison.
- * - **By-reference opt-out** — {@link byReference} and {@link byReferenceUnsafe}
- *   let you switch individual objects back to reference equality when you need
- *   mutable identity semantics.
- *
- * ## Common tasks
- *
- * - Compare two values → {@link equals}
- * - Check if a value implements `Equal` → {@link isEqual}
- * - Use `equals` where an `Equivalence` is expected → {@link asEquivalence}
- * - Implement custom equality on a class → implement {@link Equal} (see
- *   example on the interface)
- * - Opt an object out of structural equality → {@link byReference} /
- *   {@link byReferenceUnsafe}
- *
- * ## Gotchas
- *
- * - Objects **must be treated as immutable** after their first equality check.
- *   Results are cached; mutating an object afterwards yields stale results.
- * - `NaN` is considered equal to `NaN` (unlike `===`).
- * - Functions without an `Equal` implementation are compared by reference.
- * - Map and Set comparisons are order-independent but O(n²) in size.
- * - If only one of two objects implements `Equal`, they are never equal.
- *
- * ## Quickstart
- *
- * **Example** (basic structural comparison)
- *
- * ```ts
- * import { Equal } from "effect"
- *
- * // Primitives
- * console.log(Equal.equals(1, 1))       // true
- * console.log(Equal.equals("a", "b"))   // false
- *
- * // Objects and arrays
- * console.log(Equal.equals({ x: 1 }, { x: 1 })) // true
- * console.log(Equal.equals([1, 2], [1, 2]))       // true
- *
- * // Curried form
- * const is42 = Equal.equals(42)
- * console.log(is42(42)) // true
- * console.log(is42(0))  // false
- * ```
- *
- * @see {@link equals} — the main comparison function
- * @see {@link Equal} — the interface for custom equality
- * @see {@link Hash} — the companion hashing module
+ * `equals` compares primitives, arrays, plain objects, maps, sets, dates,
+ * regular expressions, and values that implement the `Equal` interface. This
+ * module also defines the equality symbol, guards, adapters, map and set
+ * comparison builders, and helpers for marking objects that should compare only
+ * by reference.
  *
  * @since 2.0.0
  */

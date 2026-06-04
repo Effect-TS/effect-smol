@@ -1,58 +1,13 @@
 /**
- * The `Tool` module describes callable capabilities that a language model can
- * request during a workflow. A tool definition names the operation, describes
- * its parameter shape, declares the success and failure payloads, and carries
- * annotations that providers or MCP adapters can expose to clients.
+ * Definitions and helpers for tools that AI models can request during a
+ * workflow.
  *
- * **Mental model**
- *
- * - `Tool.make` defines an application-owned tool whose handler is supplied by
- *   a toolkit.
- * - `dynamic` represents tools discovered at runtime, including tools backed by
- *   raw JSON Schema.
- * - `providerDefined` represents native provider features such as web search or
- *   code execution, optionally with an application handler for returned data.
- * - Schemas validate tool-call parameters and encode/decode handler results;
- *   `failureMode` controls whether handler failures fail the effect or become a
- *   returned tool-result value.
- *
- * **Common tasks**
- *
- * - Define typed application tools with {@link make}.
- * - Register runtime-discovered tools with {@link dynamic}.
- * - Model provider-native tools with {@link providerDefined}.
- * - Generate provider-facing parameter JSON Schema with {@link getJsonSchema}.
- * - Add tool metadata with annotations such as {@link Title}, {@link Readonly},
- *   {@link Destructive}, {@link Idempotent}, {@link OpenWorld}, and
- *   {@link Strict}.
- *
- * **Gotchas**
- *
- * - Tool names are runtime lookup keys for toolkits; choose stable names.
- * - Tool definitions do not execute anything by themselves. Handlers are bound
- *   when tools are placed in a toolkit.
- * - Dynamic tools created from raw JSON Schema receive `unknown` parameters in
- *   handlers. Use Effect `Schema` values when you need typed parameters.
- * - Provider-defined tools have both a custom Effect name and a provider name
- *   so multiple providers can expose similarly named native tools.
- *
- * **Example** (Defining a typed tool)
- *
- * ```ts
- * import { Schema } from "effect"
- * import { Tool } from "effect/unstable/ai"
- *
- * const SearchDocs = Tool.make("SearchDocs", {
- *   description: "Search project documentation",
- *   parameters: Schema.Struct({
- *     query: Schema.String,
- *     limit: Schema.optional(Schema.Number)
- *   }),
- *   success: Schema.Array(Schema.String),
- *   failure: Schema.String,
- *   needsApproval: ({ limit }) => limit !== undefined && limit > 20
- * }).annotate(Tool.Readonly, true)
- * ```
+ * A tool names an operation, describes the parameters it accepts, declares
+ * successful and failed results, and can require approval before execution.
+ * This module supports tools defined by the application, tools built into a
+ * provider, and dynamic tools whose schema is known only at runtime. It also
+ * includes the shared types and conversion helpers needed by language-model
+ * requests, tool handlers, and provider integrations.
  *
  * @since 4.0.0
  */

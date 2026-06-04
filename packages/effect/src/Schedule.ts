@@ -1,66 +1,10 @@
 /**
- * Declarative policies for retrying, repeating, and pacing Effect programs.
+ * Describes policies for retrying, repeating, and pacing Effect programs.
  *
- * A `Schedule<Output, Input, Error, Env>` is a stateful policy that is stepped
- * with an input value. Each step either stops the recurrence or emits an output
- * together with the delay before the next step. Schedules are values: they can
- * be transformed, combined, and passed to retry, repeat, stream, and channel
- * APIs without running anything until the surrounding Effect program runs.
- *
- * **Mental model**
- *
- * - Constructors such as {@link recurs}, {@link spaced}, {@link fixed},
- *   {@link exponential}, and {@link fibonacci} define the base cadence or
- *   stopping rule.
- * - Combinators such as {@link both}, {@link either}, and {@link andThen}
- *   combine schedules and determine both stopping behavior and output shape.
- * - Delay helpers such as {@link addDelay}, {@link modifyDelay}, and
- *   {@link jittered} adjust pacing while preserving the schedule's control
- *   flow.
- * - Metadata-aware constructors and {@link CurrentMetadata} expose attempts,
- *   elapsed time, input, output, and duration for advanced policies.
- *
- * **Common tasks**
- *
- * - Retry a failing effect with exponential backoff and a maximum retry count.
- * - Repeat a successful effect on a fixed or spaced interval.
- * - Add jitter so concurrent clients do not retry at the same instant.
- * - Transform or retain schedule outputs with {@link map},
- *   {@link collectOutputs}, and {@link take}.
- *
- * **Example** (Retrying with bounded exponential backoff)
- *
- * ```ts
- * import { Effect, Schedule } from "effect"
- *
- * let attempts = 0
- *
- * const request = Effect.sync(() => {
- *   attempts += 1
- *   return attempts
- * }).pipe(
- *   Effect.flatMap((attempt) =>
- *     attempt < 3 ? Effect.fail("temporary failure") : Effect.succeed("ok")
- *   )
- * )
- *
- * const policy = Schedule.exponential("100 millis").pipe(
- *   Schedule.jittered,
- *   Schedule.both(Schedule.recurs(5))
- * )
- *
- * const program = Effect.retry(request, policy)
- * ```
- *
- * **Gotchas**
- *
- * - A schedule is a description; delays happen only when an operation such as
- *   `Effect.retry` or `Effect.repeat` runs it.
- * - `Schedule.recurs(3)` allows three recurrences in addition to the first run
- *   performed by retry or repeat.
- * - Combining schedules changes the output type as well as the stopping rule,
- *   so check the resulting type when using {@link both}, {@link either}, or
- *   {@link andThen}.
+ * A `Schedule<Output, Input, Error, Env>` is stepped with an input value. Each
+ * step either stops or produces an output together with the delay before the
+ * next step. Schedules are used by retry, repeat, stream, and channel APIs to
+ * decide when work should continue, how long to wait, and when to stop.
  *
  * @since 2.0.0
  */

@@ -1,53 +1,11 @@
 /**
- * Utilities for defining equivalence relations - binary relations that determine when two values
- * should be considered equivalent. Equivalence relations are used for comparing, deduplicating,
- * and organizing data in collections and data structures.
+ * Defines reusable equality functions for values of the same type.
  *
- * ## Mental model
- *
- * - **Equivalence relation**: A function `(a: A, b: A) => boolean` that returns `true` when values are equivalent
- * - **Reflexive property**: Every value is equivalent to itself (`eq(a, a) === true`)
- * - **Symmetric property**: If `a` is equivalent to `b`, then `b` is equivalent to `a` (`eq(a, b) === eq(b, a)`)
- * - **Transitive property**: If `a` is equivalent to `b` and `b` is equivalent to `c`, then `a` is equivalent to `c`
- * - **Reference equality optimization**: {@link make} checks `===` first for performance before calling the custom function
- * - **Composition**: Equivalences can be combined using {@link combine} and {@link combineAll} to create more complex relations
- *
- * ## Common tasks
- *
- * - Creating custom equivalences → {@link make}
- * - Using strict equality (`===`) → {@link strictEqual}
- * - Combining multiple equivalences (AND logic) → {@link combine}, {@link combineAll}
- * - Transforming input before comparison → {@link mapInput}
- * - Creating equivalences for structured types → {@link Struct}, {@link Tuple}, {@link Array_}, {@link Record}
- *
- * ## Gotchas
- *
- * - `strictEqual` uses `===`, so `NaN !== NaN` and objects are compared by reference, not structure
- * - `make` optimizes with a reference equality check, so identical references return `true` without calling the function
- * - `combineAll` with an empty collection returns an equivalence that always returns `true`
- * - `Tuple` and `Array` require matching lengths; different lengths are never equivalent
- *
- * ## Quickstart
- *
- * **Example** (Case-insensitive string equivalence)
- *
- * ```ts
- * import { Array, Equivalence } from "effect"
- *
- * const caseInsensitive = Equivalence.make<string>((a, b) =>
- *   a.toLowerCase() === b.toLowerCase()
- * )
- *
- * const strings = ["Hello", "world", "HELLO", "World"]
- * const deduplicated = Array.dedupeWith(strings, caseInsensitive)
- * console.log(deduplicated) // ["Hello", "world"]
- * ```
- *
- * ## See also
- *
- * - `Equal` - For structural equality (can convert to Equivalence)
- * - `Array.dedupeWith` - Remove duplicates using an equivalence
- * - `Chunk` - Collections that use equivalences for operations
+ * An `Equivalence<A>` returns `true` when two `A` values should be treated as
+ * the same for a particular purpose. This module includes strict equality
+ * instances for primitive types, constructors for custom comparisons, and
+ * helpers for tuples, arrays, structs, records, dates, and values compared
+ * through a derived field.
  *
  * @since 2.0.0
  */

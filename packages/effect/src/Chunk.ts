@@ -1,72 +1,11 @@
 /**
- * The `Chunk` module provides an immutable, high-performance sequence data structure
- * optimized for functional programming patterns. A `Chunk` is a persistent data structure
- * that supports efficient append, prepend, and concatenation operations.
+ * Stores many values in an immutable ordered collection.
  *
- * ## What is a Chunk?
- *
- * A `Chunk<A>` is an immutable sequence of elements of type `A` that provides:
- * - **O(1) append and prepend operations**
- * - **Efficient concatenation** through tree-like structure
- * - **Memory efficiency** with structural sharing
- * - **Rich API** with functional programming operations
- * - **Type safety** with full TypeScript integration
- *
- * ## Key Features
- *
- * - **Immutable**: All operations return new chunks without modifying the original
- * - **Efficient**: Optimized data structure with logarithmic complexity for most operations
- * - **Functional**: Rich set of transformation and combination operators
- * - **Lazy evaluation**: Many operations are deferred until needed
- * - **Interoperable**: Easy conversion to/from arrays and other collections
- *
- * ## Performance Characteristics
- *
- * - **Append/Prepend**: O(1) amortized
- * - **Random Access**: O(log n)
- * - **Concatenation**: O(log min(m, n))
- * - **Iteration**: O(n)
- * - **Memory**: Structural sharing minimizes allocation
- *
- * **Example** (Creating and combining chunks)
- *
- * ```ts
- * import { Chunk } from "effect"
- *
- * // Creating chunks
- * const chunk1 = Chunk.fromIterable([1, 2, 3])
- * const chunk2 = Chunk.fromIterable([4, 5, 6])
- * const empty = Chunk.empty<number>()
- *
- * // Combining chunks
- * const combined = Chunk.appendAll(chunk1, chunk2)
- * console.log(Chunk.toReadonlyArray(combined)) // [1, 2, 3, 4, 5, 6]
- * ```
- *
- * **Example** (Transforming chunks)
- *
- * ```ts
- * import { Chunk } from "effect"
- *
- * // Functional transformations
- * const numbers = Chunk.range(1, 5) // [1, 2, 3, 4, 5]
- * const doubled = Chunk.map(numbers, (n) => n * 2) // [2, 4, 6, 8, 10]
- * const evens = Chunk.filter(doubled, (n) => n % 4 === 0) // [4, 8]
- * const sum = Chunk.reduce(evens, 0, (acc, n) => acc + n) // 12
- * ```
- *
- * **Example** (Processing chunks with Effect)
- *
- * ```ts
- * import { Chunk, Effect } from "effect"
- *
- * // Working with Effects
- * const processChunk = Effect.fnUntraced(function*(chunk: Chunk.Chunk<number>) {
- *   const mapped = Chunk.map(chunk, (n) => n * 2)
- *   const filtered = Chunk.filter(mapped, (n) => n > 5)
- *   return Chunk.toReadonlyArray(filtered)
- * })
- * ```
+ * A `Chunk<A>` is useful when you need to build or transform collections
+ * without changing the original collection. It is designed for efficient
+ * append, prepend, and concatenation. This module includes helpers for
+ * creating, reading, slicing, mapping, filtering, sorting, zipping, combining,
+ * and converting chunks to and from arrays and iterables.
  *
  * @since 2.0.0
  */

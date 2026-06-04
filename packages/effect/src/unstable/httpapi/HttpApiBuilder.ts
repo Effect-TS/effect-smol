@@ -1,44 +1,10 @@
 /**
- * Server builders for declarative `HttpApi` contracts.
+ * Builds server routes from declarative `HttpApi` contracts.
  *
- * This module is the server-side bridge between an `HttpApi` description and an
- * `HttpRouter`. It turns endpoint metadata into routes, decodes incoming
- * request parts with `Schema`, runs HTTP API middleware, invokes the registered
- * handlers, and encodes successes or declared errors back into
- * `HttpServerResponse` values.
- *
- * **Mental model**
- *
- * `HttpApi` values describe what can be served; this module supplies how it is
- * served. Implement each group with {@link group}, then register the completed
- * API with {@link layer}. The layer reads the group implementations from the
- * Effect context, adds their routes to the active `HttpRouter`, and can also
- * expose the generated OpenAPI document.
- *
- * **Common tasks**
- *
- * Use {@link group} with `handlers.handle` to implement every endpoint in one
- * API group. Use `handlers.handleRaw` when the handler needs direct access to
- * the `HttpServerRequest` or must decode the payload manually. Use
- * {@link endpoint} when composing one endpoint route by hand, and use
- * {@link securityDecode} or {@link securitySetCookie} inside security-aware
- * middleware.
- *
- * **Gotchas**
- *
- * Every group in the API must have a matching {@link group} layer before
- * {@link layer} is evaluated; otherwise registration fails with a defect naming
- * the missing group service. Payload decoding is selected from the request
- * media type, so unsupported content types return `415` before the handler
- * runs. Request decoding failures are wrapped in `HttpApiSchemaError`; handler
- * failures are encoded only when they match the endpoint or middleware error
- * schemas.
- *
- * **See also**
- *
- * `HttpApi` for the top-level contract, `HttpApiGroup` and `HttpApiEndpoint`
- * for declaration, `HttpApiMiddleware` for server and client middleware, and
- * `OpenApi` for generated specifications.
+ * This module turns an `HttpApi` description plus group handlers into
+ * `HttpRouter` routes. At runtime it decodes request parts with schemas, runs
+ * middleware and security handlers, invokes the registered endpoint handler, and
+ * encodes successes or declared errors into `HttpServerResponse` values.
  *
  * @since 4.0.0
  */

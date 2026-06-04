@@ -1,37 +1,11 @@
 /**
- * Redis service adapter for Effect persistence modules.
+ * Redis support shared by persistence modules.
  *
- * This module defines the low-level {@link Redis} service used by Redis-backed
- * persistence, persisted queues, and rate limiter stores. It adapts a Redis
- * client or pool into Effect through a raw `send` command function and cached
- * Lua script execution.
- *
- * **Mental model**
- *
- * The service does not create or own Redis connections. {@link make} wraps a
- * caller-provided command sender, while {@link script} describes a Lua script's
- * source, parameters, key count, and result type. The service loads scripts
- * with `SCRIPT LOAD`, caches the returned SHA, and runs them with `EVALSHA`
- * through `Redis.eval`.
- *
- * **Common tasks**
- *
- * - Wrap an existing Redis client by implementing `send`.
- * - Use `Redis.send` for ordinary Redis commands.
- * - Use {@link script} for typed Lua helpers shared by persistence stores.
- * - Map client or network failures into {@link RedisError} in the provided
- *   command sender.
- *
- * **Gotchas**
- *
- * Script parameters are stringified before execution. The script descriptor's
- * key count controls how Redis splits `KEYS` from `ARGV`. Higher-level stores
- * add key prefixes and store ids on top of this service, so those identifiers
- * must stay stable when persisted data is expected to survive deployments.
- *
- * **See also**
- *
- * {@link Redis}, {@link make}, {@link script}, {@link RedisError}.
+ * This module defines a `Redis` service that can send Redis commands and run
+ * Lua scripts. It does not create a Redis client itself; callers provide a
+ * `send` function from their client or connection pool. The module also
+ * provides helpers for describing Lua scripts, loading them once, and running
+ * them later by their cached Redis id.
  *
  * @since 4.0.0
  */

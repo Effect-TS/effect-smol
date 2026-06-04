@@ -6,31 +6,6 @@
  * streamed responses and annotates interruptions that came from a remote client
  * closing or cancelling a request.
  *
- * **Mental model**
- *
- * A streaming RPC still has a normal RPC exit, but its success schema is marked
- * with {@link Stream}. The marker stores the stream element schema and the
- * stream error schema so transports can encode and decode each chunk while
- * keeping stream failures on the chunk stream.
- *
- * **Common tasks**
- *
- * - Use {@link Stream} when constructing RPC metadata directly
- * - Use {@link isStreamSchema} to branch between one-shot and streaming
- *   responses in protocol implementations
- * - Read the stored `success` and `error` schemas when encoding or decoding
- *   stream chunks
- * - Use {@link ClientAbort} to tag interruptions caused by client disconnects
- *
- * **Gotchas**
- *
- * - `Rpc.make(..., { stream: true })` installs this marker for you
- * - For streaming RPCs, the immediate RPC exit succeeds with `void`; stream
- *   elements and stream errors are encoded separately
- * - Request payload schemas live on the `Rpc` definition, not in this module
- * - `Stream` is RPC metadata, not a general-purpose codec for arbitrary
- *   `Stream` values
- *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"

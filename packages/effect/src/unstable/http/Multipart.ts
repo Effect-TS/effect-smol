@@ -1,41 +1,12 @@
 /**
  * Parses and persists HTTP `multipart/form-data` request bodies.
  *
- * `Multipart` turns incoming byte streams into typed {@link Part} values. Text
- * parts become decoded {@link Field} values, while upload parts remain streamed
- * {@link File} values until they are collected or written to scoped temporary
- * files. The persisted representation can then be decoded with schemas for
- * request handlers that receive fields and uploaded files together.
- *
- * **Mental model**
- *
- * Multipart parsing is incremental. {@link makeChannel} consumes request body
- * chunks and emits fields or files as soon as the parser reaches each part. A
- * `File` owns a one-shot byte stream for that upload; {@link toPersisted}
- * drains those file streams into scoped paths and collects text fields into a
- * {@link Persisted} record.
- *
- * **Common tasks**
- *
- * - Parse a request body stream into {@link Part} values with {@link makeChannel}.
- * - Persist parsed parts with {@link toPersisted} before schema decoding.
- * - Decode persisted forms with {@link schemaPersisted}, {@link schemaJson},
- *   {@link PersistedFileSchema}, or {@link SingleFileSchema}.
- * - Configure parser limits with {@link limitsServices} or the `Max*` context
- *   references.
- *
- * **Gotchas**
- *
- * Multipart request bodies are usually one-shot streams. Read each file stream
- * once, and use `contentEffect` only when the file is small enough to hold in
- * memory. Paths produced by {@link toPersisted} are scoped resources and stop
- * being valid when the scope closes. Client-provided file names are metadata,
- * not trusted filesystem paths.
- *
- * **See also**
- *
- * {@link Part}, {@link Field}, {@link File}, {@link Persisted},
- * {@link makeChannel}, {@link toPersisted}.
+ * `Multipart` turns incoming byte streams into typed form parts. Text parts
+ * become decoded fields, while upload parts stay as streamed files until they
+ * are collected or written to scoped temporary files. The persisted
+ * representation can then be decoded with schemas for handlers that receive
+ * fields and uploaded files together. This module also includes multipart error
+ * types, schema helpers for persisted files, and parser limit settings.
  *
  * @since 4.0.0
  */

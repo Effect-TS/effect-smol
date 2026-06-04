@@ -1,37 +1,11 @@
 /**
- * Serialization support for the unstable RPC protocol.
+ * Serializes RPC protocol messages for transports.
  *
- * `RpcSerialization` is the boundary between encoded RPC protocol messages and
- * the bytes or strings carried by a transport. RPC clients and servers use the
- * service to turn `RpcMessage` envelopes into JSON, newline-delimited JSON,
- * JSON-RPC 2.0, or MessagePack payloads, and to parse those payloads back into
- * protocol messages.
- *
- * **Mental model**
- *
- * RPC schemas are responsible for encoding payloads, successes, failures, and
- * stream chunks into transport-safe values. This module then chooses how those
- * values are represented on the wire and whether message boundaries are part of
- * that representation. The parser returned by `makeUnsafe` may be stateful, so
- * transports should create a parser for the lifetime of the stream, connection,
- * or request body they are decoding.
- *
- * **Common tasks**
- *
- * Use `layerJson` or `layerJsonRpc` when the transport already frames each
- * payload, such as ordinary HTTP request and response bodies. Use
- * `layerNdjson`, `layerNdJsonRpc`, or `layerMsgPack` for sockets, workers, and
- * other streaming transports that can receive partial chunks or several
- * messages in one chunk. Provide a custom `RpcSerialization` service when a
- * transport requires a different content type, frame format, or binary codec.
- *
- * **Gotchas**
- *
- * Both ends of the connection must use compatible serialization and framing.
- * `json` and `jsonRpc` expect a complete payload for each decode call, while
- * `ndjson`, `ndJsonRpc`, and `msgPack` keep parser state for incomplete input.
- * JSON is easy to inspect but needs schema encodings for arbitrary binary
- * values; MessagePack is more compact and carries binary data more naturally.
+ * `RpcSerialization` is the boundary between `RpcMessage` envelopes and the
+ * bytes or strings carried by a transport. This module provides built-in
+ * serializers for JSON, newline-delimited JSON, JSON-RPC 2.0, and MessagePack,
+ * including framed formats that can decode multiple messages from streaming
+ * chunks.
  *
  * @since 4.0.0
  */

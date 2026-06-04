@@ -1,27 +1,12 @@
 /**
- * The `Prompt` module provides composable, effectful building blocks for
- * interactive command-line questions. A `Prompt<A>` describes terminal UI that
- * renders frames, reads keyboard input, validates responses, and eventually
- * produces a value of type `A`.
+ * Builds interactive terminal prompts for CLI applications.
  *
- * **Common tasks**
- *
- * - Ask for text, password, hidden, list, confirm, toggle, number, or date input
- * - Let users choose from select, autocomplete, multi-select, and file prompts
- * - Combine prompts with {@link all}, {@link map}, and {@link flatMap}
- * - Build specialized prompts with {@link custom}
- * - Run a prompt against the current terminal with {@link run}
- *
- * **Gotchas**
- *
- * - Prompts require terminal services and may fail with `Terminal.QuitError`
- *   when input ends or the prompt is quit
- * - Rendering is frame-based: custom prompts must return ANSI output from
- *   `render` and matching ANSI clearing output from `clear`
- * - Choices and file lists are paged by `maxPerPage`, so keyboard navigation
- *   and filtering should account for hidden off-page entries
- * - `password` and `hidden` return `Redacted` values; unwrap them only at the
- *   boundary where the secret is needed
+ * A `Prompt<A>` describes a small terminal UI that renders frames, reads
+ * keyboard input, validates responses, and eventually produces an `A`. Prompts
+ * can ask for simple values, selections, lists, files, hidden text, or custom
+ * interactions. This module includes prompt constructors, tools for combining
+ * and transforming prompt output, and support for running prompts through the
+ * `Terminal` service.
  *
  * @since 4.0.0
  */

@@ -1,77 +1,11 @@
 /**
- * Structured representation of how an Effect can fail.
+ * Records the full reason an `Effect` failed.
  *
- * A `Cause<E>` holds a flat array of `Reason` values, where each reason is one of:
- *
- * - **Fail** — a typed, expected error `E` (created by `Effect.fail`)
- * - **Die** — an untyped defect (`unknown`) from `Effect.die` or uncaught throws
- * - **Interrupt** — a fiber interruption, optionally carrying the interrupting fiber's ID
- *
- * ## Mental model
- *
- * - A `Cause` is always flat: concurrent and sequential failures are stored together
- *   in `cause.reasons` (a `ReadonlyArray<Reason<E>>`).
- * - Each `Reason` carries an `annotations` map with tracing metadata (stack frames, spans).
- * - An empty `reasons` array means the computation succeeded or the cause was empty
- *   ({@link empty}).
- * - `Cause` implements `Equal`, so two causes with identical reasons compare as equal.
- *
- * ## Common tasks
- *
- * | Intent | API |
- * |--------|-----|
- * | Create a cause | {@link fail}, {@link die}, {@link interrupt}, {@link fromReasons} |
- * | Test for reason types | {@link hasFails}, {@link hasDies}, {@link hasInterrupts} |
- * | Extract the first error/defect | {@link findError}, {@link findDefect}, {@link findFail}, {@link findDie} |
- * | Iterate over reasons manually | `cause.reasons.filter(Cause.isFailReason)` |
- * | Combine two causes | {@link combine} |
- * | Transform errors | {@link map} |
- * | Collapse to a single thrown value | {@link squash} |
- * | Render for logging | {@link pretty}, {@link prettyErrors} |
- * | Attach/read tracing metadata | {@link annotate}, {@link annotations}, {@link reasonAnnotations} |
- *
- * ## Gotchas
- *
- * - `findError`/`findDefect` return `Result.fail` (not `Option.none`) when no match is
- *   found. Use {@link findErrorOption} if you need an `Option`.
- * - `squash` picks the first `Fail` error, then the first `Die` defect, then falls back
- *   to a generic "interrupted" / "empty" error. It is lossy — use `prettyErrors` or
- *   iterate `reasons` directly when you need all failures.
- * - The module also exports several built-in error classes (`NoSuchElementError`,
- *   `TimeoutError`, `IllegalArgumentError`, `ExceededCapacityError`, `UnknownError`)
- *   and the `Done` completion signal. These all implement `YieldableError` and can be
- *   yielded directly inside `Effect.gen`.
- *
- * **Example** (inspecting a concurrent failure)
- *
- * ```ts
- * import { Cause, Effect } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const cause = yield* Effect.sandbox(
- *     Effect.all([
- *       Effect.fail("err1"),
- *       Effect.die("defect"),
- *       Effect.fail("err2")
- *     ], { concurrency: "unbounded" })
- *   ).pipe(Effect.flip)
- *
- *   const errors = cause.reasons
- *     .filter(Cause.isFailReason)
- *     .map((r) => r.error)
- *     .sort()
- *
- *   const defects = cause.reasons
- *     .filter(Cause.isDieReason)
- *     .map((r) => String(r.defect))
- *     .sort()
- *
- *   console.log(errors.join(",")) // "err1,err2"
- *   console.log(defects.join(",")) // "defect"
- * })
- *
- * Effect.runPromise(program)
- * ```
+ * A `Cause<E>` can contain typed failures, unexpected defects, interruptions,
+ * and annotations. Keeping those details together lets code inspect or format
+ * failures without first collapsing them to a single error value. This module
+ * includes the `Cause` and `Reason` data types, helpers for building and
+ * checking causes, and small error types used by several Effect APIs.
  *
  * @since 2.0.0
  */

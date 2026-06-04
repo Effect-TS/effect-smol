@@ -1,33 +1,10 @@
 /**
- * Immutable helpers for parsing and editing platform `URL` values.
+ * Parses and edits platform `URL` values.
  *
- * This module keeps the WHATWG `URL` object as the URL representation used by
- * HTTP clients and servers, then adds safe parsing and pipeable setters for
- * credentials, host, path, protocol, query, and hash components. Query strings
- * can be read, replaced, or transformed through `UrlParams` so repeated keys and
- * key/value encoding stay explicit.
- *
- * **Mental model**
- *
- * `fromString` returns a `Result` instead of throwing when URL construction
- * fails. Setters never mutate the original `URL`; each one clones the input and
- * assigns the requested component on the clone. Use `mutate` when several
- * component assignments should happen on the same clone.
- *
- * **Common tasks**
- *
- * - Parse absolute URLs, or resolve relative URL strings against a base URL.
- * - Pipe setters to adjust host, protocol, path, credentials, search, or hash.
- * - Extract query parameters with `urlParams`.
- * - Replace or transform query parameters with `setUrlParams` and
- *   `modifyUrlParams`.
- *
- * **Gotchas**
- *
- * Relative input needs an explicit base. Component assignment and serialization
- * follow platform `URL` rules, so values may be normalized or percent-encoded.
- * `setPassword` accepts `Redacted` input, but the resulting `URL` still contains
- * the actual credential and should be treated as sensitive when serialized.
+ * The HTTP modules use the standard `URL` object as their URL representation.
+ * This module adds safe parsing and helpers that return updated copies when
+ * changing credentials, host, path, protocol, query, or hash parts. Query
+ * strings can also be read or updated through `UrlParams`.
  *
  * @since 4.0.0
  */

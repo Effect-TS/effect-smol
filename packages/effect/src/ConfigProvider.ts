@@ -1,79 +1,10 @@
 /**
- * Provides the data source layer for the `Config` module. A `ConfigProvider`
- * knows how to load raw configuration nodes from a backing store (environment
- * variables, JSON objects, `.env` files, file trees) and expose them through a
- * uniform `Node` interface that `Config` schemas consume.
- *
- * ## Mental model
- *
- * - **Node** – a discriminated union (`Value | Record | Array`) that describes
- *   what lives at a given path in the configuration tree.
- * - **Path** – an array of string or numeric segments used to address a node
- *   (e.g. `["database", "host"]`).
- * - **ConfigProvider** – an object with a `load(path)` method that resolves a
- *   path to a `Node | undefined`. Providers can be composed and transformed.
- * - **Context.Reference** – `ConfigProvider` is registered as a reference
- *   service that defaults to `fromEnv()`, so it works without explicit
- *   provision.
- * - **SourceError** – the typed error returned when a backing store is
- *   unreadable (I/O failure, permission error, etc.).
- *
- * ## Common tasks
- *
- * - Read from environment variables → {@link fromEnv}
- * - Read from a JSON / plain object → {@link fromUnknown}
- * - Parse a `.env` string → {@link fromDotEnvContents}
- * - Load a `.env` file → {@link fromDotEnv}
- * - Read from a directory tree → {@link fromDir}
- * - Build a custom provider → {@link make}
- * - Fall back to another provider → {@link orElse}
- * - Scope a provider under a prefix → {@link nested}
- * - Convert path segments to `CONSTANT_CASE` → {@link constantCase}
- * - Transform path segments arbitrarily → {@link mapInput}
- * - Install a provider as a Layer → {@link layer} / {@link layerAdd}
- *
- * ## Gotchas
- *
- * - `fromEnv` joins path segments with `_` for lookup **and** splits env var
- *   names on `_` to discover child keys. `DATABASE_HOST=x` is therefore
- *   accessible at both `["DATABASE_HOST"]` and `["DATABASE", "HOST"]`.
- * - Because of `_` splitting, querying a parent path like `["DATABASE"]`
- *   returns a `Record` node with child key `"HOST"`, even if no env var
- *   named `DATABASE` exists.
- * - When using `fromEnv` with schemas that use camelCase keys, pipe the
- *   provider through {@link constantCase} so `databaseHost` resolves to
- *   `DATABASE_HOST`.
- * - `orElse` only falls back when the primary provider returns `undefined`
- *   (path not found). It does **not** catch `SourceError`.
- * - `nested` prepends segments to the path *after* `mapInput` has run, so
- *   the order of composition matters.
- *
- * ## Quickstart
- *
- * **Example** (Reading config from environment variables)
- *
- * ```ts
- * import { Config, ConfigProvider, Effect } from "effect"
- *
- * const provider = ConfigProvider.fromEnv({
- *   env: { APP_PORT: "3000", APP_HOST: "localhost" }
- * })
- *
- * const port = Config.number("port")
- *
- * const program = port.parse(
- *   provider.pipe(
- *     ConfigProvider.nested("app"),
- *     ConfigProvider.constantCase
- *   )
- * )
- *
- * // Effect.runSync(program) // 3000
- * ```
- *
- * @see {@link make} – build a provider from a lookup function
- * @see {@link fromEnv} – the default provider backed by `process.env`
- * @see {@link fromUnknown} – provider backed by a plain JS object
+ * Data sources used by `Config` to load raw configuration values. A
+ * `ConfigProvider` reads paths from places such as environment variables,
+ * JavaScript objects, `.env` contents, or directories, and returns a uniform
+ * `Node` shape that config schemas can decode. The module also includes helpers
+ * for composing providers, changing paths, and installing providers through
+ * layers.
  *
  * @since 4.0.0
  */

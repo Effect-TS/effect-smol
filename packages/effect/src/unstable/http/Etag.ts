@@ -6,28 +6,6 @@
  * cached content with `If-None-Match`, or protect writes with preconditions such
  * as `If-Match`.
  *
- * **Mental model**
- *
- * A strong ETag represents byte-for-byte identity for the selected
- * representation. A weak ETag represents a validator that is useful for cache
- * revalidation but not for operations that require exact byte identity. The
- * `Weak` and `Strong` models store the raw tag value; `toString` adds the
- * required quotes and the `W/` prefix for weak tags.
- *
- * **Common tasks**
- *
- * - Format an `Etag` value for an HTTP header with `toString`.
- * - Provide a `Generator` service with `layer` for strong metadata-derived tags.
- * - Use `layerWeak` when size and modification time are good cache validators
- *   but not a byte-for-byte guarantee.
- *
- * **Gotchas**
- *
- * The built-in generator derives tags only from file size and modification time.
- * Choose the strong layer only when that metadata changes for every byte-level
- * content change. This module formats ETags but does not parse incoming ETag
- * headers or implement conditional request logic.
- *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

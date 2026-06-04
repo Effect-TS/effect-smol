@@ -1,28 +1,12 @@
 /**
- * Persistent rate limiting for effects that need to coordinate token
- * consumption through a shared `RateLimiterStore`.
+ * Coordinates rate limits through shared persistent storage.
  *
- * The module exposes a `RateLimiter` service that can consume tokens for
- * string keys using either fixed-window counters or token-bucket state. It is
- * useful for protecting external APIs, enforcing per-user or per-tenant quotas,
- * throttling job workers, and coordinating limits across multiple fibers or
- * processes when they share the Redis-backed store. The helpers can fail fast
- * with `RateLimiterError`, return a delay to apply yourself, or wrap an effect
- * so it waits before continuing.
- *
- * Rate-limit keys and Redis prefixes are part of the persistence namespace, so
- * choose stable, collision-free values. The in-memory store is process-local
- * and is only coordinated inside one runtime, while the Redis store uses Lua
- * scripts for atomic updates under concurrent consumers. Time is measured with
- * the Effect `Clock`, windows are clamped to at least one millisecond, and
- * refill calculations use millisecond granularity.
- *
- * Fixed-window state is TTL-driven: rejected `fail` attempts do not extend the
- * current TTL, and Redis fixed-window keys expire automatically. Token-bucket
- * state keeps the remaining token count and last-refill time instead of using a
- * TTL, so high-cardinality dynamic keys may need an external cleanup or bounded
- * key strategy. With `onExceeded: "delay"`, overflow can be recorded so callers
- * should actually sleep for the returned delay, or use the provided accessors.
+ * The `RateLimiter` service consumes tokens for string keys using fixed-window
+ * counters or token-bucket state. It can protect external APIs, enforce quotas,
+ * or throttle workers across fibers and processes that share the same store.
+ * This module includes helpers that fail when a limit is exceeded, return the
+ * delay needed before continuing, or wrap an effect so it waits automatically.
+ * It also defines the store service and in-memory or Redis-backed store layers.
  *
  * @since 4.0.0
  */

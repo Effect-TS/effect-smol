@@ -6,30 +6,6 @@
  * page containing the OpenAPI document produced from the supplied `HttpApi` and
  * boots Scalar in the browser.
  *
- * ## Mental model
- *
- * {@link layer} serves the UI with the bundled Scalar script. {@link layerCdn}
- * serves the same UI while loading Scalar from jsDelivr, optionally pinned with
- * `version`. Both helpers register a `GET` route, defaulting to `/docs`, and
- * pass {@link ScalarConfig} through to Scalar's HTML configuration.
- *
- * ## Common tasks
- *
- * - Use {@link layer} when the application should serve the bundled Scalar
- *   assets without depending on a CDN at runtime.
- * - Use {@link layerCdn} when a CDN-loaded Scalar bundle is preferred, and pin
- *   `version` when repeatable output matters.
- * - Set `path` to mount the documentation UI somewhere other than `/docs`.
- * - Set `proxyUrl`, theme, layout, and `baseServerURL` in `ScalarConfig` for
- *   request testing, styling, and relative server URLs.
- *
- * ## Gotchas
- *
- * The mounted route is an HTML documentation page, not a raw OpenAPI JSON
- * endpoint. If clients, gateways, or documentation pipelines need the OpenAPI
- * document directly, expose it separately with `HttpApiBuilder.layer`'s
- * `openapiPath` option.
- *
  * @since 4.0.0
  */
 import * as Effect from "../../Effect.ts"

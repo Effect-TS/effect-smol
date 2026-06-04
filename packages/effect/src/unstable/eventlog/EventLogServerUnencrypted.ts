@@ -1,41 +1,13 @@
 /**
  * Plaintext server implementation for the event-log remote protocol.
  *
- * The module accepts unencrypted event batches from remote clients, runs the
- * registered event handlers, persists journal entries through `Storage`, and
- * streams compacted backlog entries plus live changes through the shared
- * `EventLogServer` RPC protocol. It is intended for trusted deployments, local
- * development, tests, and server-side producers that want typed event handling
- * and conflict detection without an encryption layer.
- *
- * **Mental model**
- *
- * `StoreMapping` resolves the client-requested store id to the server store,
- * `EventLogServerAuthorization` gates reads, writes, and identities, and
- * `Storage` is the durable boundary for remote entries and session
- * authentication bindings. Remote writes are sorted, checked for duplicates and
- * conflicts, passed to event handlers inside the storage transaction, and then
- * committed as remote entries. Change streams replay the requested backlog,
- * apply registered compactors when possible, and then continue with live
- * entries.
- *
- * **Common tasks**
- *
- * Use `layer` for a complete RPC server, `layerNoRpcServer` when an
- * `RpcServer.Protocol` is installed elsewhere, and `layerServer` plus
- * `makeWrite` for server-side plaintext writes that do not enter through RPC.
- * `layerStoreMappingStatic` and `layerStorageMemory` are small local defaults;
- * production systems usually provide their own mapping, authorization, and
- * durable storage services.
- *
- * **Gotchas**
- *
- * Payloads, journals, and change streams are plaintext, so protect the backing
- * store and transport with the surrounding infrastructure. Durable storage must
- * preserve session authentication bindings across restarts so a public key
- * cannot silently bind to a different signing key. The memory storage is
- * process-local and volatile; it is useful for tests and examples, not for
- * multi-process or restart-safe servers.
+ * This module accepts unencrypted event batches from remote clients, runs the
+ * registered event handlers, stores journal entries, and streams backlog plus
+ * live changes through the shared `EventLogServer` RPC protocol. It is intended
+ * for trusted deployments, local development, and tests where event data does
+ * not need a server-side encryption layer. The module also provides the
+ * services and layers needed to authorize requests, map stores, persist entries,
+ * and install the plaintext server.
  *
  * @since 4.0.0
  */

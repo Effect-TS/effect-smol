@@ -1,49 +1,10 @@
 /**
- * The `Cache` module provides an effectful, mutable key-value cache for values
- * computed by lookup effects. A `Cache<Key, A, E, R>` stores lookup exits for
- * keys, shares concurrent misses for the same key, and manages entry lifetime
- * with capacity limits and optional time-to-live policies.
+ * Caches values loaded by an Effect lookup function.
  *
- * **Mental model**
- *
- * - {@link make} and {@link makeWith} create a cache from a lookup function and
- *   a maximum capacity
- * - {@link get} returns a cached value when present, or runs the lookup for a
- *   missing or expired key
- * - Concurrent misses for the same key share one pending lookup and all await
- *   the same result
- * - Successes and failures are both cached as `Exit` values until their entry
- *   expires or is replaced
- * - Entries can live forever, use a fixed TTL, or use a dynamic TTL based on
- *   the lookup `Exit`
- * - Capacity uses access order: reads move entries to the back and overflow
- *   removes the oldest entries
- *
- * **Common tasks**
- *
- * - Create a cache: {@link make}, {@link makeWith}
- * - Read values: {@link get}, {@link getOption}, {@link getSuccess}
- * - Seed or overwrite values: {@link set}
- * - Refresh values: {@link refresh}
- * - Remove entries: {@link invalidate}, {@link invalidateWhen}, {@link invalidateAll}
- * - Inspect contents: {@link has}, {@link size}, {@link keys}, {@link values}, {@link entries}
- *
- * **Gotchas**
- *
- * - {@link getOption} does not run the lookup, but it awaits pending entries
- *   and fails when the existing entry is a failure
- * - {@link getSuccess} returns `Option.none` for missing, expired, pending, or
- *   failed entries
- * - {@link size} may include expired entries until they are observed and removed
- * - {@link values} and {@link entries} include only successfully resolved,
- *   non-expired entries
- * - Use `Data` or another `Equal`-compatible key type when keys should compare
- *   structurally
- *
- * **See also**
- *
- * - {@link Duration} for configuring fixed or dynamic time-to-live values
- * - {@link Effect} for the lookup effects used to compute cached values
+ * A cache stores successful and failed lookup results, shares an in-progress
+ * lookup when multiple callers request the same missing key, and limits entries
+ * by capacity and optional time-to-live rules. This module includes helpers for
+ * reading, setting, refreshing, invalidating, and inspecting cache contents.
  *
  * @since 4.0.0
  */

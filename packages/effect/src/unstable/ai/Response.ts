@@ -1,53 +1,12 @@
 /**
- * The `Response` module defines Effect AI's provider-neutral representation of
- * model output. Text, reasoning, tool calls, tool results, files, source
- * citations, metadata, finish information, usage, and provider errors are all
- * modeled as typed response parts.
+ * Defines a shared data model for AI model output.
  *
- * **Mental model**
- *
- * - A response is an ordered sequence of parts.
- * - Non-streaming responses use complete parts such as `TextPart`,
- *   `ReasoningPart`, `ToolCallPart`, `ToolResultPart`, and `FinishPart`.
- * - Streaming responses use start, delta, and end parts for text, reasoning,
- *   and tool parameters before final tool-call or finish parts appear.
- * - Tool-aware schemas are built from a toolkit, so tool call parameters and
- *   tool result payloads stay aligned with each tool definition.
- *
- * **Common tasks**
- *
- * - Construct individual parts with {@link makePart}, {@link toolCallPart},
- *   {@link toolResultPart}, or {@link toolApprovalRequestPart}.
- * - Decode or encode parts with {@link Part}, {@link StreamPart}, or
- *   {@link AllParts}.
- * - Read completion metadata from {@link FinishPart}, {@link FinishReason},
- *   and {@link Usage}.
- *
- * **Gotchas**
- *
- * - `metadata` is reserved for provider-specific JSON and defaults to an empty
- *   object.
- * - Streaming text, reasoning, and tool parameter deltas are incremental events;
- *   accumulate them before treating them as final content.
- * - Tool result parts encode success and failure values according to the
- *   corresponding tool schemas.
- *
- * **Example** (Constructing response parts)
- *
- * ```ts
- * import { Response } from "effect/unstable/ai"
- *
- * const text = Response.makePart("text", {
- *   text: "The weather is sunny today."
- * })
- *
- * const toolCall = Response.toolCallPart({
- *   id: "call_123",
- *   name: "GetWeather",
- *   params: { city: "San Francisco" },
- *   providerExecuted: false
- * })
- * ```
+ * Responses are represented as typed parts so different providers can expose
+ * text, reasoning, tool calls, files, sources, metadata, finish information, and
+ * errors through one shape. The same model is used for complete responses and
+ * streaming responses, where start, delta, and end parts describe content as it
+ * arrives. This module also carries provider metadata and schemas used by tools
+ * that need to validate response parts.
  *
  * @since 4.0.0
  */

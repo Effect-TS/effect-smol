@@ -1,73 +1,9 @@
 /**
- * Declarative, schema-driven configuration loading. A `Config<T>` describes
- * how to read and validate a value of type `T` from a `ConfigProvider`. Configs
- * can be composed, transformed, and used directly as Effects.
- *
- * ## Mental model
- *
- * - **Config\<T\>** – a recipe for extracting a typed value from a
- *   `ConfigProvider`. Created via convenience constructors or {@link schema}.
- * - **ConfigProvider** – the backing data source (env vars, JSON, `.env`
- *   files). See the `ConfigProvider` module.
- * - **ConfigError** – wraps either a `SourceError` (provider I/O failure) or
- *   a `SchemaError` (validation / decoding failure).
- * - **parse** – instance method on every `Config` that takes a provider and
- *   returns `Effect<T, ConfigError>`.
- * - **Yieldable** – every `Config` can be yielded inside `Effect.gen`. It
- *   automatically resolves the current `ConfigProvider` from the context.
- *
- * ## Common tasks
- *
- * - Read a single env var → {@link string}, {@link number}, {@link boolean},
- *   {@link int}, {@link port}, {@link url}, {@link date}, {@link duration},
- *   {@link logLevel}, {@link redacted}
- * - Read a structured config → {@link schema} with a `Schema.Struct`
- * - Provide a default → {@link withDefault}
- * - Make a config optional → {@link option}
- * - Transform a value → {@link map} / {@link mapOrFail}
- * - Fall back on error → {@link orElse}
- * - Combine multiple configs → {@link all}
- * - Build from a `Schema.Codec` → {@link schema}
- * - Always succeed or fail → {@link succeed} / {@link fail}
- *
- * ## Gotchas
- *
- * - `withDefault` and `option` only apply when the error is caused by
- *   **missing data**. Validation errors (wrong type, out of range) still
- *   propagate.
- * - When yielded in `Effect.gen`, the config resolves using the current
- *   `ConfigProvider` service. To use a specific provider, call `.parse(provider)`
- *   instead.
- * - The `name` parameter on convenience constructors (e.g. `Config.string("HOST")`)
- *   sets the root path segment. Omit it when the config is part of a larger
- *   schema.
- *
- * ## Quickstart
- *
- * **Example** (Reading typed config from environment variables)
- *
- * ```ts
- * import { Config, ConfigProvider, Effect, Schema } from "effect"
- *
- * const AppConfig = Config.schema(
- *   Schema.Struct({
- *     host: Schema.String,
- *     port: Schema.Int
- *   }),
- *   "app"
- * )
- *
- * const provider = ConfigProvider.fromEnv({
- *   env: { app_host: "localhost", app_port: "8080" }
- * })
- *
- * // Effect.runSync(AppConfig.parse(provider))
- * // { host: "localhost", port: 8080 }
- * ```
- *
- * @see {@link schema} – build a Config from any Schema.Codec
- * @see {@link ConfigError} – the error type for config failures
- * @see {@link make} – low-level Config constructor
+ * Descriptions of configuration values that can be read from a
+ * `ConfigProvider`. A `Config<T>` explains which keys to read, how to decode
+ * and validate them, and how to combine defaults, fallbacks, nested paths, and
+ * multiple settings. Configs are also Effects, so they can be yielded in
+ * `Effect.gen` after a provider has been supplied.
  *
  * @since 4.0.0
  */

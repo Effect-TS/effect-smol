@@ -1,43 +1,11 @@
 /**
- * The `Layer` module provides the dependency-injection building blocks for
- * Effect applications. A {@link Layer} describes how to acquire one or more
- * services, which dependencies are needed to acquire them, and which errors can
- * occur during acquisition.
+ * Builds and wires services for Effect applications.
  *
- * **Mental model**
- *
- * - Application effects ask for services through context tags.
- * - Layer code builds those services, often from configuration, clients,
- *   connection pools, or other services.
- * - The application boundary provides a final layer to the program.
- * - Layers are lazy: acquisition starts only when a layer is provided, built, or
- *   launched.
- * - Layer acquisition is scoped, so finalizers run when the owning scope closes.
- * - A layer value is memoized by default; reusing the same layer value shares
- *   the acquired service instance.
- *
- * **Common tasks**
- *
- * - Provide an existing service value with {@link succeed}.
- * - Build a service lazily with {@link sync}, {@link effect}, or
- *   {@link effectContext}.
- * - Run setup work that provides no services with {@link effectDiscard}.
- * - Combine independent layers with {@link merge} or {@link mergeAll}.
- * - Feed one layer's output into another layer's requirements with
- *   {@link provide}.
- * - Keep dependency services in the final output with {@link provideMerge}.
- * - Materialize a layer manually with {@link build} or {@link buildWithScope}.
- *
- * **Gotchas**
- *
- * - Sharing is tied to layer identity. Constructing the same layer twice creates
- *   two distinct values and can acquire two service instances.
- * - Use {@link fresh} when a layer must be rebuilt even if the same value is
- *   provided more than once.
- * - Scoped resources belong in layers when construction and release are part of
- *   the service lifecycle.
- * - Normal application code should request services; layer code should create
- *   services.
+ * A `Layer<ROut, E, RIn>` describes how to acquire one or more services, which
+ * services are required to build them, and which errors can occur during
+ * acquisition. Layers can manage scoped resources, memoize shared services,
+ * combine with other layers, provide services to effects or streams, and attach
+ * error handling, tracing, or lifecycle hooks.
  *
  * @since 2.0.0
  */

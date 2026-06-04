@@ -1,38 +1,12 @@
 /**
- * Defines named collections of `HttpApiEndpoint`s inside an `HttpApi`.
+ * Defines named groups of HTTP API endpoints.
  *
- * A group is the boundary for endpoints that belong to the same resource,
- * feature area, or domain concern. Builders, generated clients, URL builders,
- * and OpenAPI generation read the same group value, including its identifier,
- * endpoint set, annotations, and `topLevel` flag.
- *
- * **Mental model**
- *
- * Start with {@link make}, add endpoints, then apply group-wide transforms such
- * as `prefix`, `middleware`, or endpoint annotations. A regular group becomes a
- * named namespace in generated clients. A `topLevel` group exposes its endpoint
- * methods directly on the client.
- *
- * **Common tasks**
- *
- * Use this module to collect related endpoints, share a path prefix or
- * middleware across the current endpoint set, attach metadata to the group or to
- * each current endpoint, and derive group-level types for builders and generated
- * clients.
- *
- * **Gotchas**
- *
- * Adding an endpoint with the same name as an existing endpoint replaces it.
- * `prefix`, `middleware`, `annotateEndpoints`, and `annotateEndpointsMerge`
- * affect only endpoints that are already present when those APIs are called.
- * Group annotations stay on the group; use endpoint annotation helpers when
- * metadata must be attached to each endpoint.
- *
- * **See also**
- *
- * `HttpApiEndpoint` for individual route contracts, `HttpApi` for composing
- * groups into a complete API, and `HttpApiBuilder` for supplying
- * implementations.
+ * A group collects endpoints that belong to the same resource or feature area
+ * inside an `HttpApi`. Builders, generated clients, URL builders, and OpenAPI
+ * generation read the same group value, including its identifier, endpoints,
+ * annotations, and `topLevel` flag. This module includes helpers for creating
+ * groups, adding endpoints, prefixing paths, applying middleware, annotating
+ * groups or endpoints, and deriving builder or client types.
  *
  * @since 4.0.0
  */

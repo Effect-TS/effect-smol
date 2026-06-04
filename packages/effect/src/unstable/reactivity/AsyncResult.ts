@@ -1,44 +1,12 @@
 /**
- * State containers for asynchronous values used by the reactivity APIs.
+ * Represents observable state for asynchronous values.
  *
- * `AsyncResult` records the latest observable state of work that may still be
- * loading, refreshing, retrying, or recovering from failure. The value is one of
- * `Initial`, `Success`, or `Failure`, and every variant also carries a `waiting`
- * flag so callers can keep rendering the current state while newer work is in
- * flight.
- *
- * **Mental model**
- *
- * The variant answers "what do we know right now?", while `waiting` answers "is
- * newer work currently running?". A success contains the current value and its
- * timestamp. A failure contains a `Cause` and may also keep the previous
- * success, which lets UI and atom code show stale data while exposing the latest
- * failure for error displays and retry logic.
- *
- * **Common tasks**
- *
- * - Start with {@link initial}, {@link success}, {@link failure}, or
- *   {@link fail}
- * - Convert Effect exits with {@link fromExit} and
- *   {@link fromExitWithPrevious}
- * - Mark existing state as loading with {@link waiting} or
- *   {@link waitingFrom}
- * - Read values and failures with {@link value}, {@link cause}, {@link error},
- *   {@link getOrElse}, and {@link toExit}
- * - Transform and combine results with {@link map}, {@link flatMap}, and
- *   {@link all}
- * - Render all states with {@link match}, {@link matchWithWaiting}, or
- *   {@link builder}
- *
- * **Gotchas**
- *
- * - `waiting` is an overlay, not a fourth variant; any variant can be waiting.
- * - {@link value} and {@link getOrElse} can read the previous success stored in
- *   a failure, so inspect {@link cause} or {@link error} when stale data and a
- *   current success must be distinguished.
- * - {@link matchWithWaiting} handles waiting before variant-specific branches,
- *   while {@link match} and {@link matchWithError} expose the underlying
- *   variant first.
+ * `AsyncResult<A, E>` records whether asynchronous work has no value yet,
+ * succeeded with an `A`, or failed with an `E`. Every state also carries a
+ * `waiting` flag, so callers can keep showing the current value while newer
+ * work is loading, refreshing, retrying, or recovering. This module includes
+ * constructors, checks, accessors, mapping and matching helpers, ways to combine
+ * several results, and schemas for encoding or decoding results.
  *
  * @since 4.0.0
  */

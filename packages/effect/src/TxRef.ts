@@ -1,63 +1,13 @@
 /**
- * The `TxRef` module provides transactional references for coordinating mutable
- * state with Effect transactions. A `TxRef<A>` stores a current value, but
- * reads and writes inside `Effect.tx` are recorded in a transaction journal and
- * committed together only when the outermost transaction succeeds.
+ * Transactional references for coordinating mutable state with Effect
+ * transactions. A `TxRef` stores a current value, but reads and writes inside
+ * `Effect.tx` are recorded in a transaction journal and committed together only
+ * when the outermost transaction succeeds.
  *
- * **Mental model**
- *
- * - {@link make} creates a reference whose value can participate in
- *   optimistic transactions.
- * - {@link get}, {@link set}, {@link update}, and {@link modify} read and
- *   write the transaction journal when a transaction is active.
- * - At commit time, the transaction checks whether any accessed reference was
- *   changed by another transaction. If so, it retries with a fresh journal.
- * - `Effect.txRetry` suspends the transaction until one of the `TxRef` values
- *   read by the transaction changes.
- *
- * **Common tasks**
- *
- * - Create transactional state with {@link make}.
- * - Read the current value with {@link get}.
- * - Replace or transform the value with {@link set} and {@link update}.
- * - Return a derived result while writing a new value with {@link modify}.
- * - Wrap related reads and writes in one `Effect.tx` boundary so they commit or
- *   roll back as a unit.
- *
- * **Example** (Committing multiple updates atomically)
- *
- * ```ts
- * import { Effect, TxRef } from "effect"
- *
- * const transfer = Effect.gen(function*() {
- *   const checking = yield* TxRef.make(100)
- *   const savings = yield* TxRef.make(0)
- *
- *   yield* Effect.tx(Effect.gen(function*() {
- *     const balance = yield* TxRef.get(checking)
- *     if (balance < 30) {
- *       return yield* Effect.fail("insufficient funds")
- *     }
- *     yield* TxRef.set(checking, balance - 30)
- *     yield* TxRef.update(savings, (amount) => amount + 30)
- *   }))
- *
- *   return {
- *     checking: yield* TxRef.get(checking),
- *     savings: yield* TxRef.get(savings)
- *   }
- * })
- * ```
- *
- * **Gotchas**
- *
- * - Group related operations in the same `Effect.tx` call; separate
- *   transactions can observe and commit intermediate states.
- * - A transaction body can run more than once after a conflict or
- *   `Effect.txRetry`, so keep externally visible effects outside the
- *   transaction body or make them idempotent.
- * - If a transaction fails, its journal is discarded and other fibers continue
- *   to see the last committed values.
+ * This is the basic building block behind the other transactional collections
+ * in Effect. The module provides effectful and unsafe constructors plus the
+ * core operations for reading, setting, updating, and modifying a transactional
+ * value while returning a separate result.
  *
  * @since 4.0.0
  */

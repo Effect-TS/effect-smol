@@ -1,58 +1,11 @@
 /**
- * Represents the outcome of an Effect computation as a plain, synchronously
- * inspectable value.
+ * Represents the result of an Effect computation as a plain value.
  *
- * ## Mental model
- *
- * - `Exit<A, E>` is a union of two cases: `Success<A, E>` and `Failure<A, E>`
- * - A `Success` wraps a value of type `A`
- * - A `Failure` wraps a `Cause<E>`, which may contain typed errors, defects, or interruptions
- * - `Exit` is also an `Effect`, so you can yield it directly inside `Effect.gen`
- * - Constructors mirror the failure modes: {@link fail} for typed errors, {@link die} for defects, {@link interrupt} for fiber interruptions
- * - Use `Exit` when you need to inspect an Effect result without running further effects
- *
- * ## Common tasks
- *
- * - Create a success: {@link succeed}
- * - Create a typed failure: {@link fail}
- * - Create a failure from a Cause: {@link failCause}
- * - Create a defect: {@link die}
- * - Create an interruption: {@link interrupt}
- * - Check the outcome: {@link isSuccess}, {@link isFailure}, {@link match}
- * - Extract values optionally: {@link getSuccess}, {@link getCause}, {@link findErrorOption}
- * - Transform the result: {@link map}, {@link mapError}, {@link mapBoth}
- * - Combine multiple exits: {@link asVoidAll}
- * - Inspect failure categories: {@link hasFails}, {@link hasDies}, {@link hasInterrupts}
- *
- * ## Gotchas
- *
- * - A `Failure` wraps a `Cause<E>`, not a bare `E`. Use Cause utilities to drill into it.
- * - {@link mapError} and {@link mapBoth} only transform typed errors (Fail reasons in the Cause). If the Cause contains only defects or interruptions, the original failure passes through unchanged.
- * - Filter-based APIs ({@link filterSuccess}, {@link filterValue}, etc.) return `Result.fail` values for pipeline composition. They are not `Option` values or Effect failures.
- * - {@link findError} and {@link findDefect} return only the first matching reason from the Cause.
- *
- * ## Quickstart
- *
- * **Example** (Creating and inspecting exits)
- *
- * ```ts
- * import { Exit } from "effect"
- *
- * const success = Exit.succeed(42)
- * const failure = Exit.fail("not found")
- *
- * const message = Exit.match(success, {
- *   onSuccess: (value) => `Got: ${value}`,
- *   onFailure: () => "Failed"
- * })
- * console.log(message) // "Got: 42"
- * ```
- *
- * ## See also
- *
- * - {@link Exit} the core union type
- * - {@link succeed} and {@link fail} the most common constructors
- * - {@link match} for pattern matching on an Exit
+ * An `Exit<A, E>` is either a success with an `A` or a failure with a
+ * `Cause<E>`. The failure cause preserves typed errors, defects, and
+ * interruptions after a workflow has finished. Use this module when completed
+ * Effect results need to be inspected, transformed, filtered, or matched
+ * synchronously as data.
  *
  * @since 2.0.0
  */

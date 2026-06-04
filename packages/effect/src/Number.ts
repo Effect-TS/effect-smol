@@ -1,60 +1,9 @@
 /**
- * Operations for working with TypeScript `number` values. Use this module for
- * arithmetic, safe parsing and division, comparisons, range checks, clamping,
- * rounding, and reducers for numeric aggregation.
+ * Works with TypeScript `number` values.
  *
- * **Mental model**
- *
- * Numbers remain plain JavaScript numbers, including `NaN`, `Infinity`, and
- * floating-point behavior. The module adds named operations around that runtime
- * model: arithmetic such as {@link sum}, {@link multiply}, {@link subtract},
- * and {@link remainder}; safety wrappers such as {@link parse} and
- * {@link divide}; range helpers such as {@link between} and {@link clamp}; and
- * instances such as {@link Order} and {@link Equivalence}.
- *
- * **Common tasks**
- *
- * - Coerce, parse, or narrow input: {@link Number}, {@link parse},
- *   {@link isNumber}
- * - Do arithmetic: {@link sum}, {@link multiply}, {@link subtract},
- *   {@link divide}, {@link divideUnsafe}, {@link remainder}, {@link round}
- * - Work with counters and powers: {@link increment}, {@link decrement},
- *   {@link nextPow2}
- * - Compare and bound values: {@link isLessThan}, {@link isGreaterThan},
- *   {@link between}, {@link clamp}, {@link min}, {@link max}, {@link sign}
- * - Aggregate iterables or reducer inputs: {@link sumAll}, {@link multiplyAll},
- *   {@link ReducerSum}, {@link ReducerMultiply}, {@link ReducerMax},
- *   {@link ReducerMin}
- *
- * **Gotchas**
- *
- * - {@link Number} is the native JavaScript constructor. For example,
- *   `Number.Number("")` returns `0`; {@link parse} returns `Option.none()` for
- *   blank strings and invalid numeric text.
- * - {@link divide} returns `Option.none()` only when the divisor is `0`.
- *   Other JavaScript number results, including `NaN`, still follow normal
- *   number semantics.
- * - {@link Equivalence} treats `NaN` as equivalent to `NaN`, unlike `===`.
- * - Reducers have identity values: {@link ReducerSum} starts at `0`,
- *   {@link ReducerMultiply} starts at `1`, {@link ReducerMax} starts at
- *   `-Infinity`, and {@link ReducerMin} starts at `Infinity`.
- *
- * **Quickstart**
- *
- * **Example** (Parsing and bounding a number)
- *
- * ```ts
- * import { Number } from "effect"
- *
- * const parsed = Number.parse("42")
- * console.log(parsed) // Option.some(42)
- *
- * const bounded = Number.clamp(120, { minimum: 0, maximum: 100 })
- * console.log(bounded) // 100
- *
- * const total = Number.sumAll([1, 2, 3])
- * console.log(total) // 6
- * ```
+ * This module exposes the native `Number` constructor together with helpers for
+ * checking, parsing, arithmetic, safe division, comparison, range checks,
+ * clamping, rounding, ordering, equivalence, and numeric aggregation.
  *
  * @since 2.0.0
  */

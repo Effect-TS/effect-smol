@@ -1,79 +1,12 @@
 /**
- * `Effect` is the core data type for describing programs that may perform
- * synchronous or asynchronous work, fail with typed errors, require services,
- * acquire resources, or run concurrently. An `Effect<A, E, R>` is lazy: creating
- * one describes a workflow, and running it executes that workflow.
+ * Describes workflows that run only when executed by the Effect runtime.
  *
- * **Mental model**
- *
- * - `A` is the success value, `E` is the expected failure type, and `R` is the
- *   context of services required to run
- * - Effects are immutable descriptions, not promises; composition with
- *   {@link map}, {@link flatMap}, {@link zip}, or {@link gen} builds a larger
- *   description
- * - Failures in `E` are part of the type signature and can be handled with
- *   {@link match}, {@link matchEffect}, {@link catchTag}, or {@link catchTags}
- * - Requirements in `R` are satisfied before running, usually with
- *   {@link provide}, {@link provideService}, or layers
- * - Fibers are lightweight executions of effects and are used by concurrency
- *   operators such as {@link all}, {@link race}, {@link forkScoped}, and
- *   {@link forkDetach}
- *
- * **Common tasks**
- *
- * - Create values and failures: {@link succeed}, {@link fail}, {@link failSync}
- * - Wrap promise-producing code: {@link tryPromise}
- * - Sequence workflows: {@link gen}, {@link flatMap}, {@link map}, {@link tap}
- * - Handle errors: {@link match}, {@link matchEffect}, {@link catchTag},
- *   {@link catchTags}
- * - Run effects at the edge of an application: {@link runPromise},
- *   {@link runSync}, {@link runFork}
- * - Work with time and interruption: {@link sleep}, {@link timeout},
- *   {@link retry}
- * - Manage resources: {@link acquireRelease}, {@link scoped},
- *   {@link scopedWith}
- * - Provide services: {@link provide}, {@link provideContext},
- *   {@link provideService}, {@link provideServiceEffect}
- *
- * **Gotchas**
- *
- * - Effects do nothing until run by a runtime function such as
- *   {@link runPromise}, {@link runSync}, or {@link runFork}
- * - {@link runSync} is only for effects that can complete synchronously; use
- *   {@link runPromise} for effects that may suspend asynchronously
- * - In {@link gen}, use `yield*` to compose effects; do not use `await` inside
- *   the generator
- * - The `E` type tracks expected failures, not every possible JavaScript
- *   defect such as an unchecked throw
- * - Any remaining `R` requirement must be provided before an effect can be run
- *
- * **Quickstart**
- *
- * **Example** (Composing and running a typed workflow)
- *
- * ```ts
- * import { Console, Effect } from "effect"
- *
- * const divide = (a: number, b: number) =>
- *   b === 0
- *     ? Effect.fail("divide by zero")
- *     : Effect.succeed(a / b)
- *
- * const program = Effect.gen(function*() {
- *   const result = yield* divide(10, 2)
- *   yield* Console.log(`result: ${result}`)
- *   return result
- * })
- *
- * Effect.runPromise(program).then(console.log)
- * ```
- *
- * **See also**
- *
- * - {@link gen} for generator-based sequencing
- * - {@link tryPromise} for asynchronous boundaries
- * - {@link acquireRelease} and {@link scoped} for resource safety
- * - {@link runPromise}, {@link runSync}, and {@link runFork} for execution
+ * An `Effect<A, E, R>` can succeed with an `A`, fail with an `E`, and require
+ * services `R`. Creating an effect does not perform the work; it builds a value
+ * that can be composed, provided with services, retried, interrupted, run
+ * concurrently, or inspected by the runtime. This module is the main API for
+ * creating effects, combining them, handling failures, managing resources, and
+ * running effect programs.
  *
  * @since 2.0.0
  */

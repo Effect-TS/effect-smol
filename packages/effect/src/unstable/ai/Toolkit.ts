@@ -1,80 +1,11 @@
 /**
- * The `Toolkit` module groups AI `Tool` definitions into a single typed service
- * that can execute tool calls by name. A toolkit is the runtime bridge between
- * declarative tool schemas and the handler functions your application provides
- * for a language model workflow.
+ * Groups AI tools together with their handlers.
  *
- * **Mental model**
- *
- * - A `Tool` describes one callable operation: its name, parameter schema,
- *   success schema, and failure behavior.
- * - A `Toolkit` is a record of tools that also carries the handler requirements
- *   needed to execute those tools.
- * - `toolkit.toLayer(...)` and `toolkit.toHandlers(...)` bind handlers into
- *   `Context`, so yielding a toolkit produces a value with a `handle` function.
- * - `handle` validates parameters, runs the matching handler, and returns a
- *   `Stream` of preliminary and final encoded results.
- *
- * **Common tasks**
- *
- * - Build a toolkit from tools: {@link make}
- * - Merge independently defined toolkits: {@link merge}
- * - Provide handlers with `toolkit.toLayer(...)` or `toolkit.toHandlers(...)`
- * - Emit progress from a long-running handler with `context.preliminary(...)`
- *
- * **Gotchas**
- *
- * - Tool names are runtime lookup keys. When toolkits are merged, later tools
- *   replace earlier tools with the same name.
- * - Handler output is validated and encoded against the tool schemas; invalid
- *   output is reported as an AI error.
- * - The result of `handle` is a stream because handlers can emit preliminary
- *   results before the final value.
- *
- * **Example** (Creating and implementing toolkits)
- *
- * ```ts
- * import { Effect, Schema, Stream } from "effect"
- * import { Tool, Toolkit } from "effect/unstable/ai"
- *
- * const GetCurrentTime = Tool.make("GetCurrentTime", {
- *   description: "Get the current timestamp",
- *   success: Schema.Number
- * })
- *
- * const GetWeather = Tool.make("GetWeather", {
- *   description: "Get weather for a location",
- *   parameters: Schema.Struct({ location: Schema.String }),
- *   success: Schema.Struct({
- *     temperature: Schema.Number,
- *     condition: Schema.String
- *   })
- * })
- *
- * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
- *
- * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(1_704_067_200_000),
- *   GetWeather: ({ location }) =>
- *     Effect.succeed({
- *       temperature: 72,
- *       condition: `sunny in ${location}`
- *     })
- * })
- *
- * const program = Effect.gen(function*() {
- *   const toolkit = yield* MyToolkit
- *   const stream = yield* toolkit.handle("GetWeather", {
- *     location: "San Francisco"
- *   })
- *   const results = yield* Stream.runCollect(stream)
- *
- *   return Array.from(results, ({ result }) => result)
- * }).pipe(Effect.provide(MyToolkitLayer))
- *
- * console.log(Effect.runSync(program))
- * // [{ temperature: 72, condition: "sunny in San Francisco" }]
- * ```
+ * A toolkit connects `Tool` schemas to the handler functions an application
+ * provides for a language model workflow. It can build a handler context or
+ * layer and execute tool calls by name. Execution validates parameters, runs the
+ * handler, encodes the result, supports preliminary streamed results, and
+ * applies the tool's failure mode.
  *
  * @since 4.0.0
  */

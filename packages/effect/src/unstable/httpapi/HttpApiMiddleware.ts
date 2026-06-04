@@ -1,52 +1,13 @@
 /**
- * The `HttpApiMiddleware` module defines middleware service keys for
- * declarative HTTP APIs. Middleware wraps endpoint execution on the server and,
- * when required by an API, can also wrap requests made by generated clients.
+ * Declares middleware for schema-driven HTTP APIs.
  *
- * Middleware is where you put cross-cutting behavior that belongs to the API
- * contract: authentication, authorization, request logging, tracing, rate
- * limiting, request-scoped services, schema-error normalization, and client
- * request decoration.
- *
- * **Mental model**
- *
- * - A middleware is declared with {@link Service}; the declaration is both a
- *   `Context.Service` key and a typed description of the middleware contract.
- * - Server implementations receive the endpoint response effect plus endpoint
- *   and group metadata. Security middleware also receives decoded credentials
- *   from the configured `HttpApiSecurity` scheme.
- * - The service metadata records provided services, required services, declared
- *   error schemas, client error types, security schemes, and whether generated
- *   clients must install a matching client middleware.
- * - Client middleware is published through the {@link ForClient} marker by
- *   {@link layerClient} and participates in the generated client's request
- *   pipeline.
- *
- * **Common tasks**
- *
- * - Declare middleware services with {@link Service}.
- * - Detect security middleware with {@link isSecurity}.
- * - Convert `HttpApiSchemaError` failures into declared API errors with
- *   {@link layerSchemaErrorTransform}.
- * - Install a generated-client middleware with {@link layerClient}.
- *
- * **Gotchas**
- *
- * - Middleware error declarations must be `Schema` values, or arrays of
- *   `Schema` values, because builders and clients encode and decode them as
- *   part of the endpoint error surface.
- * - A security middleware must declare at least one security scheme. Ordinary
- *   middleware does not receive credentials.
- * - A schema-error transform must fail with an error covered by the middleware's
- *   declared error schema.
- * - `requiredForClient` adds a client-side requirement. Provide it with
- *   {@link layerClient}; the layer captures its surrounding context.
- *
- * **See also**
- *
- * - {@link Service} for declaring middleware service keys.
- * - {@link layerSchemaErrorTransform} for mapping schema failures.
- * - {@link layerClient} for generated-client middleware.
+ * HTTP API middleware wraps endpoint execution on the server and, when the API
+ * requires it, can also wrap requests made by generated clients. It is used for
+ * cross-cutting behavior that belongs to the API contract, such as
+ * authentication, authorization, logging, tracing, rate limiting,
+ * request-scoped services, schema-error handling, and client request
+ * decoration. This module defines the middleware service keys and helpers used
+ * by `HttpApi` declarations.
  *
  * @since 4.0.0
  */

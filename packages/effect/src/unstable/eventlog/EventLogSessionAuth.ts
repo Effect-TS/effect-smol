@@ -1,39 +1,10 @@
 /**
- * Challenge-response helpers for authenticating event log sessions with Ed25519
- * signatures.
+ * Signs and verifies event-log session authentication payloads.
  *
- * Event log transports use this module when a remote peer must prove control of
- * a session signing key before sending session traffic. The signed payload binds
- * the remote identifier, a short-lived challenge, the advertised event log public
- * key, and the signing public key into one canonical byte sequence.
- *
- * **Mental model**
- *
- * Authentication is split into canonicalization and cryptographic proof.
- * {@link encodeSessionAuthPayload} produces a deterministic, length-prefixed
- * payload that includes {@link AuthPayloadContext} for domain separation.
- * Signing proves possession of the Ed25519 private key for exactly those fields;
- * authorization still belongs to the caller's event log policy.
- *
- * **Common tasks**
- *
- * - Generate a fresh challenge with {@link makeSessionAuthChallenge}
- * - Sign a payload with {@link signSessionAuthPayload} or pre-encoded bytes with
- *   {@link signSessionAuthPayloadBytes}
- * - Verify an incoming authentication message with
- *   {@link verifySessionAuthenticateRequest}
- * - Encode or decode canonical bytes with {@link encodeSessionAuthPayload} and
- *   {@link decodeSessionAuthPayload}
- *
- * **Gotchas**
- *
- * - Callers must enforce {@link SessionAuthChallengeTimeToLiveMillis} and track
- *   whether a challenge has already been consumed
- * - Raw Ed25519 public keys must be {@link Ed25519PublicKeyLength} bytes and
- *   signatures must be {@link Ed25519SignatureLength} bytes
- * - Signing private keys must be PKCS#8 bytes importable by Web Crypto
- * - Verified signatures prove key possession, not peer trust; compare the keys
- *   and remote identity against your authorization policy
+ * Remote peers use this challenge-response flow to prove that they control a
+ * session signing key before sending session traffic. The signed payload
+ * includes the remote id, a short-lived challenge, the event-log public key, and
+ * the signing public key in a stable byte format.
  *
  * @since 4.0.0
  */

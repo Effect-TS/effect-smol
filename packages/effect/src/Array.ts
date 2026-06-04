@@ -1,86 +1,11 @@
 /**
- * The `Array` module provides functional operations for JavaScript arrays,
- * readonly arrays, and arrays that are known to contain at least one element.
- * Operations that transform, reorder, or update collections allocate new arrays
- * instead of mutating their inputs, while preserving useful type information
- * such as non-emptiness when the operation can prove it.
+ * Works with JavaScript arrays, readonly arrays, and non-empty arrays.
  *
- * **Mental model**
- *
- * - A regular `Array<A>` is still the built-in JavaScript array type; this
- *   module supplies functional constructors, combinators, searches, folds,
- *   grouping, sorting, and set-like operations around it.
- * - {@link NonEmptyReadonlyArray} and {@link NonEmptyArray} encode
- *   non-emptiness at the type level. APIs with `NonEmpty` in the name can avoid
- *   `Option` because an element is guaranteed to exist.
- * - Most functions are dual. You can call them data-first, such as
- *   `Array.map(values, f)`, or data-last in a pipeline, such as
- *   `pipe(values, Array.map(f))`.
- * - Safe element access returns {@link Option}; unsafe or `NonEmpty` variants
- *   are for code that already has a proof an index or element exists.
- * - Set-like operations such as {@link union}, {@link intersection}, and
- *   {@link difference} use the {@link Equal} protocol by default. Use the
- *   `*With` variants when equality is domain-specific.
- *
- * **Common tasks**
- *
- * - Create arrays with {@link make}, {@link of}, {@link empty},
- *   {@link fromIterable}, {@link range}, {@link makeBy}, {@link replicate}, and
- *   {@link unfold}.
- * - Access edges or indexes with {@link head}, {@link last}, {@link get},
- *   {@link tail}, and {@link init}.
- * - Transform and flatten with {@link map}, {@link flatMap}, and
- *   {@link flatten}.
- * - Keep, split, or deduplicate values with {@link filter}, {@link partition},
- *   {@link dedupe}, and {@link dedupeAdjacent}.
- * - Combine collections with {@link append}, {@link prepend}, {@link appendAll},
- *   {@link prependAll}, {@link zip}, and {@link cartesian}.
- * - Chunk, window, and slice with {@link splitAt}, {@link chunksOf},
- *   {@link span}, and {@link window}.
- * - Sort with {@link sort}, {@link sortWith}, and {@link sortBy}.
- * - Fold or aggregate with {@link reduce}, {@link scan}, {@link join}, and
- *   {@link countBy}.
- * - Match empty and non-empty cases with {@link match}, {@link matchLeft}, and
- *   {@link matchRight}.
- *
- * **Gotchas**
- *
- * - {@link fromIterable} returns the original array reference when the input is
- *   already an array. Use {@link copy} when you need a fresh shallow copy.
- * - {@link makeBy}, {@link range}, and {@link replicate} always return
- *   non-empty arrays. `range(start, end)` is inclusive and returns `[start]`
- *   when `start > end`.
- * - Functions returning {@link Option}, such as {@link head} and
- *   {@link findFirst}, return `Option.none()` for empty inputs instead of
- *   throwing.
- * - `NonEmpty` return types describe what the function can prove, not what may
- *   happen for a particular runtime value after filtering.
- *
- * **Example** (Filtering and transforming)
- *
- * ```ts
- * import { Array, Option, pipe } from "effect"
- *
- * const numbers = [1, 2, 3, 4, 5]
- *
- * const doubledEvens = pipe(
- *   numbers,
- *   Array.filter((n) => n % 2 === 0),
- *   Array.map((n) => n * 2)
- * )
- *
- * console.log(doubledEvens)
- * // [4, 8]
- *
- * const first = Array.head(doubledEvens)
- * console.log(Option.getOrElse(first, () => 0))
- * // 4
- * ```
- *
- * @see {@link make} — create a non-empty array from elements
- * @see {@link map} — transform each element
- * @see {@link filter} — keep elements matching a predicate
- * @see {@link reduce} — fold an array to a single value
+ * The helpers cover common collection work such as creating arrays, reading
+ * elements, transforming values, sorting, grouping, splitting, combining, and
+ * reducing many values to one result. Helpers that change contents return new
+ * arrays and preserve non-empty array types when the result is guaranteed to
+ * contain values.
  *
  * @since 2.0.0
  */

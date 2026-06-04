@@ -1,78 +1,11 @@
 /**
- * The `AtomRegistry` module provides the runtime cache for unstable reactivity
- * atoms. A registry owns the node graph for a group of atoms, stores current
- * values, records parent and child dependencies while atoms are read, and
- * coordinates writes, refreshes, subscriptions, stream conversions, and node
- * disposal.
+ * Stores and runs atoms for one reactive runtime.
  *
- * Use a separate registry for each UI root, request, test, route boundary, or
- * other lifetime that needs isolated atom state. The same atom object can have
- * different cached values in different registries, while serializable atoms use
- * their stable serialization key so preloaded values can hydrate a node before
- * the first read.
- *
- * **Mental model**
- *
- * - Reading an atom creates or reuses a registry node, evaluates the atom when
- *   its value is missing or stale, and records any nested atom reads as
- *   dependencies.
- * - Writing a writable atom updates its node through the atom's write function,
- *   invalidates dependent nodes, and notifies listeners after batching settles.
- * - Subscriptions and scoped {@link mount} calls keep nodes alive. When the last
- *   listener and dependent child disappear, non-`keepAlive` atoms can be
- *   removed immediately or after their idle TTL.
- * - Effects and streams started by atoms run with the registry scheduler and
- *   are finalized when the node is rebuilt, removed, reset, or disposed.
- * - Disposing a registry clears its nodes and makes later atom access an error.
- *
- * **Common tasks**
- *
- * - Create a registry directly with {@link make}, or provide one to Effect
- *   programs with {@link layer} or {@link layerOptions}.
- * - Read and write atom state with the registry instance methods `get`, `set`,
- *   `modify`, `update`, and `refresh`.
- * - Keep an atom alive for an Effect scope with {@link mount}; subscribe with
- *   `subscribe` when integrating with callback-based UI code.
- * - Convert observed atom values with {@link toStream} and
- *   {@link toStreamResult}, or wait for an `AsyncResult` atom with
- *   {@link getResult}.
- * - Preload encoded serializable state with `setSerializable` before the
- *   matching atom is read.
- *
- * **Quickstart**
- *
- * **Example** (Isolated atom state)
- *
- * ```ts
- * import { Atom, AtomRegistry } from "effect/unstable/reactivity"
- *
- * const count = Atom.make(0)
- * const doubled = Atom.make((get) => get(count) * 2)
- *
- * const registry = AtomRegistry.make()
- *
- * registry.set(count, 21)
- * registry.get(doubled)
- * // 42
- * ```
- *
- * **Gotchas**
- *
- * - Atom identity matters. Creating a new atom object creates a different node
- *   unless the atom is serializable and uses the same serialization key.
- * - Unobserved atoms without `keepAlive` can be removed, so later reads may
- *   rebuild derived values, restart effects or streams, and rerun finalizers.
- * - `subscribe` and the instance `mount` method return release callbacks; call
- *   them when the external consumer is done. The exported {@link mount} helper
- *   ties that release to an Effect scope.
- * - `reset` and `dispose` remove every node in the registry. Use a new registry
- *   when a whole lifetime should start from empty state.
- *
- * **See also**
- *
- * - {@link Atom.Atom} for defining reactive values read by a registry.
- * - {@link Result.AsyncResult} for asynchronous atom results.
- * - {@link Stream.Stream} for streams produced from observed atom values.
+ * An `AtomRegistry` evaluates atoms, caches their current values, tracks
+ * dependencies, applies writes and refreshes, manages subscriptions, and
+ * disposes unused nodes. Each registry is independent, so the same atom can hold
+ * different values in different registries. Serializable atom values can also be
+ * preloaded before the first read.
  *
  * @since 4.0.0
  */
