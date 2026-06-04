@@ -43,7 +43,9 @@ export interface Machine<
   Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 > extends Pipeable {
   readonly [TypeId]: TypeId
   readonly states: States
@@ -52,10 +54,10 @@ export interface Machine<
   readonly id: string | undefined
 
   readonly handlers: Machine.StateConfigs<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
-  readonly handle: Machine.Handler<States, Events, Input, UnhandledStates, E, R>
+  readonly handle: Machine.Handler<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>
 
   /** @internal */
-  readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.StateOf<States>
+  readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
 }
 
 /**
@@ -195,6 +197,10 @@ export declare namespace Machine {
 
   export type StateActionResult<E, R> = void | Effect.Effect<void, E, R>
 
+  export type InitialResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
+    | StateOf<States>
+    | Effect.Effect<StateOf<States>, E, R>
+
   export type HandlerResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
     | StateOf<States>
     | void
@@ -203,6 +209,7 @@ export declare namespace Machine {
   export type HandlerEffect<Handlers> = Handlers[keyof Handlers]
   export type HandlerError<Handlers> = Effect.Error<HandlerEffect<Handlers>>
   export type HandlerServices<Handlers> = Effect.Services<HandlerEffect<Handlers>>
+  export type InitialReturn<Initial> = Initial extends (...args: any) => infer Ret ? Ret : never
   export type StateActionReturn<Config, Key extends "entry" | "exit"> = Key extends keyof Config
     ? NonNullable<Config[Key]> extends (...args: any) => infer Ret ? Ret : never
     : never
@@ -224,7 +231,9 @@ export declare namespace Machine {
     Input extends Schema.Top,
     UnhandledStates extends TagOf<States[number]>,
     E,
-    R
+    R,
+    InitialE,
+    InitialR
   > {
     <
       const StateTag extends UnhandledStates,
@@ -252,7 +261,9 @@ export declare namespace Machine {
       | R
       | Effect.Services<EventHandlerReturn<Config>>
       | Effect.Services<StateActionReturn<Config, "entry">>
-      | Effect.Services<StateActionReturn<Config, "exit">>
+      | Effect.Services<StateActionReturn<Config, "exit">>,
+      InitialE,
+      InitialR
     >
   }
 
@@ -398,16 +409,27 @@ export const isMachine = (
 export const make = <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Input extends Schema.Top = typeof Schema.Void
+  const Input extends Schema.Top = typeof Schema.Void,
+  InitialE = never,
+  InitialR = never
 >(
   config: {
     readonly id?: string
     readonly states: States
     readonly events: Events
     readonly input?: Input
-    readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.StateOf<States>
+    readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
   }
-): Machine<States, Events, Input> => {
+): Machine<
+  States,
+  Events,
+  Input,
+  Machine.TagOf<States[number]>,
+  never,
+  never,
+  InitialE,
+  InitialR
+> => {
   const self = Object.create(Proto)
   self.states = config.states
   self.events = config.events
@@ -430,11 +452,66 @@ export const initial = <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   ...args: [...Machine.InputArgs<Input>]
-): Machine.StateOf<States> => machine.initial(...args)
+): Machine.InitialResult<States, InitialE, InitialR> => machine.initial(...args)
+
+/**
+ * Plans the initial state for a state machine without running deferred actions.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const planInitial: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  ...args: [...Machine.InputArgs<Input>]
+) => Effect.Effect<
+  {
+    readonly state: Machine.StateOf<States>
+    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE, InitialR>>
+  },
+  never,
+  never
+> = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  ...args: [...Machine.InputArgs<Input>]
+) {
+  const deferredActions = yield* makeDeferredActions
+  const result = initial(machine, ...args)
+  const state = Effect.isEffect(result)
+    ? yield* (result.pipe(Effect.provideService(DeferredActions, deferredActions)) as Effect.Effect<
+      Machine.StateOf<States>
+    >)
+    : result
+  const actions = yield* deferredActions.read
+
+  return {
+    state,
+    actions: actions as ReadonlyArray<Effect.Effect<void, InitialE, InitialR>>
+  }
+})
 
 /**
  * Returns the event tags handled by the current state.
@@ -467,9 +544,11 @@ export const plan: <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
@@ -485,9 +564,11 @@ export const plan: <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) {
@@ -563,9 +644,11 @@ export const next: <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<Machine.StateOf<States>, E | UnhandledEventError, R> = Effect.fnUntraced(function*<
@@ -574,9 +657,11 @@ export const next: <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) {
@@ -605,23 +690,33 @@ export const start: <
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   ...args: [...Machine.InputArgs<Input>]
-) => Effect.Effect<Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>> = Effect.fnUntraced(function*<
+) => Effect.Effect<
+  Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  InitialE,
+  InitialR
+> = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
-  R = never
+  R = never,
+  InitialE = never,
+  InitialR = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const stopped = yield* Ref.make(false)
-  const current = yield* SynchronizedRef.make(initial(machine, ...args))
+  const planned = yield* planInitial(machine, ...args)
+  yield* Effect.all(planned.actions, { discard: true })
+  const current = yield* SynchronizedRef.make(planned.state)
 
   return {
     state: SynchronizedRef.get(current),

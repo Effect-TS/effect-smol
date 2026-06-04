@@ -10,6 +10,10 @@ class EntryRequirement extends Context.Service<EntryRequirement, {
   readonly entryMessage: string
 }>()("test/Machine/EntryRequirement") {}
 
+class InitialRequirement extends Context.Service<InitialRequirement, {
+  readonly initialMessage: string
+}>()("test/Machine/InitialRequirement") {}
+
 class ExitRequirement extends Context.Service<ExitRequirement, {
   readonly exitMessage: string
 }>()("test/Machine/ExitRequirement") {}
@@ -23,6 +27,10 @@ const makeDeferredLog = Effect.gen(function*() {
 })
 
 class EntryError extends Data.TaggedError("EntryError")<{
+  readonly state: string
+}> {}
+
+class InitialError extends Data.TaggedError("InitialError")<{
   readonly state: string
 }> {}
 
@@ -90,6 +98,105 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(StateMachine.initial(machine), new Idle({ userId: "user-1" }))
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("planInitial computes the initial state without running deferred actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          yield* StateMachine.action(
+            Effect.gen(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* deferredLog.push("initial")
+            })
+          )
+          return new Idle({ userId })
+        })
+      })
+
+      const planned = yield* StateMachine.planInitial(machine, { userId: "user-1" })
+
+      assert.deepStrictEqual(planned.state, new Idle({ userId: "user-1" }))
+      assert.strictEqual(planned.actions.length, 1)
+      assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("start runs deferred initial actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          yield* StateMachine.action(
+            Effect.gen(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* deferredLog.push("initial")
+            })
+          )
+          return new Idle({ userId })
+        })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["initial"])
+    }))
+
+  it.effect("carries initial action requirements", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          yield* StateMachine.action(
+            Effect.gen(function*() {
+              const requirement = yield* InitialRequirement
+              const deferredLog = yield* DeferredLog
+              yield* deferredLog.push(requirement.initialMessage)
+            })
+          )
+          return new Idle({ userId })
+        })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(InitialRequirement, InitialRequirement.of({ initialMessage: "initial" })),
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["initial"])
+    }))
+
+  it.effect("propagates initial action failures", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          const state = new Idle({ userId })
+          yield* StateMachine.action(Effect.fail(new InitialError({ state: state._tag })))
+          return state
+        })
+      })
+
+      const error = yield* Effect.flip(StateMachine.start(machine, { userId: "user-1" }))
+
+      assert.instanceOf(error, InitialError)
+      assert.strictEqual(error._tag, "InitialError")
+      assert.strictEqual(error.state, "Idle")
     }))
 
   it("handle stores handlers and sync transitions enqueue actions", () => {
