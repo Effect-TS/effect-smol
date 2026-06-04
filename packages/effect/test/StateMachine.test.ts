@@ -110,6 +110,77 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
     }))
 
+  it.effect("next computes the next state without starting an actor", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: () => new Loading({ requestId: "request-1" })
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const state = yield* actor.state
+      const nextState = yield* StateMachine.next(machine, state, new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(nextState, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("plan computes the next state without running deferred actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: Effect.fn(function*() {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push("submitted"))
+          return new Loading({ requestId: "request-1" })
+        })
+      })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      ).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("next runs deferred actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        Submit: Effect.fn(function*() {
+          const deferredLog = yield* DeferredLog
+          yield* StateMachine.action(deferredLog.push("submitted"))
+          return new Loading({ requestId: "request-1" })
+        })
+      })
+
+      const nextState = yield* StateMachine.next(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "hello" })
+      ).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assert.deepStrictEqual(nextState, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["submitted"])
+    }))
+
   it.effect("handlers can omit returning a state for self-transitions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({

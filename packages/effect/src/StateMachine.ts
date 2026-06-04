@@ -369,6 +369,107 @@ export const initial = <
   ...args: [...Machine.InputArgs<Input>]
 ): Machine.StateOf<States> => machine.initial(...args)
 
+/**
+ * Plans the next state for a state machine without running deferred actions.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const plan: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) => Effect.Effect<
+  {
+    readonly next: Machine.StateOf<States>
+    readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
+  },
+  E | UnhandledEventError,
+  R
+> = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) {
+  const deferredActions = yield* makeDeferredActions
+  const handler = machine.handlers[state._tag]?.[event._tag]
+
+  if (handler === undefined) {
+    return yield* new UnhandledEventError({
+      machineId: machine.id,
+      state: String(state._tag),
+      event: String(event._tag)
+    })
+  }
+
+  const result = handler({
+    state: state as Machine.StateByTag<States, UnhandledStates>,
+    event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+  })
+
+  const nextState = Effect.isEffect(result)
+    ? yield* result.pipe(Effect.provideService(DeferredActions, deferredActions))
+    : result
+
+  const stateAfterTransition = nextState === undefined ? state : nextState
+  const actions = yield* deferredActions.read
+
+  return {
+    next: stateAfterTransition,
+    actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>
+  }
+})
+
+/**
+ * Computes the next state for a state machine without mutating a running actor.
+ *
+ * Deferred actions are executed after the next state is planned.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const next: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) => Effect.Effect<Machine.StateOf<States>, E | UnhandledEventError, R> = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R>,
+  state: Machine.StateOf<States>,
+  event: Machine.EventOf<Events>
+) {
+  const planned = yield* plan(machine, state, event)
+  yield* Effect.all(planned.actions, { discard: true })
+  return planned.next
+})
+
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
 ): Effect.Effect<void, E, R> =>
@@ -404,7 +505,6 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
-  const deferredActions = yield* makeDeferredActions
   const stopped = yield* Ref.make(false)
   const current = yield* SynchronizedRef.make(initial(machine, ...args))
 
@@ -419,31 +519,11 @@ export const start: <
           return
         }
 
-        yield* SynchronizedRef.updateEffect(current, (state) =>
-          Effect.gen(function*() {
-            const handler = machine.handlers[state._tag]?.[event._tag]
+        const actions = yield* SynchronizedRef.modifyEffect(current, (state) =>
+          plan(machine, state, event).pipe(
+            Effect.map((planned) => [planned.actions, planned.next] as const)
+          ))
 
-            if (handler === undefined) {
-              return yield* new UnhandledEventError({
-                machineId: machine.id,
-                state: String(state._tag),
-                event: String(event._tag)
-              })
-            }
-
-            const result = handler({
-              state: state as Machine.StateByTag<States, UnhandledStates>,
-              event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
-            })
-
-            const nextState = Effect.isEffect(result)
-              ? yield* result.pipe(Effect.provideService(DeferredActions, deferredActions))
-              : result
-
-            return nextState === undefined ? state : nextState
-          }))
-
-        const actions = yield* deferredActions.read
         return yield* Effect.all(actions, { discard: true })
       })
   }
