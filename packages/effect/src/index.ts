@@ -32,6 +32,11 @@ export {
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
+ * @since 4.0.0
+ */
+export * as Actor from "./Actor.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Array from "./Array.ts"
