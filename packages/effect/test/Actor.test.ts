@@ -26,6 +26,16 @@ class ConcurrentIncrement extends Data.TaggedClass("ConcurrentIncrement")<{
   readonly reply: Deferred.Deferred<number>
 }> {}
 
+class BumpSelf extends Data.TaggedClass("BumpSelf")<{
+  readonly by: number
+  readonly reply: Deferred.Deferred<number>
+}> {}
+
+class SpawnCounter extends Data.TaggedClass("SpawnCounter")<{
+  readonly by: number
+  readonly reply: Deferred.Deferred<number>
+}> {}
+
 class LogicError extends Data.TaggedError("LogicError")<{
   readonly message: string
 }> {}
@@ -158,6 +168,160 @@ describe("Actor", () => {
 
       assert.strictEqual(yield* Deferred.await(reply), 2)
       assert.strictEqual(yield* actor.state, 2)
+
+      yield* actor.stop
+    }))
+
+  it.effect("provides a self reference to actor logic", () =>
+    Effect.gen(function*() {
+      type SelfEvent = BumpSelf | Increment | ReadCount
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, SelfEvent>(
+        0,
+        ({ receive, self, state, updateState }) =>
+          receive.pipe(
+            Effect.flatMap(
+              Match.type<SelfEvent>().pipe(
+                Match.tagsExhaustive({
+                  BumpSelf: (event) =>
+                    self.send(new Increment({ by: event.by })).pipe(
+                      Effect.andThen(self.send(new ReadCount({ reply: event.reply })))
+                    ),
+                  Increment: (event) => updateState((count) => Effect.succeed(count + event.by)),
+                  ReadCount: (event) =>
+                    state.pipe(
+                      Effect.flatMap((count) => Deferred.succeed(event.reply, count))
+                    )
+                })
+              )
+            ),
+            Effect.forever
+          )
+      ))
+
+      yield* actor.send(new BumpSelf({ by: 2, reply }))
+
+      assert.strictEqual(yield* Deferred.await(reply), 2)
+      yield* actor.stop
+    }))
+
+  it.effect("spawns child actors from actor logic", () =>
+    Effect.gen(function*() {
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, SpawnCounter>(
+        0,
+        ({ receive, spawn }) =>
+          receive.pipe(
+            Effect.flatMap((event) =>
+              Effect.gen(function*() {
+                const child = yield* spawn(counterLogic)
+                const childReply = yield* Deferred.make<number>()
+                yield* child.send(new Increment({ by: event.by }))
+                yield* child.send(new ReadCount({ reply: childReply }))
+                const count = yield* Deferred.await(childReply)
+                yield* Deferred.succeed(event.reply, count)
+              })
+            ),
+            Effect.forever
+          )
+      ))
+
+      yield* actor.send(new SpawnCounter({ by: 3, reply }))
+
+      assert.strictEqual(yield* Deferred.await(reply), 3)
+      yield* actor.stop
+    }))
+
+  it.effect("stops spawned children when the parent is stopped", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never>(0, () => Effect.never))
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      yield* actor.stop
+
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      const error = yield* Effect.flip(child.join)
+      assert.strictEqual(error._tag, "ActorStoppedError")
+    }))
+
+  it.effect("stops spawned children when the parent completes", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, string>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never>(0, () => Effect.never))
+            yield* Deferred.succeed(childRef, child)
+            return "done"
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.strictEqual(yield* actor.join, "done")
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
+  it.effect("stops spawned children when the parent fails", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, LogicError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never>(0, () => Effect.never))
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.fail(error)
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.deepStrictEqual(yield* Effect.flip(actor.join), error)
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
+  it.effect("does not fail the parent when a spawned child fails", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, LogicError, never>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never, never, LogicError>(
+              0,
+              () => Effect.fail(error)
+            ))
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.deepStrictEqual(yield* Effect.flip(child.join), error)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: 0
+      })
 
       yield* actor.stop
     }))

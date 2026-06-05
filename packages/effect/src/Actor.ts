@@ -13,6 +13,7 @@ import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Queue from "./Queue.ts"
+import * as Scope from "./Scope.ts"
 import * as Stream from "./Stream.ts"
 import * as SynchronizedRef from "./SynchronizedRef.ts"
 import type * as Take from "./Take.ts"
@@ -82,12 +83,16 @@ export interface Actor<out State, in Event, out Error = never, out Output = neve
  * @since 4.0.0
  */
 export interface ActorContext<State, Event> {
+  readonly self: ActorRef<Event>
   readonly receive: Effect.Effect<Event>
   readonly state: Effect.Effect<State>
   readonly setState: (state: State) => Effect.Effect<void>
   readonly updateState: <E, R>(
     f: (state: State) => Effect.Effect<State, E, R>
   ) => Effect.Effect<void, E, R>
+  readonly spawn: <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
+    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
+  ) => Effect.Effect<Actor<ChildState, ChildEvent, ChildError, ChildOutput>, never, ChildRequirements>
 }
 
 /**
@@ -151,6 +156,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     })
     const changes = yield* PubSub.unbounded<Take.Take<Snapshot<State, Error, Output>>>({ replay: 1 })
     const done = yield* Deferred.make<Output, Error | ActorStoppedError>()
+    const childrenScope = yield* Scope.make("parallel")
 
     const publishSnapshot = (
       snapshot: Snapshot<State, Error, Output>
@@ -181,14 +187,19 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
         )
       )
 
-    const updateSnapshot = <E2, R2>(
+    const modifySnapshot = <E2, R2>(
       f: (snapshot: Snapshot<State, Error, Output>) => Effect.Effect<Snapshot<State, Error, Output> | undefined, E2, R2>
     ): Effect.Effect<Snapshot<State, Error, Output> | undefined, E2, R2> =>
       SynchronizedRef.modifyEffect(
         current,
         (snapshot) =>
           Effect.map(f(snapshot), (next) => next === undefined ? [undefined, snapshot] as const : [next, next] as const)
-      ).pipe(
+      )
+
+    const updateSnapshot = <E2, R2>(
+      f: (snapshot: Snapshot<State, Error, Output>) => Effect.Effect<Snapshot<State, Error, Output> | undefined, E2, R2>
+    ): Effect.Effect<Snapshot<State, Error, Output> | undefined, E2, R2> =>
+      modifySnapshot(f).pipe(
         Effect.flatMap((snapshot) => snapshot === undefined ? Effect.succeed(undefined) : publishIfCurrent(snapshot))
       )
 
@@ -204,7 +215,23 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
         )
       ).pipe(Effect.asVoid)
 
+    const self: ActorRef<Event> = {
+      send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
+    }
+
+    const closeChildren = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> => Scope.close(childrenScope, exit)
+
+    const spawn = <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
+      logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
+    ): Effect.Effect<Actor<ChildState, ChildEvent, ChildError, ChildOutput>, never, ChildRequirements> =>
+      Effect.acquireRelease(
+        start(logic),
+        (child) => child.stop
+      ).pipe(Scope.provide(childrenScope))
+
     const context: ActorContext<State, Event> = {
+      self,
+      spawn,
       receive: Queue.take(queue),
       state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
       setState: setActiveState,
@@ -243,7 +270,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     const fiber = yield* logic.run(context).pipe(
       Effect.matchCauseEffect({
         onFailure: (cause) =>
-          updateSnapshot((snapshot) =>
+          modifySnapshot((snapshot) =>
             Effect.succeed(
               snapshot.status === "active"
                 ? {
@@ -257,13 +284,15 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
             Effect.flatMap((snapshot) =>
               snapshot === undefined
                 ? Effect.void
-                : Deferred.failCause(done, cause).pipe(
-                  Effect.andThen(Queue.shutdown(queue))
+                : Queue.shutdown(queue).pipe(
+                  Effect.andThen(closeChildren(Exit.failCause(cause))),
+                  Effect.andThen(publishIfCurrent(snapshot)),
+                  Effect.andThen(Deferred.failCause(done, cause))
                 )
             )
           ),
         onSuccess: (output) =>
-          updateSnapshot((snapshot) =>
+          modifySnapshot((snapshot) =>
             Effect.succeed(
               snapshot.status === "active"
                 ? {
@@ -277,7 +306,11 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
             Effect.flatMap((snapshot) =>
               snapshot === undefined
                 ? Effect.void
-                : Deferred.succeed(done, output).pipe(Effect.andThen(Queue.shutdown(queue)))
+                : Queue.shutdown(queue).pipe(
+                  Effect.andThen(closeChildren(Exit.succeed(output))),
+                  Effect.andThen(publishIfCurrent(snapshot)),
+                  Effect.andThen(Deferred.succeed(done, output))
+                )
             )
           )
       }),
@@ -289,7 +322,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
       snapshot: SynchronizedRef.get(current),
       changes: changesStream,
       join: Deferred.await(done),
-      stop: updateSnapshot((snapshot) =>
+      stop: modifySnapshot((snapshot) =>
         Effect.succeed(
           snapshot.status === "active"
             ? {
@@ -302,13 +335,15 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
         Effect.flatMap((snapshot) =>
           snapshot === undefined
             ? Effect.void
-            : Deferred.fail(done, new ActorStoppedError()).pipe(
-              Effect.andThen(Queue.shutdown(queue)),
+            : Queue.shutdown(queue).pipe(
+              Effect.andThen(closeChildren(Exit.void)),
+              Effect.andThen(publishIfCurrent(snapshot)),
+              Effect.andThen(Deferred.fail(done, new ActorStoppedError())),
               Effect.andThen(Fiber.interrupt(fiber))
             )
         )
       ),
-      send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
+      send: self.send
     } satisfies Actor<State, Event, Error, Output>
   }
 )
