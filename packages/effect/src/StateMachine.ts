@@ -123,9 +123,16 @@ export class StartupError extends Data.TaggedError("StartupError")<{
   readonly cause: Cause.Cause<unknown>
 }> {}
 
+type DeferredAction<E = any, R = any> = Effect.Effect<void, E, R>
+
+interface DeferredQueue<A> {
+  readonly add: (value: A) => Effect.Effect<void>
+  readonly read: Effect.Effect<ReadonlyArray<A>>
+}
+
 class DeferredActions extends Context.Service<DeferredActions, {
-  readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
-  readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
+  readonly add: <E, R>(effect: DeferredAction<E, R>) => Effect.Effect<void>
+  readonly read: Effect.Effect<ReadonlyArray<DeferredAction>>
 }>()("effect/StateMachine/DeferredActions") {}
 
 class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
@@ -504,39 +511,51 @@ const handleUnsafe = (
   return machine
 }
 
-const makeDeferredActions = Effect.gen(function*() {
-  const actions: Array<Effect.Effect<void, any, any>> = []
-  return DeferredActions.of({
-    read: Effect.sync(() => actions),
-    add: (effect) =>
-      Effect.sync(() => {
-        actions.push(effect)
-      })
+const makeDeferredQueue = <A>(): Effect.Effect<DeferredQueue<A>> =>
+  Effect.sync(() => {
+    const values: Array<A> = []
+    return {
+      read: Effect.sync(() => values),
+      add: (value) =>
+        Effect.sync(() => {
+          values.push(value)
+        })
+    }
   })
-})
 
-const makeDeferredRaisedEvents = Effect.gen(function*() {
-  const events: Array<any> = []
-  return DeferredRaisedEvents.of({
-    read: Effect.sync(() => events),
-    add: (event) =>
-      Effect.sync(() => {
-        events.push(event)
-      })
-  })
-})
+const makeDeferredActions = Effect.map(
+  makeDeferredQueue<DeferredAction>(),
+  (queue) =>
+    DeferredActions.of({
+      read: queue.read,
+      add: (effect) => queue.add(effect)
+    })
+)
+
+const makeDeferredRaisedEvents = Effect.map(
+  makeDeferredQueue<any>(),
+  (queue) =>
+    DeferredRaisedEvents.of({
+      read: queue.read,
+      add: (event) => queue.add(event)
+    })
+)
+
+const provideDeferredServices = <A, E, R>(
+  effect: Effect.Effect<A, E, R>,
+  deferredActions: DeferredActions["Service"],
+  deferredRaisedEvents: DeferredRaisedEvents["Service"]
+): Effect.Effect<A, E, R> =>
+  effect.pipe(
+    Effect.provideService(DeferredActions, deferredActions),
+    Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
+  )
 
 const runStateAction = <Context, E, R>(
   handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
   context: Context,
-  deferredActions: {
-    readonly add: <E, R>(effect: Effect.Effect<void, E, R>) => Effect.Effect<void>
-    readonly read: Effect.Effect<ReadonlyArray<Effect.Effect<void, any, any>>>
-  },
-  deferredRaisedEvents: {
-    readonly add: <Event>(event: Event) => Effect.Effect<void>
-    readonly read: Effect.Effect<ReadonlyArray<any>>
-  }
+  deferredActions: DeferredActions["Service"],
+  deferredRaisedEvents: DeferredRaisedEvents["Service"]
 ): Effect.Effect<void, E, R> => {
   if (handler === undefined) {
     return Effect.void
@@ -544,10 +563,7 @@ const runStateAction = <Context, E, R>(
 
   const result = handler(context)
   return Effect.isEffect(result)
-    ? result.pipe(
-      Effect.provideService(DeferredActions, deferredActions),
-      Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
-    )
+    ? provideDeferredServices(result, deferredActions, deferredRaisedEvents)
     : Effect.void
 }
 
@@ -592,6 +608,46 @@ const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSch
     : { reenter: transition.reenter === true, transition: transition.transition }
 }
 
+const collectStateAction = Effect.fnUntraced(function*<Context, Event, E, R>(
+  handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
+  context: Context
+) {
+  const deferredActions = yield* makeDeferredActions
+  const deferredRaisedEvents = yield* makeDeferredRaisedEvents
+  yield* runStateAction(handler, context, deferredActions, deferredRaisedEvents)
+  const actions = yield* deferredActions.read
+  const raisedEvents = yield* deferredRaisedEvents.read
+  return {
+    actions: actions as ReadonlyArray<DeferredAction<E, R>>,
+    raisedEvents: raisedEvents as ReadonlyArray<Event>
+  }
+})
+
+const collectTransition = Effect.fnUntraced(function*<
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  Event,
+  E,
+  R,
+  Context
+>(
+  transition: TransitionHandler<States, E, R, Context>,
+  context: Context
+) {
+  const deferredActions = yield* makeDeferredActions
+  const deferredRaisedEvents = yield* makeDeferredRaisedEvents
+  const result = transition(context)
+  const state = Effect.isEffect(result)
+    ? yield* provideDeferredServices(result, deferredActions, deferredRaisedEvents)
+    : result
+  const actions = yield* deferredActions.read
+  const raisedEvents = yield* deferredRaisedEvents.read
+  return {
+    state,
+    actions: actions as ReadonlyArray<DeferredAction<E, R>>,
+    raisedEvents: raisedEvents as ReadonlyArray<Event>
+  }
+})
+
 const MaxMacrostepIterations = 1000
 const InitialEventTypeId: unique symbol = Symbol("effect/StateMachine/InitialEvent")
 const InitialEvent = { _tag: InitialEventTypeId }
@@ -616,7 +672,7 @@ const isFinalState = (
   state: { readonly _tag: PropertyKey }
 ): boolean => machine.handlers[state._tag]?.type === "final"
 
-const output = <
+const getFinalOutput = <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   StateTag extends Machine.TagOf<States[number]>,
@@ -760,25 +816,19 @@ export const planInitial: <
     : result
   const actions = yield* deferredActions.read
   const settled = yield* catchStartup(Effect.gen(function*() {
-    const entryDeferredActions = yield* makeDeferredActions
-    const entryDeferredRaisedEvents = yield* makeDeferredRaisedEvents
-    yield* (runStateAction(
+    const entry = yield* collectStateAction(
       machine.handlers[state._tag]?.entry,
       {
         state: state as Machine.StateByTag<States, UnhandledStates>,
         event: InitialEvent as Machine.EventOf<Events>
-      },
-      entryDeferredActions,
-      entryDeferredRaisedEvents
-    ) as Effect.Effect<void>)
-    const entryActions = yield* entryDeferredActions.read
-    const entryRaisedEvents = yield* entryDeferredRaisedEvents.read
+      }
+    )
     return yield* (settle(
       machine,
       state,
       InitialEvent as Machine.EventOf<Events>,
-      entryActions as Array<Effect.Effect<void, never, never>>,
-      entryRaisedEvents as Array<Machine.EventOf<Events>>,
+      [...entry.actions] as Array<Effect.Effect<void, never, never>>,
+      [...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
       []
     ) as Effect.Effect<MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, never, never, Output>>)
   }))
@@ -851,8 +901,6 @@ const microstep: <
   transition: MicrostepTransition<States, E, R, Context> | undefined,
   context: Context
 ) {
-  const deferredActions = yield* makeDeferredActions
-  const deferredRaisedEvents = yield* makeDeferredRaisedEvents
   const stateConfig = machine.handlers[state._tag]
 
   if (transition === undefined) {
@@ -863,59 +911,56 @@ const microstep: <
     })
   }
 
-  const result = transition.transition(context)
-
-  const nextState = Effect.isEffect(result)
-    ? yield* result.pipe(
-      Effect.provideService(DeferredActions, deferredActions),
-      Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
-    )
-    : result
-
-  const stateAfterTransition = nextState === undefined ? state : nextState
-  const actions = yield* deferredActions.read
-  const raisedEvents = yield* deferredRaisedEvents.read
+  const transitionResult = yield* collectTransition<States, Machine.EventOf<Events>, E, R, Context>(
+    transition.transition,
+    context
+  )
+  const stateAfterTransition = transitionResult.state === undefined ? state : transitionResult.state
   if (stateAfterTransition._tag === state._tag && !transition.reenter) {
     return {
       next: stateAfterTransition,
-      actions: actions as ReadonlyArray<Effect.Effect<void, E, R>>,
-      raisedEvents: raisedEvents as ReadonlyArray<Machine.EventOf<Events>>,
+      actions: transitionResult.actions,
+      raisedEvents: transitionResult.raisedEvents,
       changed: false
     }
   }
 
-  const exitDeferredActions = yield* makeDeferredActions
-  const exitDeferredRaisedEvents = yield* makeDeferredRaisedEvents
-  yield* runStateAction(
+  const exit = yield* collectStateAction<
+    Machine.StateActionContext<States, Events, UnhandledStates>,
+    Machine.EventOf<
+      Events
+    >,
+    E,
+    R
+  >(
     stateConfig?.exit,
     {
       state: state as Machine.StateByTag<States, UnhandledStates>,
       event
-    },
-    exitDeferredActions,
-    exitDeferredRaisedEvents
+    }
   )
-  const exitActions = yield* exitDeferredActions.read
-  const exitRaisedEvents = yield* exitDeferredRaisedEvents.read
 
-  const entryDeferredActions = yield* makeDeferredActions
-  const entryDeferredRaisedEvents = yield* makeDeferredRaisedEvents
-  yield* runStateAction(
+  const entry = yield* collectStateAction<
+    Machine.StateActionContext<States, Events, UnhandledStates>,
+    Machine.EventOf<
+      Events
+    >,
+    E,
+    R
+  >(
     machine.handlers[stateAfterTransition._tag]?.entry,
     {
       state: stateAfterTransition as Machine.StateByTag<States, UnhandledStates>,
       event
-    },
-    entryDeferredActions,
-    entryDeferredRaisedEvents
+    }
   )
-  const entryActions = yield* entryDeferredActions.read
-  const entryRaisedEvents = yield* entryDeferredRaisedEvents.read
 
   return {
     next: stateAfterTransition,
-    actions: [...exitActions, ...actions, ...entryActions] as ReadonlyArray<Effect.Effect<void, E, R>>,
-    raisedEvents: [...exitRaisedEvents, ...raisedEvents, ...entryRaisedEvents] as ReadonlyArray<
+    actions: [...exit.actions, ...transitionResult.actions, ...entry.actions] as ReadonlyArray<
+      Effect.Effect<void, E, R>
+    >,
+    raisedEvents: [...exit.raisedEvents, ...transitionResult.raisedEvents, ...entry.raisedEvents] as ReadonlyArray<
       Machine.EventOf<Events>
     >,
     changed: true
@@ -963,17 +1008,18 @@ const settle: <
   raisedEvents: Array<Machine.EventOf<Events>>,
   microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
 ) {
-  let next = state
+  let currentState = state
   let currentEvent = event
   let shouldRunAlways = true
   let iterations = 0
+  let raisedEventIndex = 0
   let finalOutput: Output | undefined = undefined
 
   while (true) {
-    if (isFinalState(machine, next)) {
-      finalOutput = output<States, Events, Machine.TagOf<States[number]>, Output>(
+    if (isFinalState(machine, currentState)) {
+      finalOutput = getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
         machine,
-        next as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+        currentState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
         currentEvent
       )
       break
@@ -983,59 +1029,60 @@ const settle: <
     if (iterations > MaxMacrostepIterations) {
       return yield* new InfiniteTransitionError({
         machineId: machine.id,
-        state: String(next._tag),
+        state: String(currentState._tag),
         maxIterations: MaxMacrostepIterations
       })
     }
 
     const always = shouldRunAlways
-      ? machine.handlers[next._tag]?.always
+      ? machine.handlers[currentState._tag]?.always
       : undefined
     if (always !== undefined) {
       const alwaysStep: MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R> = yield* microstep(
         machine,
-        next,
+        currentState,
         currentEvent,
         { reenter: false, transition: always },
         {
-          state: next as Machine.StateByTag<States, UnhandledStates>,
+          state: currentState as Machine.StateByTag<States, UnhandledStates>,
           event: currentEvent
         }
       )
       actions.push(...alwaysStep.actions)
       raisedEvents.push(...alwaysStep.raisedEvents)
       microsteps.push(alwaysStep)
-      next = alwaysStep.next
+      currentState = alwaysStep.next
       shouldRunAlways = alwaysStep.changed
       continue
     }
 
-    const raisedEvent = raisedEvents.shift()
+    const raisedEvent = raisedEvents[raisedEventIndex]
     if (raisedEvent === undefined) {
       break
     }
+    raisedEventIndex += 1
 
     currentEvent = raisedEvent
-    const raisedStateConfig = machine.handlers[next._tag]
+    const raisedStateConfig = machine.handlers[currentState._tag]
     const raisedStep = yield* microstep(
       machine,
-      next,
+      currentState,
       raisedEvent,
       normalizeEventTransition(raisedStateConfig?.on?.[raisedEvent._tag]),
       {
-        state: next as Machine.StateByTag<States, UnhandledStates>,
+        state: currentState as Machine.StateByTag<States, UnhandledStates>,
         event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
       }
     )
     actions.push(...raisedStep.actions)
     raisedEvents.push(...raisedStep.raisedEvents)
     microsteps.push(raisedStep)
-    next = raisedStep.next
+    currentState = raisedStep.next
     shouldRunAlways = true
   }
 
   return {
-    next,
+    next: currentState,
     actions,
     microsteps,
     output: finalOutput
@@ -1157,21 +1204,27 @@ export const next: <
   }
 )
 
+const actionUnsafe = Effect.fnUntraced(function*<E, R>(
+  effect: Effect.Effect<void, E, R>
+) {
+  const actions = yield* DeferredActions
+  yield* actions.add(effect)
+})
+
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
-): Effect.Effect<void, E, R> =>
-  Effect.gen(function*() {
-    const actions = yield* DeferredActions
-    yield* actions.add(effect)
-  }) as any
+): Effect.Effect<void, E, R> => actionUnsafe(effect) as unknown as Effect.Effect<void, E, R>
+
+const raiseUnsafe = Effect.fnUntraced(function*<Event>(
+  event: Event
+) {
+  const events = yield* DeferredRaisedEvents
+  yield* events.add(event)
+})
 
 export const raise = <Event>(
   event: Event
-): Effect.Effect<void> =>
-  Effect.gen(function*() {
-    const events = yield* DeferredRaisedEvents
-    yield* events.add(event)
-  }) as any
+): Effect.Effect<void> => raiseUnsafe(event) as unknown as Effect.Effect<void>
 
 /**
  * Starts a state machine runtime.

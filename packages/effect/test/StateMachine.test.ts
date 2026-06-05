@@ -1171,6 +1171,55 @@ describe("StateMachine", () => {
       assert.strictEqual(planned.microsteps.length, 3)
     }))
 
+  it.effect("queues events raised from exit actions before transition actions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit, Reset, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit"))
+            yield* StateMachine.raise(new Reset({}))
+          }),
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("transition"))
+              yield* StateMachine.raise(new Resolve({}))
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Reset: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("reset"))
+            }),
+            Resolve: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* StateMachine.action(deferredLog.push("resolve"))
+            })
+          }
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      yield* actor.send(new Submit({ value: "hello" })).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
+
+      assert.deepStrictEqual(yield* deferredLog.read, ["exit", "transition", "reset", "resolve"])
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
   it.effect("selects always transitions before raised events", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
