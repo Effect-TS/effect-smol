@@ -172,6 +172,48 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("exposes explicit and generated root actor identities", () =>
+    Effect.gen(function*() {
+      const explicit = yield* Actor.start(counterLogic, { id: "root" })
+      const generated = yield* Actor.start(counterLogic)
+
+      assert.strictEqual(explicit.id, "root")
+      assert.notStrictEqual(explicit.sessionId, "")
+      assert.notStrictEqual(explicit.id, explicit.sessionId)
+      assert.strictEqual(generated.id, generated.sessionId)
+
+      yield* explicit.stop
+      yield* generated.stop
+    }))
+
+  it.effect("provides root actor identity and no parent to actor logic", () =>
+    Effect.gen(function*() {
+      const observed = yield* Deferred.make<{
+        readonly id: string
+        readonly sessionId: string
+        readonly hasParent: boolean
+      }>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, never, string>(
+          0,
+          ({ parent, self }) =>
+            Deferred.succeed(observed, {
+              id: self.id,
+              sessionId: self.sessionId,
+              hasParent: parent !== undefined
+            }).pipe(Effect.as("done"))
+        ),
+        { id: "root" }
+      )
+
+      assert.deepStrictEqual(yield* Deferred.await(observed), {
+        id: "root",
+        sessionId: actor.sessionId,
+        hasParent: false
+      })
+      assert.strictEqual(yield* actor.join, "done")
+    }))
+
   it.effect("provides a self reference to actor logic", () =>
     Effect.gen(function*() {
       type SelfEvent = BumpSelf | Increment | ReadCount
@@ -200,6 +242,137 @@ describe("Actor", () => {
       ))
 
       yield* actor.send(new BumpSelf({ by: 2, reply }))
+
+      assert.strictEqual(yield* Deferred.await(reply), 2)
+      yield* actor.stop
+    }))
+
+  it.effect("provides parent identity to named child actor logic", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const observed = yield* Deferred.make<{
+        readonly childId: string
+        readonly childSessionId: string
+        readonly parentId: string | undefined
+        readonly parentSessionId: string | undefined
+      }>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+          0,
+          ({ spawn }) =>
+            Effect.gen(function*() {
+              const child = yield* spawn(
+                Actor.fromEffect<number, never>(
+                  0,
+                  ({ parent, self }) =>
+                    Deferred.succeed(observed, {
+                      childId: self.id,
+                      childSessionId: self.sessionId,
+                      parentId: parent?.id,
+                      parentSessionId: parent?.sessionId
+                    }).pipe(Effect.andThen(Effect.never))
+                ),
+                { id: "child" }
+              )
+              yield* Deferred.succeed(childRef, child)
+              return yield* Effect.never
+            })
+        ),
+        { id: "parent" }
+      )
+
+      const child = yield* Deferred.await(childRef)
+      assert.deepStrictEqual(yield* Deferred.await(observed), {
+        childId: "child",
+        childSessionId: child.sessionId,
+        parentId: "parent",
+        parentSessionId: actor.sessionId
+      })
+      assert.strictEqual(child.id, "child")
+      assert.notStrictEqual(child.sessionId, actor.sessionId)
+
+      yield* actor.stop
+    }))
+
+  it.effect("generates ids for anonymous spawned actors", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const observed = yield* Deferred.make<{
+        readonly id: string
+        readonly sessionId: string
+        readonly parentId: string | undefined
+      }>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, never>(
+          0,
+          ({ spawn }) =>
+            Effect.gen(function*() {
+              const child = yield* spawn(Actor.fromEffect<number, never>(
+                0,
+                ({ parent, self }) =>
+                  Deferred.succeed(observed, {
+                    id: self.id,
+                    sessionId: self.sessionId,
+                    parentId: parent?.id
+                  }).pipe(Effect.andThen(Effect.never))
+              ))
+              yield* Deferred.succeed(childRef, child)
+              return yield* Effect.never
+            })
+        ),
+        { id: "parent" }
+      )
+
+      const child = yield* Deferred.await(childRef)
+      assert.strictEqual(child.id, child.sessionId)
+      assert.deepStrictEqual(yield* Deferred.await(observed), {
+        id: child.id,
+        sessionId: child.sessionId,
+        parentId: "parent"
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("allows child logic to send events to the parent reference", () =>
+    Effect.gen(function*() {
+      type ParentEvent = Increment | ReadCount
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, ParentEvent, never, Actor.ActorChildAlreadyExistsError>(
+          0,
+          ({ receive, spawn, state, updateState }) =>
+            Effect.gen(function*() {
+              yield* spawn(
+                Actor.fromEffect<number, never>(
+                  0,
+                  ({ parent }) =>
+                    parent === undefined
+                      ? Effect.void
+                      : parent.send(new Increment({ by: 2 })).pipe(
+                        Effect.andThen(parent.send(new ReadCount({ reply })))
+                      )
+                ),
+                { id: "child" }
+              )
+              return yield* receive.pipe(
+                Effect.flatMap(
+                  Match.type<ParentEvent>().pipe(
+                    Match.tagsExhaustive({
+                      Increment: (event) => updateState((count) => Effect.succeed(count + event.by)),
+                      ReadCount: (event) =>
+                        state.pipe(
+                          Effect.flatMap((count) => Deferred.succeed(event.reply, count))
+                        )
+                    })
+                  )
+                ),
+                Effect.forever
+              )
+            })
+        ),
+        { id: "parent" }
+      )
 
       assert.strictEqual(yield* Deferred.await(reply), 2)
       yield* actor.stop
@@ -259,6 +432,62 @@ describe("Actor", () => {
 
       assert.strictEqual(yield* Deferred.await(reply), 4)
       yield* actor.stop
+    }))
+
+  it.effect("sends events to named child actors by id", () =>
+    Effect.gen(function*() {
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ sendTo, spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(counterLogic, { id: "counter" })
+            yield* sendTo("counter", new Increment({ by: 5 }))
+            yield* sendTo("counter", new ReadCount({ reply }))
+            return yield* Effect.never
+          })
+      ))
+
+      assert.strictEqual(yield* Deferred.await(reply), 5)
+      yield* actor.stop
+    }))
+
+  it.effect("ignores unknown child ids when sending by id", () =>
+    Effect.gen(function*() {
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(
+        0,
+        ({ sendTo }) => sendTo("missing", new Increment({ by: 1 }))
+      ))
+
+      assert.strictEqual(yield* actor.join, void 0)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: 0,
+        output: undefined
+      })
+    }))
+
+  it.effect("does not send to a stopped child id", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, void, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ sendTo, spawn, stopChild }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(counterLogic, { id: "counter" })
+            yield* Deferred.succeed(childRef, child)
+            yield* stopChild("counter")
+            yield* sendTo("counter", new Increment({ by: 1 }))
+          })
+      ))
+
+      const child = yield* Deferred.await(childRef)
+      yield* actor.join
+
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
     }))
 
   it.effect("fails when spawning a duplicate child id", () =>
@@ -337,6 +566,9 @@ describe("Actor", () => {
       const secondChild = yield* Deferred.await(secondChildRef)
 
       assert.notStrictEqual(firstChild, secondChild)
+      assert.strictEqual(firstChild.id, "counter")
+      assert.strictEqual(secondChild.id, "counter")
+      assert.notStrictEqual(firstChild.sessionId, secondChild.sessionId)
       assert.deepStrictEqual(yield* firstChild.snapshot, {
         status: "stopped",
         state: 0
@@ -394,6 +626,9 @@ describe("Actor", () => {
       const secondChild = yield* Deferred.await(secondChildRef)
 
       assert.notStrictEqual(firstChild, secondChild)
+      assert.strictEqual(firstChild.id, "counter")
+      assert.strictEqual(secondChild.id, "counter")
+      assert.notStrictEqual(firstChild.sessionId, secondChild.sessionId)
       assert.deepStrictEqual(yield* firstChild.snapshot, {
         status: "stopped",
         state: 0

@@ -27,6 +27,8 @@ import type * as Take from "./Take.ts"
  * @since 4.0.0
  */
 export interface ActorRef<in Event> {
+  readonly id: string
+  readonly sessionId: string
   readonly send: (event: Event) => Effect.Effect<void>
 }
 
@@ -95,6 +97,7 @@ type ChildEntry =
   | {
     readonly _tag: "Started"
     readonly token: symbol
+    readonly send: (event: unknown) => Effect.Effect<void>
     readonly stop: Effect.Effect<void>
   }
 
@@ -116,6 +119,27 @@ export interface SpawnOptions {
  */
 export interface SpawnIdOptions extends SpawnOptions {
   readonly id: string
+}
+
+/**
+ * Options for starting a root actor.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface StartOptions {
+  readonly id?: string
+}
+
+interface InternalStartOptions extends StartOptions {
+  readonly parent?: ActorRef<unknown>
+  readonly runtime: ActorRuntime
+}
+
+// Root-scoped actor runtime state shared by a root actor and its descendants.
+// This can grow into an internal ActorSystem backing if actor registries are added.
+interface ActorRuntime {
+  readonly nextSessionId: Effect.Effect<string>
 }
 
 type SpawnRequirements<Requirements> = Exclude<Requirements, Scope.Scope>
@@ -155,6 +179,7 @@ interface Spawn {
  */
 export interface ActorContext<State, Event> {
   readonly self: ActorRef<Event>
+  readonly parent: ActorRef<unknown> | undefined
   readonly receive: Effect.Effect<Event>
   readonly state: Effect.Effect<State>
   readonly setState: (state: State) => Effect.Effect<void>
@@ -162,6 +187,7 @@ export interface ActorContext<State, Event> {
     f: (state: State) => Effect.Effect<State, E, R>
   ) => Effect.Effect<void, E, R>
   readonly spawn: Spawn
+  readonly sendTo: <ChildEvent>(id: string, event: ChildEvent) => Effect.Effect<void>
   readonly stopChild: (id: string) => Effect.Effect<void>
 }
 
@@ -206,18 +232,23 @@ export const fromTransition = <State, Event, Error = never, Requirements = never
       Effect.forever
     ))
 
-/**
- * Starts an actor from actor logic.
- *
- * @category constructors
- * @since 4.0.0
- */
-export const start: <State, Event, Error = never, Requirements = never, Output = never>(
-  logic: ActorLogic<State, Event, Error, Requirements, Output>
+const makeActorRuntime: Effect.Effect<ActorRuntime> = Effect.sync(() => {
+  let sessionIdCounter = 0
+  return {
+    nextSessionId: Effect.sync(() => `actor:${sessionIdCounter++}`)
+  }
+})
+
+const startInternal: <State, Event, Error = never, Requirements = never, Output = never>(
+  logic: ActorLogic<State, Event, Error, Requirements, Output>,
+  options: InternalStartOptions
 ) => Effect.Effect<Actor<State, Event, Error, Output>, never, Requirements> = Effect.fnUntraced(
   function*<State, Event, Error, Requirements, Output>(
-    logic: ActorLogic<State, Event, Error, Requirements, Output>
+    logic: ActorLogic<State, Event, Error, Requirements, Output>,
+    options: InternalStartOptions
   ) {
+    const sessionId = yield* options.runtime.nextSessionId
+    const id = options.id ?? sessionId
     const initial = yield* logic.initial
     const queue = yield* Queue.unbounded<Event>()
     const current = yield* SynchronizedRef.make<Snapshot<State, Error, Output>>({
@@ -287,6 +318,8 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
       ).pipe(Effect.asVoid)
 
     const self: ActorRef<Event> = {
+      id,
+      sessionId,
       send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
     }
 
@@ -314,8 +347,24 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
           : children
       })
 
-    const registerStartedChild = (id: string, token: symbol, stop: Effect.Effect<void>): Effect.Effect<void> =>
-      SynchronizedRef.update(childRegistry, (children) => HashMap.set(children, id, { _tag: "Started", token, stop }))
+    const registerStartedChild = (
+      id: string,
+      token: symbol,
+      send: (event: unknown) => Effect.Effect<void>,
+      stop: Effect.Effect<void>
+    ): Effect.Effect<void> =>
+      SynchronizedRef.update(
+        childRegistry,
+        (children) => HashMap.set(children, id, { _tag: "Started", token, send, stop })
+      )
+
+    const sendTo = <ChildEvent>(id: string, event: ChildEvent): Effect.Effect<void> =>
+      SynchronizedRef.get(childRegistry).pipe(
+        Effect.flatMap((children) => {
+          const entry = HashMap.get(children, id)
+          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.send(event) : Effect.void
+        })
+      )
 
     const stopChild = (id: string): Effect.Effect<void> =>
       SynchronizedRef.get(childRegistry).pipe(
@@ -332,6 +381,8 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     ): Actor<ChildState, ChildEvent, ChildError, ChildOutput> => {
       const stop = child.stop.pipe(Effect.andThen(unregisterStartedChild(id, token)))
       return {
+        id: child.id,
+        sessionId: child.sessionId,
         state: child.state,
         snapshot: child.snapshot,
         changes: child.changes,
@@ -357,7 +408,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>>
     function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
       logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
-      options?: SpawnOptions
+      spawnOptions?: SpawnOptions
     ): SpawnResult<
       ChildState,
       ChildEvent,
@@ -366,22 +417,27 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
       ChildOutput,
       ActorChildAlreadyExistsError
     > {
-      if (options?.id === undefined) {
+      if (spawnOptions?.id === undefined) {
         return Effect.acquireRelease(
-          start(logic),
+          startInternal(logic, {
+            parent: self as ActorRef<unknown>,
+            runtime: options.runtime
+          }),
           (child) => child.stop
         ).pipe(Scope.provide(childrenScope))
       }
-      const id = options.id
+      const id = spawnOptions.id
       return Effect.acquireRelease(
         Effect.gen(function*() {
           yield* reserveChildId(id)
           const token = Symbol()
-          const child = yield* start(logic).pipe(
-            Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void)
-          )
+          const child = yield* startInternal(logic, {
+            id,
+            parent: self as ActorRef<unknown>,
+            runtime: options.runtime
+          }).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void))
           const named = namedChild(id, token, child)
-          yield* registerStartedChild(id, token, named.stop)
+          yield* registerStartedChild(id, token, (event) => named.send(event as ChildEvent), named.stop)
           return named
         }),
         (child) => child.stop
@@ -390,7 +446,9 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
 
     const context: ActorContext<State, Event> = {
       self,
+      parent: options.parent,
       spawn,
+      sendTo,
       stopChild,
       receive: Queue.take(queue),
       state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
@@ -478,6 +536,8 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     )
 
     return {
+      id,
+      sessionId,
       state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
       snapshot: SynchronizedRef.get(current),
       changes: changesStream,
@@ -505,5 +565,24 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
       ),
       send: self.send
     } satisfies Actor<State, Event, Error, Output>
+  }
+)
+
+/**
+ * Starts an actor from actor logic.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const start: <State, Event, Error = never, Requirements = never, Output = never>(
+  logic: ActorLogic<State, Event, Error, Requirements, Output>,
+  options?: StartOptions
+) => Effect.Effect<Actor<State, Event, Error, Output>, never, Requirements> = Effect.fnUntraced(
+  function*<State, Event, Error, Requirements, Output>(
+    logic: ActorLogic<State, Event, Error, Requirements, Output>,
+    options?: StartOptions
+  ) {
+    const runtime = yield* makeActorRuntime
+    return yield* startInternal(logic, options === undefined ? { runtime } : { ...options, runtime })
   }
 )
