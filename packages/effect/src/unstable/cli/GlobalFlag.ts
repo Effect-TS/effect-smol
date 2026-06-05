@@ -203,6 +203,7 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
     .pipe(
       Flag.optional,
       Flag.map((v) => Option.map(v, (s) => s === "sh" ? "bash" : s)),
+      Flag.withMetavar("<bash|zsh|fish|sh>"),
       Flag.withDescription("Print shell completion script")
     ),
   run: (shell, { command }) =>
@@ -242,7 +243,8 @@ export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setti
     ] as const
   ).pipe(
     Flag.optional,
-    Flag.withDescription("Sets the minimum log level")
+    Flag.withDescription("Sets the minimum log level"),
+    Flag.withMetavar("<all|trace|debug|info|warn|warning|error|fatal|none>"),
   )
 })
 
