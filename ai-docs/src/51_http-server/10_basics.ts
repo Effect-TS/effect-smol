@@ -52,7 +52,9 @@ export const HttpServerLayer = HttpRouter.serve(AllRoutes).pipe(
 )
 
 // Then run the server using Layer.launch
-NodeRuntime.runMain(Layer.launch(HttpServerLayer))
+Layer.launch(HttpServerLayer).pipe(
+  NodeRuntime.runMain
+)
 
 // Or create a web handler, which can be used in serverless environments
 export const { handler, dispose } = HttpRouter.toWebHandler(AllRoutes.pipe(

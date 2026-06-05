@@ -863,7 +863,7 @@ function expectedStreamResponse(response: unknown) {
 
 interface SseStreamEncoder {
   readonly sseMode: HttpApiSchema.StreamSseMode
-  readonly encodeEvent: (input: unknown) => Effect.Effect<Sse.EventEncoded, Schema.SchemaError, unknown>
+  readonly encodeEvent: (input: unknown) => Effect.Effect<HttpApiSchema.SseEventEncoded, Schema.SchemaError, unknown>
   readonly encodeCause: (input: unknown) => Effect.Effect<string, Schema.SchemaError, unknown>
 }
 
@@ -886,12 +886,12 @@ function encodeSseStream(
     Stream.map((value) => encodeSuccessEvent(value, encoder)),
     Stream.catchCause((cause) => Stream.succeed(encodeFailureEvent(cause, encoder))),
     Stream.mapEffect(identity),
-    Stream.map((event) => Sse.encoder.write({ _tag: "Event", ...event })),
+    Stream.map(renderSseEvent),
     Stream.encodeText
   )
 }
 
-type SseEventEffect = Effect.Effect<Sse.EventEncoded, Schema.SchemaError, unknown>
+type SseEventEffect = Effect.Effect<HttpApiSchema.SseEventEncoded, Schema.SchemaError, unknown>
 
 const defaultDataStreamEvent = "message"
 
@@ -917,7 +917,7 @@ function makeSentinelErrorEvent(cause: string) {
   return { id: undefined, event: reservedStreamFailureEvent, data: cause } as const
 }
 
-function validateSseEvent(event: Sse.EventEncoded) {
+function validateSseEvent(event: HttpApiSchema.SseEventEncoded) {
   return event.event === reservedStreamFailureEvent
     ? Effect.fail(makeSchemaError(
       new SchemaIssue.InvalidValue(Option.some(event), {
@@ -925,6 +925,15 @@ function validateSseEvent(event: Sse.EventEncoded) {
       })
     ))
     : Effect.succeed(event)
+}
+
+function renderSseEvent(event: HttpApiSchema.SseEventEncoded) {
+  return Sse.encoder.write({
+    _tag: "Event",
+    event: event.event,
+    id: event.id,
+    data: event.data
+  })
 }
 
 function makeSchemaError(issue: SchemaIssue.Issue): Schema.SchemaError {
