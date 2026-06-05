@@ -266,7 +266,7 @@ effect-bdd \
   --reporter text
 ```
 
-The command exits with status `0` when every scenario passes and with a non-zero status when discovery, parsing, matching, reporting, or any scenario fails. Reports are emitted before the command fails for failed scenarios.
+The command exits with status `0` when every scenario passes and with a non-zero status when discovery, parsing, matching, reporting, diagnostics, or any scenario fails. Reports are emitted before the command fails.
 
 ### Globs
 
@@ -299,9 +299,20 @@ The CLI supports:
 
 - `text`: writes to stdout by default, or `--output-file.text <path>`.
 - `html`: writes to `--output-file.html <path>`.
-- `--parallel <n>`: runs scenarios concurrently while preserving source order in reports.
+- `json`: writes to stdout by default, or `--output-file.json <path>`.
+- `junit`: writes to `--output-file.junit <path>`.
 
-For example, write both reports to files:
+The default text reporter is compact. It prints the summary, failed scenarios, and diagnostics. Add `--verbose` to print every passing scenario:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.step.ts" \
+  --reporter text \
+  --verbose
+```
+
+For example, write human, HTML, and CI reports to files:
 
 ```sh
 effect-bdd \
@@ -310,8 +321,38 @@ effect-bdd \
   --reporter text \
   --output-file.text reports/bdd.txt \
   --reporter html \
-  --output-file.html reports/bdd.html
+  --output-file.html reports/bdd.html \
+  --reporter json \
+  --output-file.json reports/bdd.json \
+  --reporter junit \
+  --output-file.junit reports/bdd.xml
 ```
+
+Diagnostics are reported separately from failed assertions. They include feature files with no matching `Bdd.feature(...)` export, scenarios that cannot run because their feature definition is missing, source steps with no or multiple matching transitions, exported feature definitions that were not matched by any feature file, and step definitions that were never matched.
+
+### Filtering
+
+Use `--tags <expression>` for Cucumber-style tag expressions:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.step.ts" \
+  --tags "@event-sourcing and not @slow"
+```
+
+Supported tag operators are `and`, `or`, `not`, and parentheses. Repeated `--tags` flags are combined with `and`.
+
+Use `--name <text>` to run scenarios whose `Feature / Scenario` name contains the provided text:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.step.ts" \
+  --name "stale append"
+```
+
+Repeated `--name` flags are combined with `or`. If filters match no scenarios, the command fails with a clear user error.
 
 ### Parallel Scenario Execution
 
@@ -326,6 +367,8 @@ effect-bdd \
 ```
 
 Every scenario starts from the feature definition's initial state. Reports preserve feature/scenario source order even when scenarios run concurrently.
+
+Use `--fail-fast` to stop after the first failed scenario. When enabled, scenarios run sequentially so the stop point is deterministic.
 
 ### TypeScript Step Modules
 

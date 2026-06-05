@@ -6,7 +6,7 @@ import { pipe } from "effect/Function"
 import * as Path from "effect/Path"
 import * as Str from "effect/String"
 import { ReporterError } from "./errors.ts"
-import type { CliRunResult, ReporterName, ScenarioResult } from "./models.ts"
+import type { CliDiagnostic, CliRunResult, ReporterName, ScenarioResult } from "./models.ts"
 
 /** @internal */
 export interface Reporter {
@@ -22,17 +22,30 @@ export const makeReporters = (
   outputFiles: {
     readonly text?: string
     readonly html?: string
+    readonly json?: string
+    readonly junit?: string
+  },
+  options: {
+    readonly verbose: boolean
   }
 ): Effect.Effect<ReadonlyArray<Reporter>, ReporterError> =>
   Effect.forEach(names, (name) => {
     switch (name) {
       case "text": {
-        return Effect.succeed(textReporter(outputFiles.text))
+        return Effect.succeed(textReporter(outputFiles.text, options.verbose))
       }
       case "html": {
         return outputFiles.html === undefined
           ? Effect.fail(new ReporterError({ message: "Reporter html requires --output-file.html" }))
           : Effect.succeed(htmlReporter(outputFiles.html))
+      }
+      case "json": {
+        return Effect.succeed(jsonReporter(outputFiles.json))
+      }
+      case "junit": {
+        return outputFiles.junit === undefined
+          ? Effect.fail(new ReporterError({ message: "Reporter junit requires --output-file.junit" }))
+          : Effect.succeed(junitReporter(outputFiles.junit))
       }
     }
   })
@@ -65,17 +78,30 @@ export const emitAll: (
   }
 })
 
-const textReporter = (outputFile: string | undefined): Reporter => ({
+const textReporter = (outputFile: string | undefined, verbose: boolean): Reporter => ({
   name: "text",
   emit: (result) =>
     outputFile === undefined
-      ? Console.log(renderText(result))
-      : writeFile(outputFile, renderText(result))
+      ? Console.log(renderText(result, verbose))
+      : writeFile(outputFile, renderText(result, verbose))
 })
 
 const htmlReporter = (outputFile: string): Reporter => ({
   name: "html",
   emit: (result) => writeFile(outputFile, renderHtml(result))
+})
+
+const jsonReporter = (outputFile: string | undefined): Reporter => ({
+  name: "json",
+  emit: (result) =>
+    outputFile === undefined
+      ? Console.log(renderJson(result))
+      : writeFile(outputFile, renderJson(result))
+})
+
+const junitReporter = (outputFile: string): Reporter => ({
+  name: "junit",
+  emit: (result) => writeFile(outputFile, renderJunit(result))
 })
 
 const writeFile: (
@@ -108,22 +134,33 @@ const writeFile: (
   )
 })
 
-const renderText = (result: CliRunResult): string => {
+const renderText = (result: CliRunResult, verbose: boolean): string => {
   const summary = [
-    `Scenarios: ${result.summary.total}, passed: ${result.summary.passed}, failed: ${result.summary.failed}`,
+    `Features: ${result.summary.features}, Scenarios: ${result.summary.total}, passed: ${result.summary.passed}, failed: ${result.summary.failed}`,
     `Duration: ${result.summary.durationMillis}ms`,
     ""
   ]
+  const scenarioLines = verbose
+    ? Arr.map(result.results, renderScenarioText)
+    : pipe(
+      result.results,
+      Arr.filter((scenario) => scenario.outcome._tag === "Failed"),
+      Arr.map(renderScenarioText)
+    )
+  const diagnosticLines = renderDiagnosticsText(result.diagnostics)
   return pipe(
     summary,
-    Arr.appendAll(pipe(result.results, Arr.map(renderScenarioText))),
+    Arr.appendAll(scenarioLines),
+    Arr.appendAll(diagnosticLines),
     Arr.join("\n")
   )
 }
 
 const renderScenarioText = (result: ScenarioResult): string => {
   const prefix = result.outcome._tag === "Passed" ? "PASS" : "FAIL"
-  const base = `${prefix} ${result.task.featureName} / ${result.task.scenarioName} (${result.durationMillis}ms)`
+  const base = `${prefix} ${result.task.featurePath}:${result.task.scenarioLine} ${
+    renderScenarioName(result)
+  } (${result.durationMillis}ms)`
   return result.outcome._tag === "Passed"
     ? base
     : `${base}\n  ${renderError(result.outcome.error)}`
@@ -145,16 +182,18 @@ const renderHtml = (result: CliRunResult): string =>
   </head>
   <body>
     <h1>@effect/bdd report</h1>
-    <p>Scenarios: ${result.summary.total}, passed: ${result.summary.passed}, failed: ${result.summary.failed}</p>
+    <p>Features: ${result.summary.features}, scenarios: ${result.summary.total}, passed: ${result.summary.passed}, failed: ${result.summary.failed}</p>
     <p>Duration: ${result.summary.durationMillis}ms</p>
     <table>
       <thead>
-        <tr><th>Status</th><th>Feature</th><th>Scenario</th><th>Tags</th><th>Duration</th><th>Error</th></tr>
+        <tr><th>Status</th><th>Source</th><th>Feature</th><th>Scenario</th><th>Tags</th><th>Duration</th><th>Error</th></tr>
       </thead>
       <tbody>
 ${pipe(result.results, Arr.map(renderScenarioHtml), Arr.join("\n"))}
       </tbody>
     </table>
+    <h2>Diagnostics</h2>
+    <pre>${escapeHtml(pipe(renderDiagnosticsText(result.diagnostics), Arr.join("\n")))}</pre>
   </body>
 </html>
 `
@@ -166,13 +205,132 @@ const renderScenarioHtml = (result: ScenarioResult): string => {
     : renderError(result.outcome.error)
   return `        <tr>
           <td class="${status}">${status}</td>
+          <td>${escapeHtml(`${result.task.featurePath}:${result.task.scenarioLine}`)}</td>
           <td>${escapeHtml(result.task.featureName)}</td>
-          <td>${escapeHtml(result.task.scenarioName)}</td>
+          <td>${escapeHtml(renderScenarioName(result))}</td>
           <td>${escapeHtml(pipe(result.task.tags, Arr.join(", ")))}</td>
           <td>${result.durationMillis}ms</td>
           <td>${escapeHtml(error)}</td>
         </tr>`
 }
+
+const renderDiagnosticsText = (diagnostics: ReadonlyArray<CliDiagnostic>): ReadonlyArray<string> => {
+  if (diagnostics.length === 0) {
+    return []
+  }
+  const unmatched = pipe(
+    diagnostics,
+    Arr.filter((diagnostic) =>
+      diagnostic._tag === "UnmatchedFeature" ||
+      diagnostic._tag === "UnmatchedScenario" ||
+      diagnostic._tag === "UnmatchedStep"
+    )
+  )
+  const unused = pipe(
+    diagnostics,
+    Arr.filter((diagnostic) =>
+      diagnostic._tag === "UnusedFeatureDefinition" ||
+      diagnostic._tag === "UnusedStepDefinition"
+    )
+  )
+  return pipe(
+    unmatched.length === 0 ? [] : ["", "Unmatched source:"],
+    Arr.appendAll(Arr.map(unmatched, renderDiagnosticText)),
+    Arr.appendAll(unused.length === 0 ? [] : ["", "Unused definitions:"]),
+    Arr.appendAll(Arr.map(unused, renderDiagnosticText))
+  )
+}
+
+const renderDiagnosticText = (diagnostic: CliDiagnostic): string => {
+  switch (diagnostic._tag) {
+    case "UnmatchedFeature": {
+      return `  ${diagnostic.featurePath}:${diagnostic.line}\n    Feature: ${diagnostic.featureName}\n    Reason: ${diagnostic.message}`
+    }
+    case "UnmatchedScenario": {
+      return `  ${diagnostic.featurePath}:${diagnostic.scenarioLine}\n    Scenario: ${diagnostic.scenarioName}\n    Reason: ${diagnostic.message}`
+    }
+    case "UnmatchedStep": {
+      return `  ${diagnostic.featurePath}:${diagnostic.step.line}\n    Scenario: ${diagnostic.featureName} / ${diagnostic.scenarioName}\n    Step: ${diagnostic.step.keyword} ${diagnostic.step.text}\n    Reason: ${diagnostic.message}`
+    }
+    case "UnusedFeatureDefinition": {
+      return `  ${diagnostic.message}`
+    }
+    case "UnusedStepDefinition": {
+      return `  ${diagnostic.message}`
+    }
+  }
+}
+
+const renderJson = (result: CliRunResult): string =>
+  JSON.stringify(
+    {
+      summary: result.summary,
+      scenarios: Arr.map(result.results, (scenario) => ({
+        source: {
+          path: scenario.task.featurePath,
+          line: scenario.task.scenarioLine
+        },
+        feature: scenario.task.featureName,
+        rule: scenario.task.ruleName === undefined
+          ? undefined
+          : {
+            name: scenario.task.ruleName,
+            line: scenario.task.ruleLine
+          },
+        scenario: scenario.task.scenarioName,
+        tags: scenario.task.tags,
+        durationMillis: scenario.durationMillis,
+        outcome: scenario.outcome._tag === "Passed"
+          ? {
+            status: "passed",
+            steps: scenario.outcome.steps
+          }
+          : {
+            status: "failed",
+            error: renderError(scenario.outcome.error)
+          }
+      })),
+      diagnostics: result.diagnostics
+    },
+    null,
+    2
+  )
+
+const renderJunit = (result: CliRunResult): string => {
+  const diagnostics = result.diagnostics.length
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="@effect/bdd" tests="${result.summary.total + diagnostics}" failures="${
+    result.summary.failed + diagnostics
+  }" time="${result.summary.durationMillis / 1000}">
+${pipe(result.results, Arr.map(renderJunitScenario), Arr.join("\n"))}
+${pipe(result.diagnostics, Arr.map(renderJunitDiagnostic), Arr.join("\n"))}
+</testsuite>
+`
+}
+
+const renderJunitScenario = (result: ScenarioResult): string => {
+  const name = renderScenarioName(result)
+  const failure = result.outcome._tag === "Passed"
+    ? ""
+    : `
+    <failure message="${escapeXml(renderError(result.outcome.error))}">${
+      escapeXml(renderError(result.outcome.error))
+    }</failure>`
+  return `  <testcase classname="${escapeXml(result.task.featureName)}" name="${escapeXml(name)}" file="${
+    escapeXml(result.task.featurePath)
+  }" line="${result.task.scenarioLine}" time="${result.durationMillis / 1000}">${failure}
+  </testcase>`
+}
+
+const renderJunitDiagnostic = (diagnostic: CliDiagnostic): string =>
+  `  <testcase classname="@effect/bdd diagnostics" name="${escapeXml(diagnostic.message)}">
+    <failure message="${escapeXml(diagnostic.message)}">${escapeXml(renderDiagnosticText(diagnostic))}</failure>
+  </testcase>`
+
+const renderScenarioName = (result: ScenarioResult): string =>
+  result.task.ruleName === undefined
+    ? `${result.task.featureName} / ${result.task.scenarioName}`
+    : `${result.task.featureName} / ${result.task.ruleName} / ${result.task.scenarioName}`
 
 const renderError = (error: { readonly _tag: string; readonly message: string; readonly cause?: unknown }): string => {
   const cause = renderCause(error.cause)
@@ -200,3 +358,5 @@ const escapeHtml = (text: string): string =>
     Str.replaceAll("\"", "&quot;"),
     Str.replaceAll("'", "&#039;")
   )
+
+const escapeXml = escapeHtml

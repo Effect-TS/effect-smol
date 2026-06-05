@@ -47,6 +47,10 @@ export interface Scenario {
   readonly name: string
   readonly description: string
   readonly line: number
+  readonly rule?: {
+    readonly name: string
+    readonly line: number
+  }
   readonly background?: Background
   readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
@@ -66,6 +70,10 @@ interface ScenarioBuilder {
   readonly name: string
   readonly description: ReadonlyArray<string>
   readonly line: number
+  readonly rule?: {
+    readonly name: string
+    readonly line: number
+  }
   readonly background?: BackgroundBuilder
   readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
@@ -375,6 +383,14 @@ const parseScenarioLine = (
               name: Str.trim(match[1]),
               description: [],
               line: lineNumber,
+              ...(closed.rule === undefined
+                ? {}
+                : {
+                  rule: {
+                    name: closed.rule.name,
+                    line: closed.rule.line
+                  }
+                }),
               ...(closed.rule?.background === undefined ? {} : { background: closed.rule.background }),
               steps: [],
               tags
@@ -497,6 +513,7 @@ const finalizeScenario = (scenario: ScenarioBuilder): Scenario => ({
   name: scenario.name,
   description: joinDescription(scenario.description),
   line: scenario.line,
+  ...(scenario.rule === undefined ? {} : { rule: scenario.rule }),
   ...(scenario.background === undefined ? {} : { background: finalizeBackground(scenario.background) }),
   steps: scenario.steps,
   tags: scenario.tags

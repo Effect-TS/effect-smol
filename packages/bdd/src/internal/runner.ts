@@ -67,6 +67,9 @@ export interface ScenarioTask<State, E, R> {
   readonly featureName: string
   readonly scenarioName: string
   readonly scenarioIndex: number
+  readonly scenarioLine: number
+  readonly ruleName?: string
+  readonly ruleLine?: number
   readonly tags: ReadonlyArray<string>
   readonly steps: ReadonlyArray<Parser.ParsedStep>
 }
@@ -127,6 +130,11 @@ export const buildScenarioTasks = <State, E, R>(
       featureName: feature.name,
       scenarioName: scenario.name,
       scenarioIndex,
+      scenarioLine: scenario.line,
+      ...(scenario.rule === undefined ? {} : {
+        ruleName: scenario.rule.name,
+        ruleLine: scenario.rule.line
+      }),
       tags: Arr.appendAll(feature.tags, scenario.tags),
       steps
     }

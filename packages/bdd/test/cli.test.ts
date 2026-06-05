@@ -44,7 +44,8 @@ describe("cli", () => {
         ], { cwd: repoRoot })
       )
 
-      assert.match(result.stdout, /Scenarios: 4, passed: 4, failed: 0/)
+      assert.match(result.stdout, /Features: 2, Scenarios: 4, passed: 4, failed: 0/)
+      assert.strictEqual(/PASS CLI account access/.test(result.stdout), false)
     })).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect("runs checked-in e2e feature and step fixtures", () =>
@@ -62,6 +63,7 @@ describe("cli", () => {
         "text",
         "--output-file.text",
         textReport,
+        "--verbose",
         "--parallel",
         "2"
       ])
@@ -69,9 +71,9 @@ describe("cli", () => {
       const fs = yield* FileSystem.FileSystem
       const text = yield* fs.readFileString(textReport)
 
-      assert.match(text, /Scenarios: 4, passed: 4, failed: 0/)
-      assert.match(text, /CLI account access \/ Allows an active account/)
-      assert.match(text, /CLI account access \/ Denies a locked account/)
+      assert.match(text, /Features: 2, Scenarios: 4, passed: 4, failed: 0/)
+      assert.match(text, /CLI account access \/ Account status controls access \/ Allows an active account/)
+      assert.match(text, /CLI account access \/ Account status controls access \/ Denies a locked account/)
       assert.match(text, /CLI shopping cart \/ Adds one item from captures/)
       assert.match(text, /CLI shopping cart \/ Adds multiple items from a DataTable/)
     })).pipe(Effect.provide(NodeServices.layer)))
@@ -108,6 +110,7 @@ Feature: Counter
         textReport,
         "--output-file.html",
         htmlReport,
+        "--verbose",
         "--parallel",
         "2"
       ]).pipe(Effect.provide(NodeServices.layer))
@@ -116,7 +119,7 @@ Feature: Counter
       const text = yield* fs.readFileString(textReport)
       const html = yield* fs.readFileString(htmlReport)
 
-      assert.match(text, /Scenarios: 2, passed: 2, failed: 0/)
+      assert.match(text, /Features: 1, Scenarios: 2, passed: 2, failed: 0/)
       assert.strictEqual(text.indexOf("Increment"), text.lastIndexOf("Increment"))
       assert.ok(text.indexOf("Increment") < text.indexOf("Starts clean"))
       assert.match(html, /@effect\/bdd report/)
@@ -154,9 +157,248 @@ Feature: Counter
       const fs = yield* FileSystem.FileSystem
       const text = yield* fs.readFileString(textReport)
 
-      assert.match(text, /Scenarios: 1, passed: 0, failed: 1/)
-      assert.match(text, /FAIL Counter \/ Fails/)
+      assert.match(text, /Features: 1, Scenarios: 1, passed: 0, failed: 1/)
+      assert.match(text, /FAIL .*counter\.feature:\d+ Counter \/ Fails/)
       assert.match(text, /Cause: expected 1, got 0/)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("reports unmatched feature files and unused feature definitions", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Missing source
+
+  Scenario: Cannot run
+    Then the counter is 0
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("unmatched-feature.txt")
+
+      const exit = yield* Effect.exit(
+        runCli([
+          "--features",
+          fixture.path("*.feature"),
+          "--steps",
+          fixture.path("*.mjs"),
+          "--reporter",
+          "text",
+          "--output-file.text",
+          textReport
+        ]).pipe(Effect.provide(NodeServices.layer))
+      )
+
+      assert.strictEqual(Exit.isFailure(exit), true)
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /Unmatched source:/)
+      assert.match(text, /Feature: Missing source/)
+      assert.match(text, /Scenario: Cannot run/)
+      assert.match(text, /Unused definitions:/)
+      assert.match(text, /Feature definition exported but no feature file matched: Counter/)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("reports unmatched source steps", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  Scenario: Unknown step
+    Then a missing transition runs
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("unmatched-step.txt")
+
+      const exit = yield* Effect.exit(
+        runCli([
+          "--features",
+          fixture.path("*.feature"),
+          "--steps",
+          fixture.path("*.mjs"),
+          "--reporter",
+          "text",
+          "--output-file.text",
+          textReport
+        ]).pipe(Effect.provide(NodeServices.layer))
+      )
+
+      assert.strictEqual(Exit.isFailure(exit), true)
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /FAIL .*counter\.feature:\d+ Counter \/ Unknown step/)
+      assert.match(text, /Unmatched source:/)
+      assert.match(text, /Step: Then a missing transition runs/)
+      assert.match(text, /Reason: No transition matched step "a missing transition runs"/)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("filters scenarios by tag expression", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  @fast
+  Scenario: Increment
+    When increment
+    Then the counter is 1
+
+  @slow
+  Scenario: Starts clean
+    Then the counter is 0
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("tags.txt")
+
+      yield* runCli([
+        "--features",
+        fixture.path("*.feature"),
+        "--steps",
+        fixture.path("*.mjs"),
+        "--reporter",
+        "text",
+        "--output-file.text",
+        textReport,
+        "--tags",
+        "@fast and not @slow",
+        "--verbose"
+      ]).pipe(Effect.provide(NodeServices.layer))
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /Features: 1, Scenarios: 1, passed: 1, failed: 0/)
+      assert.match(text, /Increment/)
+      assert.strictEqual(/Starts clean/.test(text), false)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("filters scenarios by name", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  Scenario: Increment
+    When increment
+    Then the counter is 1
+
+  Scenario: Starts clean
+    Then the counter is 0
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("name.txt")
+
+      yield* runCli([
+        "--features",
+        fixture.path("*.feature"),
+        "--steps",
+        fixture.path("*.mjs"),
+        "--reporter",
+        "text",
+        "--output-file.text",
+        textReport,
+        "--name",
+        "Starts",
+        "--verbose"
+      ]).pipe(Effect.provide(NodeServices.layer))
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /Features: 1, Scenarios: 1, passed: 1, failed: 0/)
+      assert.match(text, /Starts clean/)
+      assert.strictEqual(/Increment/.test(text), false)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("stops after the first failure with fail-fast", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  Scenario: Fails first
+    Then the counter is 1
+
+  Scenario: Fails later
+    Then the counter is 2
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("fail-fast.txt")
+
+      const exit = yield* Effect.exit(
+        runCli([
+          "--features",
+          fixture.path("*.feature"),
+          "--steps",
+          fixture.path("*.mjs"),
+          "--reporter",
+          "text",
+          "--output-file.text",
+          textReport,
+          "--fail-fast",
+          "--verbose"
+        ]).pipe(Effect.provide(NodeServices.layer))
+      )
+
+      assert.strictEqual(Exit.isFailure(exit), true)
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /Features: 1, Scenarios: 1, passed: 0, failed: 1/)
+      assert.match(text, /Fails first/)
+      assert.strictEqual(/Fails later/.test(text), false)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
+  it.effect("writes json and junit reports", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  Scenario: Increment
+    When increment
+    Then the counter is 1
+
+  Scenario: Starts clean
+    Then the counter is 0
+`,
+        steps: counterSteps
+      })
+      const jsonReport = fixture.path("report.json")
+      const junitReport = fixture.path("report.xml")
+
+      yield* runCli([
+        "--features",
+        fixture.path("*.feature"),
+        "--steps",
+        fixture.path("*.mjs"),
+        "--reporter",
+        "json",
+        "--reporter",
+        "junit",
+        "--output-file.json",
+        jsonReport,
+        "--output-file.junit",
+        junitReport
+      ]).pipe(Effect.provide(NodeServices.layer))
+
+      const fs = yield* FileSystem.FileSystem
+      const json = yield* fs.readFileString(jsonReport)
+      const junit = yield* fs.readFileString(junitReport)
+
+      assert.match(json, /"summary"/)
+      assert.match(json, /"status": "passed"/)
+      assert.match(junit, /<testsuite name="@effect\/bdd"/)
+      assert.match(junit, /<testcase classname="Counter"/)
     })).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect("fails when multiple step modules export the same feature definition", () =>
