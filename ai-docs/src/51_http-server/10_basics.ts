@@ -23,7 +23,9 @@ import { UsersApiHandlers } from "./fixtures/server/Users/http.ts"
 const SystemApiHandlers = HttpApiBuilder.group(
   Api,
   "system",
-  (handlers) => handlers.handle("health", () => Effect.void)
+  Effect.fn(function*(handlers) {
+    return handlers.handle("health", () => Effect.void)
+  })
 )
 
 const ApiRoutes = HttpApiBuilder.layer(Api, {
@@ -46,7 +48,6 @@ const AllRoutes = Layer.mergeAll(ApiRoutes, DocsRoute)
 // Here we are using the NodeHttpServer, but you could also use the
 // BunHttpServer
 export const HttpServerLayer = HttpRouter.serve(AllRoutes).pipe(
-  Layer.provide(HttpServer.layerServices),
   Layer.provide(NodeHttpServer.layer(createServer, { port: 3000 }))
 )
 
