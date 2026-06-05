@@ -7,7 +7,7 @@
 import * as Effect from "./Effect.ts"
 import * as Fiber from "./Fiber.ts"
 import * as Queue from "./Queue.ts"
-import * as Ref from "./Ref.ts"
+import * as SynchronizedRef from "./SynchronizedRef.ts"
 
 /**
  * Reference to an actor that can receive events.
@@ -31,15 +31,44 @@ export interface Actor<out Snapshot, in Event> extends ActorRef<Event> {
 }
 
 /**
+ * Runtime context available to an effect-backed actor.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ActorContext<Snapshot, Event> {
+  readonly receive: Effect.Effect<Event>
+  readonly snapshot: Effect.Effect<Snapshot>
+  readonly setSnapshot: (snapshot: Snapshot) => Effect.Effect<void>
+  readonly updateSnapshot: <E, R>(
+    f: (snapshot: Snapshot) => Effect.Effect<Snapshot, E, R>
+  ) => Effect.Effect<void, E, R>
+}
+
+/**
  * State transition logic used by an actor runtime.
  *
  * @category models
  * @since 4.0.0
  */
-export interface ActorLogic<Snapshot, Event> {
+export interface ActorLogic<Snapshot, Event, out E = never, out R = never> {
   readonly initial: Effect.Effect<Snapshot>
-  readonly transition: (snapshot: Snapshot, event: Event) => Effect.Effect<Snapshot>
+  readonly run: (context: ActorContext<Snapshot, Event>) => Effect.Effect<void, E, R>
 }
+
+/**
+ * Creates actor logic from an initial snapshot and an effectful actor process.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const fromEffect = <Snapshot, Event, E = never, R = never>(
+  initial: Snapshot,
+  effect: (context: ActorContext<Snapshot, Event>) => Effect.Effect<void, E, R>
+): ActorLogic<Snapshot, Event, E, R> => ({
+  initial: Effect.succeed(initial),
+  run: effect
+})
 
 /**
  * Creates actor logic from an initial snapshot and a transition function.
@@ -47,13 +76,15 @@ export interface ActorLogic<Snapshot, Event> {
  * @category constructors
  * @since 4.0.0
  */
-export const fromTransition = <Snapshot, Event>(
+export const fromTransition = <Snapshot, Event, E = never, R = never>(
   initial: Snapshot,
-  transition: (snapshot: Snapshot, event: Event) => Effect.Effect<Snapshot>
-): ActorLogic<Snapshot, Event> => ({
-  initial: Effect.succeed(initial),
-  transition
-})
+  transition: (snapshot: Snapshot, event: Event) => Effect.Effect<Snapshot, E, R>
+): ActorLogic<Snapshot, Event, E, R> =>
+  fromEffect(initial, ({ receive, updateSnapshot }) =>
+    receive.pipe(
+      Effect.flatMap((event) => updateSnapshot((snapshot) => transition(snapshot, event))),
+      Effect.forever
+    ))
 
 /**
  * Starts an actor from actor logic.
@@ -61,29 +92,24 @@ export const fromTransition = <Snapshot, Event>(
  * @category constructors
  * @since 4.0.0
  */
-export const start: <Snapshot, Event>(
-  logic: ActorLogic<Snapshot, Event>
-) => Effect.Effect<Actor<Snapshot, Event>> = Effect.fnUntraced(function*<Snapshot, Event>(
-  logic: ActorLogic<Snapshot, Event>
+export const start: <Snapshot, Event, E = never, R = never>(
+  logic: ActorLogic<Snapshot, Event, E, R>
+) => Effect.Effect<Actor<Snapshot, Event>, never, R> = Effect.fnUntraced(function*<Snapshot, Event, E, R>(
+  logic: ActorLogic<Snapshot, Event, E, R>
 ) {
   const initial = yield* logic.initial
   const queue = yield* Queue.unbounded<Event>()
-  const current = yield* Ref.make(initial)
-  const fiber = yield* Effect.forkChild(
-    Queue.take(queue).pipe(
-      Effect.flatMap(
-        Effect.fnUntraced(function*(event) {
-          const snapshot = yield* Ref.get(current)
-          const newSnapshot = yield* logic.transition(snapshot, event)
-          return yield* Ref.set(current, newSnapshot)
-        })
-      ),
-      Effect.forever
-    )
-  )
+  const current = yield* SynchronizedRef.make(initial)
+  const context: ActorContext<Snapshot, Event> = {
+    receive: Queue.take(queue),
+    snapshot: SynchronizedRef.get(current),
+    setSnapshot: (snapshot) => SynchronizedRef.set(current, snapshot),
+    updateSnapshot: (f) => SynchronizedRef.updateEffect(current, f)
+  }
+  const fiber = yield* Effect.forkChild(logic.run(context))
 
   return {
-    snapshot: Ref.get(current),
+    snapshot: SynchronizedRef.get(current),
     stop: Queue.shutdown(queue).pipe(Effect.andThen(Fiber.interrupt(fiber))),
     send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
   }
