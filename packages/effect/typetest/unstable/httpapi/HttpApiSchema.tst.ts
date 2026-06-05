@@ -10,7 +10,7 @@ describe("HttpApiSchema", () => {
 
       const schema = NotFound.pipe(HttpApiSchema.status(404))
 
-      expect<typeof schema>().type.toBe<typeof NotFound>()
+      expect<typeof schema["Type"]>().type.toBe<NotFound>()
       expect<typeof schema["EncodingServices"]>().type.toBe<never>()
       expect<typeof schema["DecodingServices"]>().type.toBe<never>()
     })
