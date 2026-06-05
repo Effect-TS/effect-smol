@@ -143,7 +143,10 @@ export const decodeDataSchema = <Type, DecodingServices, IE, Done>(
   })
   return Channel.pipeTo(
     decode<IE, Done>(),
-    ChannelSchema.decode(eventSchema)()
+    Channel.map(
+      ChannelSchema.decode(eventSchema)(),
+      Arr.map((event) => ({ ...event, id: event.id }))
+    )
   )
 }
 
@@ -423,17 +426,17 @@ export interface Event {
 }
 
 /**
- * Schema for the untagged Server-Sent Events payload shape containing `id`, `event`, and string `data` fields.
+ * Schema for the untagged Server-Sent Events payload shape containing an optional `id`, `event`, and string `data` fields.
  *
  * @category models
  * @since 4.0.0
  */
 export const EventEncoded: Schema.Struct<{
-  readonly id: Schema.UndefinedOr<Schema.String>
+  readonly id: Schema.optional<Schema.String>
   readonly event: Schema.String
   readonly data: Schema.String
 }> = Schema.Struct({
-  id: Schema.UndefinedOr(Schema.String),
+  id: Schema.optional(Schema.String),
   event: Schema.String,
   data: Schema.String
 })
@@ -490,7 +493,7 @@ export const transformEvent = SchemaTransformation.transform<{
  */
 export interface EventEncoded {
   readonly event: string
-  readonly id: string | undefined
+  readonly id?: string | undefined
   readonly data: string
 }
 

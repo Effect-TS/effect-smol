@@ -14,6 +14,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
+import type * as Sse from "../encoding/Sse.ts"
 import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
 
@@ -306,24 +307,12 @@ export interface StreamSse<
 }
 
 /**
- * Encoded event shape required by {@link StreamSse} event schemas.
- *
- * @category models
- * @since 4.0.0
- */
-export interface SseEventEncoded {
-  readonly id?: string | undefined
-  readonly event: string
-  readonly data: string
-}
-
-/**
  * Schema constraint for Server-Sent Events emitted by {@link StreamSse}.
  *
  * @category models
  * @since 4.0.0
  */
-export type SseEventSchema = Schema.Codec<any, SseEventEncoded, any, any>
+export type SseEventSchema = Schema.Codec<any, Sse.EventEncoded, any, any>
 
 /**
  * Event schema produced when {@link StreamSse} is constructed from a JSON data schema.
@@ -338,7 +327,7 @@ export interface SseEventFromData<Data extends Schema.Top> extends
       readonly event: string
       readonly data: Data["Type"]
     },
-    SseEventEncoded,
+    Sse.EventEncoded,
     Data["DecodingServices"],
     Data["EncodingServices"]
   >

@@ -1,4 +1,5 @@
 import { Schema } from "effect"
+import type * as Sse from "effect/unstable/encoding/Sse"
 import { HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
@@ -54,7 +55,7 @@ describe("HttpApiSchema", () => {
         readonly event: string
         readonly data: { readonly id: string }
       }>()
-      expect(stream.events["Encoded"]).type.toBe<HttpApiSchema.SseEventEncoded>()
+      expect(stream.events["Encoded"]).type.toBe<Sse.EventEncoded>()
     })
 
     it("defaults the data stream error schema to Never", () => {
