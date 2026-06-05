@@ -11,6 +11,8 @@ import * as Deferred from "./Deferred.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import * as Fiber from "./Fiber.ts"
+import * as HashMap from "./HashMap.ts"
+import * as Option from "./Option.ts"
 import * as PubSub from "./PubSub.ts"
 import * as Queue from "./Queue.ts"
 import * as Scope from "./Scope.ts"
@@ -63,6 +65,16 @@ export type Snapshot<State, Error = never, Output = never> =
 export class ActorStoppedError extends Data.TaggedError("ActorStoppedError") {}
 
 /**
+ * Error returned by `spawn` when a child actor with the same id already exists.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class ActorChildAlreadyExistsError extends Data.TaggedError("ActorChildAlreadyExistsError")<{
+  readonly id: string
+}> {}
+
+/**
  * Running actor with current state, lifecycle snapshots, and a stop action.
  *
  * @category models
@@ -74,6 +86,64 @@ export interface Actor<out State, in Event, out Error = never, out Output = neve
   readonly changes: Stream.Stream<Snapshot<State, Error, Output>>
   readonly join: Effect.Effect<Output, Error | ActorStoppedError>
   readonly stop: Effect.Effect<void>
+}
+
+type ChildEntry =
+  | {
+    readonly _tag: "Reserved"
+  }
+  | {
+    readonly _tag: "Started"
+    readonly token: symbol
+  }
+
+/**
+ * Options for spawning child actors.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SpawnOptions {
+  readonly id?: string
+}
+
+/**
+ * Options for spawning child actors with a parent-local id.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SpawnIdOptions extends SpawnOptions {
+  readonly id: string
+}
+
+type SpawnRequirements<Requirements> = Exclude<Requirements, Scope.Scope>
+
+type SpawnError<Options extends SpawnOptions> = Options extends SpawnIdOptions ? ActorChildAlreadyExistsError
+  : Options extends { readonly id?: undefined } ? never
+  : ActorChildAlreadyExistsError
+
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError> = Effect.Effect<
+  Actor<State, Event, Error, Output>,
+  SpawnError,
+  SpawnRequirements<Requirements>
+>
+
+interface Spawn {
+  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
+    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+  <
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    Options extends SpawnOptions
+  >(
+    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+    options: Options
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>>
 }
 
 /**
@@ -90,9 +160,7 @@ export interface ActorContext<State, Event> {
   readonly updateState: <E, R>(
     f: (state: State) => Effect.Effect<State, E, R>
   ) => Effect.Effect<void, E, R>
-  readonly spawn: <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-  ) => Effect.Effect<Actor<ChildState, ChildEvent, ChildError, ChildOutput>, never, ChildRequirements>
+  readonly spawn: Spawn
 }
 
 /**
@@ -157,6 +225,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     const changes = yield* PubSub.unbounded<Take.Take<Snapshot<State, Error, Output>>>({ replay: 1 })
     const done = yield* Deferred.make<Output, Error | ActorStoppedError>()
     const childrenScope = yield* Scope.make("parallel")
+    const childRegistry = yield* SynchronizedRef.make<HashMap.HashMap<string, ChildEntry>>(HashMap.empty())
 
     const publishSnapshot = (
       snapshot: Snapshot<State, Error, Output>
@@ -221,13 +290,89 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
 
     const closeChildren = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> => Scope.close(childrenScope, exit)
 
-    const spawn = <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
+    const reserveChildId = (id: string): Effect.Effect<void, ActorChildAlreadyExistsError> =>
+      SynchronizedRef.modifyEffect(childRegistry, (children) =>
+        HashMap.has(children, id)
+          ? Effect.fail(new ActorChildAlreadyExistsError({ id }))
+          : Effect.succeed([undefined, HashMap.set(children, id, { _tag: "Reserved" })] as const))
+
+    const unregisterReservedChild = (id: string): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => {
+        const entry = HashMap.get(children, id)
+        return Option.isSome(entry) && entry.value._tag === "Reserved"
+          ? HashMap.remove(children, id)
+          : children
+      })
+
+    const unregisterStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => {
+        const entry = HashMap.get(children, id)
+        return Option.isSome(entry) && entry.value._tag === "Started" && entry.value.token === token
+          ? HashMap.remove(children, id)
+          : children
+      })
+
+    const registerStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => HashMap.set(children, id, { _tag: "Started", token }))
+
+    const namedChild = <ChildState, ChildEvent, ChildError, ChildOutput>(
+      id: string,
+      token: symbol,
+      child: Actor<ChildState, ChildEvent, ChildError, ChildOutput>
+    ): Actor<ChildState, ChildEvent, ChildError, ChildOutput> => ({
+      state: child.state,
+      snapshot: child.snapshot,
+      changes: child.changes,
+      join: child.join,
+      stop: child.stop.pipe(Effect.andThen(unregisterStartedChild(id, token))),
+      send: child.send
+    })
+
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
       logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-    ): Effect.Effect<Actor<ChildState, ChildEvent, ChildError, ChildOutput>, never, ChildRequirements> =>
-      Effect.acquireRelease(
-        start(logic),
+    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+    function spawn<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      Options extends SpawnOptions
+    >(
+      logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+      options: Options
+    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>>
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
+      logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+      options?: SpawnOptions
+    ): SpawnResult<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ActorChildAlreadyExistsError
+    > {
+      if (options?.id === undefined) {
+        return Effect.acquireRelease(
+          start(logic),
+          (child) => child.stop
+        ).pipe(Scope.provide(childrenScope))
+      }
+      const id = options.id
+      return Effect.acquireRelease(
+        Effect.gen(function*() {
+          yield* reserveChildId(id)
+          const token = Symbol()
+          const child = yield* start(logic).pipe(
+            Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void)
+          )
+          yield* registerStartedChild(id, token)
+          return namedChild(id, token, child)
+        }),
         (child) => child.stop
       ).pipe(Scope.provide(childrenScope))
+    }
 
     const context: ActorContext<State, Event> = {
       self,

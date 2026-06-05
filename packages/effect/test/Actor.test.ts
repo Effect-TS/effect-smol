@@ -232,6 +232,141 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("spawns child actors with parent-local ids", () =>
+    Effect.gen(function*() {
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, SpawnCounter, never, Actor.ActorChildAlreadyExistsError>(
+          0,
+          ({ receive, spawn }) =>
+            receive.pipe(
+              Effect.flatMap((event) =>
+                Effect.gen(function*() {
+                  const child = yield* spawn(counterLogic, { id: "counter" })
+                  const childReply = yield* Deferred.make<number>()
+                  yield* child.send(new Increment({ by: event.by }))
+                  yield* child.send(new ReadCount({ reply: childReply }))
+                  const count = yield* Deferred.await(childReply)
+                  yield* Deferred.succeed(event.reply, count)
+                })
+              ),
+              Effect.forever
+            )
+        )
+      )
+
+      yield* actor.send(new SpawnCounter({ by: 4, reply }))
+
+      assert.strictEqual(yield* Deferred.await(reply), 4)
+      yield* actor.stop
+    }))
+
+  it.effect("fails when spawning a duplicate child id", () =>
+    Effect.gen(function*() {
+      const errorRef = yield* Deferred.make<Actor.ActorChildAlreadyExistsError>()
+      const started = yield* Queue.unbounded<void>()
+      const childLogic = Actor.fromEffect<number, never>(
+        0,
+        () => Queue.offer(started, void 0).pipe(Effect.andThen(Effect.never))
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(childLogic, { id: "worker" })
+            yield* spawn(childLogic, { id: "worker" }).pipe(
+              Effect.catchTag("ActorChildAlreadyExistsError", (error) => Deferred.succeed(errorRef, error))
+            )
+            return yield* Effect.never
+          })
+      ))
+
+      assert.deepStrictEqual(yield* Queue.take(started), void 0)
+      const error = yield* Deferred.await(errorRef)
+      assert.strictEqual(error._tag, "ActorChildAlreadyExistsError")
+      assert.strictEqual(error.id, "worker")
+      yield* Effect.yieldNow
+      assert.strictEqual(yield* Queue.size(started), 0)
+
+      yield* actor.stop
+    }))
+
+  it.effect("allows the same child id under different parents", () =>
+    Effect.gen(function*() {
+      const firstChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const secondChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const makeParent = (childRef: Deferred.Deferred<Actor.Actor<number, CounterEvent>>) =>
+        Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+          0,
+          ({ spawn }) =>
+            Effect.gen(function*() {
+              const child = yield* spawn(counterLogic, { id: "counter" })
+              yield* Deferred.succeed(childRef, child)
+              return yield* Effect.never
+            })
+        )
+      const firstParent = yield* Actor.start(makeParent(firstChildRef))
+      const secondParent = yield* Actor.start(makeParent(secondChildRef))
+
+      const firstChild = yield* Deferred.await(firstChildRef)
+      const secondChild = yield* Deferred.await(secondChildRef)
+      assert.notStrictEqual(firstChild, secondChild)
+
+      yield* firstParent.stop
+      yield* secondParent.stop
+    }))
+
+  it.effect("releases a child id when the child is stopped", () =>
+    Effect.gen(function*() {
+      const firstChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const secondChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const firstChild = yield* spawn(counterLogic, { id: "counter" })
+            yield* Deferred.succeed(firstChildRef, firstChild)
+            yield* firstChild.stop
+            const secondChild = yield* spawn(counterLogic, { id: "counter" })
+            yield* Deferred.succeed(secondChildRef, secondChild)
+            return yield* Effect.never
+          })
+      ))
+
+      const firstChild = yield* Deferred.await(firstChildRef)
+      const secondChild = yield* Deferred.await(secondChildRef)
+
+      assert.notStrictEqual(firstChild, secondChild)
+      assert.deepStrictEqual(yield* firstChild.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("stops named children when the parent is stopped", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never>(0, () => Effect.never), { id: "child" })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      yield* actor.stop
+
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
   it.effect("stops spawned children when the parent is stopped", () =>
     Effect.gen(function*() {
       const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
