@@ -208,30 +208,88 @@ const program = Effect.exit(Bdd.run(feature, source))
 
 ## CLI
 
-`@effect/bdd` publishes an `effect-bdd` bin for running feature files from a package script or `npx`.
+`@effect/bdd` publishes an `effect-bdd` bin for running `.feature` files from exported `Bdd.feature(...)` definitions.
+
+Each matched step module should export one or more feature definitions. The feature definition name must match the Gherkin `Feature:` name.
+
+```gherkin
+# features/counter.feature
+Feature: Counter
+
+  Scenario: Increment
+    Given zero
+    When increment by 2
+    Then the counter is 2
+```
+
+```ts
+// features/counter.step.ts
+import { Bdd } from "@effect/bdd"
+import { Effect, Schema } from "effect"
+
+const amount = Bdd.capture("amount", Schema.NumberFromString)
+const expected = Bdd.capture("expected", Schema.NumberFromString)
+
+export const counter = Bdd.feature("Counter", { initial: 0 }).pipe(
+  Bdd.given`zero`(() => Effect.succeed(0)),
+  Bdd.when`increment by ${amount}`(({ amount }, state) => Effect.succeed(state + amount)),
+  Bdd.then`the counter is ${expected}`(({ expected }, state) =>
+    state === expected
+      ? Effect.succeed(state)
+      : Effect.fail(`expected ${expected}, got ${state}` as const)
+  )
+)
+```
+
+Add a package script:
+
+```json
+{
+  "scripts": {
+    "bdd": "effect-bdd --features \"features/**/*.feature\" --steps \"features/**/*.step.ts\" --reporter text"
+  }
+}
+```
+
+Then run:
+
+```sh
+pnpm bdd
+```
+
+You can also invoke the bin directly:
 
 ```sh
 effect-bdd \
   --features "features/**/*.feature" \
-  --steps "features/**/*.steps.ts" \
+  --steps "features/**/*.step.ts" \
   --reporter text
 ```
 
-Both `--features` (`-f`) and `--steps` (`-s`) are repeatable and support glob patterns:
+The command exits with status `0` when every scenario passes and with a non-zero status when discovery, parsing, matching, reporting, or any scenario fails. Reports are emitted before the command fails for failed scenarios.
+
+### Globs
+
+Both `--features` (`-f`) and `--steps` (`-s`) are required, repeatable, and support glob patterns:
 
 ```sh
 effect-bdd \
   --features "features/cart/**/*.feature" \
   --features "features/checkout/**/*.feature" \
-  --steps "features/**/*.steps.ts"
+  --steps "features/**/*.step.ts" \
+  --steps "test-support/**/*.step.ts"
 ```
 
-Reporters are also repeatable:
+Matched paths are deduplicated and sorted before execution so report order is stable.
+
+### Reporters
+
+Reporters are repeatable:
 
 ```sh
 effect-bdd \
   --features "features/**/*.feature" \
-  --steps "features/**/*.steps.ts" \
+  --steps "features/**/*.step.ts" \
   --reporter text \
   --reporter html \
   --output-file.html reports/bdd.html
@@ -243,12 +301,38 @@ The CLI supports:
 - `html`: writes to `--output-file.html <path>`.
 - `--parallel <n>`: runs scenarios concurrently while preserving source order in reports.
 
+For example, write both reports to files:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.step.ts" \
+  --reporter text \
+  --output-file.text reports/bdd.txt \
+  --reporter html \
+  --output-file.html reports/bdd.html
+```
+
+### Parallel Scenario Execution
+
+Use `--parallel <n>` to run scenarios concurrently:
+
+```sh
+effect-bdd \
+  --features "features/**/*.feature" \
+  --steps "features/**/*.step.ts" \
+  --reporter text \
+  --parallel 4
+```
+
+Every scenario starts from the feature definition's initial state. Reports preserve feature/scenario source order even when scenarios run concurrently.
+
 ### TypeScript Step Modules
 
 Bun can load `.ts` step definition modules directly when the CLI is executed by Bun:
 
 ```sh
-bunx --bun effect-bdd --features "features/**/*.feature" --steps "features/**/*.steps.ts"
+bunx --bun effect-bdd --features "features/**/*.feature" --steps "features/**/*.step.ts"
 ```
 
 Node requires an explicit TypeScript loader. The CLI does not install or register one implicitly:
@@ -256,14 +340,16 @@ Node requires an explicit TypeScript loader. The CLI does not install or registe
 ```sh
 node --import tsx ./node_modules/.bin/effect-bdd \
   --features "features/**/*.feature" \
-  --steps "features/**/*.steps.ts"
+  --steps "features/**/*.step.ts"
 ```
 
 This keeps runtime behavior visible and avoids hidden loader magic.
 
 ### Step Definition Services
 
-Step definitions can require services when they are run with `Bdd.run` inside an Effect program. The CLI only provides the platform services it needs for file loading and reporting. If a step definition needs additional services, provide them inside the step module or run the feature programmatically with `Bdd.run(...).pipe(Effect.provide(...))`.
+Step definitions can require services when they are run with `Bdd.run` inside an Effect program. The CLI only provides the platform services it needs for file loading and reporting.
+
+If a CLI-loaded step definition needs additional services, provide them inside the step module before exporting the feature, or run the feature programmatically with `Bdd.run(...).pipe(Effect.provide(...))`.
 
 ## Non-Goals
 
