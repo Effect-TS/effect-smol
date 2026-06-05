@@ -163,7 +163,7 @@ describe("HttpApiClient", () => {
           throw new Error("Expected stream response")
         }
         const events = yield* Stream.runCollect(stream)
-        assert.deepStrictEqual(events, [{ id: undefined, event: "token", data: { text: "hello" } }])
+        assert.deepStrictEqual(events, [{ text: "hello" }])
       }))
   })
 

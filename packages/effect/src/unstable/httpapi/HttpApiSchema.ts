@@ -267,25 +267,41 @@ export function asNoContent<S extends Schema.Top>(options: {
 type StreamMode = "sse" | "uint8array"
 
 /**
+ * Mode describing whether an SSE stream emits full events or raw data values.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type StreamSseMode = "events" | "data"
+
+/**
  * A schema-like declaration for a Server-Sent Events success response.
  *
  * **Details**
  *
  * `events` describes successful application events emitted by the stream, and
  * `error` describes typed stream failures that will be encoded by later
- * endpoint/server/client integrations using the reserved failure event.
+ * endpoint/server/client integrations using the reserved failure event. When
+ * `StreamSse` is constructed from `data`, handlers and clients expose raw data
+ * values while the server and client still use an SSE event schema internally.
  *
  * @category models
  * @since 4.0.0
  */
-export interface StreamSse<Events extends SseEventSchema, Error extends Schema.Top> {
+export interface StreamSse<
+  Events extends SseEventSchema,
+  Error extends Schema.Top,
+  Value = Events["Type"]
+> {
   readonly [StreamTypeId]: typeof StreamTypeId
   readonly _tag: "StreamSse"
   readonly mode: "sse"
+  readonly sseMode: StreamSseMode
   readonly httpApiStatus?: number | undefined
   readonly contentType: string
   readonly events: Events
   readonly error: Error
+  readonly "~Value"?: Value | undefined
 }
 
 /**
@@ -348,12 +364,13 @@ export interface StreamUint8Array {
 }
 
 /** @internal */
-export type StreamDeclaration = StreamSse<SseEventSchema, Schema.Top> | StreamUint8Array
+export type StreamDeclaration = StreamSse<SseEventSchema, Schema.Top, unknown> | StreamUint8Array
 
 /** @internal */
 export type StreamDeclarationMetadata =
   | {
     readonly mode: "sse"
+    readonly sseMode: StreamSseMode
     readonly contentType: string
     readonly events: SseEventSchema
     readonly error: Schema.Top
@@ -374,18 +391,18 @@ export const StreamSse: {
     readonly contentType?: string | undefined
     readonly events: Events
     readonly error: Error
-  }): StreamSse<Events, Error>
+  }): StreamSse<Events, Error, Events["Type"]>
   <Data extends Schema.Top, Error extends Schema.Top>(options: {
     readonly contentType?: string | undefined
     readonly data: Data
     readonly error: Error
-  }): StreamSse<SseEventFromData<Data>, Error>
+  }): StreamSse<SseEventFromData<Data>, Error, Data["Type"]>
 } = (options: {
   readonly contentType?: string | undefined
   readonly events?: SseEventSchema | undefined
   readonly data?: Schema.Top | undefined
   readonly error: Schema.Top
-}): StreamSse<SseEventSchema, Schema.Top> => {
+}): StreamSse<SseEventSchema, Schema.Top, unknown> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
     event: Schema.String,
@@ -398,6 +415,7 @@ export const StreamSse: {
     [StreamTypeId]: StreamTypeId,
     _tag: "StreamSse",
     mode: "sse",
+    sseMode: options.events === undefined ? "data" : "events",
     contentType: options.contentType ?? defaultStreamContentType("sse"),
     events,
     error: options.error
@@ -423,7 +441,7 @@ export const StreamUint8Array = (options?: {
 export const isStreamDeclaration = (u: unknown): u is StreamDeclaration => Predicate.hasProperty(u, StreamTypeId)
 
 /** @internal */
-export const isStreamSse = (u: unknown): u is StreamSse<SseEventSchema, Schema.Top> =>
+export const isStreamSse = (u: unknown): u is StreamSse<SseEventSchema, Schema.Top, unknown> =>
   isStreamDeclaration(u) && u._tag === "StreamSse"
 
 /** @internal */
@@ -435,6 +453,7 @@ export function getStreamDeclarationMetadata(self: StreamDeclaration): StreamDec
   return self._tag === "StreamSse" ?
     {
       mode: self.mode,
+      sseMode: self.sseMode,
       contentType: self.contentType,
       events: self.events,
       error: self.error

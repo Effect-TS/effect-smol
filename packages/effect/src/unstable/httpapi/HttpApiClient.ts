@@ -72,9 +72,10 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top
+  infer _Error extends Schema.Top,
+  infer _Value
 > ? Stream.Stream<
-    _Events["Type"],
+    _Value,
     _Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
     never
   >
@@ -87,7 +88,8 @@ type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingService
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top
+  infer _Error extends Schema.Top,
+  infer _Value
 > ? DecodingServices<_Events> | DecodingServices<_Error>
   : S extends HttpApiSchema.StreamUint8Array ? never
   : S extends Schema.Top ? DecodingServices<S>
@@ -790,7 +792,7 @@ function streamToResponse(declaration: HttpApiSchema.StreamDeclaration) {
 
 function decodeSseStream(
   stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
-  declaration: HttpApiSchema.StreamSse<HttpApiSchema.SseEventSchema, Schema.Top>
+  declaration: HttpApiSchema.StreamSse<HttpApiSchema.SseEventSchema, Schema.Top, unknown>
 ): Stream.Stream<unknown, unknown, unknown> {
   const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded.pipe(Schema.decodeTo(declaration.events)))
   const decodeCause = Schema.decodeUnknownEffect(
@@ -807,10 +809,24 @@ function decodeSseStream(
       }
       return event.event === reservedStreamFailureEvent ?
         Effect.flatMap(decodeCause(event.data), (cause) => Effect.failCause(cause)) :
-        decodeEvent(encoded)
+        Effect.flatMap(
+          decodeEvent(encoded),
+          (decoded) => declaration.sseMode === "data" ? decodeSseData(decoded) : Effect.succeed(decoded)
+        )
     })
   )
 }
+
+const decodeSseData = (decoded: unknown): Effect.Effect<unknown, Schema.SchemaError> =>
+  Predicate.hasProperty(decoded, "data")
+    ? Effect.succeed(decoded.data)
+    : Effect.fail(
+      new Schema.SchemaError(
+        new SchemaIssue.InvalidValue(Option.some(decoded), {
+          message: "Expected an SSE data event"
+        })
+      )
+    )
 
 const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
   expected: "ArrayBuffer"

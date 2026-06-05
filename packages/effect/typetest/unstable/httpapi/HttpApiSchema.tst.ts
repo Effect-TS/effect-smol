@@ -16,6 +16,7 @@ describe("HttpApiSchema", () => {
       expect(stream.events).type.toBe<typeof Events>()
       expect(stream.error).type.toBe<typeof Error>()
       expect(stream.mode).type.toBe<"sse">()
+      expect(stream.sseMode).type.toBe<"events" | "data">()
     })
 
     it("preserves the declaration type when annotated with status", () => {
@@ -34,7 +35,9 @@ describe("HttpApiSchema", () => {
       const Error = Schema.Struct({ reason: Schema.String })
       const stream = HttpApiSchema.StreamSse({ data: Data, error: Error })
 
-      expect(stream).type.toBe<HttpApiSchema.StreamSse<HttpApiSchema.SseEventFromData<typeof Data>, typeof Error>>()
+      expect(stream).type.toBe<
+        HttpApiSchema.StreamSse<HttpApiSchema.SseEventFromData<typeof Data>, typeof Error, { readonly id: string }>
+      >()
       expect(stream.events["Type"]).type.toBe<{
         readonly id: string | undefined
         readonly event: string

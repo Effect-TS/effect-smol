@@ -200,7 +200,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
           handlers.handle("chat", ({ query }) =>
             Effect.succeed(
               query.stream === "true" ?
-                Stream.make({ id: undefined, event: "token", data: { text: "hello" } }) :
+                Stream.make({ text: "hello" }) :
                 { message: "done" }
             ))
       )
@@ -216,7 +216,7 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.strictEqual(streamResponse.status, 200)
       assert.strictEqual(streamResponse.headers["content-type"], "text/event-stream")
       assert.deepStrictEqual(Array.from(chunks, (chunk) => textDecoder.decode(chunk)), [
-        `event: token\ndata: {"text":"hello"}\n\n`
+        `data: {"text":"hello"}\n\n`
       ])
     }))
 })

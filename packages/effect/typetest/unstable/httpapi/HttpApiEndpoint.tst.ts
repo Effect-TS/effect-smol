@@ -246,6 +246,24 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
+    it("should map StreamSse data mode to data stream helper and handler types", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamSse({
+          data: Schema.Struct({ id: Schema.String }),
+          error: Schema.Struct({ reason: Schema.String })
+        })
+      })
+
+      type Data = { readonly id: string }
+      type StreamError = { readonly reason: string }
+      type Success = Stream.Stream<Data, StreamError>
+
+      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+    })
+
     it("should accept StreamUint8Array", () => {
       const stream = HttpApiSchema.StreamUint8Array()
       const endpoint = HttpApiEndpoint.get("a", "/a", {

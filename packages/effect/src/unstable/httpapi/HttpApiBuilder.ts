@@ -862,14 +862,16 @@ const expectedStreamResponse = (response: unknown) =>
   )
 
 interface SseStreamEncoder {
+  readonly sseMode: HttpApiSchema.StreamSseMode
   readonly encodeEvent: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
   readonly decodeEvent: (input: unknown) => Effect.Effect<Sse.EventEncoded, Schema.SchemaError>
   readonly encodeCause: (input: unknown) => Effect.Effect<unknown, Schema.SchemaError, unknown>
 }
 
 const makeSseEncoder = <Events extends HttpApiSchema.SseEventSchema, Error extends Schema.Top>(
-  declaration: HttpApiSchema.StreamSse<Events, Error>
+  declaration: HttpApiSchema.StreamSse<Events, Error, unknown>
 ): SseStreamEncoder => ({
+  sseMode: declaration.sseMode,
   encodeEvent: Schema.encodeUnknownEffect(declaration.events),
   decodeEvent: Schema.decodeUnknownEffect(Sse.EventEncoded),
   encodeCause: Schema.encodeUnknownEffect(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
@@ -880,6 +882,7 @@ type SseStreamItem =
   | { readonly _tag: "Encoded"; readonly value: Sse.EventEncoded }
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+const defaultDataStreamEvent = "message"
 const textEncoder = new TextEncoder()
 
 const encodeSseStream = (
@@ -890,7 +893,10 @@ const encodeSseStream = (
     // Keep user events and protocol events distinct. User events must be
     // encoded and validated with the endpoint event schema, while the reserved
     // failure event is already a valid SSE event and must bypass that schema.
-    Stream.map((value): SseStreamItem => ({ _tag: "User", value })),
+    Stream.map((value): SseStreamItem => ({
+      _tag: "User",
+      value: encoder.sseMode === "data" ? { id: undefined, event: defaultDataStreamEvent, data: value } : value
+    })),
     // This catch must run before user-event encoding. It represents failures of
     // the user-provided stream as a reserved SSE event containing the full
     // encoded Cause. Encoding or validation failures below are schema/protocol

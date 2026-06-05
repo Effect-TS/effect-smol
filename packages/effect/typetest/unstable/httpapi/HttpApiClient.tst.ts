@@ -351,6 +351,42 @@ describe("HttpApiClient", () => {
       >()
     })
 
+    it("should return decoded data streams for StreamSse data successes", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                success: HttpApiSchema.StreamSse({
+                  data: Schema.Struct({ id: Schema.String }),
+                  error: Schema.Struct({ reason: Schema.String })
+                })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      type Data = { readonly id: string }
+      type StreamError = { readonly reason: string }
+      type ClientStream = Stream.Stream<
+        Data,
+        StreamError | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry
+      >
+
+      expect(f()).type.toBe<
+        Effect.Effect<ClientStream, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(f({ responseMode: "decoded-and-response" })).type.toBe<
+        Effect.Effect<
+          [ClientStream, HttpClientResponse.HttpClientResponse],
+          HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+    })
+
     it("should return decoded streams for StreamUint8Array successes", () => {
       const Api = HttpApi.make("Api")
         .add(

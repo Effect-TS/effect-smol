@@ -16,6 +16,7 @@ describe("HttpApiSchema", () => {
       assert.isTrue(HttpApiSchema.isStreamSse(stream))
       assert.isFalse(HttpApiSchema.isStreamUint8Array(stream))
       assert.strictEqual(stream.mode, "sse")
+      assert.strictEqual(stream.sseMode, "events")
       assert.strictEqual(stream.contentType, "text/event-stream")
       assert.strictEqual(stream.events, events)
       assert.strictEqual(stream.error, error)
@@ -24,6 +25,7 @@ describe("HttpApiSchema", () => {
       assert.strictEqual(metadata.mode, "sse")
       assert.strictEqual(metadata.contentType, "text/event-stream")
       if (metadata.mode === "sse") {
+        assert.strictEqual(metadata.sseMode, "events")
         assert.strictEqual(metadata.events, events)
         assert.strictEqual(metadata.error, error)
       }
@@ -51,6 +53,7 @@ describe("HttpApiSchema", () => {
       const encode = Schema.encodeUnknownSync(stream.events)
       const decode = Schema.decodeUnknownSync(stream.events)
 
+      assert.strictEqual(stream.sseMode, "data")
       assert.deepStrictEqual(
         encode({ id: undefined, event: "user.created", data: { id: "123" } }),
         { id: undefined, event: "user.created", data: "{\"id\":\"123\"}" }
