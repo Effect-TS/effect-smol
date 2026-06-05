@@ -66,25 +66,22 @@ type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   : S extends Schema.Top ? S["Type"]
   : never
 
-type DecodingServices<S extends Schema.Top> = unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
-type EncodingServices<S extends Schema.Top> = unknown extends S["EncodingServices"] ? never : S["EncodingServices"]
-
 type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends HttpApiSchema.SseEventSchema,
   infer _Error extends Schema.Top,
   infer _Value
-> ? EncodingServices<_Events> | EncodingServices<_Error>
+> ? _Events["EncodingServices"] | _Error["EncodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? EncodingServices<S>
+  : S extends Schema.Top ? S["EncodingServices"]
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends HttpApiSchema.SseEventSchema,
   infer _Error extends Schema.Top,
   infer _Value
-> ? DecodingServices<_Events> | DecodingServices<_Error>
+> ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? DecodingServices<S>
+  : S extends Schema.Top ? S["DecodingServices"]
   : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S
@@ -629,12 +626,12 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | DecodingServices<_Params>
-    | DecodingServices<_Query>
-    | DecodingServices<_Payload>
-    | DecodingServices<_Headers>
+    | _Params["DecodingServices"]
+    | _Query["DecodingServices"]
+    | _Payload["DecodingServices"]
+    | _Headers["DecodingServices"]
     | SuccessEncodingServices<_Success>
-    | EncodingServices<_Error>
+    | _Error["EncodingServices"]
     | HttpApiMiddleware.ErrorServicesEncode<_M>
   : never
 
@@ -658,12 +655,12 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
   infer _M,
   infer _MR
 > ?
-    | EncodingServices<_Params>
-    | EncodingServices<_Query>
-    | EncodingServices<_Payload>
-    | EncodingServices<_Headers>
+    | _Params["EncodingServices"]
+    | _Query["EncodingServices"]
+    | _Payload["EncodingServices"]
+    | _Headers["EncodingServices"]
     | SuccessDecodingServices<_Success>
-    | DecodingServices<_Error>
+    | _Error["DecodingServices"]
   : never
 
 /**

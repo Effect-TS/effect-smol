@@ -88,10 +88,10 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Error extends Schema.Top,
   infer _Value
 > ?
-    | (unknown extends _Events["DecodingServices"] ? never : _Events["DecodingServices"])
-    | (unknown extends _Error["DecodingServices"] ? never : _Error["DecodingServices"])
+    | _Events["DecodingServices"]
+    | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? unknown extends S["DecodingServices"] ? never : S["DecodingServices"]
+  : S extends Schema.Top ? S["DecodingServices"]
   : never
 
 /**
@@ -168,14 +168,14 @@ export declare namespace Client {
       | HttpClientError.HttpClientError
       | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
       | R
-      | (unknown extends _Params["EncodingServices"] ? never : _Params["EncodingServices"])
-      | (unknown extends _Query["EncodingServices"] ? never : _Query["EncodingServices"])
-      | (unknown extends _Payload["EncodingServices"] ? never : _Payload["EncodingServices"])
-      | (unknown extends _Headers["EncodingServices"] ? never : _Headers["EncodingServices"])
+      | _Params["EncodingServices"]
+      | _Query["EncodingServices"]
+      | _Payload["EncodingServices"]
+      | _Headers["EncodingServices"]
       | ([Mode] extends ["response-only"] ? never
         :
           | SuccessDecodingServices<_Success>
-          | (unknown extends _Error["DecodingServices"] ? never : _Error["DecodingServices"]))
+          | _Error["DecodingServices"])
     > :
     never
 
@@ -341,12 +341,14 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
               Effect.fail
             )
         })
+
         const successAlternatives = new Map<number, Array<ResponseAlternative>>()
-        successes.forEach((schemas, status) => {
-          groupSchemasByContentType(schemas).forEach((schemas, contentType) => {
+        for (const [status, schemas] of successes.entries()) {
+          const grouped = groupSchemasByContentType(schemas)
+          for (const [contentType, schemas] of grouped.entries()) {
             addResponseAlternative(successAlternatives, status, contentType, schemasToResponse(schemas))
-          })
-        })
+          }
+        }
         for (const streamSuccess of getStreamSuccessDeclarations(endpoint)) {
           addResponseAlternative(
             successAlternatives,
@@ -355,9 +357,9 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
             streamToResponse(streamSuccess)
           )
         }
-        successAlternatives.forEach((alternatives, status) => {
+        for (const [status, alternatives] of successAlternatives.entries()) {
           decodeMap[status] = makeResponseDecoder(alternatives)
-        })
+        }
 
         // encoders
         const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
@@ -728,8 +730,8 @@ function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): 
 }
 
 function groupSchemasByContentType(
-  schemas: readonly [Schema.Top, ...Array<Schema.Top>]
-): Map<string, [Schema.Top, ...Array<Schema.Top>]> {
+  schemas: Arr.NonEmptyReadonlyArray<Schema.Top>
+): Map<string, Arr.NonEmptyReadonlyArray<Schema.Top>> {
   const grouped = new Map<string, [Schema.Top, ...Array<Schema.Top>]>()
   for (const schema of schemas) {
     const contentType = HttpApiSchema.getResponseEncoding(schema.ast).contentType
