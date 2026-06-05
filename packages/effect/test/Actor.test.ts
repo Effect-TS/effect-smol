@@ -345,6 +345,82 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("stops a named child by id", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const stopped = yield* Deferred.make<void>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn, stopChild }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(Actor.fromEffect<number, never>(0, () => Effect.never), { id: "child" })
+            yield* Deferred.succeed(childRef, child)
+            yield* stopChild("child")
+            yield* Deferred.succeed(stopped, void 0)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+      yield* Deferred.await(stopped)
+
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      const error = yield* Effect.flip(child.join)
+      assert.strictEqual(error._tag, "ActorStoppedError")
+
+      yield* actor.stop
+    }))
+
+  it.effect("releases a child id when stopped by id", () =>
+    Effect.gen(function*() {
+      const firstChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const secondChildRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn, stopChild }) =>
+          Effect.gen(function*() {
+            const firstChild = yield* spawn(counterLogic, { id: "counter" })
+            yield* Deferred.succeed(firstChildRef, firstChild)
+            yield* stopChild("counter")
+            const secondChild = yield* spawn(counterLogic, { id: "counter" })
+            yield* Deferred.succeed(secondChildRef, secondChild)
+            return yield* Effect.never
+          })
+      ))
+
+      const firstChild = yield* Deferred.await(firstChildRef)
+      const secondChild = yield* Deferred.await(secondChildRef)
+
+      assert.notStrictEqual(firstChild, secondChild)
+      assert.deepStrictEqual(yield* firstChild.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.deepStrictEqual(yield* secondChild.snapshot, {
+        status: "active",
+        state: 0
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("ignores unknown child ids when stopping by id", () =>
+    Effect.gen(function*() {
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(
+        0,
+        ({ stopChild }) => stopChild("missing")
+      ))
+
+      assert.strictEqual(yield* actor.join, void 0)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: 0,
+        output: undefined
+      })
+    }))
+
   it.effect("stops named children when the parent is stopped", () =>
     Effect.gen(function*() {
       const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()

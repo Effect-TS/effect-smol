@@ -95,6 +95,7 @@ type ChildEntry =
   | {
     readonly _tag: "Started"
     readonly token: symbol
+    readonly stop: Effect.Effect<void>
   }
 
 /**
@@ -161,6 +162,7 @@ export interface ActorContext<State, Event> {
     f: (state: State) => Effect.Effect<State, E, R>
   ) => Effect.Effect<void, E, R>
   readonly spawn: Spawn
+  readonly stopChild: (id: string) => Effect.Effect<void>
 }
 
 /**
@@ -312,21 +314,32 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
           : children
       })
 
-    const registerStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
-      SynchronizedRef.update(childRegistry, (children) => HashMap.set(children, id, { _tag: "Started", token }))
+    const registerStartedChild = (id: string, token: symbol, stop: Effect.Effect<void>): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => HashMap.set(children, id, { _tag: "Started", token, stop }))
+
+    const stopChild = (id: string): Effect.Effect<void> =>
+      SynchronizedRef.get(childRegistry).pipe(
+        Effect.flatMap((children) => {
+          const entry = HashMap.get(children, id)
+          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.stop : Effect.void
+        })
+      )
 
     const namedChild = <ChildState, ChildEvent, ChildError, ChildOutput>(
       id: string,
       token: symbol,
       child: Actor<ChildState, ChildEvent, ChildError, ChildOutput>
-    ): Actor<ChildState, ChildEvent, ChildError, ChildOutput> => ({
-      state: child.state,
-      snapshot: child.snapshot,
-      changes: child.changes,
-      join: child.join,
-      stop: child.stop.pipe(Effect.andThen(unregisterStartedChild(id, token))),
-      send: child.send
-    })
+    ): Actor<ChildState, ChildEvent, ChildError, ChildOutput> => {
+      const stop = child.stop.pipe(Effect.andThen(unregisterStartedChild(id, token)))
+      return {
+        state: child.state,
+        snapshot: child.snapshot,
+        changes: child.changes,
+        join: child.join,
+        stop,
+        send: child.send
+      }
+    }
 
     function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
       logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
@@ -367,8 +380,9 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
           const child = yield* start(logic).pipe(
             Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void)
           )
-          yield* registerStartedChild(id, token)
-          return namedChild(id, token, child)
+          const named = namedChild(id, token, child)
+          yield* registerStartedChild(id, token, named.stop)
+          return named
         }),
         (child) => child.stop
       ).pipe(Scope.provide(childrenScope))
@@ -377,6 +391,7 @@ export const start: <State, Event, Error = never, Requirements = never, Output =
     const context: ActorContext<State, Event> = {
       self,
       spawn,
+      stopChild,
       receive: Queue.take(queue),
       state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
       setState: setActiveState,
