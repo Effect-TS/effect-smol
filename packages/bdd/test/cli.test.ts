@@ -237,6 +237,42 @@ Feature: Counter
       assert.match(text, /Reason: No transition matched step "a missing transition runs"/)
     })).pipe(Effect.provide(NodeServices.layer)))
 
+  it.effect("reports source steps that only match a different keyword", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const fixture = yield* makeFixture({
+        feature: `
+Feature: Counter
+
+  Scenario: Wrong keyword
+    Given increment
+`,
+        steps: counterSteps
+      })
+      const textReport = fixture.path("wrong-keyword.txt")
+
+      const exit = yield* Effect.exit(
+        runCli([
+          "--features",
+          fixture.path("*.feature"),
+          "--steps",
+          fixture.path("*.mjs"),
+          "--reporter",
+          "text",
+          "--output-file.text",
+          textReport
+        ]).pipe(Effect.provide(NodeServices.layer))
+      )
+
+      assert.strictEqual(Exit.isFailure(exit), true)
+
+      const fs = yield* FileSystem.FileSystem
+      const text = yield* fs.readFileString(textReport)
+
+      assert.match(text, /FAIL .*counter\.feature:\d+ Counter \/ Wrong keyword/)
+      assert.match(text, /Step: Given increment/)
+      assert.match(text, /Reason: No Given transition matched step "increment"; matching text exists for When/)
+    })).pipe(Effect.provide(NodeServices.layer)))
+
   it.effect("filters scenarios by tag expression", () =>
     Effect.scoped(Effect.gen(function*() {
       const fixture = yield* makeFixture({
@@ -250,7 +286,7 @@ Feature: Counter
 
   @slow
   Scenario: Starts clean
-    Then the counter is 0
+    Then a missing transition runs
 `,
         steps: counterSteps
       })
@@ -276,6 +312,7 @@ Feature: Counter
       assert.match(text, /Features: 1, Scenarios: 1, passed: 1, failed: 0/)
       assert.match(text, /Increment/)
       assert.strictEqual(/Starts clean/.test(text), false)
+      assert.strictEqual(/Unmatched source/.test(text), false)
     })).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect("filters scenarios by name", () =>

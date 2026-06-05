@@ -153,7 +153,7 @@ type DocStringArgType<A> = DocStringArg<A>
  */
 const capture_: <const Name extends string, A>(
   name: Name,
-  schema: Schema.Decoder<A>
+  schema: Schema.Codec<A, string>
 ) => Capture<Name, A> = expression.makeCapture
 
 /**
@@ -249,7 +249,9 @@ const feature_ = <State>(name: string, options: {
  *
  * **When to use**
  *
- * Use `step` for a transition that may match any Gherkin step kind.
+ * Use `step` for a transition that is semantically valid as any concrete
+ * Gherkin step kind. Prefer `given`, `when`, or `then` when the transition
+ * represents setup, action, or assertion specifically.
  *
  * @category constructors
  * @since 4.0.0
@@ -260,6 +262,9 @@ const step_: StepTag<"Step"> = makeStepTag("Step")
  * Tagged-template transition factory for `Given` steps.
  *
  * **Details**
+ *
+ * A source `Given` step only matches `given` or keyword-agnostic `step`
+ * transitions.
  *
  * `And` and `But` steps inherit the previous concrete Gherkin keyword before
  * matching, so they can match a `given` transition when they follow a `Given`.
@@ -274,6 +279,9 @@ const given_: StepTag<"Given"> = makeStepTag("Given")
  *
  * **Details**
  *
+ * A source `When` step only matches `when` or keyword-agnostic `step`
+ * transitions.
+ *
  * `And` and `But` steps inherit the previous concrete Gherkin keyword before
  * matching, so they can match a `when` transition when they follow a `When`.
  *
@@ -286,6 +294,9 @@ const when_: StepTag<"When"> = makeStepTag("When")
  * Tagged-template transition factory for `Then` steps.
  *
  * **Details**
+ *
+ * A source `Then` step only matches `then` or keyword-agnostic `step`
+ * transitions.
  *
  * `And` and `But` steps inherit the previous concrete Gherkin keyword before
  * matching, so they can match a `then` transition when they follow a `Then`.
@@ -300,8 +311,9 @@ const then_: StepTag<"Then"> = makeStepTag("Then")
  *
  * **Details**
  *
- * Every scenario starts from the feature's initial state. Background steps run
- * before each scenario, then scenario steps run in source order.
+ * The feature definition name must match the Gherkin `Feature:` name. Every
+ * scenario starts from the feature's initial state. Background steps run before
+ * each scenario, then scenario steps run in source order.
  *
  * **Example** (Running Gherkin)
  *

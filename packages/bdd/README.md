@@ -171,7 +171,7 @@ The core parser currently supports:
 - DocStrings
 - comments and descriptions
 
-`Bdd.step` is keyword-agnostic and can match any concrete step kind. `Bdd.given`, `Bdd.when`, and `Bdd.then` only match their corresponding kind after `And` / `But` inheritance is resolved.
+`Bdd.given`, `Bdd.when`, and `Bdd.then` are semantic, not decorative. They only match their corresponding concrete kind after `And` / `But` inheritance is resolved. `Bdd.step` is keyword-agnostic and can match any concrete step kind; use it sparingly for transitions that are truly valid as setup, action, or assertion.
 
 ## Running
 
@@ -197,7 +197,7 @@ Reports include the feature name, scenario names, step counts, and inherited tag
 `Bdd.run` fails with `Bdd.RunError`:
 
 - `ParseError` when Gherkin source is invalid or uses unsupported syntax.
-- `MatchError` when a step cannot be matched, matches multiple transitions, has a missing/unexpected argument, or a DataTable / DocString fails Schema decoding.
+- `MatchError` when the feature definition name does not match the Gherkin `Feature:` name, a step cannot be matched, a step matches only transitions registered under the wrong keyword, a step matches multiple transitions, has a missing/unexpected argument, or a DataTable / DocString fails Schema decoding.
 - `StepError` when a matched step implementation fails.
 
 Schema decode failures are preserved on `MatchError.cause`. Step implementation failures are preserved on `StepError.cause`.
@@ -400,9 +400,8 @@ The current package deliberately does not include:
 
 - Vitest adapter APIs
 - hooks
-- tag filtering
 - Scenario Outline
 - i18n keywords
-- custom reporters
+- user-pluggable reporter APIs
 
 Those features can be added later as layers on top of the core runner.

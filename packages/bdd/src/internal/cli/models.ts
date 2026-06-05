@@ -70,7 +70,7 @@ export type CliDiagnostic =
     readonly scenarioName: string
     readonly scenarioLine: number
     readonly step: Parser.ParsedStep
-    readonly reason: "NoMatch" | "MultipleMatches"
+    readonly reason: "NoMatch" | "WrongKeyword" | "MultipleMatches"
     readonly candidates: ReadonlyArray<string>
     readonly message: string
   }

@@ -9,7 +9,7 @@ import * as Str from "effect/String"
 export interface Capture<Name extends string, A> {
   readonly _tag: "Capture"
   readonly name: Name
-  readonly schema: Schema.Decoder<A>
+  readonly schema: Schema.Codec<A, string>
 }
 
 /** @internal */
@@ -28,7 +28,7 @@ interface MatcherState {
 /** @internal */
 export const makeCapture = <const Name extends string, A>(
   name: Name,
-  schema: Schema.Decoder<A>
+  schema: Schema.Codec<A, string>
 ): Capture<Name, A> => ({
   _tag: "Capture",
   name,

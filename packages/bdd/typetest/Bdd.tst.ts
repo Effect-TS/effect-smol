@@ -24,6 +24,10 @@ describe("Bdd", () => {
     })
   })
 
+  test("captures require string encoded schemas", () => {
+    expect(Bdd.capture).type.not.toBeCallableWith("qty", Schema.Number)
+  })
+
   test("feature state is stable across transitions", () => {
     const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
       Bdd.given`zero`((_captures, state) => Effect.succeed(state)),

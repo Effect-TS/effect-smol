@@ -1,10 +1,11 @@
 import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
-import * as Option from "effect/Option"
+import type * as Option from "effect/Option"
 import * as Record from "effect/Record"
 import * as Schema from "effect/Schema"
 import { MatchError, type ParseError, StepError } from "../Errors.ts"
+import * as Matching from "./matching.ts"
 import * as Parser from "./parser.ts"
 
 /** @internal */
@@ -109,7 +110,8 @@ export const run = <State, E, R>(
     Parser.parse(source),
     Effect.flatMap((feature) =>
       pipe(
-        Effect.forEach(buildScenarioTasks(featureDefinition, feature), runScenarioTask),
+        validateFeatureDefinition(featureDefinition, feature),
+        Effect.flatMap(() => Effect.forEach(buildScenarioTasks(featureDefinition, feature), runScenarioTask)),
         Effect.map((scenarios): Report => ({
           feature: feature.name,
           scenarios
@@ -117,6 +119,22 @@ export const run = <State, E, R>(
       )
     )
   )
+
+const validateFeatureDefinition = <State, E, R>(
+  featureDefinition: Feature<State, E, R>,
+  feature: Parser.Feature
+): Effect.Effect<void, MatchError> =>
+  featureDefinition.name === feature.name
+    ? Effect.void
+    : Effect.fail(
+      new MatchError({
+        message: `Feature definition "${featureDefinition.name}" does not match Gherkin feature "${feature.name}"`,
+        scenario: "",
+        step: feature.name,
+        line: feature.line,
+        candidates: [featureDefinition.name]
+      })
+    )
 
 /** @internal */
 export const buildScenarioTasks = <State, E, R>(
@@ -244,30 +262,28 @@ const resolve = <State, E, R>(
   scenario: string,
   step: Parser.ParsedStep
 ): Effect.Effect<ResolvedTransition<State, E, R>, MatchError> => {
-  const matches = pipe(
-    featureDefinition.transitions,
-    Arr.map((transition): Option.Option<ResolvedTransition<State, E, R>> => {
-      if (!keywordMatches(transition.kind, step.kind)) {
-        return Option.none()
-      }
-      return pipe(
-        transition.expression.match(step.text),
-        Option.map((captures) => ({ transition, captures }))
-      )
-    }),
-    Arr.getSomes
-  )
+  const textMatches = Matching.matchingTextTransitions(featureDefinition.transitions, step)
+  const matches = Matching.matchingKeywordTransitions(textMatches, step)
 
   return pipe(
     matches,
     Arr.match({
       onEmpty: () =>
-        failMatch(
-          `No transition matched step "${step.text}"`,
-          scenario,
-          step,
-          Arr.map(featureDefinition.transitions, (transition) => transition.expression.source)
-        ),
+        textMatches.length === 0
+          ? failMatch(
+            `No transition matched step "${step.text}"`,
+            scenario,
+            step,
+            Arr.map(featureDefinition.transitions, (transition) => transition.expression.source)
+          )
+          : failMatch(
+            `No ${step.kind} transition matched step "${step.text}"; matching text exists for ${
+              Matching.renderTransitionKinds(Arr.map(textMatches, (match) => match.transition))
+            }`,
+            scenario,
+            step,
+            Arr.map(textMatches, (match) => match.transition.expression.source)
+          ),
       onNonEmpty: (matches) =>
         matches.length === 1
           ? Effect.succeed(Arr.headNonEmpty(matches))
@@ -279,13 +295,6 @@ const resolve = <State, E, R>(
           )
     })
   )
-}
-
-const keywordMatches = (transition: StepKind, keyword: Parser.StepKind) => {
-  if (transition === "Step") {
-    return true
-  }
-  return transition === keyword
 }
 
 const rowObject = (

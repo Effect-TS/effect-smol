@@ -5,7 +5,6 @@ import { pipe } from "effect/Function"
 import type * as Path from "effect/Path"
 import * as Record_ from "effect/Record"
 import type * as Bdd from "../../Bdd.ts"
-import type * as Parser from "../parser.ts"
 import { DiscoveryError, type ModuleLoadError } from "./errors.ts"
 import { GlobResolver } from "./glob.ts"
 import type { FeatureDefinitionRef, FeatureSource } from "./models.ts"
@@ -60,29 +59,6 @@ export const loadFeatureDefinitions: (
     ))
   return yield* nonEmptyDefinitions(Arr.flatten(definitions))
 })
-
-/** @internal */
-export const matchFeatureDefinition = (
-  parsedFeature: Parser.Feature,
-  definitions: ReadonlyArray<FeatureDefinitionRef>
-): Effect.Effect<FeatureDefinitionRef, DiscoveryError> => {
-  const matches = Arr.filter(definitions, (definition) => definition.name === parsedFeature.name)
-  if (matches.length === 1) {
-    return Effect.succeed(matches[0])
-  }
-  if (matches.length === 0) {
-    return Effect.fail(
-      new DiscoveryError({
-        message: `No feature definition matched Gherkin feature "${parsedFeature.name}"`
-      })
-    )
-  }
-  return Effect.fail(
-    new DiscoveryError({
-      message: `Multiple feature definitions matched Gherkin feature "${parsedFeature.name}"`
-    })
-  )
-}
 
 const nonEmptyPaths = (
   paths: ReadonlyArray<string>,
