@@ -4,6 +4,18 @@ import { HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiSchema", () => {
+  describe("status", () => {
+    it("preserves schema services when used with pipe", () => {
+      class NotFound extends Schema.TaggedErrorClass<NotFound>()("NotFound", {}) {}
+
+      const schema = NotFound.pipe(HttpApiSchema.status(404))
+
+      expect<typeof schema>().type.toBe<typeof NotFound>()
+      expect<typeof schema["EncodingServices"]>().type.toBe<never>()
+      expect<typeof schema["DecodingServices"]>().type.toBe<never>()
+    })
+  })
+
   describe("StreamSse", () => {
     it("preserves event and error schemas", () => {
       const Events = Schema.Struct({

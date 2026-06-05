@@ -151,12 +151,10 @@ export type StatusLiteral = keyof typeof statusCodeByLiteral
  * @since 4.0.0
  */
 export function status(code: number): {
-  <S extends StreamDeclaration>(self: S): S
-  <S extends Schema.Top>(self: S): S
+  <S extends Schema.Top | StreamDeclaration>(self: S): S
 }
 export function status(code: StatusLiteral): {
-  <S extends StreamDeclaration>(self: S): S
-  <S extends Schema.Top>(self: S): S
+  <S extends Schema.Top | StreamDeclaration>(self: S): S
 }
 export function status(code: number | StatusLiteral): any {
   const statusCode = typeof code === "string" ? statusCodeByLiteral[code] : code
