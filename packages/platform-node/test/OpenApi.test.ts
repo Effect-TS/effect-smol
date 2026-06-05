@@ -341,8 +341,8 @@ describe("OpenAPI spec", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String
           .pipe(
-            HttpApiSchema.asText(),
-            HttpApiSchema.status(405)
+            HttpApiSchema.status(405),
+            HttpApiSchema.asText()
           )
       }) {}
 

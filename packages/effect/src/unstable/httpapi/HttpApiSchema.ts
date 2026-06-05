@@ -151,18 +151,18 @@ export type StatusLiteral = keyof typeof statusCodeByLiteral
  * @since 4.0.0
  */
 export function status(code: number): {
-  <S extends Schema.Top | StreamDeclaration>(self: S): S
+  <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S
 }
 export function status(code: StatusLiteral): {
-  <S extends Schema.Top | StreamDeclaration>(self: S): S
+  <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S
 }
 export function status(code: number | StatusLiteral): any {
   const statusCode = typeof code === "string" ? statusCodeByLiteral[code] : code
-  return (self: Schema.Top | StreamDeclaration) => {
+  return <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S => {
     if (Predicate.hasProperty(self, StreamTypeId)) {
-      return { ...self, httpApiStatus: statusCode }
+      return { ...self, httpApiStatus: statusCode } as any
     }
-    return (self as Schema.Top).annotate({ httpApiStatus: statusCode })
+    return (self as Schema.Top).annotate({ httpApiStatus: statusCode }) as any
   }
 }
 
@@ -175,7 +175,7 @@ export function status(code: number | StatusLiteral): any {
  * @category Empty
  * @since 4.0.0
  */
-export const Empty = (code: number): Schema.Void => Schema.Void.annotate({ httpApiStatus: code })
+export const Empty = (code: number): Schema.Void => Schema.Void.pipe(status(code))
 
 /**
  * Type of the `NoContent` schema, a void schema annotated with HTTP status code 204.
