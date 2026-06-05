@@ -369,22 +369,23 @@ export type StreamDeclarationMetadata =
  * @category constructors
  * @since 4.0.0
  */
-export function StreamSse<Events extends SseEventSchema, Error extends Schema.Top>(options: {
-  readonly contentType?: string | undefined
-  readonly events: Events
-  readonly error: Error
-}): StreamSse<Events, Error>
-export function StreamSse<Data extends Schema.Top, Error extends Schema.Top>(options: {
-  readonly contentType?: string | undefined
-  readonly data: Data
-  readonly error: Error
-}): StreamSse<SseEventFromData<Data>, Error>
-export function StreamSse(options: {
+export const StreamSse: {
+  <Events extends SseEventSchema, Error extends Schema.Top>(options: {
+    readonly contentType?: string | undefined
+    readonly events: Events
+    readonly error: Error
+  }): StreamSse<Events, Error>
+  <Data extends Schema.Top, Error extends Schema.Top>(options: {
+    readonly contentType?: string | undefined
+    readonly data: Data
+    readonly error: Error
+  }): StreamSse<SseEventFromData<Data>, Error>
+} = (options: {
   readonly contentType?: string | undefined
   readonly events?: SseEventSchema | undefined
   readonly data?: Schema.Top | undefined
   readonly error: Schema.Top
-}): StreamSse<SseEventSchema, Schema.Top> {
+}): StreamSse<SseEventSchema, Schema.Top> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
     event: Schema.String,
