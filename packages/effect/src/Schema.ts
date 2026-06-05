@@ -6652,6 +6652,13 @@ export function makeIsGreaterThan<T>(options: {
       (input) => gt(input, exclusiveMinimum),
       {
         expected: `a value greater than ${formatter(exclusiveMinimum)}`,
+        toArbitraryConstraint: {
+          ordered: {
+            order: options.order,
+            min: exclusiveMinimum,
+            minExcluded: true
+          }
+        },
         ...options.annotate?.(exclusiveMinimum),
         ...annotations
       }
@@ -6678,6 +6685,12 @@ export function makeIsGreaterThanOrEqualTo<T>(options: {
       (input) => gte(input, minimum),
       {
         expected: `a value greater than or equal to ${formatter(minimum)}`,
+        toArbitraryConstraint: {
+          ordered: {
+            order: options.order,
+            min: minimum
+          }
+        },
         ...options.annotate?.(minimum),
         ...annotations
       }
@@ -6704,6 +6717,13 @@ export function makeIsLessThan<T>(options: {
       (input) => lt(input, exclusiveMaximum),
       {
         expected: `a value less than ${formatter(exclusiveMaximum)}`,
+        toArbitraryConstraint: {
+          ordered: {
+            order: options.order,
+            max: exclusiveMaximum,
+            maxExcluded: true
+          }
+        },
         ...options.annotate?.(exclusiveMaximum),
         ...annotations
       }
@@ -6730,6 +6750,12 @@ export function makeIsLessThanOrEqualTo<T>(options: {
       (input) => lte(input, maximum),
       {
         expected: `a value less than or equal to ${formatter(maximum)}`,
+        toArbitraryConstraint: {
+          ordered: {
+            order: options.order,
+            max: maximum
+          }
+        },
         ...options.annotate?.(maximum),
         ...annotations
       }
@@ -6775,6 +6801,15 @@ export function makeIsBetween<T>(deriveOptions: {
         expected: `a value between ${formatter(options.minimum)}${options.exclusiveMinimum ? " (excluded)" : ""} and ${
           formatter(options.maximum)
         }${options.exclusiveMaximum ? " (excluded)" : ""}`,
+        toArbitraryConstraint: {
+          ordered: {
+            order: deriveOptions.order,
+            min: options.minimum,
+            max: options.maximum,
+            ...(options.exclusiveMinimum && { minExcluded: true }),
+            ...(options.exclusiveMaximum && { maxExcluded: true })
+          }
+        },
         ...deriveOptions.annotate?.(options),
         ...annotations
       }
@@ -6832,12 +6867,6 @@ export const isGreaterThan = makeIsGreaterThan({
     meta: {
       _tag: "isGreaterThan",
       exclusiveMinimum
-    },
-    toArbitraryConstraint: {
-      number: {
-        min: exclusiveMinimum,
-        minExcluded: true
-      }
     }
   })
 })
@@ -6866,11 +6895,6 @@ export const isGreaterThanOrEqualTo = makeIsGreaterThanOrEqualTo({
     meta: {
       _tag: "isGreaterThanOrEqualTo",
       minimum
-    },
-    toArbitraryConstraint: {
-      number: {
-        min: minimum
-      }
     }
   })
 })
@@ -6899,12 +6923,6 @@ export const isLessThan = makeIsLessThan({
     meta: {
       _tag: "isLessThan",
       exclusiveMaximum
-    },
-    toArbitraryConstraint: {
-      number: {
-        max: exclusiveMaximum,
-        maxExcluded: true
-      }
     }
   })
 })
@@ -6933,11 +6951,6 @@ export const isLessThanOrEqualTo = makeIsLessThanOrEqualTo({
     meta: {
       _tag: "isLessThanOrEqualTo",
       maximum
-    },
-    toArbitraryConstraint: {
-      number: {
-        max: maximum
-      }
     }
   })
 })
@@ -6969,14 +6982,6 @@ export const isBetween = makeIsBetween({
       meta: {
         _tag: "isBetween",
         ...options
-      },
-      toArbitraryConstraint: {
-        number: {
-          min: options.minimum,
-          max: options.maximum,
-          ...(options.exclusiveMinimum && { minExcluded: true }),
-          ...(options.exclusiveMaximum && { maxExcluded: true })
-        }
       }
     }
   }
@@ -7148,10 +7153,6 @@ export function isDateValid(annotations?: Annotations.Filter) {
   )
 }
 
-const nextDate = (date: globalThis.Date) => new globalThis.Date(date.getTime() + 1)
-
-const previousDate = (date: globalThis.Date) => new globalThis.Date(date.getTime() - 1)
-
 /**
  * Validates that a Date is greater than the specified value (exclusive).
  *
@@ -7172,11 +7173,6 @@ export const isGreaterThanDate = makeIsGreaterThan({
     meta: {
       _tag: "isGreaterThanDate",
       exclusiveMinimum
-    },
-    toArbitraryConstraint: {
-      date: {
-        min: nextDate(exclusiveMinimum)
-      }
     }
   })
 })
@@ -7207,11 +7203,6 @@ export const isGreaterThanOrEqualToDate = makeIsGreaterThanOrEqualTo({
     meta: {
       _tag: "isGreaterThanOrEqualToDate",
       minimum
-    },
-    toArbitraryConstraint: {
-      date: {
-        min: minimum
-      }
     }
   })
 })
@@ -7236,11 +7227,6 @@ export const isLessThanDate = makeIsLessThan({
     meta: {
       _tag: "isLessThanDate",
       exclusiveMaximum
-    },
-    toArbitraryConstraint: {
-      date: {
-        max: previousDate(exclusiveMaximum)
-      }
     }
   })
 })
@@ -7271,11 +7257,6 @@ export const isLessThanOrEqualToDate = makeIsLessThanOrEqualTo({
     meta: {
       _tag: "isLessThanOrEqualToDate",
       maximum
-    },
-    toArbitraryConstraint: {
-      date: {
-        max: maximum
-      }
     }
   })
 })
@@ -7306,19 +7287,9 @@ export const isBetweenDate = makeIsBetween({
     meta: {
       _tag: "isBetweenDate",
       ...options
-    },
-    toArbitraryConstraint: {
-      date: {
-        min: options.exclusiveMinimum ? nextDate(options.minimum) : options.minimum,
-        max: options.exclusiveMaximum ? previousDate(options.maximum) : options.maximum
-      }
     }
   })
 })
-
-const nextBigInt = (n: bigint) => n + globalThis.BigInt(1)
-
-const previousBigInt = (n: bigint) => n - globalThis.BigInt(1)
 
 /**
  * Validates that a BigInt is greater than the specified value (exclusive).
@@ -7340,11 +7311,6 @@ export const isGreaterThanBigInt = makeIsGreaterThan({
     meta: {
       _tag: "isGreaterThanBigInt",
       exclusiveMinimum
-    },
-    toArbitraryConstraint: {
-      bigint: {
-        min: nextBigInt(exclusiveMinimum)
-      }
     }
   })
 })
@@ -7370,11 +7336,6 @@ export const isGreaterThanOrEqualToBigInt = makeIsGreaterThanOrEqualTo({
     meta: {
       _tag: "isGreaterThanOrEqualToBigInt",
       minimum
-    },
-    toArbitraryConstraint: {
-      bigint: {
-        min: minimum
-      }
     }
   })
 })
@@ -7399,11 +7360,6 @@ export const isLessThanBigInt = makeIsLessThan({
     meta: {
       _tag: "isLessThanBigInt",
       exclusiveMaximum
-    },
-    toArbitraryConstraint: {
-      bigint: {
-        max: previousBigInt(exclusiveMaximum)
-      }
     }
   })
 })
@@ -7429,11 +7385,6 @@ export const isLessThanOrEqualToBigInt = makeIsLessThanOrEqualTo({
     meta: {
       _tag: "isLessThanOrEqualToBigInt",
       maximum
-    },
-    toArbitraryConstraint: {
-      bigint: {
-        max: maximum
-      }
     }
   })
 })
@@ -7459,12 +7410,6 @@ export const isBetweenBigInt = makeIsBetween({
     meta: {
       _tag: "isBetweenBigInt",
       ...options
-    },
-    toArbitraryConstraint: {
-      bigint: {
-        min: options.exclusiveMinimum ? nextBigInt(options.minimum) : options.minimum,
-        max: options.exclusiveMaximum ? previousBigInt(options.maximum) : options.maximum
-      }
     }
   })
 })
@@ -9886,6 +9831,30 @@ export interface Date extends instanceOf<globalThis.Date> {
   readonly "Rebuild": Date
 }
 
+function dateArbitraryConstraints<T = globalThis.Date>(
+  constraint: Annotations.ToArbitrary.DateConstraints | undefined,
+  ordered: Annotations.ToArbitrary.OrderedConstraints<T> | undefined,
+  base?: FastCheck.DateConstraints | undefined,
+  toDate?: (value: T) => globalThis.Date
+): FastCheck.DateConstraints {
+  const out: FastCheck.DateConstraints = { ...base, ...constraint }
+  if (ordered?.min !== undefined) {
+    const min = toDate === undefined ? ordered.min as globalThis.Date : toDate(ordered.min)
+    const nextMin = ordered.minExcluded ? new globalThis.Date(min.getTime() + 1) : min
+    if (out.min === undefined || nextMin.getTime() > out.min.getTime()) {
+      out.min = nextMin
+    }
+  }
+  if (ordered?.max !== undefined) {
+    const max = toDate === undefined ? ordered.max as globalThis.Date : toDate(ordered.max)
+    const nextMax = ordered.maxExcluded ? new globalThis.Date(max.getTime() - 1) : max
+    if (out.max === undefined || nextMax.getTime() < out.max.getTime()) {
+      out.max = nextMax
+    }
+  }
+  return out
+}
+
 const DateString = String.annotate({ expected: "a string in ISO 8601 format that will be decoded as a Date" })
 
 /**
@@ -9932,7 +9901,11 @@ export const Date: Date = instanceOf(
         DateString,
         SchemaTransformation.dateFromString
       ),
-    toArbitrary: () => (fc, ctx) => fc.date(ctx?.constraints?.date)
+    toArbitrary: () => (fc, ctx) =>
+      fc.date(dateArbitraryConstraints(
+        ctx?.constraints?.date,
+        ctx?.constraints?.ordered?.order === Order.Date ? ctx.constraints.ordered : undefined
+      ))
   }
 )
 
@@ -10196,6 +10169,81 @@ export interface BigDecimal extends declare<BigDecimal_.BigDecimal> {
 
 const BigDecimalString = String.annotate({ expected: "a string that will be decoded as a BigDecimal" })
 
+const bigDecimalDefaultMaxScale = 20
+const bigDecimalInvalidOrderedConstraintsError = "Unable to derive an arbitrary for the ordered BigDecimal constraints"
+
+function bigDecimalScaleValueAtScale(bd: BigDecimal_.BigDecimal, scale: number): bigint {
+  return BigDecimal_.scale(bd, scale).value
+}
+
+function bigDecimalMinValueAtScale(
+  minimum: BigDecimal_.BigDecimal,
+  scale: number,
+  excluded: boolean
+): bigint {
+  return excluded
+    ? bigDecimalScaleValueAtScale(BigDecimal_.floor(minimum, scale), scale) + globalThis.BigInt(1)
+    : bigDecimalScaleValueAtScale(BigDecimal_.ceil(minimum, scale), scale)
+}
+
+function bigDecimalMaxValueAtScale(
+  maximum: BigDecimal_.BigDecimal,
+  scale: number,
+  excluded: boolean
+): bigint {
+  return excluded
+    ? bigDecimalScaleValueAtScale(BigDecimal_.ceil(maximum, scale), scale) - globalThis.BigInt(1)
+    : bigDecimalScaleValueAtScale(BigDecimal_.floor(maximum, scale), scale)
+}
+
+function bigDecimalMaxScale(ordered: Annotations.ToArbitrary.OrderedConstraints<BigDecimal_.BigDecimal>): number {
+  return Math.max(
+    bigDecimalDefaultMaxScale,
+    ordered.min?.scale ?? 0,
+    ordered.max?.scale ?? 0,
+    ordered.minExcluded && ordered.min !== undefined ? ordered.min.scale + 1 : 0,
+    ordered.maxExcluded && ordered.max !== undefined ? ordered.max.scale + 1 : 0
+  )
+}
+
+function bigDecimalValueConstraintsAtScale(
+  ordered: Annotations.ToArbitrary.OrderedConstraints<BigDecimal_.BigDecimal>,
+  scale: number
+): FastCheck.BigIntConstraints | undefined {
+  const constraints: FastCheck.BigIntConstraints = {}
+  if (ordered.min !== undefined) {
+    constraints.min = bigDecimalMinValueAtScale(ordered.min, scale, ordered.minExcluded === true)
+  }
+  if (ordered.max !== undefined) {
+    constraints.max = bigDecimalMaxValueAtScale(ordered.max, scale, ordered.maxExcluded === true)
+  }
+  if (constraints.min !== undefined && constraints.max !== undefined && constraints.min > constraints.max) {
+    return undefined
+  }
+  return constraints
+}
+
+function bigDecimalScaleConstraints(
+  ordered: Annotations.ToArbitrary.OrderedConstraints<BigDecimal_.BigDecimal>
+): FastCheck.IntegerConstraints {
+  const max = bigDecimalMaxScale(ordered)
+  if (bigDecimalValueConstraintsAtScale(ordered, max) === undefined) {
+    throw new globalThis.Error(bigDecimalInvalidOrderedConstraintsError)
+  }
+
+  let min = 0
+  let high = max
+  while (min < high) {
+    const scale = min + Math.floor((high - min) / 2)
+    if (bigDecimalValueConstraintsAtScale(ordered, scale) === undefined) {
+      min = scale + 1
+    } else {
+      high = scale
+    }
+  }
+  return { min, max }
+}
+
 /**
  * Schema for `BigDecimal` values.
  *
@@ -10232,9 +10280,23 @@ export const BigDecimal: BigDecimal = declare(
         BigDecimalString,
         SchemaTransformation.bigDecimalFromString
       ),
-    toArbitrary: () => (fc) =>
-      fc.tuple(fc.bigInt(), fc.integer({ min: 0, max: 20 }))
-        .map(([value, scale]) => BigDecimal_.make(value, scale)),
+    toArbitrary: () => (fc, ctx) => {
+      const ordered = ctx.constraints?.ordered?.order === BigDecimal_.Order
+        ? ctx.constraints.ordered as Annotations.ToArbitrary.OrderedConstraints<BigDecimal_.BigDecimal>
+        : undefined
+      if (ordered === undefined) {
+        return fc.tuple(fc.bigInt(), fc.integer({ min: 0, max: bigDecimalDefaultMaxScale }))
+          .map(([value, scale]) => BigDecimal_.make(value, scale))
+      }
+
+      return fc.integer(bigDecimalScaleConstraints(ordered)).chain((scale) => {
+        const constraints = bigDecimalValueConstraintsAtScale(ordered, scale)
+        if (constraints === undefined) {
+          throw new globalThis.Error(bigDecimalInvalidOrderedConstraintsError)
+        }
+        return fc.bigInt(constraints).map((value) => BigDecimal_.make(value, scale))
+      })
+    },
     toFormatter: () => (bd) => BigDecimal_.format(bd),
     toEquivalence: () => BigDecimal_.Equivalence
   }
@@ -11355,7 +11417,13 @@ export const DateTimeUtc: DateTimeUtc = declare(
         SchemaTransformation.dateTimeUtcFromString
       ),
     toArbitrary: () => (fc, ctx) =>
-      fc.date({ noInvalidDate: true, ...ctx?.constraints?.date }).map((date) => DateTime.fromDateUnsafe(date)),
+      fc.date(dateArbitraryConstraints(
+        ctx?.constraints?.date,
+        ctx?.constraints?.ordered?.order === DateTime.Order ? ctx.constraints.ordered : undefined,
+        { noInvalidDate: true },
+        DateTime.toDateUtc
+      ))
+        .map((date) => DateTime.fromDateUnsafe(date)),
     toFormatter: () => (utc) => utc.toString(),
     toEquivalence: () => DateTime.Equivalence
   }
@@ -11729,12 +11797,16 @@ export const DateTimeZoned: DateTimeZoned = declare(
       ),
     toArbitrary: () => (fc, ctx) =>
       fc.tuple(
-        fc.date({
-          noInvalidDate: true,
-          min: new globalThis.Date(-8640000000000000 + 14 * 60 * 60 * 1000),
-          max: new globalThis.Date(8640000000000000 - 14 * 60 * 60 * 1000),
-          ...ctx?.constraints?.date
-        }),
+        fc.date(dateArbitraryConstraints(
+          ctx?.constraints?.date,
+          ctx?.constraints?.ordered?.order === DateTime.Order ? ctx.constraints.ordered : undefined,
+          {
+            max: new globalThis.Date(8640000000000000 - 14 * 60 * 60 * 1000),
+            min: new globalThis.Date(-8640000000000000 + 14 * 60 * 60 * 1000),
+            noInvalidDate: true
+          },
+          DateTime.toDateUtc
+        )),
         fc.constantFrom("UTC", "Europe/London", "America/New_York", "Asia/Tokyo", "Australia/Sydney")
       ).map(([date, zone]) => DateTime.makeZonedUnsafe(date, { timeZone: zone })),
     toFormatter: () => (zoned) => DateTime.formatIsoZoned(zoned),
@@ -13690,18 +13762,26 @@ export declare namespace Annotations {
      * @category models
      * @since 4.0.0
      */
-    export interface NumberConstraints extends FastCheck.FloatConstraints {
+    export interface NumberConstraints
+      extends Omit<FastCheck.FloatConstraints, "min" | "max" | "minExcluded" | "maxExcluded">
+    {
       readonly isInteger?: boolean
     }
 
     /**
-     * fast-check bigint constraints used when deriving arbitraries for bigint
-     * schemas.
+     * Ordered constraints accumulated from range checks such as
+     * `isGreaterThan`, `isLessThan`, and `isBetween`.
      *
      * @category models
      * @since 4.0.0
      */
-    export interface BigIntConstraints extends FastCheck.BigIntConstraints {}
+    export interface OrderedConstraints<T = any> {
+      readonly order: Order.Order<T>
+      readonly min?: T | undefined
+      readonly minExcluded?: boolean | undefined
+      readonly max?: T | undefined
+      readonly maxExcluded?: boolean | undefined
+    }
 
     /**
      * fast-check array constraints plus an optional comparator used when deriving
@@ -13721,7 +13801,7 @@ export declare namespace Annotations {
      * @category models
      * @since 4.0.0
      */
-    export interface DateConstraints extends FastCheck.DateConstraints {}
+    export interface DateConstraints extends Omit<FastCheck.DateConstraints, "min" | "max"> {}
 
     /**
      * Grouped arbitrary-generation constraints accumulated from schema checks and
@@ -13733,7 +13813,7 @@ export declare namespace Annotations {
     export interface Constraint {
       readonly string?: StringConstraints | undefined
       readonly number?: NumberConstraints | undefined
-      readonly bigint?: BigIntConstraints | undefined
+      readonly ordered?: OrderedConstraints<any> | undefined
       readonly array?: ArrayConstraints | undefined
       readonly date?: DateConstraints | undefined
     }

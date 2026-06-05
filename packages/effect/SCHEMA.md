@@ -5767,8 +5767,17 @@ const LastName = Schema.String.annotate({
 const Age = Schema.Int.check(Schema.isBetween({ minimum: 18, maximum: 80 })).annotate({
   toArbitrary: fake((f, ctx) => {
     // Use the constraints from the schema to generate a random age
-    const min = ctx.constraints?.number?.min ?? 0
-    const max = ctx.constraints?.number?.max ?? Number.MAX_SAFE_INTEGER
+    const ordered = ctx.constraints?.ordered
+    const min = ordered?.min === undefined
+      ? 0
+      : ordered.minExcluded
+      ? Math.floor(ordered.min) + 1
+      : Math.ceil(ordered.min)
+    const max = ordered?.max === undefined
+      ? Number.MAX_SAFE_INTEGER
+      : ordered.maxExcluded
+      ? Math.ceil(ordered.max) - 1
+      : Math.floor(ordered.max)
     return f.number.int({ min, max })
   })
 })

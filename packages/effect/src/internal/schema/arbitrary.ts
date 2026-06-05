@@ -4,6 +4,7 @@ import type * as Combiner from "../../Combiner.ts"
 import { memoize } from "../../Function.ts"
 import * as Number from "../../Number.ts"
 import * as Option from "../../Option.ts"
+import * as Order from "../../Order.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
@@ -69,15 +70,92 @@ const combiner: Combiner.Combiner<any> = Struct.makeCombiner({
 type FastCheckConstraint =
   | Schema.Annotations.ToArbitrary.StringConstraints
   | Schema.Annotations.ToArbitrary.NumberConstraints
-  | Schema.Annotations.ToArbitrary.BigIntConstraints
   | Schema.Annotations.ToArbitrary.ArrayConstraints
   | Schema.Annotations.ToArbitrary.DateConstraints
 
+function mergeOrderedConstraints(
+  self: Schema.Annotations.ToArbitrary.OrderedConstraints | undefined,
+  that: Schema.Annotations.ToArbitrary.OrderedConstraints
+): Schema.Annotations.ToArbitrary.OrderedConstraints {
+  if (self === undefined) {
+    return that
+  }
+  if (self.order !== that.order) {
+    throw new Error("Cannot merge ordered arbitrary constraints with different Order instances")
+  }
+
+  let min = self.min
+  let minExcluded = self.minExcluded
+  if (that.min !== undefined) {
+    if (min === undefined) {
+      min = that.min
+      minExcluded = that.minExcluded
+    } else {
+      const comparison = self.order(min, that.min)
+      if (comparison === -1) {
+        min = that.min
+        minExcluded = that.minExcluded
+      } else if (comparison === 0) {
+        minExcluded = minExcluded || that.minExcluded
+      }
+    }
+  }
+
+  let max = self.max
+  let maxExcluded = self.maxExcluded
+  if (that.max !== undefined) {
+    if (max === undefined) {
+      max = that.max
+      maxExcluded = that.maxExcluded
+    } else {
+      const comparison = self.order(max, that.max)
+      if (comparison === 1) {
+        max = that.max
+        maxExcluded = that.maxExcluded
+      } else if (comparison === 0) {
+        maxExcluded = maxExcluded || that.maxExcluded
+      }
+    }
+  }
+
+  const out: {
+    order: Schema.Annotations.ToArbitrary.OrderedConstraints["order"]
+    min?: unknown
+    minExcluded?: boolean
+    max?: unknown
+    maxExcluded?: boolean
+  } = {
+    order: self.order
+  }
+  if (min !== undefined) {
+    out.min = min
+  }
+  if (minExcluded !== undefined) {
+    out.minExcluded = minExcluded
+  }
+  if (max !== undefined) {
+    out.max = max
+  }
+  if (maxExcluded !== undefined) {
+    out.maxExcluded = maxExcluded
+  }
+  return out
+}
+
 function merge(
-  _tag: "string" | "number" | "bigint" | "array" | "date",
+  _tag: "string" | "number" | "ordered" | "array" | "date",
   constraints: Schema.Annotations.ToArbitrary.Constraint,
-  constraint: FastCheckConstraint
+  constraint: FastCheckConstraint | Schema.Annotations.ToArbitrary.OrderedConstraints
 ): Schema.Annotations.ToArbitrary.Constraint {
+  if (_tag === "ordered") {
+    return {
+      ...constraints,
+      ordered: mergeOrderedConstraints(
+        constraints.ordered,
+        constraint as Schema.Annotations.ToArbitrary.OrderedConstraints
+      )
+    }
+  }
   const c = constraints[_tag]
   return {
     ...constraints,
@@ -88,7 +166,7 @@ function merge(
 const constraintsKeys = {
   string: null,
   number: null,
-  bigint: null,
+  ordered: null,
   array: null,
   date: null
 }
@@ -123,14 +201,55 @@ function resetContext(ctx: Schema.Annotations.ToArbitrary.Context): Schema.Annot
 }
 
 function toIntegerConstraints(
-  constraint: Schema.Annotations.ToArbitrary.NumberConstraints
+  ordered: Schema.Annotations.ToArbitrary.OrderedConstraints | undefined
 ): FastCheck.IntegerConstraints {
   const out: FastCheck.IntegerConstraints = {}
-  if (constraint.min !== undefined) {
-    out.min = constraint.minExcluded ? Math.floor(constraint.min) + 1 : Math.ceil(constraint.min)
+  if (ordered?.min !== undefined) {
+    const min = ordered.min as number
+    out.min = ordered.minExcluded ? Math.floor(min) + 1 : Math.ceil(min)
   }
-  if (constraint.max !== undefined) {
-    out.max = constraint.maxExcluded ? Math.ceil(constraint.max) - 1 : Math.floor(constraint.max)
+  if (ordered?.max !== undefined) {
+    const max = ordered.max as number
+    out.max = ordered.maxExcluded ? Math.ceil(max) - 1 : Math.floor(max)
+  }
+  return out
+}
+
+function toFloatConstraints(
+  constraint: Schema.Annotations.ToArbitrary.NumberConstraints | undefined,
+  ordered: Schema.Annotations.ToArbitrary.OrderedConstraints | undefined
+): FastCheck.FloatConstraints {
+  const out: FastCheck.FloatConstraints = { ...constraint }
+  delete (out as any).isInteger
+  if (ordered?.min !== undefined) {
+    out.min = ordered.min as number
+  }
+  if (ordered?.minExcluded !== undefined) {
+    out.minExcluded = ordered.minExcluded
+  }
+  if (ordered?.max !== undefined) {
+    out.max = ordered.max as number
+  }
+  if (ordered?.maxExcluded !== undefined) {
+    out.maxExcluded = ordered.maxExcluded
+  }
+  return out
+}
+
+function toBigIntConstraints(
+  ordered: Schema.Annotations.ToArbitrary.OrderedConstraints | undefined
+): FastCheck.BigIntConstraints {
+  const out: FastCheck.BigIntConstraints = {}
+  if (ordered?.min !== undefined) {
+    const min = ordered.min as bigint
+    out.min = ordered.minExcluded ? min + BigInt(1) : min
+  }
+  if (ordered?.max !== undefined) {
+    const max = ordered.max as bigint
+    out.max = ordered.maxExcluded ? max - BigInt(1) : max
+  }
+  if (out.min !== undefined && out.max !== undefined && out.min > out.max) {
+    throw new Error("Unable to derive an arbitrary for the ordered bigint constraints")
   }
   return out
 }
@@ -211,15 +330,19 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
     case "Number":
       return (fc, ctx) => {
         const constraint = ctx.constraints?.number
+        const ordered = ctx.constraints?.ordered?.order === Order.Number ? ctx.constraints.ordered : undefined
         if (constraint?.isInteger) {
-          return fc.integer(toIntegerConstraints(constraint))
+          return fc.integer(toIntegerConstraints(ordered))
         }
-        return fc.float(constraint)
+        return fc.float(toFloatConstraints(constraint, ordered))
       }
     case "Boolean":
       return (fc) => fc.boolean()
     case "BigInt":
-      return (fc, ctx) => fc.bigInt(ctx.constraints?.bigint ?? {})
+      return (fc, ctx) => {
+        const ordered = ctx.constraints?.ordered?.order === Order.BigInt ? ctx.constraints.ordered : undefined
+        return fc.bigInt(toBigIntConstraints(ordered))
+      }
     case "Symbol":
       return (fc) => fc.string().map(Symbol.for)
     case "Literal":
