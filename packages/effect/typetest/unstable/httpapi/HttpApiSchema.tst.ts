@@ -30,6 +30,17 @@ describe("HttpApiSchema", () => {
       expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, typeof Error>>()
     })
 
+    it("defaults the stream error schema to Never", () => {
+      const Events = Schema.Struct({
+        event: Schema.Literal("user.created"),
+        data: Schema.String
+      })
+      const stream = HttpApiSchema.StreamSse({ events: Events })
+
+      expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, Schema.Never>>()
+      expect(stream.error).type.toBe<Schema.Never>()
+    })
+
     it("creates an event schema from a JSON data schema", () => {
       const Data = Schema.Struct({ id: Schema.String })
       const Error = Schema.Struct({ reason: Schema.String })
@@ -46,7 +57,17 @@ describe("HttpApiSchema", () => {
       expect(stream.events["Encoded"]).type.toBe<HttpApiSchema.SseEventEncoded>()
     })
 
-    it("requires event and error schemas", () => {
+    it("defaults the data stream error schema to Never", () => {
+      const Data = Schema.Struct({ id: Schema.String })
+      const stream = HttpApiSchema.StreamSse({ data: Data })
+
+      expect(stream).type.toBe<
+        HttpApiSchema.StreamSse<HttpApiSchema.SseEventFromData<typeof Data>, Schema.Never, { readonly id: string }>
+      >()
+      expect(stream.error).type.toBe<Schema.Never>()
+    })
+
+    it("requires valid event and error schemas", () => {
       expect(HttpApiSchema.StreamSse).type.not.toBeCallableWith({
         events: {},
         error: Schema.String

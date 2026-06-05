@@ -281,9 +281,10 @@ export type StreamSseMode = "events" | "data"
  *
  * `events` describes successful application events emitted by the stream, and
  * `error` describes typed stream failures that will be encoded by later
- * endpoint/server/client integrations using the reserved failure event. When
- * `StreamSse` is constructed from `data`, handlers and clients expose raw data
- * values while the server and client still use an SSE event schema internally.
+ * endpoint/server/client integrations using the reserved failure event. If
+ * `error` is omitted, it defaults to `Schema.Never`. When `StreamSse` is
+ * constructed from `data`, handlers and clients expose raw data values while
+ * the server and client still use an SSE event schema internally.
  *
  * @category models
  * @since 4.0.0
@@ -387,21 +388,21 @@ export type StreamDeclarationMetadata =
  * @since 4.0.0
  */
 export const StreamSse: {
-  <Events extends SseEventSchema, Error extends Schema.Top>(options: {
+  <Events extends SseEventSchema, Error extends Schema.Top = Schema.Never>(options: {
     readonly contentType?: string | undefined
     readonly events: Events
-    readonly error: Error
+    readonly error?: Error | undefined
   }): StreamSse<Events, Error, Events["Type"]>
-  <Data extends Schema.Top, Error extends Schema.Top>(options: {
+  <Data extends Schema.Top, Error extends Schema.Top = Schema.Never>(options: {
     readonly contentType?: string | undefined
     readonly data: Data
-    readonly error: Error
+    readonly error?: Error | undefined
   }): StreamSse<SseEventFromData<Data>, Error, Data["Type"]>
 } = (options: {
   readonly contentType?: string | undefined
   readonly events?: SseEventSchema | undefined
   readonly data?: Schema.Top | undefined
-  readonly error: Schema.Top
+  readonly error?: Schema.Top | undefined
 }): StreamSse<SseEventSchema, Schema.Top, unknown> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
@@ -418,7 +419,7 @@ export const StreamSse: {
     sseMode: options.events === undefined ? "data" : "events",
     contentType: options.contentType ?? defaultStreamContentType("sse"),
     events,
-    error: options.error
+    error: options.error ?? Schema.Never
   }
 }
 

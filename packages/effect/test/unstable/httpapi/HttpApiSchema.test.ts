@@ -46,6 +46,16 @@ describe("HttpApiSchema", () => {
       assert.strictEqual(stream.contentType, "text/event-stream; charset=utf-8")
     })
 
+    it("defaults the stream error schema to Never", () => {
+      const events = Schema.Struct({
+        event: Schema.Literal("custom"),
+        data: Schema.String
+      })
+      const stream = HttpApiSchema.StreamSse({ events })
+
+      assert.strictEqual(stream.error, Schema.Never)
+    })
+
     it("creates an event schema from a JSON data schema", () => {
       const Data = Schema.Struct({ id: Schema.String })
       const error = Schema.Struct({ reason: Schema.String })
