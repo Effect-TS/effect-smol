@@ -1,6 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import {
   Actor,
+  ActorSystem,
   Cause,
   Data,
   Deferred,
@@ -14,6 +15,7 @@ import {
   Schedule,
   Stream
 } from "effect"
+import { TestClock } from "effect/testing"
 
 class Increment extends Data.TaggedClass("Increment")<{
   readonly by: number
@@ -322,6 +324,44 @@ describe("Actor", () => {
       })
       assert.strictEqual(Option.isNone(yield* actor.system.get("worker")), true)
     }))
+
+  it.effect("cleans spawned children when initial fails", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const system = yield* ActorSystem.make
+      const error = new LogicError({ message: "boom" })
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const childLogic = Actor.fromEffect<number, never>(0, () => Effect.never)
+      const parentLogic: Actor.ActorLogic<
+        number,
+        never,
+        never,
+        never,
+        never,
+        LogicError | Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError
+      > = {
+        initial: ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, { id: "child", systemId: "startup-child" })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.fail(error)
+          }),
+        run: () => Effect.never
+      }
+
+      const startError = yield* Effect.flip(system.spawn(parentLogic, { systemId: "startup-parent" }))
+      const child = yield* Deferred.await(childRef)
+
+      assert.deepStrictEqual(startError, error)
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(Option.isNone(yield* system.get("startup-child")), true)
+      assert.strictEqual(Option.isNone(yield* system.get("startup-parent")), true)
+
+      const replacement = yield* system.spawn(childLogic, { systemId: "startup-child" })
+      yield* replacement.stop
+    })))
 
   it.effect("provides root actor identity and no parent to actor logic", () =>
     Effect.gen(function*() {
@@ -1076,6 +1116,56 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("stops supervised actors during restart backoff without restarting", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const failFirstRun = yield* Deferred.make<void>()
+      const runs = yield* Ref.make(0)
+      const started = yield* Queue.unbounded<number>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, LogicError, never>>()
+      const childLogic = Actor.fromEffect<number, never, never, LogicError>(
+        0,
+        () =>
+          Effect.gen(function*() {
+            const run = yield* Ref.updateAndGet(runs, (count) => count + 1)
+            yield* Queue.offer(started, run)
+            yield* Deferred.await(failFirstRun)
+            return yield* Effect.fail(error)
+          })
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(
+                Schedule.recurs(1).pipe(Schedule.addDelay(() => Effect.succeed("1 minute")))
+              )
+            })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.strictEqual(yield* Queue.take(started), 1)
+      yield* Deferred.succeed(failFirstRun, void 0)
+      yield* Effect.yieldNow
+      yield* child.stop
+      yield* TestClock.adjust("1 minute")
+      yield* Effect.yieldNow
+
+      assert.strictEqual(yield* Ref.get(runs), 1)
+      assert.strictEqual(yield* Queue.size(started), 0)
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+
+      yield* actor.stop
+    }))
+
   it.effect("leaves a restarted child in error state when the restart schedule is exhausted", () =>
     Effect.gen(function*() {
       const error = new LogicError({ message: "boom" })
@@ -1324,6 +1414,112 @@ describe("Actor", () => {
       yield* Fiber.join(observer)
     }))
 
+  it.effect("publishes error snapshots after child and registry cleanup", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const releaseParent = yield* Deferred.make<void>()
+      const childStarted = yield* Deferred.make<void>()
+      const childStopping = yield* Deferred.make<void>()
+      const releaseChildStop = yield* Deferred.make<void>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const joinDone = yield* Ref.make(false)
+      const terminalObserved = yield* Deferred.make<{
+        readonly childSnapshot: Actor.Snapshot<number, never, void>
+        readonly childRegistered: boolean
+        readonly parentRegistered: boolean
+        readonly snapshot: Actor.Snapshot<
+          number,
+          Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError | LogicError,
+          never
+        >
+      }>()
+      const childLogic = Actor.fromEffect<number, never>(
+        0,
+        () =>
+          Deferred.succeed(childStarted, void 0).pipe(
+            Effect.andThen(Effect.never),
+            Effect.onInterrupt(() =>
+              Deferred.succeed(childStopping, void 0).pipe(
+                Effect.andThen(Deferred.await(releaseChildStop))
+              )
+            )
+          )
+      )
+      const actor = yield* Actor.start(
+        Actor.fromEffect<
+          number,
+          never,
+          never,
+          Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError | LogicError
+        >(
+          0,
+          ({ spawn }) =>
+            Effect.gen(function*() {
+              const child = yield* spawn(childLogic, { id: "child", systemId: "failure-child-system" })
+              yield* Deferred.succeed(childRef, child)
+              yield* Deferred.await(releaseParent)
+              return yield* Effect.fail(error)
+            })
+        ),
+        { systemId: "failure-parent-system" }
+      )
+      const child = yield* Deferred.await(childRef)
+      yield* Deferred.await(childStarted)
+      const observer = yield* actor.changes.pipe(
+        Stream.filter((snapshot) => snapshot.status !== "active"),
+        Stream.take(1),
+        Stream.runForEach((snapshot) =>
+          Effect.gen(function*() {
+            const parentRegistered = Option.isSome(yield* actor.system.get("failure-parent-system"))
+            const childRegistered = Option.isSome(yield* actor.system.get("failure-child-system"))
+            const childSnapshot = yield* child.snapshot
+            yield* Deferred.succeed(terminalObserved, {
+              childRegistered,
+              childSnapshot,
+              parentRegistered,
+              snapshot
+            })
+          })
+        ),
+        Effect.forkChild
+      )
+      const joinFiber = yield* actor.join.pipe(
+        Effect.flip,
+        Effect.tap(() => Ref.set(joinDone, true)),
+        Effect.forkChild
+      )
+
+      yield* Deferred.succeed(releaseParent, void 0)
+      yield* Deferred.await(childStopping)
+
+      assert.strictEqual(yield* Ref.get(joinDone), false)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: 0
+      })
+      assert.strictEqual(Option.isSome(yield* actor.system.get("failure-parent-system")), true)
+
+      yield* Deferred.succeed(releaseChildStop, void 0)
+
+      const observed = yield* Deferred.await(terminalObserved)
+      assert.strictEqual(observed.snapshot.status, "error")
+      if (observed.snapshot.status === "error") {
+        const reason = observed.snapshot.cause.reasons[0]
+        assert.strictEqual(Cause.isFailReason(reason), true)
+        if (Cause.isFailReason(reason)) {
+          assert.deepStrictEqual(reason.error, error)
+        }
+      }
+      assert.deepStrictEqual(observed.childSnapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(observed.parentRegistered, false)
+      assert.strictEqual(observed.childRegistered, false)
+      assert.deepStrictEqual(yield* Fiber.join(joinFiber), error)
+      yield* Fiber.join(observer)
+    }))
+
   it.effect("watches completion as a done event", () =>
     Effect.gen(function*() {
       const release = yield* Deferred.make<void>()
@@ -1553,6 +1749,55 @@ describe("Actor", () => {
       const error = yield* Effect.flip(actor.join)
       assert.strictEqual(error._tag, "ActorStoppedError")
     }))
+
+  it.effect("terminalizes only once when stop is requested repeatedly", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const system = yield* ActorSystem.make
+      const observed = yield* Queue.unbounded<ActorSystem.Event>()
+      yield* system.events.pipe(
+        Stream.runForEach((event) => Queue.offer(observed, event)),
+        Effect.forkScoped
+      )
+      yield* Effect.yieldNow
+      const actor = yield* system.spawn(Actor.fromEffect<number, never>(0, () => Effect.never), {
+        systemId: "idempotent-worker"
+      })
+      const changesFiber = yield* actor.changes.pipe(
+        Stream.runCollect,
+        Effect.forkChild
+      )
+
+      yield* Effect.all([
+        actor.stop,
+        actor.stop,
+        system.stop("idempotent-worker"),
+        actor.stop
+      ], { concurrency: "unbounded", discard: true })
+
+      const snapshots = Array.from(yield* Fiber.join(changesFiber))
+      const events = [
+        yield* Queue.take(observed),
+        yield* Queue.take(observed),
+        yield* Queue.take(observed),
+        yield* Queue.take(observed)
+      ]
+
+      assert.deepStrictEqual(snapshots.filter((snapshot) => snapshot.status !== "active"), [
+        { status: "stopped", state: 0 }
+      ])
+      assert.deepStrictEqual(events.map((event) => event._tag), [
+        "ActorStarted",
+        "ActorRegistered",
+        "ActorStopped",
+        "ActorUnregistered"
+      ])
+      assert.strictEqual(Option.isNone(yield* system.get("idempotent-worker")), true)
+      yield* Effect.yieldNow
+      assert.strictEqual(yield* Queue.size(observed), 0)
+
+      const error = yield* Effect.flip(actor.join)
+      assert.strictEqual(error._tag, "ActorStoppedError")
+    })))
 
   it.effect("ignores events sent after terminal states", () =>
     Effect.gen(function*() {
