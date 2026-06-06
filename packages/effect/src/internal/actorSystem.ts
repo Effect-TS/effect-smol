@@ -329,6 +329,15 @@ const startInternal: <
           Effect.andThen(closeChildren(exit))
         )
         : Effect.void
+    const cleanupReservedSystemId = options.systemId === undefined
+      ? Effect.void
+      : unregisterReservedSystemId(options.runtime, options.systemId)
+    const cleanupReservedStartupFailure = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
+      Exit.isFailure(exit)
+        ? cleanupStartupFailure(exit).pipe(
+          Effect.andThen(cleanupReservedSystemId)
+        )
+        : Effect.void
     const finalize = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
       options.finalizer === undefined ? Effect.void : options.finalizer(exit)
     const cleanup = options.systemId === undefined
@@ -492,7 +501,11 @@ const startInternal: <
       system: options.runtime.system
     }
 
-    const initial = yield* logic.initial(scope).pipe(Effect.onExit(cleanupStartupFailure))
+    if (options.systemId !== undefined) {
+      yield* reserveSystemId(options.runtime, options.systemId).pipe(Effect.onExit(cleanupStartupFailure))
+    }
+
+    const initial = yield* logic.initial(scope).pipe(Effect.onExit(cleanupReservedStartupFailure))
     const current = yield* SynchronizedRef.make<Actor.Snapshot<State, Error | InitialError, Output>>({
       status: "active",
       state: initial
@@ -620,10 +633,6 @@ const startInternal: <
       )
     )
 
-    if (options.systemId !== undefined) {
-      yield* reserveSystemId(options.runtime, options.systemId).pipe(Effect.onExit(cleanupStartupFailure))
-    }
-
     yield* publishStarted
 
     if (options.systemId !== undefined) {
@@ -637,9 +646,7 @@ const startInternal: <
       ).pipe(
         Effect.onExit((exit) =>
           Exit.isFailure(exit)
-            ? unregisterReservedSystemId(options.runtime, systemId).pipe(
-              Effect.andThen(cleanupStartupFailure(exit))
-            )
+            ? cleanupReservedStartupFailure(exit)
             : Effect.void
         )
       )

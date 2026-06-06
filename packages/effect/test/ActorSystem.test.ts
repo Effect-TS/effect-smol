@@ -106,6 +106,11 @@ describe("ActorSystem", () => {
     Effect.scoped(Effect.gen(function*() {
       const system = yield* ActorSystem.make
       const observed = yield* Queue.unbounded<ActorSystem.Event>()
+      const duplicateInitials = yield* Queue.unbounded<void>()
+      const duplicateLogic: Actor.ActorLogic<number, never> = {
+        initial: () => Queue.offer(duplicateInitials, void 0).pipe(Effect.as(0)),
+        run: () => Effect.never
+      }
       yield* system.events.pipe(
         Stream.runForEach((event) => Queue.offer(observed, event)),
         Effect.forkScoped
@@ -113,7 +118,7 @@ describe("ActorSystem", () => {
       yield* Effect.yieldNow
 
       const actor = yield* system.spawn(neverLogic, { systemId: "worker" })
-      const duplicateError = yield* Effect.flip(system.spawn(neverLogic, { systemId: "worker" }))
+      const duplicateError = yield* Effect.flip(system.spawn(duplicateLogic, { systemId: "worker" }))
       yield* actor.stop
 
       const events = [
@@ -125,6 +130,7 @@ describe("ActorSystem", () => {
 
       assert.strictEqual(duplicateError._tag, "ActorSystemIdAlreadyExistsError")
       assert.strictEqual(duplicateError.systemId, "worker")
+      assert.strictEqual(yield* Queue.size(duplicateInitials), 0)
       assert.deepStrictEqual(events.map((event) => event._tag), [
         "ActorStarted",
         "ActorRegistered",
@@ -134,6 +140,39 @@ describe("ActorSystem", () => {
 
       yield* Effect.yieldNow
       assert.strictEqual(yield* Queue.size(observed), 0)
+    })))
+
+  it.effect("reserves a parent system id before running initial logic", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const system = yield* ActorSystem.make
+      const childSpawnResult = yield* Queue.unbounded<string>()
+      const parentLogic: Actor.ActorLogic<number, never> = {
+        initial: ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(neverLogic, { systemId: "worker" }).pipe(
+              Effect.matchEffect({
+                onFailure: (error) => Queue.offer(childSpawnResult, error.systemId),
+                onSuccess: (child) =>
+                  Queue.offer(childSpawnResult, "started").pipe(
+                    Effect.andThen(child.stop)
+                  )
+              })
+            )
+            return 0
+          }),
+        run: () => Effect.never
+      }
+
+      const actor = yield* system.spawn(parentLogic, { systemId: "worker" })
+
+      assert.strictEqual(yield* Queue.take(childSpawnResult), "worker")
+      const registered = yield* system.get("worker")
+      assert.strictEqual(Option.isSome(registered), true)
+      if (Option.isSome(registered)) {
+        assert.strictEqual(registered.value.sessionId, actor.sessionId)
+      }
+
+      yield* actor.stop
     })))
 
   it.effect("ignores sends to stopped system ids", () =>
