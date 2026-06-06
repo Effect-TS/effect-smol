@@ -299,10 +299,11 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          entry: Effect.fn(function*() {
+          entry: Effect.fn(function*({ runtime }) {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push("entry"))
-            yield* StateMachine.raise(new Resolve({}))
+            const stateMachine = yield* runtime
+            yield* stateMachine.raise(new Resolve({}))
           }),
           on: {
             Resolve: Effect.fn(function*() {
@@ -668,7 +669,7 @@ describe("StateMachine", () => {
         })
         .handle("Success", {
           type: "final",
-          entry: () => StateMachine.raise(new Reset({}))
+          entry: ({ runtime }) => Effect.flatMap(runtime, (stateMachine) => stateMachine.raise(new Reset({})))
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -1085,12 +1086,16 @@ describe("StateMachine", () => {
       const childMachine = StateMachine.make({
         states: [Idle],
         events: [Submit],
+        emits: [ParentRequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       }).handle("Idle", {
-        entry: () =>
+        entry: ({ runtime }) =>
           StateMachine.action(
-            StateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+            Effect.gen(function*() {
+              const stateMachine = yield* runtime
+              yield* stateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+            })
           )
       })
       const parentMachine = StateMachine.make({
@@ -1138,13 +1143,17 @@ describe("StateMachine", () => {
       const machine = StateMachine.make({
         states: [Idle, Success],
         events: [ParentRequestProgress],
+        emits: [ParentRequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          entry: () =>
+          entry: ({ runtime }) =>
             StateMachine.action(
-              StateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+              Effect.gen(function*() {
+                const stateMachine = yield* runtime
+                yield* stateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+              })
             ),
           on: {
             ParentRequestProgress: () => new Success({ requestId: "unexpected" })
@@ -1164,6 +1173,104 @@ describe("StateMachine", () => {
         state: new Idle({ userId: "user-1" })
       })
       yield* actor.stop
+    }))
+
+  it.effect("runtime raises events from local deferred actions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Resolve],
+        initial: () => new Idle({ userId: "user-1" })
+      })
+        .handle("Idle", {
+          entry: ({ runtime }) =>
+            StateMachine.action(
+              Effect.gen(function*() {
+                const stateMachine = yield* runtime
+                yield* stateMachine.raise(new Resolve({}))
+              })
+            ),
+          on: {
+            Resolve: ({ state }) => new Success({ requestId: state.userId })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* StateMachine.start(machine)
+
+      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "user-1" }))
+      assert.strictEqual(yield* actor.output, "user-1")
+    }))
+
+  it.effect("runtime sends emitted events to the parent from external action helpers", () =>
+    Effect.gen(function*() {
+      const notifyWorkerDone = Effect.gen(function*() {
+        const runtime = yield* StateMachine.runtime<{
+          events: Resolve
+          emits: ParentRequestProgress
+        }>()
+        yield* runtime.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+        yield* runtime.raise(new Resolve({}))
+      })
+
+      const childMachine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Resolve],
+        emits: [ParentRequestProgress],
+        initial: () => new Idle({ userId: "child-user" })
+      })
+        .handle("Idle", {
+          entry: () => StateMachine.action(notifyWorkerDone),
+          on: {
+            Resolve: ({ state }) => new Success({ requestId: state.userId })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const parentMachine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit, ParentRequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                StateMachine.actorRuntime<Submit | ParentRequestProgress>().pipe(
+                  Effect.flatMap((runtime) =>
+                    runtime.spawn(StateMachine.toActorLogic(childMachine), {
+                      id: "request"
+                    })
+                  ),
+                  Effect.asVoid
+                )
+              )
+            }),
+            ParentRequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.loaded}` })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(parentMachine, { userId: "parent-user" }))
+
+      yield* actor.send(new Submit({ value: "start" }))
+
+      assert.strictEqual(yield* actor.join, "request:42")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request:42" }),
+        output: "request:42"
+      })
     }))
 
   it.effect("toActorLogic safely handles stopOwner children spawned during initial actions", () =>
@@ -2039,8 +2146,9 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: Effect.fn(function*() {
-              yield* StateMachine.raise(new Resolve({}))
+            Submit: Effect.fn(function*({ runtime }) {
+              const stateMachine = yield* runtime
+              yield* stateMachine.raise(new Resolve({}))
               return new Loading({ requestId: "request-1" })
             })
           }
@@ -2075,7 +2183,7 @@ describe("StateMachine", () => {
           }
         })
         .handle("Loading", {
-          entry: () => StateMachine.raise(new Resolve({})),
+          entry: ({ runtime }) => Effect.flatMap(runtime, (stateMachine) => stateMachine.raise(new Resolve({}))),
           on: {
             Resolve: ({ state }) => new Success({ requestId: state.requestId })
           }
@@ -2098,9 +2206,10 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: Effect.fn(function*() {
-              yield* StateMachine.raise(new Reset({}))
-              yield* StateMachine.raise(new Resolve({}))
+            Submit: Effect.fn(function*({ runtime }) {
+              const stateMachine = yield* runtime
+              yield* stateMachine.raise(new Reset({}))
+              yield* stateMachine.raise(new Resolve({}))
               return new Loading({ requestId: "request-1" })
             })
           }
@@ -2136,16 +2245,18 @@ describe("StateMachine", () => {
         initial: (input) => new Idle({ userId: input.userId })
       })
         .handle("Idle", {
-          exit: Effect.fn(function*() {
+          exit: Effect.fn(function*({ runtime }) {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push("exit"))
-            yield* StateMachine.raise(new Reset({}))
+            const stateMachine = yield* runtime
+            yield* stateMachine.raise(new Reset({}))
           }),
           on: {
-            Submit: Effect.fn(function*() {
+            Submit: Effect.fn(function*({ runtime }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition"))
-              yield* StateMachine.raise(new Resolve({}))
+              const stateMachine = yield* runtime
+              yield* stateMachine.raise(new Resolve({}))
               return new Loading({ requestId: "request-1" })
             })
           }
@@ -2185,8 +2296,9 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: Effect.fn(function*() {
-              yield* StateMachine.raise(new Reset({}))
+            Submit: Effect.fn(function*({ runtime }) {
+              const stateMachine = yield* runtime
+              yield* stateMachine.raise(new Reset({}))
               return new Loading({ requestId: "request-1" })
             })
           }

@@ -38,6 +38,8 @@ export type TypeId = "~effect/StateMachine"
  */
 export const TypeId: TypeId = "~effect/StateMachine"
 
+type IsAny<A> = 0 extends (1 & A) ? true : false
+
 /**
  * A schema-first state machine definition.
  *
@@ -54,18 +56,21 @@ export interface Machine<
   InitialE = never,
   InitialR = never,
   FinalStates extends Machine.TagOf<States[number]> = never,
-  Output = never
+  Output = never,
+  Emits extends ReadonlyArray<Machine.TaggedSchema> = any
 > extends Pipeable {
   readonly [TypeId]: TypeId
   readonly states: States
   readonly events: Events
+  readonly emits: Emits
   readonly input: Input | undefined
   readonly id: string | undefined
 
-  readonly handlers: Machine.StateConfigs<States, Events, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
+  readonly handlers: Machine.StateConfigs<States, Events, Emits, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
   readonly handle: Machine.Handler<
     States,
     Events,
+    Emits,
     Input,
     UnhandledStates,
     E,
@@ -157,6 +162,93 @@ export class ActorRuntime extends Context.Service<ActorRuntime, ActorModule.Acto
   "effect/StateMachine/ActorRuntime"
 ) {}
 
+const RuntimeRequirementTypeId = "~effect/StateMachine/RuntimeRequirement"
+
+/**
+ * Runtime capability available to state machine actions.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface Runtime<in Events, in Emits> {
+  readonly raise: (event: Events) => Effect.Effect<void>
+  readonly sendParent: (event: Emits) => Effect.Effect<void>
+}
+
+/**
+ * Namespace containing type-level members associated with `Runtime`.
+ *
+ * @since 4.0.0
+ */
+export declare namespace Runtime {
+  /**
+   * Protocol annotation accepted by {@link runtime}.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Protocol {
+    readonly events?: unknown
+    readonly emits?: unknown
+  }
+
+  /**
+   * Extracts the events required by a runtime protocol annotation.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Events<Protocol> = Protocol extends { readonly events: infer Events } ? Events : never
+
+  /**
+   * Extracts the emitted events required by a runtime protocol annotation.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Emits<Protocol> = Protocol extends { readonly emits: infer Emits } ? Emits : never
+
+  /**
+   * Opaque service requirement for a state machine runtime capability.
+   *
+   * @category services
+   * @since 4.0.0
+   */
+  export interface Requirement<Events, Emits> {
+    readonly [RuntimeRequirementTypeId]: {
+      readonly events: Events
+      readonly emits: Emits
+    }
+  }
+}
+
+class RuntimeContext extends Context.Service<RuntimeContext, Runtime<any, any>>()(
+  "effect/StateMachine/Runtime"
+) {}
+
+type ExcludeCompatibleRuntime<Requirements, Events, Emits> = Requirements extends Runtime.Requirement<
+  infer RequiredEvents,
+  infer RequiredEmits
+> ? IsAny<Requirements> extends true ? Requirements
+  : [RequiredEvents] extends [Events] ? [RequiredEmits] extends [Emits] ? never : Requirements
+  : Requirements
+  : Requirements
+
+type IncompatibleRuntime<Requirements, Events, Emits> = Requirements extends Runtime.Requirement<
+  infer RequiredEvents,
+  infer RequiredEmits
+> ? IsAny<Requirements> extends true ? never
+  : [RequiredEvents] extends [Events] ? [RequiredEmits] extends [Emits] ? never : Requirements
+  : Requirements
+  : never
+
+const RuntimeCompatibilityErrorTypeId = "~effect/StateMachine/RuntimeCompatibilityError"
+
+type EnsureCompatibleRuntime<Requirements, Events, Emits> = [IncompatibleRuntime<Requirements, Events, Emits>] extends
+  [never] ? unknown : {
+  readonly [RuntimeCompatibilityErrorTypeId]: IncompatibleRuntime<Requirements, Events, Emits>
+}
+
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption
 } ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
@@ -201,7 +293,7 @@ export declare namespace Machine {
    * @category models
    * @since 4.0.0
    */
-  export type Any = Machine<any, any, any, any, any, any, any, any, any, any>
+  export type Any = Machine<any, any, any, any, any, any, any, any, any, any, any>
 
   /**
    * A schema whose decoded value contains a `_tag` discriminator.
@@ -249,6 +341,30 @@ export declare namespace Machine {
   export type EventOf<Events extends ReadonlyArray<TaggedSchema>> = Events[number]["Type"]
 
   /**
+   * Extracts the union of emitted event values represented by an emitted event
+   * schema list.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type EmitOf<Emits extends ReadonlyArray<TaggedSchema>> = Emits[number]["Type"]
+
+  /**
+   * Runtime capability specialized to a machine's event protocols.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type RuntimeEffect<
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>
+  > = Effect.Effect<
+    Runtime<EventOf<Events>, EmitOf<Emits>>,
+    never,
+    Runtime.Requirement<EventOf<Events>, EmitOf<Emits>>
+  >
+
+  /**
    * Extracts a state value from a state schema list by tag.
    *
    * @category utility types
@@ -279,6 +395,7 @@ export declare namespace Machine {
   export interface HandlerContext<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     EventTag extends TagOf<Events[number]>,
     E,
@@ -286,6 +403,7 @@ export declare namespace Machine {
   > {
     readonly state: StateByTag<States, StateTag>
     readonly event: EventByTag<Events, EventTag>
+    readonly runtime: RuntimeEffect<Events, Emits>
   }
 
   /**
@@ -297,10 +415,12 @@ export declare namespace Machine {
   export interface StateActionContext<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>
   > {
     readonly state: StateByTag<States, StateTag>
     readonly event: EventOf<Events>
+    readonly runtime: RuntimeEffect<Events, Emits>
   }
 
   /**
@@ -312,10 +432,12 @@ export declare namespace Machine {
   export interface InvokeContext<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>
   > {
     readonly state: StateByTag<States, StateTag>
     readonly event: EventOf<Events>
+    readonly runtime: RuntimeEffect<Events, Emits>
   }
 
   /**
@@ -349,10 +471,12 @@ export declare namespace Machine {
   export interface AlwaysContext<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>
   > {
     readonly state: StateByTag<States, StateTag>
     readonly event: EventOf<Events>
+    readonly runtime: RuntimeEffect<Events, Emits>
   }
 
   /**
@@ -526,6 +650,19 @@ export declare namespace Machine {
     : never
 
   /**
+   * Extracts all service requirements contributed by a state handler config.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ConfigServices<Config> =
+    | Effect.Services<EventHandlerReturn<Config>>
+    | Effect.Services<AlwaysReturn<Config>>
+    | Effect.Services<StateActionReturn<Config, "entry">>
+    | Effect.Services<StateActionReturn<Config, "exit">>
+    | InvokeRequirements<Config>
+
+  /**
    * Resolves the tag of a state config when it is final.
    *
    * @category utility types
@@ -544,6 +681,7 @@ export declare namespace Machine {
   export interface InvokeConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     Event,
     ChildState,
@@ -555,7 +693,7 @@ export declare namespace Machine {
   > {
     readonly id: string
     src(
-      context: InvokeContext<States, Events, StateTag>
+      context: InvokeContext<States, Events, Emits, StateTag>
     ): ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
     event?(
       context: InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
@@ -574,27 +712,28 @@ export declare namespace Machine {
   export type ActiveStateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     E,
     R
   > = {
     readonly type?: "active"
-    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
-    readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly entry?: (context: StateActionContext<States, Events, Emits, StateTag>) => StateActionResult<any, any>
+    readonly exit?: (context: StateActionContext<States, Events, Emits, StateTag>) => StateActionResult<any, any>
     readonly invoke?:
-      | InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>
-      | ReadonlyArray<InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>>
-    readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, any, any>
+      | InvokeConfig<States, Events, Emits, StateTag, EventOf<Events>, any, any, any, any, any, any>
+      | ReadonlyArray<InvokeConfig<States, Events, Emits, StateTag, EventOf<Events>, any, any, any, any, any, any>>
+    readonly always?: (context: AlwaysContext<States, Events, Emits, StateTag>) => HandlerResult<States, any, any>
     readonly output?: never
     readonly on?: {
       readonly [EventTag in TagOf<Events[number]>]?:
         | ((
-          context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+          context: HandlerContext<States, Events, Emits, StateTag, EventTag, E, R>
         ) => HandlerResult<States, any, any>)
         | {
           readonly reenter?: boolean
           readonly transition: (
-            context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+            context: HandlerContext<States, Events, Emits, StateTag, EventTag, E, R>
           ) => HandlerResult<States, any, any>
         }
     }
@@ -609,10 +748,11 @@ export declare namespace Machine {
   export type FinalStateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>
   > = {
     readonly type: "final"
-    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly entry?: (context: StateActionContext<States, Events, Emits, StateTag>) => StateActionResult<any, any>
     readonly output?: (context: FinalOutputContext<States, Events, StateTag>) => any
     readonly exit?: never
     readonly always?: never
@@ -628,12 +768,13 @@ export declare namespace Machine {
   export type HandlerConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     E,
     R
   > =
-    | ActiveStateConfig<States, Events, StateTag, E, R>
-    | FinalStateConfig<States, Events, StateTag>
+    | ActiveStateConfig<States, Events, Emits, StateTag, E, R>
+    | FinalStateConfig<States, Events, Emits, StateTag>
 
   /**
    * Adds handlers for an unhandled state tag.
@@ -644,6 +785,7 @@ export declare namespace Machine {
   export interface Handler<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     Input extends Schema.Top,
     UnhandledStates extends TagOf<States[number]>,
     E,
@@ -655,10 +797,10 @@ export declare namespace Machine {
   > {
     <
       const StateTag extends UnhandledStates,
-      const Config extends HandlerConfig<States, Events, StateTag, E, R>
+      const Config extends HandlerConfig<States, Events, Emits, StateTag, E, R>
     >(
       stateTag: StateTag,
-      config: Config
+      config: Config & EnsureCompatibleRuntime<ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>
     ): Machine<
       States,
       Events,
@@ -670,16 +812,12 @@ export declare namespace Machine {
       | Effect.Error<StateActionReturn<Config, "entry">>
       | Effect.Error<StateActionReturn<Config, "exit">>
       | InvokeError<Config>,
-      | R
-      | Effect.Services<EventHandlerReturn<Config>>
-      | Effect.Services<AlwaysReturn<Config>>
-      | Effect.Services<StateActionReturn<Config, "entry">>
-      | Effect.Services<StateActionReturn<Config, "exit">>
-      | InvokeRequirements<Config>,
+      ExcludeCompatibleRuntime<R | ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>,
       InitialE,
       InitialR,
       FinalStates | FinalStateFromConfig<Config, StateTag>,
-      Output | FinalOutputReturn<Config>
+      Output | FinalOutputReturn<Config>,
+      Emits
     >
   }
 
@@ -689,7 +827,7 @@ export declare namespace Machine {
    * @category utility types
    * @since 4.0.0
    */
-  export type AnyStateConfig = StateConfig<any, any, any, any, any, any>
+  export type AnyStateConfig = StateConfig<any, any, any, any, any, any, any>
 
   /**
    * Runtime event-handler map stored for a single state tag.
@@ -700,6 +838,7 @@ export declare namespace Machine {
   export type EventHandlerMap<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     EventTag extends TagOf<Events[number]>,
     E,
@@ -707,11 +846,11 @@ export declare namespace Machine {
   > = Readonly<
     Record<
       PropertyKey,
-      | ((context: HandlerContext<States, Events, StateTag, EventTag, E, R>) => HandlerResult<States, E, R>)
+      | ((context: HandlerContext<States, Events, Emits, StateTag, EventTag, E, R>) => HandlerResult<States, E, R>)
       | {
         readonly reenter?: boolean
         readonly transition: (
-          context: HandlerContext<States, Events, StateTag, EventTag, E, R>
+          context: HandlerContext<States, Events, Emits, StateTag, EventTag, E, R>
         ) => HandlerResult<States, E, R>
       }
     >
@@ -726,20 +865,21 @@ export declare namespace Machine {
   export interface StateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     EventTag extends TagOf<Events[number]>,
     E,
     R
   > {
     readonly type?: "final" | "active"
-    readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
-    readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
+    readonly entry?: (context: StateActionContext<States, Events, Emits, StateTag>) => StateActionResult<E, R>
+    readonly exit?: (context: StateActionContext<States, Events, Emits, StateTag>) => StateActionResult<E, R>
     readonly invoke?:
-      | InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>
-      | ReadonlyArray<InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>>
-    readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, E, R>
+      | InvokeConfig<States, Events, Emits, StateTag, EventOf<Events>, any, any, any, any, any, any>
+      | ReadonlyArray<InvokeConfig<States, Events, Emits, StateTag, EventOf<Events>, any, any, any, any, any, any>>
+    readonly always?: (context: AlwaysContext<States, Events, Emits, StateTag>) => HandlerResult<States, E, R>
     readonly output?: (context: FinalOutputContext<States, Events, StateTag>) => any
-    readonly on?: EventHandlerMap<States, Events, StateTag, EventTag, E, R>
+    readonly on?: EventHandlerMap<States, Events, Emits, StateTag, EventTag, E, R>
   }
 
   /**
@@ -751,11 +891,12 @@ export declare namespace Machine {
   export type StateConfigs<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
     StateTag extends TagOf<States[number]>,
     EventTag extends TagOf<Events[number]>,
     E,
     R
-  > = Readonly<Record<PropertyKey, StateConfig<States, Events, StateTag, EventTag, E, R>>>
+  > = Readonly<Record<PropertyKey, StateConfig<States, Events, Emits, StateTag, EventTag, E, R>>>
 }
 
 const Proto = {
@@ -779,6 +920,7 @@ const handleUnsafe = (
   const machine = Object.create(Proto)
   machine.states = self.states
   machine.events = self.events
+  machine.emits = self.emits
   machine.input = self.input
   machine.id = self.id
   machine.initial = self.initial
@@ -826,7 +968,8 @@ const provideDeferredServices = <A, E, R>(
 ): Effect.Effect<A, E, R> =>
   effect.pipe(
     Effect.provideService(DeferredActions, deferredActions),
-    Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
+    Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents),
+    Effect.provideService(RuntimeContext, makePlanningRuntime(deferredRaisedEvents))
   )
 
 const provideActorRuntime = <A, E, R, Event>(
@@ -834,6 +977,69 @@ const provideActorRuntime = <A, E, R, Event>(
   scope: ActorModule.ActorScope<Event>
 ): Effect.Effect<A, E, Exclude<R, ActorRuntime>> =>
   Effect.provideService(effect, ActorRuntime, scope as ActorModule.ActorScope<any>)
+
+const provideRuntimeContext = <A, E, R, Events, Emits>(
+  effect: Effect.Effect<A, E, R>,
+  runtime: Runtime<Events, Emits>
+): Effect.Effect<A, E, R> =>
+  Effect.provideService(
+    effect as Effect.Effect<A, E, R | RuntimeContext>,
+    RuntimeContext,
+    runtime as Runtime<any, any>
+  ) as Effect.Effect<A, E, R>
+
+const sendParentOptional = <Event>(event: Event): Effect.Effect<void> =>
+  Effect.contextWith((context: Context.Context<never>) => {
+    const runtime = Context.getOption(context as Context.Context<ActorRuntime>, ActorRuntime)
+    return Option.isSome(runtime) && runtime.value.parent !== undefined
+      ? runtime.value.parent.send(event)
+      : Effect.void
+  })
+
+const makePlanningRuntime = <Events, Emits>(
+  deferredRaisedEvents: DeferredRaisedEvents["Service"]
+): Runtime<Events, Emits> =>
+  RuntimeContext.of({
+    raise: (event) => deferredRaisedEvents.add(event),
+    sendParent: sendParentOptional
+  })
+
+const makeActorRuntime = <Events, Emits>(
+  scope: ActorModule.ActorScope<Events>
+): Runtime<Events, Emits> =>
+  RuntimeContext.of({
+    raise: (event) => scope.self.send(event),
+    sendParent: (event) => scope.parent === undefined ? Effect.void : scope.parent.send(event)
+  })
+
+const makeLocalRuntime = <Events, Emits, E = never, R = never>(
+  send: (event: Events) => Effect.Effect<void, E, R>
+): Runtime<Events, Emits> =>
+  RuntimeContext.of({
+    raise: (event) => send(event) as Effect.Effect<void>,
+    sendParent: () => Effect.void
+  })
+
+const makeNoopRuntime = <Events, Emits>(): Runtime<Events, Emits> =>
+  RuntimeContext.of({
+    raise: () => Effect.void,
+    sendParent: () => Effect.void
+  })
+
+const runActions = <E, R, Events, Emits>(
+  actions: Iterable<Effect.Effect<void, E, R>>,
+  runtime: Runtime<Events, Emits>
+): Effect.Effect<void, E, R> =>
+  Effect.all(
+    Array.from(actions, (action) => provideRuntimeContext(action, runtime)),
+    { discard: true }
+  )
+
+const runtimeFor = <Events, Emits>(): Effect.Effect<
+  Runtime<Events, Emits>,
+  never,
+  Runtime.Requirement<Events, Emits>
+> => runtime<{ readonly events: Events; readonly emits: Emits }>()
 
 const runStateAction = <Context, E, R>(
   handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
@@ -881,7 +1087,7 @@ type MicrostepTransition<States extends ReadonlyArray<Machine.TaggedSchema>, E, 
   readonly transition: TransitionHandler<States, E, R, Context>
 }
 
-type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, any, any, any>
+type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, any, any, any, any>
 
 const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context>(
   transition: EventTransition<States, E, R, Context> | undefined
@@ -1007,6 +1213,7 @@ export const isFinal = <
 export const make = <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = [],
   const Input extends Schema.Top = typeof Schema.Void,
   InitialE = never,
   InitialR = never
@@ -1015,6 +1222,7 @@ export const make = <
     readonly id?: string
     readonly states: States
     readonly events: Events
+    readonly emits?: Emits
     readonly input?: Input
     readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
   }
@@ -1026,11 +1234,15 @@ export const make = <
   never,
   never,
   InitialE,
-  InitialR
+  InitialR,
+  never,
+  never,
+  Emits
 > => {
   const self = Object.create(Proto)
   self.states = config.states
   self.events = config.events
+  self.emits = config.emits ?? []
   self.input = config.input
   self.id = config.id
   self.initial = config.initial
@@ -1066,7 +1278,7 @@ export const invoke = <
 >(config: {
   readonly id: string
   readonly src: (
-    context: Machine.InvokeContext<any, any, any>
+    context: Machine.InvokeContext<any, any, any, any>
   ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
   readonly event?: (
     context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
@@ -1075,6 +1287,7 @@ export const invoke = <
     context: Machine.InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
   ) => Event | undefined
 }): Machine.InvokeConfig<
+  any,
   any,
   any,
   any,
@@ -1116,6 +1329,7 @@ export const initial = <
 export const planInitial: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1125,7 +1339,7 @@ export const planInitial: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
   {
@@ -1138,6 +1352,7 @@ export const planInitial: <
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1147,7 +1362,7 @@ export const planInitial: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const deferredActions = yield* makeDeferredActions
@@ -1163,7 +1378,8 @@ export const planInitial: <
       machine.handlers[state._tag]?.entry,
       {
         state: state as Machine.StateByTag<States, UnhandledStates>,
-        event: InitialEvent as Machine.EventOf<Events>
+        event: InitialEvent as Machine.EventOf<Events>,
+        runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
       }
     )
     return yield* (settle(
@@ -1210,15 +1426,18 @@ export const enabled = <
 const microstep: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
   R = never,
   InitialE = never,
   InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never,
   Context = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   transition: MicrostepTransition<States, E, R, Context> | undefined,
@@ -1230,15 +1449,18 @@ const microstep: <
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
   R = never,
   InitialE = never,
   InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never,
   Context = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   transition: MicrostepTransition<States, E, R, Context> | undefined,
@@ -1269,7 +1491,7 @@ const microstep: <
   }
 
   const exit = yield* collectStateAction<
-    Machine.StateActionContext<States, Events, UnhandledStates>,
+    Machine.StateActionContext<States, Events, Emits, UnhandledStates>,
     Machine.EventOf<
       Events
     >,
@@ -1279,12 +1501,13 @@ const microstep: <
     stateConfig?.exit,
     {
       state: state as Machine.StateByTag<States, UnhandledStates>,
-      event
+      event,
+      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
     }
   )
 
   const entry = yield* collectStateAction<
-    Machine.StateActionContext<States, Events, UnhandledStates>,
+    Machine.StateActionContext<States, Events, Emits, UnhandledStates>,
     Machine.EventOf<
       Events
     >,
@@ -1294,7 +1517,8 @@ const microstep: <
     machine.handlers[stateAfterTransition._tag]?.entry,
     {
       state: stateAfterTransition as Machine.StateByTag<States, UnhandledStates>,
-      event
+      event,
+      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
     }
   )
 
@@ -1313,6 +1537,7 @@ const microstep: <
 const settle: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1322,7 +1547,7 @@ const settle: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
@@ -1335,6 +1560,7 @@ const settle: <
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1344,7 +1570,7 @@ const settle: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
@@ -1388,7 +1614,8 @@ const settle: <
         { reenter: false, transition: always },
         {
           state: currentState as Machine.StateByTag<States, UnhandledStates>,
-          event: currentEvent
+          event: currentEvent,
+          runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
         }
       )
       actions.push(...alwaysStep.actions)
@@ -1414,7 +1641,8 @@ const settle: <
       normalizeEventTransition(raisedStateConfig?.on?.[raisedEvent._tag]),
       {
         state: currentState as Machine.StateByTag<States, UnhandledStates>,
-        event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+        event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
+        runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
       }
     )
     actions.push(...raisedStep.actions)
@@ -1435,6 +1663,7 @@ const settle: <
 const macrostep: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1444,7 +1673,7 @@ const macrostep: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
@@ -1454,6 +1683,7 @@ const macrostep: <
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1463,7 +1693,7 @@ const macrostep: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) {
@@ -1484,7 +1714,8 @@ const macrostep: <
     normalizeEventTransition(stateConfig?.on?.[event._tag]),
     {
       state: state as Machine.StateByTag<States, UnhandledStates>,
-      event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+      event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
+      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
     }
   )
   const actions = [...step.actions]
@@ -1514,6 +1745,7 @@ export const plan = macrostep
 export const next: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1523,13 +1755,14 @@ export const next: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: Machine.StateOf<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<Machine.StateOf<States>, E | UnhandledEventError | InfiniteTransitionError, R> = Effect.fnUntraced(
   function*<
     const States extends ReadonlyArray<Machine.TaggedSchema>,
     const Events extends ReadonlyArray<Machine.TaggedSchema>,
+    const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
     const Input extends Schema.Top = typeof Schema.Void,
     UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
     E = never,
@@ -1539,12 +1772,12 @@ export const next: <
     FinalStates extends Machine.TagOf<States[number]> = never,
     Output = never
   >(
-    machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+    machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
     state: Machine.StateOf<States>,
     event: Machine.EventOf<Events>
   ) {
     const planned = yield* plan(machine, state, event)
-    yield* Effect.all(planned.actions, { discard: true })
+    yield* runActions(planned.actions, makeNoopRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>())
     return planned.next
   }
 )
@@ -1566,22 +1799,22 @@ export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
 ): Effect.Effect<void, E, R> => actionUnsafe(effect) as unknown as Effect.Effect<void, E, R>
 
-const raiseUnsafe = Effect.fnUntraced(function*<Event>(
-  event: Event
-) {
-  const events = yield* DeferredRaisedEvents
-  yield* events.add(event)
-})
-
 /**
- * Raises an event for the current state machine macrostep.
+ * Returns the typed runtime capability for the current state machine.
  *
  * @category combinators
  * @since 4.0.0
  */
-export const raise = <Event>(
-  event: Event
-): Effect.Effect<void> => raiseUnsafe(event) as unknown as Effect.Effect<void>
+export const runtime = <const Protocol extends Runtime.Protocol = {}>(): Effect.Effect<
+  Runtime<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>,
+  never,
+  Runtime.Requirement<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>
+> =>
+  RuntimeContext as unknown as Effect.Effect<
+    Runtime<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>,
+    never,
+    Runtime.Requirement<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>
+  >
 
 /**
  * Returns the current actor runtime scope when a state machine is running as
@@ -1698,15 +1931,6 @@ export const sendTo = <Event>(id: string, event: Event): Effect.Effect<void, nev
   Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
 
 /**
- * Sends an event to the parent actor of the hosting actor.
- *
- * @category actor runtime
- * @since 4.0.0
- */
-export const sendParent = <Event>(event: Event): Effect.Effect<void, never, ActorRuntime> =>
-  Effect.flatMap(ActorRuntime, (runtime) => runtime.parent === undefined ? Effect.void : runtime.parent.send(event))
-
-/**
  * Stops a named child actor of the hosting actor.
  *
  * @category actor runtime
@@ -1725,6 +1949,7 @@ export const stopChild = (id: string): Effect.Effect<void, never, ActorRuntime> 
 export const toActorLogic: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1734,18 +1959,19 @@ export const toActorLogic: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => ActorModule.ActorLogic<
   Machine.StateOf<States>,
   Machine.EventOf<Events>,
   E | UnhandledEventError | InfiniteTransitionError,
-  Exclude<InitialR | R, ActorRuntime>,
+  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
   Output | undefined,
   InitialE | StartupError
 > = <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1755,164 +1981,182 @@ export const toActorLogic: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
-) => ({
-  initial: (scope) =>
-    provideActorRuntime(
-      Effect.gen(function*() {
-        const planned = yield* planInitial(machine, ...args)
-        yield* Effect.all(planned.actions, { discard: true })
-        return planned.state
-      }),
-      scope
-    ),
-  run: (context) =>
-    provideActorRuntime(
-      Effect.gen(function*() {
-        const { receive, state, setState } = context
-        let done = false
-        let output: Output | undefined = undefined
+) =>
+  ({
+    initial: (scope) =>
+      provideActorRuntime(
+        Effect.gen(function*() {
+          const planned = yield* planInitial(machine, ...args)
+          yield* runActions(planned.actions, makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(scope))
+          return planned.state
+        }),
+        scope
+      ),
+    run: (context) =>
+      provideActorRuntime(
+        Effect.gen(function*() {
+          const { receive, state, setState } = context
+          let done = false
+          let output: Output | undefined = undefined
 
-        const initialState = yield* state
-        if (isFinalState(machine, initialState)) {
-          return getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
-            machine,
-            initialState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
-            InitialEvent as Machine.EventOf<Events>
-          )
-        }
-
-        const invokeSessions = yield* Ref.make<HashMap.HashMap<string, symbol>>(HashMap.empty())
-        const isCurrentInvoke = (id: string, token: symbol): Effect.Effect<boolean> =>
-          Ref.get(invokeSessions).pipe(
-            Effect.map((sessions) => {
-              const current = HashMap.get(sessions, id)
-              return Option.isSome(current) && current.value === token
-            })
-          )
-        const clearInvoke = (id: string, token: symbol): Effect.Effect<void> =>
-          Ref.update(invokeSessions, (sessions) => {
-            const current = HashMap.get(sessions, id)
-            return Option.isSome(current) && current.value === token ? HashMap.remove(sessions, id) : sessions
-          })
-        const startInvoke = <StateTag extends Machine.TagOf<States[number]>>(
-          config: AnyInvokeConfig,
-          state: Machine.StateByTag<States, StateTag>,
-          event: Machine.EventOf<Events>
-        ) =>
-          Effect.gen(function*() {
-            const token = Symbol()
-            yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, token))
-            const child = yield* context.spawn(config.src({ state, event }), { id: config.id }).pipe(
-              Effect.onExit((exit) => Exit.isFailure(exit) ? clearInvoke(config.id, token) : Effect.void)
+          const initialState = yield* state
+          if (isFinalState(machine, initialState)) {
+            return getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
+              machine,
+              initialState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+              InitialEvent as Machine.EventOf<Events>
             )
-            if (config.snapshot !== undefined) {
-              const mapSnapshot = config.snapshot
-              yield* child.changes.pipe(
-                Stream.filter((snapshot) => snapshot.status === "active"),
-                Stream.runForEach((snapshot) =>
-                  isCurrentInvoke(config.id, token).pipe(
-                    Effect.flatMap((isCurrent) => {
-                      if (!isCurrent) {
-                        return Effect.void
-                      }
-                      const mappedEvent = mapSnapshot({ id: config.id, snapshot })
-                      return mappedEvent === undefined
-                        ? Effect.void
-                        : context.self.send(mappedEvent as Machine.EventOf<Events>)
-                    })
-                  )
-                ),
-                Effect.forkChild,
-                Effect.asVoid
-              )
-            }
-            if (config.event !== undefined) {
-              const mapEvent = config.event
-              yield* ActorModule.watch(child).pipe(
-                Stream.runForEach((outcome) =>
-                  isCurrentInvoke(config.id, token).pipe(
-                    Effect.flatMap((isCurrent) => {
-                      if (!isCurrent) {
-                        return Effect.void
-                      }
-                      const mappedEvent = mapEvent({ id: config.id, outcome })
-                      return mappedEvent === undefined
-                        ? Effect.void
-                        : context.self.send(mappedEvent as Machine.EventOf<Events>)
-                    })
-                  )
-                ),
-                Effect.forkChild,
-                Effect.asVoid
-              )
-            }
-          })
-        const startInvokes = (
-          state: Machine.StateOf<States>,
-          event: Machine.EventOf<Events>
-        ): Effect.Effect<void, E, R> =>
-          Effect.all(
-            getInvokes(machine.handlers[state._tag]).map((config) =>
-              startInvoke(
-                config,
-                state as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
-                event
-              ) as Effect.Effect<void, E, R>
-            ),
-            { discard: true }
-          )
-        const stopInvokes = (state: Machine.StateOf<States>): Effect.Effect<void> =>
-          Effect.all(
-            getInvokes(machine.handlers[state._tag]).map((config) =>
-              Ref.modify(invokeSessions, (sessions) => {
-                const current = HashMap.get(sessions, config.id)
-                return Option.isSome(current)
-                  ? [current.value, HashMap.remove(sessions, config.id)] as const
-                  : [undefined, sessions] as const
-              }).pipe(
-                Effect.flatMap((token) => token === undefined ? Effect.void : context.stopChild(config.id))
-              )
-            ),
-            { discard: true }
-          )
+          }
 
-        yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
-
-        yield* Effect.whileLoop({
-          while: () => !done,
-          body: () =>
+          const invokeSessions = yield* Ref.make<HashMap.HashMap<string, symbol>>(HashMap.empty())
+          const isCurrentInvoke = (id: string, token: symbol): Effect.Effect<boolean> =>
+            Ref.get(invokeSessions).pipe(
+              Effect.map((sessions) => {
+                const current = HashMap.get(sessions, id)
+                return Option.isSome(current) && current.value === token
+              })
+            )
+          const clearInvoke = (id: string, token: symbol): Effect.Effect<void> =>
+            Ref.update(invokeSessions, (sessions) => {
+              const current = HashMap.get(sessions, id)
+              return Option.isSome(current) && current.value === token ? HashMap.remove(sessions, id) : sessions
+            })
+          const startInvoke = <StateTag extends Machine.TagOf<States[number]>>(
+            config: AnyInvokeConfig,
+            state: Machine.StateByTag<States, StateTag>,
+            event: Machine.EventOf<Events>
+          ) =>
             Effect.gen(function*() {
-              const event = yield* receive
-              const current = yield* state
-              const planned = yield* macrostep(machine, current, event)
-              const changed = planned.microsteps.some((step) => step.changed)
-
-              if (changed) {
-                yield* stopInvokes(current)
+              const token = Symbol()
+              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, token))
+              const child = yield* context.spawn(
+                config.src({
+                  state,
+                  event,
+                  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
+                }),
+                { id: config.id }
+              ).pipe(
+                Effect.onExit((exit) => Exit.isFailure(exit) ? clearInvoke(config.id, token) : Effect.void)
+              )
+              if (config.snapshot !== undefined) {
+                const mapSnapshot = config.snapshot
+                yield* child.changes.pipe(
+                  Stream.filter((snapshot) => snapshot.status === "active"),
+                  Stream.runForEach((snapshot) =>
+                    isCurrentInvoke(config.id, token).pipe(
+                      Effect.flatMap((isCurrent) => {
+                        if (!isCurrent) {
+                          return Effect.void
+                        }
+                        const mappedEvent = mapSnapshot({ id: config.id, snapshot })
+                        return mappedEvent === undefined
+                          ? Effect.void
+                          : context.self.send(mappedEvent as Machine.EventOf<Events>)
+                      })
+                    )
+                  ),
+                  Effect.forkChild,
+                  Effect.asVoid
+                )
               }
-              yield* setState(planned.next)
-              yield* Effect.all(planned.actions, { discard: true })
+              if (config.event !== undefined) {
+                const mapEvent = config.event
+                yield* ActorModule.watch(child).pipe(
+                  Stream.runForEach((outcome) =>
+                    isCurrentInvoke(config.id, token).pipe(
+                      Effect.flatMap((isCurrent) => {
+                        if (!isCurrent) {
+                          return Effect.void
+                        }
+                        const mappedEvent = mapEvent({ id: config.id, outcome })
+                        return mappedEvent === undefined
+                          ? Effect.void
+                          : context.self.send(mappedEvent as Machine.EventOf<Events>)
+                      })
+                    )
+                  ),
+                  Effect.forkChild,
+                  Effect.asVoid
+                )
+              }
+            })
+          const startInvokes = (
+            state: Machine.StateOf<States>,
+            event: Machine.EventOf<Events>
+          ): Effect.Effect<void, E, R> =>
+            Effect.all(
+              getInvokes(machine.handlers[state._tag]).map((config) =>
+                startInvoke(
+                  config,
+                  state as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+                  event
+                ) as Effect.Effect<void, E, R>
+              ),
+              { discard: true }
+            )
+          const stopInvokes = (state: Machine.StateOf<States>): Effect.Effect<void> =>
+            Effect.all(
+              getInvokes(machine.handlers[state._tag]).map((config) =>
+                Ref.modify(invokeSessions, (sessions) => {
+                  const current = HashMap.get(sessions, config.id)
+                  return Option.isSome(current)
+                    ? [current.value, HashMap.remove(sessions, config.id)] as const
+                    : [undefined, sessions] as const
+                }).pipe(
+                  Effect.flatMap((token) => token === undefined ? Effect.void : context.stopChild(config.id))
+                )
+              ),
+              { discard: true }
+            )
 
-              if (isFinalState(machine, planned.next)) {
-                done = true
-                output = planned.output
-              } else {
+          yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
+
+          yield* Effect.whileLoop({
+            while: () => !done,
+            body: () =>
+              Effect.gen(function*() {
+                const event = yield* receive
+                const current = yield* state
+                const planned = yield* macrostep(machine, current, event)
+                const changed = planned.microsteps.some((step) => step.changed)
+
                 if (changed) {
-                  yield* startInvokes(planned.next, event)
+                  yield* stopInvokes(current)
                 }
-                yield* Effect.yieldNow
-              }
-            }),
-          step: () => undefined
-        })
+                yield* setState(planned.next)
+                yield* runActions(
+                  planned.actions,
+                  makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
+                )
 
-        return output
-      }),
-      context
-    )
-})
+                if (isFinalState(machine, planned.next)) {
+                  done = true
+                  output = planned.output
+                } else {
+                  if (changed) {
+                    yield* startInvokes(planned.next, event)
+                  }
+                  yield* Effect.yieldNow
+                }
+              }),
+            step: () => undefined
+          })
+
+          return output
+        }),
+        context
+      )
+  }) as ActorModule.ActorLogic<
+    Machine.StateOf<States>,
+    Machine.EventOf<Events>,
+    E | UnhandledEventError | InfiniteTransitionError,
+    ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
+    Output | undefined,
+    InitialE | StartupError
+  >
 
 /**
  * Starts a state machine runtime.
@@ -1923,6 +2167,7 @@ export const toActorLogic: <
 export const start: <
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1932,15 +2177,22 @@ export const start: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  Actor<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
+  Actor<
+    Machine.StateOf<States>,
+    Machine.EventOf<Events>,
+    E,
+    ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
+    Output
+  >,
   InitialE | StartupError,
-  InitialR
+  ExcludeCompatibleRuntime<InitialR, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
 > = Effect.fnUntraced(function*<
   const States extends ReadonlyArray<Machine.TaggedSchema>,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
   UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
   E = never,
@@ -1950,44 +2202,77 @@ export const start: <
   FinalStates extends Machine.TagOf<States[number]> = never,
   Output = never
 >(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const stopped = yield* Ref.make(false)
   const planned = yield* planInitial(machine, ...args)
-  yield* Effect.all(planned.actions, { discard: true })
   const current = yield* SynchronizedRef.make(planned.state)
   const currentOutput = yield* Ref.make<Output | undefined>(planned.output)
+
+  const send = ((
+    event: Machine.EventOf<Events>
+  ) =>
+    Effect.gen(function*() {
+      if (yield* Ref.get(stopped)) {
+        // TODO: Some error or warning?
+        return
+      }
+
+      const [actions, isFinal, output] = yield* SynchronizedRef.modifyEffect(current, (state) =>
+        macrostep(machine, state, event).pipe(
+          Effect.map((planned) =>
+            [[planned.actions, isFinalState(machine, planned.next), planned.output] as const, planned.next] as const
+          )
+        ))
+      if (isFinal) {
+        yield* Ref.set(stopped, true)
+        yield* Ref.set(currentOutput, output)
+      }
+
+      return yield* (runActions(
+        actions,
+        makeLocalRuntime<
+          Machine.EventOf<Events>,
+          Machine.EmitOf<Emits>,
+          E | UnhandledEventError | InfiniteTransitionError,
+          ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+        >(send)
+      ) as Effect.Effect<
+        void,
+        E,
+        ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+      >)
+    })) as (
+      event: Machine.EventOf<Events>
+    ) => Effect.Effect<
+      void,
+      E | UnhandledEventError | InfiniteTransitionError,
+      ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+    >
+
   if (isFinalState(machine, planned.state)) {
     yield* Ref.set(stopped, true)
   }
+
+  yield* (runActions(
+    planned.actions,
+    makeLocalRuntime<
+      Machine.EventOf<Events>,
+      Machine.EmitOf<Emits>,
+      E | UnhandledEventError | InfiniteTransitionError,
+      ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+    >(send)
+  ) as Effect.Effect<
+    void,
+    InitialE | StartupError,
+    ExcludeCompatibleRuntime<InitialR, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+  >)
 
   return {
     state: SynchronizedRef.get(current),
     output: Ref.get(currentOutput),
     stop: Ref.set(stopped, true),
-
-    send: (
-      event: Machine.EventOf<Events>
-    ): Effect.Effect<void, E | UnhandledEventError | InfiniteTransitionError, R> =>
-      Effect.gen(function*() {
-        if (yield* Ref.get(stopped)) {
-          // TODO: Some error or warning?
-          return
-        }
-
-        const [actions, isFinal, output] = yield* SynchronizedRef.modifyEffect(current, (state) =>
-          macrostep(machine, state, event).pipe(
-            Effect.map((planned) =>
-              [[planned.actions, isFinalState(machine, planned.next), planned.output] as const, planned.next] as const
-            )
-          ))
-        if (isFinal) {
-          yield* Ref.set(stopped, true)
-          yield* Ref.set(currentOutput, output)
-        }
-
-        return yield* Effect.all(actions, { discard: true })
-      })
+    send
   }
 })
