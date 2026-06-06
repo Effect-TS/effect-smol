@@ -297,6 +297,17 @@ export declare namespace Machine {
   }
 
   /**
+   * Context passed to an invoked child actor active snapshot mapper.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface InvokeSnapshotContext<State, Error, Output> {
+    readonly id: string
+    readonly snapshot: Extract<ActorModule.Snapshot<State, Error, Output>, { readonly status: "active" }>
+  }
+
+  /**
    * Context passed to an eventless transition handler.
    *
    * @category models
@@ -513,8 +524,11 @@ export declare namespace Machine {
     src(
       context: InvokeContext<States, Events, StateTag>
     ): ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
-    event(
+    event?(
       context: InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+    ): Event | undefined
+    snapshot?(
+      context: InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
     ): Event | undefined
   }
 
@@ -997,7 +1011,8 @@ export const make = <
  * **When to use**
  *
  * Use to run a child actor while a state machine remains in a state and map the
- * child's terminal lifecycle outcome back into a state machine event.
+ * child's active snapshots or terminal lifecycle outcome back into state
+ * machine events.
  *
  * **Gotchas**
  *
@@ -1008,20 +1023,23 @@ export const make = <
  * @since 4.0.0
  */
 export const invoke = <
-  Event,
   ChildState,
   ChildEvent,
   ChildError = never,
   ChildRequirements = never,
   ChildOutput = never,
-  ChildInitialError = never
+  ChildInitialError = never,
+  Event = never
 >(config: {
   readonly id: string
   readonly src: (
     context: Machine.InvokeContext<any, any, any>
   ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
-  readonly event: (
+  readonly event?: (
     context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+  ) => Event | undefined
+  readonly snapshot?: (
+    context: Machine.InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
   ) => Event | undefined
 }): Machine.InvokeConfig<
   any,
@@ -1686,21 +1704,47 @@ export const toActorLogic: <
             const child = yield* context.spawn(config.src({ state, event }), { id: config.id }).pipe(
               Effect.onExit((exit) => Exit.isFailure(exit) ? clearInvoke(config.id, token) : Effect.void)
             )
-            yield* ActorModule.watch(child).pipe(
-              Stream.runForEach((outcome) =>
-                isCurrentInvoke(config.id, token).pipe(
-                  Effect.flatMap((isCurrent) => {
-                    if (!isCurrent) {
-                      return Effect.void
-                    }
-                    const event = config.event({ id: config.id, outcome })
-                    return event === undefined ? Effect.void : context.self.send(event as Machine.EventOf<Events>)
-                  })
-                )
-              ),
-              Effect.forkChild,
-              Effect.asVoid
-            )
+            if (config.snapshot !== undefined) {
+              const mapSnapshot = config.snapshot
+              yield* child.changes.pipe(
+                Stream.filter((snapshot) => snapshot.status === "active"),
+                Stream.runForEach((snapshot) =>
+                  isCurrentInvoke(config.id, token).pipe(
+                    Effect.flatMap((isCurrent) => {
+                      if (!isCurrent) {
+                        return Effect.void
+                      }
+                      const mappedEvent = mapSnapshot({ id: config.id, snapshot })
+                      return mappedEvent === undefined
+                        ? Effect.void
+                        : context.self.send(mappedEvent as Machine.EventOf<Events>)
+                    })
+                  )
+                ),
+                Effect.forkChild,
+                Effect.asVoid
+              )
+            }
+            if (config.event !== undefined) {
+              const mapEvent = config.event
+              yield* ActorModule.watch(child).pipe(
+                Stream.runForEach((outcome) =>
+                  isCurrentInvoke(config.id, token).pipe(
+                    Effect.flatMap((isCurrent) => {
+                      if (!isCurrent) {
+                        return Effect.void
+                      }
+                      const mappedEvent = mapEvent({ id: config.id, outcome })
+                      return mappedEvent === undefined
+                        ? Effect.void
+                        : context.self.send(mappedEvent as Machine.EventOf<Events>)
+                    })
+                  )
+                ),
+                Effect.forkChild,
+                Effect.asVoid
+              )
+            }
           })
         const startInvokes = (
           state: Machine.StateOf<States>,

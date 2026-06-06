@@ -84,6 +84,11 @@ describe("StateMachine", () => {
     value: Schema.String
   }) {}
 
+  class RequestProgress extends Schema.TaggedClass<RequestProgress>("RequestProgress")("RequestProgress", {
+    id: Schema.String,
+    childState: Schema.String
+  }) {}
+
   class RequestFailed extends Schema.TaggedClass<RequestFailed>("RequestFailed")("RequestFailed", {
     error: Schema.Any,
     cause: Schema.Any
@@ -1243,6 +1248,195 @@ describe("StateMachine", () => {
         state: new Failed({ message: "boom" }),
         output: "boom"
       })
+    }))
+
+  it.effect("toActorLogic maps invoked child active snapshots to machine events", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, RequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => Actor.fromEffect("pending", () => Effect.never),
+            snapshot: ({ id, snapshot }) => new RequestProgress({ id, childState: snapshot.state })
+          }),
+          on: {
+            RequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.childState}` })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "request:pending")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request:pending" }),
+        output: "request:pending"
+      })
+    }))
+
+  it.effect("toActorLogic lets invoke snapshot mappers filter with undefined", () =>
+    Effect.gen(function*() {
+      const started = yield* Deferred.make<void>()
+      const release = yield* Deferred.make<void>()
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, RequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () =>
+              Actor.fromEffect("pending", ({ setState }) =>
+                Deferred.succeed(started, void 0).pipe(
+                  Effect.andThen(Deferred.await(release)),
+                  Effect.andThen(setState("ready")),
+                  Effect.andThen(Effect.never)
+                )),
+            snapshot: ({ id, snapshot }) =>
+              snapshot.state === "ready" ? new RequestProgress({ id, childState: snapshot.state }) : undefined
+          }),
+          on: {
+            RequestProgress: ({ event }) => new Success({ requestId: event.childState })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Deferred.await(started)
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
+
+      yield* Deferred.succeed(release, void 0)
+
+      assert.strictEqual(yield* actor.join, "ready")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "ready" }),
+        output: "ready"
+      })
+    }))
+
+  it.effect("toActorLogic allows invoked children without snapshot or event mappers", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => Actor.fromEffect("pending", () => Effect.succeed("done"))
+          })
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("toActorLogic stops invoked children when leaving a state and ignores stale snapshots", () =>
+    Effect.gen(function*() {
+      const started = yield* Deferred.make<void>()
+      const release = yield* Deferred.make<void>()
+      const resetHandled = yield* Deferred.make<void>()
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Reset, RequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () =>
+              Actor.fromEffect("pending", ({ setState }) =>
+                Deferred.succeed(started, void 0).pipe(
+                  Effect.andThen(Deferred.await(release)),
+                  Effect.andThen(setState("ready")),
+                  Effect.andThen(Effect.never)
+                )),
+            snapshot: ({ id, snapshot }) =>
+              snapshot.state === "ready" ? new RequestProgress({ id, childState: snapshot.state }) : undefined
+          }),
+          on: {
+            Reset: Effect.fn(function*() {
+              yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
+              return new Idle({ userId: "user-1" })
+            }),
+            RequestProgress: ({ event }) => new Success({ requestId: event.childState })
+          }
+        })
+        .handle("Success", {
+          type: "final"
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Deferred.await(started)
+      yield* actor.send(new Reset({}))
+      yield* Deferred.await(resetHandled)
+      yield* Deferred.succeed(release, void 0)
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
+
+      yield* actor.stop
     }))
 
   it.effect("toActorLogic stops invoked children when leaving a state and ignores stale outcomes", () =>
