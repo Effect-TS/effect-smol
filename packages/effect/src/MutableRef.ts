@@ -1,34 +1,11 @@
 /**
- * The `MutableRef` module provides a small synchronous container for mutable
- * state. A `MutableRef<A>` stores one current value of type `A`, exposes that
- * value through `.current`, and offers pipeable helpers for reading, replacing,
- * and transforming the value in place.
+ * Stores synchronous mutable state in a small reference object.
  *
- * **Mental model**
- *
- * - `MutableRef<A>` is a stable reference whose `.current` field may change over time
- * - Reads and writes are synchronous and return immediately
- * - `set`, `update`, `increment`, `decrement`, and `toggle` mutate the same reference in place
- * - `getAnd*` helpers return the previous value, while `*AndGet` helpers return the new value
- * - `compareAndSet` updates only when the current value is equal to the expected value using `Equal.equals`
- * - A `MutableRef` is useful for local mutable state, but it does not make updates transactional or effectful
- *
- * **Common tasks**
- *
- * - Create a reference: {@link make}
- * - Read the current value: {@link get} or `.current`
- * - Replace the current value: {@link set}, {@link setAndGet}, {@link getAndSet}
- * - Transform the current value: {@link update}, {@link updateAndGet}, {@link getAndUpdate}
- * - Coordinate conditional replacement: {@link compareAndSet}
- * - Work with counters: {@link increment}, {@link decrement}, {@link incrementAndGet}, {@link decrementAndGet}
- * - Work with boolean flags: {@link toggle}
- *
- * **Gotchas**
- *
- * - All updates are imperative mutations; aliases to the same `MutableRef` observe the same changing value
- * - Updating object or array values does not clone them unless the update function creates a new value
- * - `compareAndSet` compares with Effect equality semantics, not only JavaScript reference equality
- * - For state that must participate in `Effect` workflows, interruption, or fiber coordination, prefer higher-level Effect data types
+ * A `MutableRef<A>` stores one current value and exposes it through `.current`.
+ * Unlike `Ref`, its operations are synchronous and update the same object in
+ * place. This module includes pipeable helpers for reading, setting, comparing,
+ * and updating the value, plus numeric increment/decrement helpers and a
+ * boolean toggle helper.
  *
  * @since 2.0.0
  */

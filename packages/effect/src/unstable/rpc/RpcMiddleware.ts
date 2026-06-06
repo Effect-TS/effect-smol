@@ -7,34 +7,6 @@
  * implementation, the schema for server-visible failures, the client-only error
  * type, and whether generated clients must require the matching client layer.
  *
- * **Mental model**
- *
- * A server {@link RpcMiddleware} receives the target RPC, decoded payload,
- * request headers, request id, and `Rpc.ServerClient`, then wraps the handler
- * effect. `provides` removes services from the downstream handler requirement,
- * while `requires` adds the services needed by the middleware. A client
- * {@link RpcMiddlewareClient} is installed with {@link layerClient}; it can
- * inspect, rewrite, retry, or short-circuit outgoing requests before calling
- * `next`.
- *
- * **Common tasks**
- *
- * Use {@link Service} to define authentication, authorization, logging,
- * tracing, metrics, rate limiting, header propagation, or request-scoped
- * service injection. Attach the service to individual RPCs or whole groups,
- * then provide the server implementation like any other `Context.Service`.
- * Provide a client implementation with {@link layerClient} when outgoing
- * requests need matching behavior.
- *
- * **Gotchas**
- *
- * Middleware failures that cross the RPC boundary must be declared with a
- * `Schema`, and any encoding or decoding services required by that schema stay
- * in the generated RPC environments. `clientError` contributes only to the
- * client-side call error channel, while the middleware `error` schema is shared
- * with server failures. Set `requiredForClient` only when typed clients must
- * reject calls unless the matching client middleware layer is installed.
- *
  * @since 4.0.0
  */
 import * as Context from "../../Context.ts"

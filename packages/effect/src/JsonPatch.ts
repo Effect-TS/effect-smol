@@ -5,59 +5,6 @@
  * difference between two JSON documents, serialize that difference, and replay
  * it without mutating the original input.
  *
- * **Mental model**
- *
- * - A {@link JsonPatch} is applied from left to right; each operation observes
- *   the document produced by the operations before it.
- * - Paths use JSON Pointer syntax. The empty path `""` targets the whole
- *   document, and `/users/0/name` targets a nested property or array element.
- * - This module implements the deterministic `add`, `remove`, and `replace`
- *   subset of RFC 6902. It does not model `test`, `move`, or `copy`.
- * - {@link get} compares JSON structure, not domain meaning. It can detect that
- *   a value changed, but it does not infer semantic edits such as array moves.
- * - {@link apply} copies changed containers and returns a new JSON value. An
- *   empty patch returns the original document reference.
- *
- * **Common tasks**
- *
- * - Compute a structural diff between two JSON values with {@link get}.
- * - Apply generated or hand-written operations with {@link apply}.
- * - Accept, store, or serialize complete patch documents as {@link JsonPatch}.
- * - Type individual operations with {@link JsonPatchOperation}.
- *
- * **Gotchas**
- *
- * - Generated patches are deterministic, but not guaranteed to be minimal.
- * - Array removals are emitted from highest index to lowest so later removals do
- *   not shift earlier targets.
- * - `"-"` is valid only as the final token for array append operations.
- * - Invalid paths, missing properties, and out-of-bounds array indices throw.
- * - Root `add` and `replace` operations replace the whole document; root
- *   `remove` is unsupported.
- *
- * **Example** (Computing and applying a patch)
- *
- * ```ts
- * import { JsonPatch } from "effect"
- *
- * const before = { title: "draft", tags: ["fp"] }
- * const after = { title: "published", tags: ["fp", "effect"] }
- *
- * const patch = JsonPatch.get(before, after)
- * // [
- * //   { op: "add", path: "/tags/1", value: "effect" },
- * //   { op: "replace", path: "/title", value: "published" }
- * // ]
- *
- * const updated = JsonPatch.apply(patch, before)
- * // { title: "published", tags: ["fp", "effect"] }
- * ```
- *
- * **See also**
- *
- * - `JsonPointer` for escaping and unescaping JSON Pointer path tokens.
- * - {@link Schema.Json} for the JSON value shape accepted by this module.
- *
  * @since 4.0.0
  */
 import { format } from "./Formatter.ts"

@@ -1,31 +1,12 @@
 /**
- * The `McpSchema` module defines Effect Schema and RPC models for the Model
- * Context Protocol (MCP). It provides the shared protocol vocabulary used by
- * MCP clients and servers, including JSON-RPC request identifiers, metadata,
- * capabilities, errors, resources, prompts, tools, logging, sampling,
- * completions, roots, and elicitation.
+ * Defines schemas for Model Context Protocol messages.
  *
- * **Common tasks**
- *
- * - Describe MCP payloads with schemas such as {@link Resource}, {@link Tool},
- *   {@link Prompt}, and {@link ContentBlock}
- * - Build typed protocol handlers with request RPCs such as {@link Initialize},
- *   {@link ListResources}, {@link ReadResource}, {@link ListTools}, and
- *   {@link CallTool}
- * - Work with protocol notifications such as
- *   {@link ProgressNotification}, {@link ResourceUpdatedNotification}, and
- *   {@link LoggingMessageNotification}
- * - Use {@link ClientRpcs} and server RPC groups to derive encoded request,
- *   notification, success, and failure message types
- *
- * **Gotchas**
- *
- * - MCP distinguishes absent fields from present fields whose value is
- *   `undefined`; use {@link optional} and {@link optionalWithDefault} for
- *   protocol fields so encoding omits undefined values consistently.
- * - Capability objects are extensible. Known fields are modeled here, but
- *   `experimental` and `extensions` allow implementations to advertise
- *   additional protocol features.
+ * MCP clients and servers use these schemas to describe the JSON-RPC requests,
+ * notifications, results, and errors that can cross the protocol boundary. This
+ * module focuses on message shapes: it defines the shared protocol data model,
+ * groups related messages for the RPC layer, and provides helpers for optional
+ * fields and parameter metadata. Transport and server behavior live in other
+ * modules.
  *
  * @since 4.0.0
  */

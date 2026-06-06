@@ -1,76 +1,11 @@
 /**
- * Tools for working with plain JavaScript records as immutable key-value
- * dictionaries. The module covers construction, lookup, updates, mapping,
- * filtering, folding, set-like combination, and typed conversions between
- * records and iterable entries.
+ * Works with plain JavaScript records as immutable key/value dictionaries.
  *
- * Reach for `Record` when your data is already represented as a plain object
- * with string or symbol keys and you want typed, data-first or data-last
- * helpers that return new records instead of mutating the input.
- *
- * **Mental model**
- *
- * - A `ReadonlyRecord<K, A>` is a plain object whose keys are known by type and
- *   whose values share a common type.
- * - Operations such as {@link set}, {@link remove}, {@link map}, and
- *   {@link filter} allocate new plain objects.
- * - Lookups and updates that might miss a key return `Option` values through
- *   APIs such as {@link get}, {@link modify}, {@link replace}, and {@link pop}.
- * - Many APIs are dual, so they work both as `Record.map(record, f)` and in
- *   pipelines as `pipe(record, Record.map(f))`.
- *
- * **Common tasks**
- *
- * - Create records: {@link empty}, {@link singleton}, {@link fromEntries},
- *   {@link fromIterableBy}, {@link fromIterableWith}
- * - Inspect records: {@link isEmptyRecord}, {@link size}, {@link has},
- *   {@link get}, {@link keys}, {@link values}, {@link toEntries}
- * - Add, update, or remove entries: {@link set}, {@link modify},
- *   {@link replace}, {@link remove}, {@link pop}
- * - Transform entries: {@link map}, {@link mapKeys}, {@link mapEntries},
- *   {@link collect}
- * - Filter or partition: {@link filter}, {@link filterMap}, {@link getSomes},
- *   {@link getFailures}, {@link getSuccesses}, {@link partition},
- *   {@link separate}
- * - Fold and search: {@link reduce}, {@link every}, {@link some},
- *   {@link findFirst}
- * - Combine records: {@link union}, {@link intersection}, {@link difference},
- *   {@link makeReducerUnion}, {@link makeReducerIntersection}
- * - Compare records: {@link isSubrecord}, {@link isSubrecordBy},
- *   {@link makeEquivalence}
- *
- * **Gotchas**
- *
- * - Iteration-based APIs use `Object.keys`, so they visit enumerable string
- *   keys. Targeted APIs such as {@link has}, {@link get}, {@link set}, and
- *   {@link remove} can work with symbol keys, but {@link keys}, {@link values},
- *   {@link map}, and similar traversal APIs do not visit symbols.
- * - When duplicate keys are produced by constructors or key-mapping APIs, later
- *   writes overwrite earlier values according to normal object assignment.
- *
- * **Quickstart**
- *
- * **Example** (Transforming a record without mutation)
- *
- * ```ts
- * import { Record } from "effect"
- *
- * const scores = { alice: 1, bob: 2 }
- *
- * const next = Record.set(scores, "carol", 3)
- * const doubled = Record.map(next, (score) => score * 2)
- *
- * console.log(scores) // { alice: 1, bob: 2 }
- * console.log(doubled) // { alice: 2, bob: 4, carol: 6 }
- * console.log(Record.get(doubled, "alice")) // Option.some(2)
- * ```
- *
- * **See also**
- *
- * - `Struct` for fixed-shape objects where each field may have a
- *   different type
- * - `HashMap` for immutable maps with arbitrary key types and Effect
- *   equality / hashing semantics
+ * A record is an object whose keys are strings or symbols. This module includes
+ * helpers for construction, lookup, updates, mapping, filtering, folding,
+ * set-like combination, and typed conversions between records and iterable
+ * entries. Helpers that change values return new records instead of mutating the
+ * input.
  *
  * @since 2.0.0
  */

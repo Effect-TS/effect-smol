@@ -7,23 +7,6 @@
  * boundaries to encode, decode, or validate custom transports that need to
  * interoperate with the built-in unstable devtools client and server.
  *
- * **Mental model**
- *
- * `Request` messages flow from the runtime-side devtools client to the server:
- * `Ping`, `Span`, `SpanEvent`, and `MetricsSnapshot`. `Response` messages flow
- * back from the server: `Pong` and `MetricsRequest`. The `WithoutPing` and
- * `WithoutPong` helper types match the server behavior, where heartbeat
- * messages are handled internally and user handlers see only application-level
- * protocol messages.
- *
- * **Gotchas**
- *
- * These schemas describe transport payloads, not the full in-memory tracer or
- * metric data structures. Ended span exits erase successful values with
- * `Exit.asVoid`, timestamps are represented as `bigint`s, and attributes remain
- * intentionally open-ended. Because this module lives under `unstable`, the
- * protocol shape may change between releases.
- *
  * @since 4.0.0
  */
 import * as Exit from "../../Exit.ts"

@@ -1,24 +1,12 @@
 /**
- * The `Reply` module models responses produced by clustered RPC execution. A
- * reply belongs to a request and is either a terminal {@link WithExit}, which
- * carries the final RPC `Exit`, or a streaming {@link Chunk}, which carries a
- * non-empty batch of success values for RPCs that stream results.
+ * Defines reply values produced by clustered RPC execution.
  *
- * **Common tasks**
- *
- * - Represent runtime replies with {@link Reply}, {@link WithExit}, and {@link Chunk}
- * - Encode and decode transport payloads with {@link Encoded} and {@link Reply}
- * - Persist replies together with schema context via {@link ReplyWithContext}
- * - Serialize the latest received reply when resuming or de-duplicating requests with {@link serializeLastReceived}
- *
- * **Streaming and acknowledgement notes**
- *
- * - Chunk replies are sequenced and can be replayed until acknowledged by the
- *   receiver.
- * - A `WithExit` reply is terminal and completes the request, while chunks only
- *   represent intermediate streamed success values.
- * - `Chunk.emptyFrom` is used as an acknowledgement marker for an empty streamed
- *   reply; it is not a general-purpose success payload.
+ * Every reply belongs to a request and is either a final `WithExit`, which
+ * carries the final RPC `Exit`, or a streaming `Chunk`, which carries a
+ * non-empty batch of success values. This module includes runtime and encoded
+ * reply shapes, guards, per-RPC schema builders, `ReplyWithContext` for
+ * carrying encoding services, and serialization helpers for storage or
+ * transport.
  *
  * @since 4.0.0
  */

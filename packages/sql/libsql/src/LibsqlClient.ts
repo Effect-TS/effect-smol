@@ -1,37 +1,11 @@
 /**
  * libSQL adapter for Effect SQL, backed by `@libsql/client`.
  *
- * Use this module to provide a {@link LibsqlClient} and the generic SQL client
- * service for Turso-hosted libSQL databases, local `file:` databases, embedded
- * replicas, migrations, tests, and server code that wants SQLite-compatible SQL
- * through Effect layers. The client uses Effect SQL's SQLite compiler and
- * classifies libSQL and SQLite failures as `SqlError`s.
- *
- * ## Mental model
- *
- * {@link make} and {@link layer} either create a scoped libSQL SDK client from
- * connection options or wrap a caller-owned client supplied with `liveClient`.
- * The Effect client serializes access to the underlying client because a libSQL
- * transaction is tied to that client. A top-level `withTransaction` opens a
- * write transaction, and nested transactions use SQLite savepoints.
- *
- * ## Common tasks
- *
- * - Use {@link layer} with concrete connection options, or {@link layerConfig}
- *   when the options should come from `Config`.
- * - Use a `file:` URL for local SQLite-compatible storage, a remote libSQL or
- *   Turso URL for hosted databases, and `syncUrl` for embedded replicas.
- * - Use `liveClient` when another component owns the `@libsql/client` instance
- *   and its lifetime.
- * - Use `transformQueryNames` and `transformResultNames` to map between Effect
- *   field names and database column names.
- *
- * ## Gotchas
- *
- * Direct calls made through the raw SDK client are not coordinated with Effect
- * SQL transactions. Remote transactions should stay short because they reserve
- * the client until commit or rollback. Row streaming is not implemented by this
- * adapter.
+ * This module provides a {@link LibsqlClient} and the generic SQL client
+ * service for `@libsql/client`. It uses Effect SQL's SQLite compiler, supports
+ * managed SDK clients or caller-owned live clients, classifies libSQL and
+ * SQLite failures as `SqlError`s, and provides transaction support with
+ * savepoints. Streaming queries are not implemented by this driver.
  *
  * @since 4.0.0
  */

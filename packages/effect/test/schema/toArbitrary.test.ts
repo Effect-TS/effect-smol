@@ -1,5 +1,4 @@
-import { Schema } from "effect"
-import * as InternalArbitrary from "effect/internal/schema/arbitrary"
+import { BigDecimal, DateTime, Order, Schema } from "effect"
 import { TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
 import { deepStrictEqual, throws } from "../utils/assert.ts"
@@ -8,33 +7,13 @@ function assertUnsupportedSchema(schema: Schema.Top, message: string) {
   throws(() => Schema.toArbitrary(schema), message)
 }
 
-function assertContext(schema: Schema.Schema<any>, ctx: Schema.Annotations.ToArbitrary.Context) {
-  const ast = schema.ast
-  const filters = InternalArbitrary.getFilters(ast.checks)
-  const f = InternalArbitrary.constraintContext(filters)
-  deepStrictEqual(f({}), ctx)
-}
-
-function assertIntegerConstraints(
-  schema: Schema.Schema<any>,
-  expected: { readonly min?: number; readonly max?: number }
-) {
-  let constraints: { readonly min?: number; readonly max?: number } | undefined
-  const arbitrary = {
-    filter: () => arbitrary
-  }
-  Schema.toArbitraryLazy(schema)({
-    integer: (c: { readonly min?: number; readonly max?: number }) => {
-      constraints = c
-      return arbitrary
-    }
-  } as any)
-  deepStrictEqual(constraints, expected)
-}
-
-function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S) {
+function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknown>>(schema: S, numRuns?: number) {
   const asserts = new TestSchema.Asserts(schema)
-  asserts.arbitrary().verifyGeneration()
+  if (numRuns === undefined) {
+    asserts.arbitrary().verifyGeneration()
+  } else {
+    asserts.arbitrary().verifyGeneration({ params: { numRuns } })
+  }
 }
 
 describe("Arbitrary generation", () => {
@@ -57,15 +36,24 @@ describe("Arbitrary generation", () => {
   })
 
   it("should pass constraints to the override annotation", () => {
-    let constraints: Schema.Annotations.ToArbitrary.NumberConstraints | undefined
+    let constraints: Schema.Annotations.ToArbitrary.Constraint | undefined
     const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
       toArbitrary: () => (fc, ctx) => {
-        constraints = ctx.constraints?.number
-        return fc.float(constraints)
+        constraints = ctx.constraints
+        return fc.constant(1)
       }
     })
     verifyGeneration(schema)
-    deepStrictEqual(constraints, { min: 1, max: 100, isInteger: true })
+    deepStrictEqual(constraints, {
+      number: {
+        isInteger: true
+      },
+      ordered: {
+        order: Order.Number,
+        min: 1,
+        max: 100
+      }
+    })
   })
 
   it("Any", () => {
@@ -608,6 +596,53 @@ describe("Arbitrary generation", () => {
         exclusiveMaximum: true
       })))
     })
+
+    it("isBetweenBigDecimal", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(
+          Schema.isBetweenBigDecimal({
+            minimum: BigDecimal.make(100n, 0),
+            maximum: BigDecimal.make(200n, 0)
+          })
+        )
+      )
+    })
+
+    it("isBetweenBigDecimal with decimal scale", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(
+          Schema.isBetweenBigDecimal({
+            minimum: BigDecimal.fromStringUnsafe("1.01"),
+            maximum: BigDecimal.fromStringUnsafe("1.02")
+          })
+        )
+      )
+    })
+
+    it("non-natural Number order", () => {
+      const order = Order.flip(Order.Number)
+      verifyGeneration(Schema.Finite.check(Schema.makeIsGreaterThan({ order })(0)))
+    })
+
+    it("non-natural Int order", () => {
+      const order = Order.flip(Order.Number)
+      verifyGeneration(Schema.Int.check(Schema.makeIsGreaterThan({ order })(0)))
+    })
+
+    it("non-natural Date order", () => {
+      const order = Order.flip(Order.Date)
+      verifyGeneration(Schema.DateValid.check(Schema.makeIsGreaterThan({ order })(new Date(0))))
+    })
+
+    it("non-natural BigInt order", () => {
+      const order = Order.flip(Order.BigInt)
+      verifyGeneration(Schema.BigInt.check(Schema.makeIsGreaterThan({ order })(BigInt(0))))
+    })
+
+    it("non-natural BigDecimal order", () => {
+      const order = Order.flip(BigDecimal.Order)
+      verifyGeneration(Schema.BigDecimal.check(Schema.makeIsGreaterThan({ order })(BigDecimal.make(0n, 0))))
+    })
   })
 
   it("Finite", () => {
@@ -638,6 +673,24 @@ describe("Arbitrary generation", () => {
     verifyGeneration(Schema.DateTimeUtc)
   })
 
+  it("DateTimeUtc with ordered DateTime constraints", () => {
+    const start = DateTime.makeUnsafe(0)
+    verifyGeneration(
+      Schema.DateTimeUtc.check(
+        Schema.makeIsGreaterThan({ order: DateTime.Order })(start)
+      )
+    )
+  })
+
+  it("DateTimeUtc with non-natural DateTime order", () => {
+    const order = Order.flip(DateTime.Order)
+    verifyGeneration(
+      Schema.DateTimeUtc.check(
+        Schema.makeIsGreaterThan({ order })(DateTime.makeUnsafe(0))
+      )
+    )
+  })
+
   it("TimeZoneOffset", () => {
     verifyGeneration(Schema.TimeZoneOffset)
   })
@@ -652,6 +705,24 @@ describe("Arbitrary generation", () => {
 
   it("DateTimeZoned", () => {
     verifyGeneration(Schema.DateTimeZoned)
+  })
+
+  it("DateTimeZoned with ordered DateTime constraints", () => {
+    const start = DateTime.makeZonedUnsafe(0, { timeZone: "UTC" })
+    verifyGeneration(
+      Schema.DateTimeZoned.check(
+        Schema.makeIsGreaterThan({ order: DateTime.Order })(start)
+      )
+    )
+  })
+
+  it("DateTimeZoned with non-natural DateTime order", () => {
+    const order = Order.flip(DateTime.Order)
+    verifyGeneration(
+      Schema.DateTimeZoned.check(
+        Schema.makeIsGreaterThan({ order })(DateTime.makeZonedUnsafe(0, { timeZone: "UTC" }))
+      )
+    )
   })
 
   it("Uint8Array", () => {
@@ -724,383 +795,324 @@ describe("Arbitrary generation", () => {
     })
   })
 
-  describe("context constraints", () => {
+  describe("constraint behavior", () => {
     it("String", () => {
-      assertContext(Schema.String, {
-        constraints: {}
-      })
+      verifyGeneration(Schema.String)
     })
 
     it("String & nonEmpty", () => {
-      assertContext(Schema.NonEmptyString, {
-        constraints: {
-          array: {
-            minLength: 1
-          },
-          string: {
-            minLength: 1
-          }
-        }
-      })
+      verifyGeneration(Schema.NonEmptyString)
     })
 
     it("String & isNonEmpty & isMinLength(2)", () => {
-      assertContext(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMinLength(2)), {
-        constraints: {
-          array: {
-            minLength: 2
-          },
-          string: {
-            minLength: 2
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMinLength(2)))
     })
 
     it("String & isMinLength(2) & isNonEmpty", () => {
-      assertContext(Schema.String.check(Schema.isMinLength(2)).check(Schema.isNonEmpty()), {
-        constraints: {
-          array: {
-            minLength: 2
-          },
-          string: {
-            minLength: 2
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isMinLength(2)).check(Schema.isNonEmpty()))
     })
 
     it("String & isNonEmpty & isMaxLength(2)", () => {
-      assertContext(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(2)), {
-        constraints: {
-          array: {
-            minLength: 1,
-            maxLength: 2
-          },
-          string: {
-            minLength: 1,
-            maxLength: 2
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isNonEmpty()).check(Schema.isMaxLength(2)))
     })
 
     it("String & isLength(2)", () => {
-      assertContext(Schema.String.check(Schema.isLengthBetween(2, 2)), {
-        constraints: {
-          array: {
-            minLength: 2,
-            maxLength: 2
-          },
-          string: {
-            minLength: 2,
-            maxLength: 2
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isLengthBetween(2, 2)))
     })
 
     it("isStartsWith", () => {
-      assertContext(Schema.String.check(Schema.isStartsWith("a")), {
-        constraints: {
-          string: {
-            patterns: ["^a"]
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isStartsWith("a")))
     })
 
     it("isEndsWith", () => {
-      assertContext(Schema.String.check(Schema.isEndsWith("a")), {
-        constraints: {
-          string: {
-            patterns: ["a$"]
-          }
-        }
-      })
+      verifyGeneration(Schema.String.check(Schema.isEndsWith("a")))
     })
 
     it("Number", () => {
-      assertContext(Schema.Number, {
-        constraints: {}
-      })
+      verifyGeneration(Schema.Number)
     })
 
     it("isFinite", () => {
-      assertContext(Schema.Number.check(Schema.isFinite()), {
-        constraints: {
-          number: {
-            noDefaultInfinity: true,
-            noNaN: true
-          }
-        }
-      })
+      verifyGeneration(Schema.Number.check(Schema.isFinite()))
     })
 
     it("isInt", () => {
-      assertContext(Schema.Number.check(Schema.isInt()), {
-        constraints: {
-          number: {
-            isInteger: true
-          }
-        }
-      })
+      verifyGeneration(Schema.Number.check(Schema.isInt()))
     })
 
     it("isFinite & isInt", () => {
-      assertContext(Schema.Number.check(Schema.isFinite(), Schema.isInt()), {
-        constraints: {
-          number: {
-            noDefaultInfinity: true,
-            noNaN: true,
-            isInteger: true
-          }
-        }
-      })
+      verifyGeneration(Schema.Number.check(Schema.isFinite(), Schema.isInt()))
     })
 
     it("isInt32", () => {
-      assertContext(Schema.Number.check(Schema.isInt32()), {
-        constraints: {
-          number: {
-            isInteger: true,
-            max: 2147483647,
-            min: -2147483648
-          }
-        }
-      })
+      verifyGeneration(Schema.Number.check(Schema.isInt32()))
     })
 
     it("isGreaterThan", () => {
-      assertContext(Schema.Number.check(Schema.isGreaterThan(10)), {
-        constraints: {
-          number: {
-            min: 10,
-            minExcluded: true
-          }
-        }
-      })
+      verifyGeneration(Schema.Number.check(Schema.isGreaterThan(10)))
+    })
+
+    it("isBetween", () => {
+      verifyGeneration(Schema.Number.check(Schema.isBetween({ minimum: 1, maximum: 10 })))
+    })
+
+    it("Number with non-natural order", () => {
+      const order = Order.flip(Order.Number)
+      verifyGeneration(Schema.Finite.check(Schema.makeIsGreaterThan({ order })(0)))
+    })
+
+    it("ordered lower bounds keep the strongest bound", () => {
+      verifyGeneration(Schema.Number.check(Schema.isGreaterThan(1), Schema.isGreaterThanOrEqualTo(3)))
+    })
+
+    it("ordered lower bounds preserve exclusivity for equal bounds", () => {
+      verifyGeneration(Schema.Number.check(Schema.isGreaterThan(1), Schema.isGreaterThanOrEqualTo(1)))
+    })
+
+    it("ordered upper bounds keep the strongest bound", () => {
+      verifyGeneration(Schema.Number.check(Schema.isLessThan(10), Schema.isLessThanOrEqualTo(8)))
+    })
+
+    it("ordered upper bounds preserve exclusivity for equal bounds", () => {
+      verifyGeneration(Schema.Number.check(Schema.isLessThan(1), Schema.isLessThanOrEqualTo(1)))
     })
 
     it("isInt & isGreaterThan", () => {
-      assertIntegerConstraints(Schema.Int.check(Schema.isGreaterThan(1)), { min: 2 })
+      verifyGeneration(Schema.Int.check(Schema.isGreaterThan(1)))
     })
 
     it("isInt & isGreaterThan fractional", () => {
-      assertIntegerConstraints(Schema.Int.check(Schema.isGreaterThan(1.2)), { min: 2 })
+      verifyGeneration(Schema.Int.check(Schema.isGreaterThan(1.2)))
     })
 
     it("isInt & isLessThan", () => {
-      assertIntegerConstraints(Schema.Int.check(Schema.isLessThan(10)), { max: 9 })
+      verifyGeneration(Schema.Int.check(Schema.isLessThan(10)))
     })
 
     it("isInt & isLessThan fractional", () => {
-      assertIntegerConstraints(Schema.Int.check(Schema.isLessThan(10.8)), { max: 10 })
+      verifyGeneration(Schema.Int.check(Schema.isLessThan(10.8)))
     })
 
     it("isInt & isBetween with fractional bounds", () => {
-      assertIntegerConstraints(Schema.Int.check(Schema.isBetween({ minimum: 1.2, maximum: 10.8 })), {
-        min: 2,
-        max: 10
-      })
+      verifyGeneration(Schema.Int.check(Schema.isBetween({ minimum: 1.2, maximum: 10.8 })))
     })
 
     it("isInt & isBetween with exclusive bounds", () => {
-      assertIntegerConstraints(
-        Schema.Int.check(Schema.isBetween({
-          minimum: 1,
-          maximum: 10,
-          exclusiveMinimum: true,
-          exclusiveMaximum: true
-        })),
-        {
-          min: 2,
-          max: 9
-        }
-      )
+      verifyGeneration(Schema.Int.check(Schema.isBetween({
+        minimum: 1,
+        maximum: 10,
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
+    })
+
+    it("Int with non-natural order", () => {
+      const order = Order.flip(Order.Number)
+      verifyGeneration(Schema.Int.check(Schema.makeIsGreaterThan({ order })(0)))
     })
 
     it("isGreaterThanDate", () => {
-      assertContext(Schema.Date.check(Schema.isGreaterThanDate(new Date(0))), {
-        constraints: {
-          date: {
-            min: new Date(1)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isGreaterThanDate(new Date(0))))
     })
 
     it("isGreaterThanOrEqualToDate", () => {
-      assertContext(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))), {
-        constraints: {
-          date: {
-            min: new Date(0)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isGreaterThanOrEqualToDate(new Date(0))))
     })
 
     it("isLessThanDate", () => {
-      assertContext(Schema.Date.check(Schema.isLessThanDate(new Date(10))), {
-        constraints: {
-          date: {
-            max: new Date(9)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isLessThanDate(new Date(10))))
     })
 
     it("isLessThanOrEqualToDate", () => {
-      assertContext(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))), {
-        constraints: {
-          date: {
-            max: new Date(10)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isLessThanOrEqualToDate(new Date(10))))
     })
 
     it("isBetweenDate", () => {
-      assertContext(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })), {
-        constraints: {
-          date: {
-            min: new Date(0),
-            max: new Date(10)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isBetweenDate({ minimum: new Date(0), maximum: new Date(10) })))
     })
 
     it("isBetweenDate with exclusive bounds", () => {
-      assertContext(
-        Schema.Date.check(Schema.isBetweenDate({
-          minimum: new Date(0),
-          maximum: new Date(10),
-          exclusiveMinimum: true,
-          exclusiveMaximum: true
-        })),
-        {
-          constraints: {
-            date: {
-              min: new Date(1),
-              max: new Date(9)
-            }
-          }
-        }
-      )
+      verifyGeneration(Schema.Date.check(Schema.isBetweenDate({
+        minimum: new Date(0),
+        maximum: new Date(10),
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
     })
 
     it("isValidDate", () => {
-      assertContext(Schema.Date.check(Schema.isDateValid()), {
-        constraints: {
-          date: {
-            noInvalidDate: true
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isDateValid()))
     })
 
     it("isValidDate & isGreaterThanOrEqualToDate", () => {
-      assertContext(Schema.Date.check(Schema.isDateValid(), Schema.isGreaterThanOrEqualToDate(new Date(0))), {
-        constraints: {
-          date: {
-            noInvalidDate: true,
-            min: new Date(0)
-          }
-        }
-      })
+      verifyGeneration(Schema.Date.check(Schema.isDateValid(), Schema.isGreaterThanOrEqualToDate(new Date(0))))
+    })
+
+    it("Date with non-natural order", () => {
+      const order = Order.flip(Order.Date)
+      verifyGeneration(Schema.DateValid.check(Schema.makeIsGreaterThan({ order })(new Date(0))))
     })
 
     it("isGreaterThanOrEqualToBigInt", () => {
-      assertContext(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))), {
-        constraints: {
-          bigint: {
-            min: BigInt(0)
-          }
-        }
-      })
+      verifyGeneration(Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(0))))
     })
 
     it("isGreaterThanBigInt", () => {
-      assertContext(Schema.BigInt.check(Schema.isGreaterThanBigInt(BigInt(0))), {
-        constraints: {
-          bigint: {
-            min: BigInt(1)
-          }
-        }
-      })
+      verifyGeneration(Schema.BigInt.check(Schema.isGreaterThanBigInt(BigInt(0))))
     })
 
     it("isLessThanOrEqualToBigInt", () => {
-      assertContext(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))), {
-        constraints: {
-          bigint: {
-            max: BigInt(10)
-          }
-        }
-      })
+      verifyGeneration(Schema.BigInt.check(Schema.isLessThanOrEqualToBigInt(BigInt(10))))
     })
 
     it("isLessThanBigInt", () => {
-      assertContext(Schema.BigInt.check(Schema.isLessThanBigInt(BigInt(10))), {
-        constraints: {
-          bigint: {
-            max: BigInt(9)
-          }
-        }
-      })
+      verifyGeneration(Schema.BigInt.check(Schema.isLessThanBigInt(BigInt(10))))
     })
 
     it("isBetweenBigInt", () => {
-      assertContext(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })), {
-        constraints: {
-          bigint: {
-            min: BigInt(0),
-            max: BigInt(10)
-          }
-        }
-      })
+      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt({ minimum: BigInt(0), maximum: BigInt(10) })))
     })
 
     it("isBetweenBigInt with exclusive bounds", () => {
-      assertContext(
-        Schema.BigInt.check(Schema.isBetweenBigInt({
-          minimum: BigInt(0),
-          maximum: BigInt(10),
+      verifyGeneration(Schema.BigInt.check(Schema.isBetweenBigInt({
+        minimum: BigInt(0),
+        maximum: BigInt(10),
+        exclusiveMinimum: true,
+        exclusiveMaximum: true
+      })))
+    })
+
+    it("BigInt with non-natural order", () => {
+      const order = Order.flip(Order.BigInt)
+      verifyGeneration(Schema.BigInt.check(Schema.makeIsGreaterThan({ order })(BigInt(0))))
+    })
+
+    it("isGreaterThanOrEqualToBigDecimal", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isGreaterThanOrEqualToBigDecimal(BigDecimal.make(0n, 0))))
+    })
+
+    it("isGreaterThanBigDecimal", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isGreaterThanBigDecimal(BigDecimal.make(0n, 0))))
+    })
+
+    it("isLessThanOrEqualToBigDecimal", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isLessThanOrEqualToBigDecimal(BigDecimal.make(10n, 0))))
+    })
+
+    it("isLessThanBigDecimal", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isLessThanBigDecimal(BigDecimal.make(10n, 0))))
+    })
+
+    it("isBetweenBigDecimal", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+        minimum: BigDecimal.make(100n, 0),
+        maximum: BigDecimal.make(200n, 0)
+      })))
+    })
+
+    it("isBetweenBigDecimal with decimal scale", () => {
+      verifyGeneration(Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+        minimum: BigDecimal.fromStringUnsafe("1.01"),
+        maximum: BigDecimal.fromStringUnsafe("1.02")
+      })))
+    })
+
+    it("isBetweenBigDecimal with exclusive decimal bounds", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+          minimum: BigDecimal.fromStringUnsafe("1.01"),
+          maximum: BigDecimal.fromStringUnsafe("1.02"),
           exclusiveMinimum: true,
           exclusiveMaximum: true
         })),
-        {
-          constraints: {
-            bigint: {
-              min: BigInt(1),
-              max: BigInt(9)
-            }
-          }
-        }
+        1_000
+      )
+    })
+
+    it("isBetweenBigDecimal with exclusive negative decimal bounds", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+          minimum: BigDecimal.fromStringUnsafe("-1.02"),
+          maximum: BigDecimal.fromStringUnsafe("-1.01"),
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        })),
+        1_000
+      )
+    })
+
+    it("isBetweenBigDecimal with a single inclusive decimal value", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+          minimum: BigDecimal.fromStringUnsafe("1.01"),
+          maximum: BigDecimal.fromStringUnsafe("1.01")
+        })),
+        1_000
+      )
+    })
+
+    it("isBetweenBigDecimal with exclusive bounds requiring a higher scale", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+          minimum: BigDecimal.fromStringUnsafe("0"),
+          maximum: BigDecimal.fromStringUnsafe("0.00000000000000000001"),
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        })),
+        1_000
+      )
+    })
+
+    it("isBetweenBigDecimal with impossible exclusive bounds", () => {
+      throws(() =>
+        Schema.toArbitrary(Schema.BigDecimal.check(Schema.isBetweenBigDecimal({
+          minimum: BigDecimal.fromStringUnsafe("1.01"),
+          maximum: BigDecimal.fromStringUnsafe("1.01"),
+          exclusiveMinimum: true,
+          exclusiveMaximum: true
+        }))), "Unable to derive an arbitrary for the ordered BigDecimal constraints")
+    })
+
+    it("isGreaterThanBigDecimal + isLessThanBigDecimal with impossible bounds", () => {
+      throws(() =>
+        Schema.toArbitrary(Schema.BigDecimal.check(
+          Schema.isGreaterThanBigDecimal(BigDecimal.fromStringUnsafe("1.01")),
+          Schema.isLessThanBigDecimal(BigDecimal.fromStringUnsafe("1.01"))
+        )), "Unable to derive an arbitrary for the ordered BigDecimal constraints")
+    })
+
+    it("isGreaterThanBigDecimal + isLessThanBigDecimal", () => {
+      verifyGeneration(
+        Schema.BigDecimal.check(
+          Schema.isGreaterThanBigDecimal(BigDecimal.fromStringUnsafe("1.01")),
+          Schema.isLessThanBigDecimal(BigDecimal.fromStringUnsafe("1.02"))
+        ),
+        1_000
+      )
+    })
+
+    it("BigDecimal with non-natural order", () => {
+      const order = Order.flip(BigDecimal.Order)
+      verifyGeneration(Schema.BigDecimal.check(Schema.makeIsGreaterThan({ order })(BigDecimal.make(0n, 0))))
+    })
+
+    it("DateTimeUtc with non-natural order", () => {
+      const order = Order.flip(DateTime.Order)
+      verifyGeneration(Schema.DateTimeUtc.check(Schema.makeIsGreaterThan({ order })(DateTime.makeUnsafe(0))))
+    })
+
+    it("DateTimeZoned with non-natural order", () => {
+      const order = Order.flip(DateTime.Order)
+      verifyGeneration(
+        Schema.DateTimeZoned.check(
+          Schema.makeIsGreaterThan({ order })(DateTime.makeZonedUnsafe(0, { timeZone: "UTC" }))
+        )
       )
     })
 
     it("UniqueArray", () => {
-      const comparator = Schema.toEquivalence(Schema.String)
-      assertContext(Schema.UniqueArray(Schema.String), {
-        constraints: {
-          array: {
-            comparator
-          }
-        }
-      })
-      assertContext(Schema.UniqueArray(Schema.String).check(Schema.isMaxLength(2)), {
-        constraints: {
-          array: {
-            maxLength: 2,
-            comparator
-          },
-          string: {
-            maxLength: 2
-          }
-        }
-      })
+      verifyGeneration(Schema.UniqueArray(Schema.String))
+      verifyGeneration(Schema.UniqueArray(Schema.String).check(Schema.isMaxLength(2)))
     })
   })
 })

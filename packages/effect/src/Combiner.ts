@@ -1,62 +1,11 @@
 /**
- * A module for combining two values of the same type into one.
+ * Defines reusable rules for merging two values of the same type.
  *
- * A `Combiner<A>` wraps a single binary function `(self: A, that: A) => A`.
- * It describes *how* two values merge but carries no initial/empty value
- * (for that, see `Reducer` which extends `Combiner` with an
- * `initialValue`).
- *
- * ## Mental model
- *
- * - **Combiner** – an object with a `combine(self, that)` method that returns
- *   a value of the same type.
- * - **Argument order** – `self` is the "left" / accumulator side, `that` is
- *   the "right" / incoming side.
- * - **No identity element** – unlike a monoid, a `Combiner` does not require
- *   a neutral element. Use `Reducer` when you need one.
- * - **Purity** – all combiners produced by this module are pure; they never
- *   mutate their arguments.
- * - **Composability** – combiners can be lifted into `Option`, `Struct`,
- *   `Tuple`, and other container types via helpers in those modules.
- *
- * ## Common tasks
- *
- * - Create a combiner from any binary function → {@link make}
- * - Swap argument order → {@link flip}
- * - Pick the smaller / larger of two values → {@link min} / {@link max}
- * - Always keep the first or last value → {@link first} / {@link last}
- * - Ignore both values and return a fixed result → {@link constant}
- * - Insert a separator between combined values → {@link intercalate}
- *
- * ## Gotchas
- *
- * - `min` and `max` require an `Order<A>`, not a raw comparator. Import from
- *   e.g. `Number.Order` or `String.Order`.
- * - `intercalate` is curried: call it with the separator first, then pass the
- *   base combiner.
- * - A `Reducer` (which adds `initialValue`) is also a valid `Combiner` — you
- *   can pass a `Reducer` anywhere a `Combiner` is expected.
- *
- * ## Quickstart
- *
- * **Example** (combining strings with a separator)
- *
- * ```ts
- * import { Combiner, String } from "effect"
- *
- * const csv = Combiner.intercalate(",")(String.ReducerConcat)
- *
- * console.log(csv.combine("a", "b"))
- * // Output: "a,b"
- *
- * console.log(csv.combine(csv.combine("a", "b"), "c"))
- * // Output: "a,b,c"
- * ```
- *
- * ## See also
- *
- * - {@link make} – the primary constructor
- * - {@link Combiner} – the core interface
+ * A `Combiner<A>` contains one operation, `combine(self, that)`, which returns
+ * the merged value. It does not define an initial value for reducing a
+ * collection; use a `Reducer` when you need that. This module includes the
+ * `Combiner` interface, a constructor for custom combining logic, and common
+ * combiners for choosing or ordering values.
  *
  * @since 4.0.0
  */

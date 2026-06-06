@@ -1,38 +1,12 @@
 /**
- * Client-side runtime for typed RPC calls.
+ * Runs typed RPC calls from the client side.
  *
  * This module turns RPC definitions from an `RpcGroup` into callable client
- * methods. Each method encodes its payload, sends a request through the active
- * transport, and routes the matching server response back to the waiting
- * `Effect` or `Stream`.
- *
- * **Mental model**
- *
- * `make` builds a schema-aware client on top of a client `Protocol`. The
- * protocol owns the encoded transport boundary: HTTP sends one request per
- * call, while socket and worker protocols keep receive loops alive for
- * streaming, acknowledgements, interruption, and protocol-level failures.
- * `makeNoSerialization` keeps the same request lifecycle when another layer has
- * already decoded messages.
- *
- * **Common tasks**
- *
- * - Build a typed client with {@link make} and a provided protocol layer
- * - Use {@link makeNoSerialization} for in-process or already-decoded channels
- * - Provide HTTP, socket, or worker transports with {@link layerProtocolHttp},
- *   {@link layerProtocolSocket}, or {@link layerProtocolWorker}
- * - Add request headers with {@link withHeaders} or per-call options
- *
- * **Gotchas**
- *
- * HTTP does not support client acknowledgements, so streaming back pressure is
- * only available on protocols that keep a live channel. Streaming RPCs return
- * `Stream`s by default; enabling `asQueue` returns a scoped queue whose buffer
- * size is controlled by `streamBufferSize`. Payloads, exits, stream chunks, and
- * middleware errors are encoded and decoded through RPC schemas, so any schema
- * services required by those codecs remain in the generated method
- * environment. Client middleware can rewrite or short-circuit requests and adds
- * its client error type to the call signature.
+ * methods. Each call encodes its payload, sends a message through the active
+ * `Protocol`, decodes exits or stream chunks from the server, and routes the
+ * response back to the waiting `Effect`, `Stream`, or queue. It also defines
+ * the protocol service and includes protocol layers for HTTP, sockets, and
+ * workers.
  *
  * @since 4.0.0
  */

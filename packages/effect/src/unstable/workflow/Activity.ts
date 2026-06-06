@@ -1,23 +1,10 @@
 /**
- * The `Activity` module defines named, schema-backed effects that run at the
- * side-effect boundary of a durable workflow. Activities are executed through a
- * `WorkflowEngine`, encode their success and failure values with the provided
- * schemas, and can be replayed from persisted results instead of rerunning the
- * underlying effect.
+ * Defines named effects whose results can be stored by a workflow engine.
  *
- * Use activities for work that should not be embedded directly in workflow
- * control flow, such as calling external services, writing to databases,
- * enqueueing durable jobs, short sleeps delegated by `DurableClock`, or racing
- * multiple external operations with `raceAll`. Keep activity names and schemas
- * stable because engines use them, together with the workflow execution and
- * retry attempt, to identify stored results.
- *
- * Activities can be interrupted and retried, and workflow resumes may observe a
- * completed encoded result or run the activity again depending on what the
- * engine has persisted. Make external side effects idempotent, use
- * `idempotencyKey` for stable request keys derived from the workflow execution,
- * and include the current attempt only when each retry must address a distinct
- * external operation.
+ * An `Activity` is an `Effect` with a stable name and schemas for its success
+ * and error values. `make` wraps an effect so the `WorkflowEngine` can execute
+ * it, store its result, or replay that result during a workflow run. This module
+ * also includes helpers for retry attempts, idempotency keys, and durable races.
  *
  * @since 4.0.0
  */

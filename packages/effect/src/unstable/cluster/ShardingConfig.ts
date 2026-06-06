@@ -1,39 +1,12 @@
 /**
- * The `ShardingConfig` module describes how an Effect Cluster runner joins and
- * participates in sharding. It combines the runner network identity, shard group
- * membership, shard-count and weight settings, storage-lock timing, entity
- * mailbox and lifecycle limits, and polling intervals used by the local runner.
+ * Configures how an Effect Cluster runner participates in sharding.
  *
- * **Mental model**
- *
- * - {@link ShardingConfig} is provided as a service so cluster components read
- *   one consistent set of sharding settings.
- * - {@link defaults} is the local-development baseline; {@link layer} overlays
- *   explicit values, and {@link layerFromEnv} loads constant-case environment
- *   variables before applying optional overrides.
- * - `runnerAddress` is the externally reachable address advertised to other
- *   runners; `runnerListenAddress` can differ when the process binds a
- *   different interface.
- * - `availableShardGroups`, `assignedShardGroups`, `shardsPerGroup`, and
- *   `runnerShardWeight` decide which shards a runner may own and how assignment
- *   is balanced.
- *
- * **Common tasks**
- *
- * - Provide default local configuration with {@link layerDefaults}.
- * - Override selected fields in code with {@link layer}.
- * - Load deployment configuration from the environment with
- *   {@link configFromEnv} or {@link layerFromEnv}.
- * - Normalize configured shard groups with {@link shardGroupConfig}.
- *
- * **Gotchas**
- *
- * - Keep cluster-wide values such as `availableShardGroups` and
- *   `shardsPerGroup` consistent for runners sharing the same storage backend.
- * - Use stable, reachable `runnerAddress` values; client-only nodes should use
- *   `Option.none()` for `runnerAddress`.
- * - Tune lock expiration, refresh intervals, and termination timeouts together
- *   so normal shutdown does not look like runner failure.
+ * `ShardingConfig` describes the runner address, shard group membership, shard
+ * counts and weights, lock timing, entity mailbox and lifecycle limits, polling
+ * intervals, health checks, and local serialization simulation. This module
+ * includes the service, default values, programmatic and environment-based
+ * layers, a `Config` description for loading values, and helpers for normalizing
+ * assigned shard groups.
  *
  * @since 4.0.0
  */

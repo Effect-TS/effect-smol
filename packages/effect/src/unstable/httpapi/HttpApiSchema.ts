@@ -7,38 +7,6 @@
  * can choose response status codes, content types, body codecs, multipart
  * handling, and no-body response behavior.
  *
- * **Mental model**
- *
- * Keep the `Schema` as the source of validation and transformation, then add
- * HTTP-specific annotations with helpers such as {@link status}, {@link asJson},
- * {@link asMultipart}, and {@link asNoContent}. The same annotated schema can be
- * read later by server builders, clients, and OpenAPI generation.
- *
- * **Common tasks**
- *
- * Use {@link status}, {@link NoContent}, {@link Created}, {@link Accepted}, or
- * {@link Empty} to describe response statuses. Use {@link asFormUrlEncoded},
- * {@link asText}, {@link asUint8Array}, or {@link asJson} to override the
- * default JSON encoding. Use {@link asMultipart} or
- * {@link asMultipartStream} for multipart request payloads. Use
- * {@link asNoContent} when the wire response has no body but the client should
- * decode a useful value.
- *
- * **Gotchas**
- *
- * {@link status} only stores an annotation: unannotated success responses
- * default to `200`, and unannotated error responses default to `500` when the
- * surrounding HttpApi context interprets them. Missing body and response
- * encodings default to JSON, while payload schemas for methods without request
- * bodies fall back to form-url-encoded metadata. Multipart encodings are
- * payload-only, and response multipart is rejected when response encoding is
- * resolved.
- *
- * **See also**
- *
- * `HttpApiEndpoint` for route contracts that consume these annotations and
- * `HttpApi` for reflection over status and encoding metadata.
- *
  * @since 4.0.0
  */
 import { constVoid, type LazyArg } from "../../Function.ts"

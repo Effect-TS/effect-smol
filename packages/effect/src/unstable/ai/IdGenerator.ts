@@ -1,49 +1,11 @@
 /**
- * The `IdGenerator` module provides a pluggable system for generating unique identifiers
- * for tool calls and other items in the Effect AI SDKs.
+ * Provides identifier generation for AI features.
  *
- * This module offers a flexible and configurable approach to ID generation, supporting
- * custom alphabets, prefixes, separators, and sizes.
- *
- * **Example** (Generating IDs with the default service)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { IdGenerator } from "effect/unstable/ai"
- *
- * // Using the default ID generator
- * const program = Effect.gen(function*() {
- *   const idGen = yield* IdGenerator.IdGenerator
- *   const toolCallId = yield* idGen.generateId()
- *   console.log(toolCallId) // "id_A7xK9mP2qR5tY8uV"
- *   return toolCallId
- * }).pipe(Effect.provideService(
- *   IdGenerator.IdGenerator,
- *   IdGenerator.defaultIdGenerator
- * ))
- * ```
- *
- * **Example** (Providing a custom ID generator)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { IdGenerator } from "effect/unstable/ai"
- *
- * // Creating a custom ID generator for AI tool calls
- * const customLayer = IdGenerator.layer({
- *   alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
- *   prefix: "tool_call",
- *   separator: "-",
- *   size: 12
- * })
- *
- * const program = Effect.gen(function*() {
- *   const idGen = yield* IdGenerator.IdGenerator
- *   const id = yield* idGen.generateId()
- *   console.log(id) // "tool_call-A7XK9MP2QR5T"
- *   return id
- * }).pipe(Effect.provide(customLayer))
- * ```
+ * The `IdGenerator` service exposes one operation, `generateId`, which returns
+ * a string inside `Effect`. AI modules use it for values such as tool call ids
+ * and generated response item ids. This module includes the service tag,
+ * service interface, default generator, configurable custom generator, and layer
+ * for providing the service.
  *
  * @since 4.0.0
  */

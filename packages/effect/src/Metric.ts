@@ -1,85 +1,12 @@
 /**
- * The `Metric` module provides tools for defining, updating, tagging, and
- * reading application metrics from Effect programs. A `Metric<Input, State>`
- * accepts typed input values and aggregates them into a typed state that can be
- * read directly or exported from a snapshot.
+ * Records and reads measurements from Effect programs.
  *
- * **Mental model**
- *
- * - A metric has an identifier, a type, an optional description, optional attributes, and mutable aggregate state
- * - Use counters for cumulative values such as requests, errors, retries, or bytes processed
- * - Use gauges for point-in-time values that can rise or fall, such as active connections or queue size
- * - Use frequencies to count occurrences of discrete string values, such as status codes or action names
- * - Use histograms to bucket numeric observations and inspect count, min, max, and sum
- * - Use summaries to calculate quantiles over a bounded, time-based observation window
- * - Metrics are updated from effects with {@link update} and {@link modify}, and read with {@link value}
- * - Attributes tag metrics with key-value dimensions so the same logical metric can be grouped by service, endpoint, method, or other labels
- * - Snapshots capture the currently registered metrics and their aggregate states for reporting or export
- *
- * **Common tasks**
- *
- * - Create counters: {@link counter}
- * - Create gauges: {@link gauge}
- * - Create frequencies: {@link frequency}
- * - Create histograms: {@link histogram}, {@link linearBoundaries}, {@link exponentialBoundaries}
- * - Create summaries: {@link summary}, {@link summaryWithTimestamp}
- * - Measure effect duration: {@link timer}
- * - Update a metric: {@link update}
- * - Apply relative updates where supported: {@link modify}
- * - Read one metric: {@link value}
- * - Tag a metric: {@link withAttributes}
- * - Transform accepted input values: {@link mapInput}
- * - Record a constant input for repeated events: {@link withConstantInput}
- * - Inspect all registered metrics: {@link snapshot}, {@link dump}
- * - Enable fiber runtime metrics: {@link enableRuntimeMetrics}
- *
- * **Gotchas**
- *
- * - Counter and gauge metrics can use `number` inputs by default or `bigint` inputs with the `bigint` option
- * - Incremental counters ignore negative updates; use non-incremental counters only when decreases are meaningful
- * - {@link update} sets a gauge to an absolute value, while {@link modify} changes it relative to its current value
- * - Histogram buckets are cumulative and depend on the boundaries supplied when the metric is created
- * - Summary quantiles are calculated from the configured sliding window, so old observations expire
- * - Prefer low-cardinality attributes; using unbounded values such as request IDs can create too many metric series
- *
- * **Quickstart**
- *
- * **Example** (Creating and updating metrics)
- *
- * ```ts
- * import { Effect, Metric } from "effect"
- *
- * const requestCount = Metric.counter("http_requests_total", {
- *   description: "Total number of HTTP requests"
- * })
- *
- * const responseTime = Metric.histogram("http_response_time", {
- *   description: "HTTP response time in milliseconds",
- *   boundaries: Metric.linearBoundaries({ start: 0, width: 50, count: 20 })
- * })
- *
- * const handleRequest = Effect.gen(function*() {
- *   yield* Metric.update(
- *     Metric.withAttributes(requestCount, {
- *       endpoint: "/api/users",
- *       method: "GET"
- *     }),
- *     1
- *   )
- *
- *   yield* Metric.update(responseTime, 125)
- *
- *   return yield* Metric.value(requestCount)
- * })
- * ```
- *
- * **See also**
- *
- * - {@link counter} / {@link gauge} / {@link frequency} for common metric types
- * - {@link histogram} / {@link summary} for distribution metrics
- * - {@link update} / {@link modify} / {@link value} for working with metric state
- * - {@link withAttributes} for adding dimensions
- * - {@link snapshot} for exporting all registered metric values
+ * A `Metric<Input, State>` accepts typed update values and stores an aggregated
+ * state that can be read directly or included in a snapshot. Metrics are used
+ * for counters, gauges, frequencies, histograms, summaries, and timers. This
+ * module includes metric constructors, update and read helpers, attributes,
+ * histogram boundaries, registry snapshots, text dumps, and controls for
+ * enabling runtime metrics.
  *
  * @since 2.0.0
  */

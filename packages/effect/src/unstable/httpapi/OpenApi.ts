@@ -1,44 +1,10 @@
 /**
- * OpenAPI 3.1 generation for declarative `HttpApi` contracts.
+ * Generates OpenAPI 3.1 documents from declarative `HttpApi` contracts.
  *
- * This module reflects an `HttpApi` into an OpenAPI document and provides the
- * annotations used to shape the generated output. The result can be served from
- * `HttpApiBuilder.layer`, rendered by Swagger UI or Scalar, passed to client
- * generators, or published through API gateway and documentation pipelines.
- *
- * **Mental model**
- *
- * {@link fromApi} walks the API's groups and endpoints and emits OpenAPI tags,
- * paths, operations, parameters, request bodies, responses, security schemes,
- * and component schemas. Endpoint and schema metadata determine the HTTP
- * surface; annotations such as {@link Title}, {@link Description},
- * {@link Summary}, {@link Version}, {@link Servers}, {@link License},
- * {@link ExternalDocs}, {@link Identifier}, {@link Deprecated}, and
- * {@link Format} fill in OpenAPI-specific fields.
- *
- * **Common tasks**
- *
- * Use {@link fromApi} to generate the complete specification. Use
- * {@link annotations} to attach several OpenAPI annotations at once. Use
- * {@link Exclude} to omit a group or endpoint, {@link Override} to shallowly
- * merge extra fields into a generated object, and {@link Transform} when the
- * generated API, tag, or operation needs a programmatic rewrite.
- *
- * **Gotchas**
- *
- * Schema identifiers are used as component names; additional schemas must have
- * identifiers, and invalid OpenAPI component keys are rejected during
- * generation. `HttpApiSchema` encodings choose media types for JSON,
- * form-url-encoded, text, binary, and multipart payloads. No-content schemas
- * emit responses without bodies, request and response unions are grouped by
- * status code and content type, and `:id` route segments are rendered as `{id}`
- * path parameters.
- *
- * **See also**
- *
- * `HttpApi` for API composition, `HttpApiEndpoint` for endpoint metadata,
- * `HttpApiSchema` for HTTP status and encoding annotations, and
- * `HttpApiBuilder` for serving the generated document with an HTTP router.
+ * The generator reads API groups, endpoints, schemas, security definitions, and
+ * annotations, then produces an OpenAPI document. This module also provides the
+ * annotations used to shape that output and the TypeScript model for the
+ * OpenAPI objects it generates.
  *
  * @since 4.0.0
  */

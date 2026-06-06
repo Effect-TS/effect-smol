@@ -1,43 +1,11 @@
 /**
- * Layer-based server-side routing for Effect HTTP applications.
+ * Builds server-side routers for Effect HTTP applications.
  *
- * `HttpRouter` collects routes and router middleware while an application layer
- * is being built, then exposes the registered route table as an
- * `HttpServerResponse` effect for each incoming `HttpServerRequest`. Use it for
- * APIs, webhooks, and Fetch handlers that want request-scoped services, schema
- * decoding, and typed middleware to participate in the same `Layer` graph as
- * the rest of the application.
- *
- * **Mental model**
- *
- * Route layers do not handle requests immediately. They register `Route` values
- * into the current `HttpRouter`; `serve`, `toHttpEffect`, and `toWebHandler`
- * build the layer, read the completed router, and run the matching handler for
- * each request. During a request, the router provides `HttpServerRequest`,
- * `Scope`, parsed search parameters, and `RouteContext`, so handlers can decode
- * path, search, and body data or access services supplied by router middleware.
- *
- * **Common tasks**
- *
- * - Register individual routes with `add` or batches with `addAll`.
- * - Group routes under a prefix with `addAll(..., { prefix })` or
- *   `router.prefixed`.
- * - Decode route, search, and JSON body data with `schemaPathParams`,
- *   `schemaParams`, `schemaNoBody`, and `schemaJson`.
- * - Apply route-scoped middleware with `middleware(...).layer`, or install
- *   global router middleware for all routes.
- * - Serve the layer with `serve` or create a Fetch-compatible handler with
- *   `toWebHandler`.
- *
- * **Gotchas**
- *
- * Paths must be absolute `/` paths or the wildcard `*`. `HEAD` falls back to
- * `GET`, and wildcard paths ending in `/*` also match the prefix path itself.
- * For prefixed routes the matched prefix is removed from
- * `HttpServerRequest.url` before the handler sees it. Middleware passed to
- * `serve` wraps the wider server chain; use router middleware when you need to
- * provide request dependencies, handle configured route errors, or change the
- * response that will be sent.
+ * `HttpRouter` collects routes and middleware while an application layer is
+ * being built. Once the router is complete, it handles each
+ * `HttpServerRequest` by finding a matching route and producing an
+ * `HttpServerResponse`. The module also includes helpers for route definitions,
+ * prefixes, parameters, request decoding, CORS, and running the router.
  *
  * @since 4.0.0
  */

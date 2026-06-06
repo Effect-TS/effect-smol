@@ -1,42 +1,11 @@
 /**
- * Immutable outgoing HTTP client requests.
+ * Describes immutable outgoing HTTP client requests.
  *
  * `HttpClientRequest` is the request model shared by Effect HTTP clients and
  * platform adapters. A request stores its method, URL, query parameters, hash,
- * headers, and body as structured data, and this module provides constructors,
- * pipeable update helpers, body encoders, and Web `Request` conversions.
- *
- * **Mental model**
- *
- * Request builders start from {@link empty} and return a new request for every
- * change. The base URL, query parameters, and hash stay separate until
- * conversion, so code can update them independently before calling
- * {@link toUrl}, {@link toWebResult}, or {@link toWeb}. Body helpers delegate to
- * `HttpBody` and update `Content-Type` and `Content-Length` when the selected
- * body carries that metadata.
- *
- * **Common tasks**
- *
- * - Start a request with {@link get}, {@link post}, {@link put},
- *   {@link patch}, or another method constructor.
- * - Add authentication or accepted media types with {@link basicAuth},
- *   {@link bearerToken}, {@link accept}, or {@link acceptJson}.
- * - Change URL parts with {@link setUrl}, {@link prependUrl},
- *   {@link appendUrl}, {@link setUrlParam}, {@link appendUrlParam}, and
- *   {@link setHash}.
- * - Attach payloads with {@link bodyJson}, {@link bodyUrlParams},
- *   {@link bodyFormData}, {@link bodyStream}, or {@link bodyFile}.
- * - Bridge Web platform values with {@link fromWeb}, {@link toWebResult}, and
- *   {@link toWeb}.
- *
- * **Gotchas**
- *
- * Passing a `URL` extracts its search parameters and fragment into structured
- * fields, while a string URL is kept as provided. Use the `setUrlParam` helpers
- * to replace query values, and the `appendUrlParam` helpers when repeated keys
- * should be preserved. `FormData` bodies intentionally leave multipart boundary
- * headers to the runtime, so `setBody` removes explicit content headers for
- * them.
+ * headers, and body as structured data. This module includes constructors,
+ * helpers for updating requests, body encoders for common payloads, and
+ * conversions to and from Web `Request` values.
  *
  * @since 4.0.0
  */

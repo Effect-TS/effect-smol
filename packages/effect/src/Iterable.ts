@@ -1,55 +1,10 @@
 /**
- * The `Iterable` module works with any JavaScript value that implements
- * `[Symbol.iterator]`, including arrays, strings, generators, sets, and custom
- * lazy sequences. It provides constructors, transformations, searches, grouping,
- * and folding helpers that can be used without converting to an array first.
+ * Works with JavaScript values that implement `[Symbol.iterator]`.
  *
- * **Mental model**
- *
- * - An `Iterable<A>` creates an `Iterator<A>` when it is consumed.
- * - Transformations such as {@link map}, {@link filter}, {@link flatMap},
- *   {@link take}, and {@link drop} return new iterables and usually do no work
- *   until the result is iterated.
- * - Consumers such as {@link reduce}, {@link size}, {@link head},
- *   {@link findFirst}, and `Array.from` pull values from an iterator.
- * - Constructors such as {@link range}, {@link makeBy}, {@link repeat},
- *   {@link forever}, and {@link unfold} can represent unbounded sequences.
- *
- * **Common tasks**
- *
- * - Create sequences: {@link empty}, {@link of}, {@link range}, {@link makeBy},
- *   {@link replicate}, {@link unfold}
- * - Transform values: {@link map}, {@link flatMap}, {@link flatten},
- *   {@link filter}, {@link filterMap}
- * - Slice and search: {@link take}, {@link drop}, {@link takeWhile},
- *   {@link findFirst}, {@link findLast}, {@link contains}
- * - Combine and group: {@link appendAll}, {@link zipWith}, {@link chunksOf},
- *   {@link groupBy}, {@link cartesian}
- * - Fold or collect: {@link reduce}, {@link scan}, {@link countBy},
- *   `Array.from`
- *
- * **Gotchas**
- *
- * - Laziness depends on the operation. Functions such as {@link size} and
- *   {@link reduce} consume the iterable immediately.
- * - Some JavaScript iterables are single-use iterators. Reusing the same value
- *   after it has been consumed may produce no elements.
- * - Unbounded iterables must be limited before full collection, for example
- *   with {@link take}.
- *
- * **Example** (Building a lazy pipeline)
- *
- * ```ts
- * import { Iterable } from "effect"
- *
- * const naturals = Iterable.range(1)
- * const squares = Iterable.map(naturals, (n) => n * n)
- * const evenSquares = Iterable.filter(squares, (n) => n % 2 === 0)
- * const firstFive = Iterable.take(evenSquares, 5)
- *
- * console.log(Array.from(firstFive))
- * // [4, 16, 36, 64, 100]
- * ```
+ * Iterables include arrays, strings, generators, sets, and custom lazy
+ * sequences. The helpers in this module let code transform, search, group, and
+ * fold iterable values while preserving the input as an iterable instead of
+ * forcing an array first.
  *
  * @since 2.0.0
  */

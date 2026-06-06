@@ -1,5 +1,12 @@
 # @effect/ai-anthropic
 
+## 4.0.0-beta.78
+
+### Patch Changes
+
+- Updated dependencies [[`7836b8e`](https://github.com/Effect-TS/effect-smol/commit/7836b8eb8bb0f3e04cdf554ee070caccf74f00c1), [`35d49a3`](https://github.com/Effect-TS/effect-smol/commit/35d49a3a09bdba6b513de87ddcead9e61a1042ba), [`4093258`](https://github.com/Effect-TS/effect-smol/commit/40932580e65bafab5f23c5f14b520cb411d0b2cd)]:
+  - effect@4.0.0-beta.78
+
 ## 4.0.0-beta.77
 
 ### Patch Changes

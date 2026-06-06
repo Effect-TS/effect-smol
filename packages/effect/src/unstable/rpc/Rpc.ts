@@ -1,44 +1,12 @@
 /**
- * Schema-backed declarations for individual RPC procedures.
+ * Defines schema-backed contracts for individual RPC procedures.
  *
- * An {@link Rpc} is the shared contract for one remote procedure. It records
- * the procedure tag, payload schema, success schema, error schema, defect
- * schema, middleware, annotations, and the type information used to derive
- * client calls and server handler signatures. The declaration is transport
- * independent; RPC groups, clients, and servers all read the same metadata.
- *
- * **Mental model**
- *
- * An RPC definition is data. The tag names the procedure, the schemas describe
- * the values crossing the wire, and middleware or annotations attach
- * procedure-local behavior and metadata. Nothing is sent or handled until the
- * definition is placed in a group and interpreted by a client or server.
- *
- * **Common tasks**
- *
- * Use {@link make} for ordinary request/response procedures, {@link custom} for
- * constructors that transform success or error schemas, and the instance
- * methods on {@link Rpc} to refine payloads, attach middleware, prefix tags, or
- * add annotations. Helper types such as {@link Payload}, {@link Success},
- * {@link Error}, and {@link ToHandlerFn} expose the derived TypeScript shapes
- * used by client and handler code. Server handlers can wrap object results with
- * {@link fork} or {@link uninterruptible} to control how those results are run.
- *
- * **Gotchas**
- *
- * - Payloads default to `Schema.Void`; passing struct fields creates a
- *   `Schema.Struct`, while `primaryKey` creates a payload class with a derived
- *   `PrimaryKey`
- * - Success values default to `Schema.Void`, ordinary errors default to
- *   `Schema.Never`, and middleware errors are included in the effective RPC
- *   error channel
- * - Streaming RPCs store element and stream-error schemas in
- *   `RpcSchema.Stream`; the immediate exit success is `void` and the ordinary
- *   RPC error schema is `Schema.Never`
- * - Defects use a separate defect schema, defaulting to `Schema.Defect()`; custom
- *   defect schemas must not require decoding or encoding services
- * - Schema services are directional: clients encode payloads and decode
- *   responses, while servers decode payloads and encode responses
+ * An `Rpc` describes one remote procedure by recording its tag, payload schema,
+ * success schema, error schema, defect schema, middleware, and annotations.
+ * Clients and servers read the same declaration, so the procedure contract is
+ * independent of the transport used to call it. This module includes
+ * constructors, type helpers for deriving client and handler shapes, exit
+ * schemas, and handler wrappers for special execution modes.
  *
  * @since 4.0.0
  */

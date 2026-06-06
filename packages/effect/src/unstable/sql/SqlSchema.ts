@@ -4,33 +4,9 @@
  * `SqlSchema` is a small adapter between Effect Schema and SQL statements. Each
  * helper builds a function that accepts the decoded request type used by
  * application code, encodes it before calling `execute`, and decodes unknown
- * driver rows into the result schema. The helpers differ only in how many rows
- * they expect and how they represent an empty result set.
- *
- * **Mental model**
- *
- * The request schema protects the boundary going into SQL, and the result
- * schema protects the boundary coming back out. `execute` still owns statement
- * construction and database execution; this module only shapes the values that
- * cross that boundary.
- *
- * **Common tasks**
- *
- * - Use {@link findAll} for queries that may return any number of rows.
- * - Use {@link findNonEmpty} when an empty result is a failure.
- * - Use {@link findOne} when the first row is required.
- * - Use {@link findOneOption} when the first row is optional.
- * - Use `void` for writes where the encoded request matters but the driver
- *   result should be discarded.
- *
- * **Gotchas**
- *
- * `execute` receives `Req["Encoded"]`, not `Req["Type"]`. Any schema
- * transformations, encoding services, nullable columns, JSON values, dates, and
- * bigint representations must match the SQL builder and dialect in use. Result
- * schemas decode rows after SQL client row transforms have run. {@link findOne}
- * and {@link findOneOption} only inspect the first returned row; they do not
- * assert that the query returned exactly one row.
+ * driver rows into the result schema. The helpers cover returning all rows, a
+ * non-empty row list, the first row, an optional first row, or discarding the
+ * SQL result for side-effect-only statements.
  *
  * @since 4.0.0
  */

@@ -1,45 +1,12 @@
 /**
- * Server-side runtime for RPC groups.
+ * Runs server-side handlers for RPC groups.
  *
- * This module connects typed handlers for an RPC group to a transport. It
- * receives client messages, decodes request payloads, runs the matching
- * handler, and writes exits, stream chunks, defects, interrupts, and client-end
- * notifications back through the active server protocol. It supports encoded
- * protocols such as HTTP, websocket, socket, stdio, and worker transports, plus
- * already-decoded channels through {@link makeNoSerialization}.
- *
- * **Mental model**
- *
- * {@link Protocol} is the transport boundary. It owns how encoded client
- * messages arrive, how encoded server responses are written, and whether the
- * channel supports acknowledgements, transferable objects, or span
- * propagation. {@link make} and {@link layer} combine that protocol with an RPC
- * group and the handler context required by `Rpc.ToHandler` and
- * `Rpc.Middleware`.
- *
- * **Common tasks**
- *
- * Use {@link layerHttp} for route-mounted HTTP or websocket serving,
- * {@link toHttpEffect} and {@link toHttpEffectWebsocket} for standalone HTTP
- * effects, the `layerProtocol*` constructors for socket, stdio, or worker
- * transports, and {@link makeNoSerialization} when another component already
- * owns message serialization.
- *
- * **Gotchas**
- *
- * - Server handlers are looked up from `Rpc.ToHandler`, while RPC middleware
- *   is looked up from `Rpc.Middleware` and wraps handlers with metadata that
- *   includes `Rpc.ServerClient`, request id, headers, and decoded payload
- * - Payloads are decoded on the server; exits, stream chunks, and request
- *   defects are encoded on the server using the RPC schemas and the handler's
- *   schema services
- * - Encode failures are reported as request defects and interrupt the
- *   in-flight request
- * - Streaming RPCs send chunks before the final exit, and protocols with
- *   acknowledgement support wait for client acknowledgements between chunks to
- *   provide back pressure
- * - Fatal handler defects are sent as protocol defects by default; set
- *   `disableFatalDefects` when defects should remain ordinary request exits
+ * This module connects typed handlers for an `RpcGroup` to a server `Protocol`.
+ * It receives client messages, decodes request payloads, runs matching handlers
+ * and middleware, tracks in-flight requests, handles acknowledgements and
+ * interrupts, and sends responses back to clients. It also provides constructors
+ * and layers for decoded messages, HTTP, WebSocket, sockets, stdio, and worker
+ * runner protocols.
  *
  * @since 4.0.0
  */

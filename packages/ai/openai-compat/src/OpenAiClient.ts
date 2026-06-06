@@ -1,26 +1,9 @@
 /**
- * The `OpenAiClient` module provides an Effect service for calling
- * OpenAI-compatible chat completions and embeddings APIs. It builds on the
- * Effect HTTP client, adds authentication and OpenAI header handling, and
- * exposes typed helpers for regular responses, server-sent event streaming, and
- * embedding requests.
- *
- * **Common tasks**
- *
- * - Create a client service directly with {@link make}
- * - Provide the service as a layer with {@link layer} or {@link layerConfig}
- * - Send non-streaming chat completion requests with `createResponse`
- * - Send streaming chat completion requests with `createResponseStream`
- * - Generate embeddings with `createEmbedding`
- * - Reuse the exported request and response types when integrating compatible providers
- *
- * **Gotchas**
- *
- * - The default base URL is `https://api.openai.com/v1`; set `apiUrl` for other
- *   OpenAI-compatible providers.
- * - `createResponseStream` forces `stream: true` and requests usage events with
- *   `stream_options.include_usage`.
- * - HTTP and schema decoding failures are mapped into `AiError`.
+ * The `OpenAiClient` module provides an Effect service for OpenAI-compatible
+ * chat completions and embeddings APIs. It builds on the Effect HTTP client,
+ * adds authentication and OpenAI organization or project headers, and exposes
+ * typed helpers for non-streaming chat completions, streaming chat completions,
+ * and embedding requests.
  *
  * @since 4.0.0
  */
@@ -1094,7 +1077,10 @@ const ChatCompletionToolFunction = Schema.Struct({
 })
 
 const ChatCompletionToolFunctionDelta = Schema.Struct({
-  name: Schema.optionalKey(Schema.String),
+  // Some OpenAI-compatible providers (e.g. Fireworks) send `name: null` on
+  // streamed tool-call continuation fragments. `name` must be nullable, else
+  // the whole chunk fails validation and its argument delta is dropped.
+  name: Schema.optionalKey(Schema.NullOr(Schema.String)),
   arguments: Schema.optionalKey(Schema.String)
 })
 

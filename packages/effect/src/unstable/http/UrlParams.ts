@@ -1,38 +1,10 @@
 /**
- * Immutable URL query parameters represented as ordered string pairs.
+ * Models URL query parameters as ordered string pairs.
  *
- * This module is the shared query-parameter model for HTTP client request
- * queries, URL-encoded form bodies, and server-side decoding. A `UrlParams`
- * value can be built from records, iterables, or native `URLSearchParams`, then
- * inspected, appended, replaced, removed, serialized, converted to a `URL`, or
+ * `UrlParams` is used for HTTP client query strings, URL-encoded form bodies,
+ * and server-side decoding. Values can be built from records, iterables, or
+ * native `URLSearchParams`, then updated, serialized, converted to a `URL`, or
  * decoded with schemas.
- *
- * **Mental model**
- *
- * The core representation is a list of `[key, value]` string pairs. Duplicate
- * keys and pair order are preserved by `make`, `fromInput`, iteration, and
- * append-style operations. Record input is a convenience layer: primitive values
- * become strings, arrays become repeated parameters, nested records use bracket
- * notation, and `undefined` fields are skipped.
- *
- * **Common tasks**
- *
- * - Build query parameters from plain records, tuples, or `URLSearchParams`.
- * - Read the first, last, or all values for a key.
- * - Replace, append, transform, or remove keys without mutating the original.
- * - Serialize a query string, merge parameters into a URL, or decode records and
- *   JSON fields with schemas.
- *
- * **Gotchas**
- *
- * Use `getAll` when every duplicate value matters. `set` and `setAll` replace
- * existing values for matching keys, while `append` and `appendAll` preserve
- * them. Serialization through `toString` and `makeUrl` delegates to the platform
- * `URLSearchParams` / `URL` implementations, so pass decoded strings rather
- * than pre-encoded query fragments. Record-based and schema-based conversions
- * collapse repeated keys into string arrays and do not preserve the full global
- * pair ordering; `schemaJsonField` reads the first matching value for the
- * selected field.
  *
  * @since 4.0.0
  */

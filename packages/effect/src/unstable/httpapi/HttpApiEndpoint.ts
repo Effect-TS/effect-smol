@@ -1,55 +1,13 @@
 /**
- * The `HttpApiEndpoint` module defines the route-level contracts used inside an
- * HTTP API group. An endpoint records a stable name, HTTP method, router path,
- * request schemas, response schemas, declared errors, middleware, and
- * annotations.
+ * Defines endpoint declarations used inside an HTTP API group.
  *
- * Endpoint values are declarations, not handlers. Builders use them to decode
- * requests, type handler input, encode responses, generate OpenAPI metadata,
- * and derive generated-client call signatures.
- *
- * **Mental model**
- *
- * - Each {@link HttpApiEndpoint} describes one HTTP route.
- * - Method constructors such as {@link get}, {@link post}, {@link put},
- *   {@link patch}, {@link head}, and {@link options} create endpoint
- *   declarations. Use {@link make} when you need a method-specific constructor.
- * - Params, query, headers, payload, success, and error schemas determine both
- *   runtime encoding/decoding and the exported helper types such as
- *   {@link Request}, {@link ClientRequest}, {@link Success}, and {@link Error}.
- * - Endpoint middleware and annotations are stored on the declaration so server
- *   builders, clients, and OpenAPI generation can see the same route metadata.
- *
- * **Common tasks**
- *
- * - Declare operations with {@link get}, {@link post}, {@link put},
- *   {@link patch}, `delete`, {@link head}, or {@link options}.
- * - Add params, query, headers, payload, success, and error schemas in the
- *   constructor options.
- * - Attach endpoint-specific middleware or annotations with the methods on
- *   {@link HttpApiEndpoint}.
- * - Use helper types such as {@link Handler}, {@link HandlerRaw},
- *   {@link ServerServices}, and {@link ClientServices} when integrating with
- *   builders or clients.
- *
- * **Gotchas**
- *
- * - Paths use `HttpRouter.PathInput`; route parameters come from the router and
- *   are decoded by the optional `params` schema.
- * - With codecs enabled, params, query, and headers use string-tree codecs. Body
- *   methods use JSON payload codecs by default; no-body methods use string-tree
- *   payload codecs.
- * - Multiple payload schemas can share a content type only when they use the
- *   same encoding strategy. Multipart payloads cannot be combined under the same
- *   content type.
- * - Endpoint errors are merged with middleware errors for server encoding and
- *   client decoding.
- *
- * **See also**
- *
- * - {@link PayloadMap} for the payload schema map stored on endpoints.
- * - {@link Request} and {@link ClientRequest} for request helper types.
- * - {@link Handler} and {@link HandlerRaw} for server handler signatures.
+ * An endpoint records a stable name, HTTP method, router path, request schemas,
+ * response schemas, declared errors, middleware, and annotations. Endpoint
+ * values are declarations, not handlers: builders use them to decode requests,
+ * type handler input, encode responses, generate OpenAPI metadata, and derive
+ * generated-client call signatures. This module also includes HTTP method
+ * constructors, payload and response schema helpers, and type utilities used by
+ * builders and generated clients.
  *
  * @since 4.0.0
  */

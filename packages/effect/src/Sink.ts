@@ -1,34 +1,11 @@
 /**
- * The `Sink` module provides composable consumers for `Stream` values. A
- * `Sink<A, In, L, E, R>` pulls input elements of type `In`, may require
- * services `R`, may fail with `E`, and eventually produces a result `A` plus
- * any leftover input `L` that was read but not consumed.
+ * Consumes values from a `Stream` and produces one final result.
  *
- * **Mental model**
- *
- * - A sink is the terminal consumer used by `Stream.run`
- * - Sinks can consume zero, one, many, or all input elements before finishing
- * - Leftovers allow one sink to stop early without losing already-pulled input
- * - Sink composition preserves typed errors and service requirements
- * - Most sinks are built from `Channel` internally, but users compose them with
- *   the higher-level APIs in this module
- *
- * **Common tasks**
- *
- * - Create simple sinks: {@link succeed}, {@link fail}, {@link fromEffect}
- * - Fold input: {@link fold}
- * - Collect values: {@link collect}
- * - Count or drain input: {@link count}, {@link drain}
- * - Transform results: {@link map}, {@link mapEffect}, {@link as}
- * - Adapt input before consumption: {@link mapInput}, {@link mapInputEffect}
- *
- * **Gotchas**
- *
- * - A sink can finish before the stream is exhausted; check leftover-aware
- *   combinators when composing parsers or protocol decoders
- * - `In` is contravariant, so a sink that accepts broader input can be used
- *   where narrower input is expected
- * - Resource and service requirements are tracked in the `R` type parameter
+ * A `Sink` may read no input, a fixed amount of input, or keep reading until a
+ * condition is met. If it reads more than it needs, it can return leftovers so
+ * the stream can continue from those values. Sinks are used to collect, fold,
+ * search, count, or otherwise reduce streamed input, and they can be composed
+ * when a stream needs more than one consuming step.
  *
  * @since 2.0.0
  */

@@ -12,7 +12,6 @@ describe("Otlp.layerFromConfig", () => {
       yield* Effect.void.pipe(Effect.withSpan("configured-span"))
 
       yield* TestClock.adjust("1 second")
-      yield* yieldNowN(5)
 
       const requests = yield* MockHttpClient.requests
       const logRequest = findRequest(requests, "http://logs.example/custom")
@@ -54,7 +53,6 @@ describe("Otlp.layerFromConfig", () => {
       yield* Effect.void.pipe(Effect.withSpan("disabled-span"))
 
       yield* TestClock.adjust("1 second")
-      yield* yieldNowN(5)
 
       const requests = yield* MockHttpClient.requests
       assert.deepStrictEqual(requests, [])
@@ -135,9 +133,6 @@ const HttpClientLayer = Layer.effectContext(Effect.gen(function*() {
     Context.add(MockHttpClient, MockHttpClient.of({ requests: Ref.get(capturedRequests) }))
   )
 }))
-
-const yieldNowN = (times: number) =>
-  Effect.forEach(Array.from({ length: times }), () => Effect.yieldNow, { discard: true })
 
 const findRequest = (requests: ReadonlyArray<CapturedRequest>, url: string) =>
   requests.find((request) => request.url === url)

@@ -1,28 +1,11 @@
 /**
  * Adapters between Node streams and Effect streams, channels, and readables.
  *
- * This module is the stream boundary for Node APIs: wrap `Readable` or
- * `Duplex` values as Effect `Stream`s and `Channel`s, pipe an Effect stream
- * through a Node duplex transform, expose an Effect `Stream` back to Node as a
- * `Readable`, or collect bounded readable payloads into strings, array
- * buffers, and `Uint8Array`s. Common sources include files, HTTP bodies, child
- * process stdio, sockets, and compression or crypto transforms.
- *
- * **Mental model**
- *
- * Read adapters pull from Node's readable side into Effect. Duplex adapters
- * write upstream Effect chunks to Node while reading transformed chunks back.
- * `toReadable` runs an Effect stream from the caller's context, while
- * `toReadableNever` is for streams that need no services.
- *
- * **Gotchas**
- *
- * Node backpressure is preserved: writes pause until `drain` before more input
- * is pulled. Readables are destroyed on scope finalization by default, and
- * duplex writable sides are ended when upstream completes unless configured
- * otherwise. For externally owned or long-lived streams, choose `closeOnDone`
- * and `endOnDone` deliberately; for collection helpers, set `maxBytes` when
- * input size is not already bounded.
+ * This module is the stream boundary for Node APIs. It wraps `Readable` and
+ * `Duplex` values as Effect `Stream`s and `Channel`s, pipes Effect streams
+ * through Node duplex streams, exposes an Effect `Stream` back to Node as a
+ * `Readable`, and collects readable payloads into strings, array buffers, or
+ * `Uint8Array`s with optional byte limits.
  *
  * @since 4.0.0
  */

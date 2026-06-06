@@ -1,41 +1,12 @@
 /**
- * SQL-backed `MessageStorage` implementation for the unstable cluster runtime.
+ * Persists cluster mailbox messages and replies in SQL.
  *
- * This module persists encoded cluster envelopes and replies in SQL so runners
- * can recover mailbox state after restarts, redeliver unprocessed messages,
- * deduplicate requests by primary key, and replay reply chunks until they are
- * acknowledged. It is the durable alternative to an in-memory mailbox when
- * cluster request/reply state must survive process restarts.
- *
- * **Mental model**
- *
- * The storage owns two durable streams: a messages table for requests and
- * control envelopes, and a replies table for chunk and final replies. Saving a
- * request or envelope writes encoded data into the messages table; reading
- * unprocessed messages claims due rows for assigned shards; reading replies
- * replays unacknowledged chunks or final exits until the runtime acknowledges
- * or clears them. Primary keys are stored as `message_id` so repeated requests
- * can resume from the original request and last persisted reply.
- *
- * **Common tasks**
- *
- * - Use `layer` for the default `cluster` table prefix and default snowflake
- *   generator.
- * - Use `layerWith` before deployment when the application needs a stable
- *   custom table prefix.
- * - Use `make` when composing the storage service with an existing
- *   `Snowflake.Generator`.
- * - Provide `SqlClient` and `ShardingConfig` to the layer that installs the
- *   storage.
- *
- * **Gotchas**
- *
- * `make` runs migrations and creates `<prefix>_messages`, `<prefix>_replies`,
- * and `<prefix>_migrations`. Changing `prefix` after deployment points the
- * runtime at a different mailbox and migration history, so keep the generated
- * migration table with the message tables. Unprocessed-message reads use
- * `last_read` as a lease marker, so messages can be redelivered after the lease
- * window if a runner stops before processing them.
+ * The SQL-backed `MessageStorage` stores encoded cluster envelopes and reply
+ * chunks so runners can recover mailbox state after restarts. It supports
+ * redelivering unprocessed messages, deduplicating requests by primary key, and
+ * replaying reply chunks until they are acknowledged. This module includes the
+ * storage constructor, layers, migrations, optional table prefixes, and the row
+ * mapping needed by encoded message storage.
  *
  * @since 4.0.0
  */

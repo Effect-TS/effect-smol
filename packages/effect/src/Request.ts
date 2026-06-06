@@ -1,46 +1,11 @@
 /**
- * The `Request` module defines typed request values for data loading with
- * `Effect.request`. A request is a description of work, not the execution of
- * that work: it records the success type, typed error, service requirements,
- * and the fields needed by a resolver to perform one logical operation.
+ * Typed request values for data loading with `Effect.request`.
  *
- * Requests are designed to be paired with a `RequestResolver`, which receives
- * pending request entries, batches or caches them when possible, and completes
- * each entry with a result. This lets calling code ask for data declaratively
- * while resolver code owns the backend-specific loading logic.
- *
- * **Mental model**
- *
- * - `Request<A, E, R>` describes one operation that succeeds with `A`, fails
- *   with `E`, and may require services `R`
- * - Constructors such as {@link of}, {@link tagged}, {@link Class}, and
- *   {@link TaggedClass} attach the request marker and structural behavior
- *   expected by the request runtime
- * - A resolver receives {@link Entry} values; each entry contains the original
- *   request, the captured context, and a completion callback
- * - Completion helpers such as {@link succeed}, {@link fail},
- *   {@link failCause}, {@link complete}, and {@link completeEffect} turn
- *   resolver results into the `Exit` expected by the waiting fiber
- *
- * **Common tasks**
- *
- * - Define request shapes with {@link Request}, {@link Class}, or
- *   {@link TaggedClass}
- * - Build lightweight request constructors with {@link of} or {@link tagged}
- * - Check unknown values with {@link isRequest}
- * - Complete pending resolver entries with {@link succeed}, {@link fail},
- *   {@link failCause}, {@link complete}, or {@link completeEffect}
- * - Extract request type members with {@link Success}, {@link Error},
- *   {@link Services}, and {@link Result}
- *
- * **Gotchas**
- *
- * - Creating a request value does not run anything; it must be submitted with
- *   `Effect.request` and handled by a resolver
- * - Resolver implementations must complete every {@link Entry} they receive,
- *   otherwise the fiber waiting for that request will not receive a value
- * - Cached and deduplicated requests depend on request identity and structural
- *   equality, so include only stable fields that describe the logical operation
+ * A request describes one logical piece of work without performing it. It
+ * records the success type, typed error, service requirements, and fields a
+ * resolver needs to complete the request. Requests are paired with
+ * `RequestResolver`, which performs backend-specific loading and completes each
+ * pending request entry with a success, failure, cause, exit, or effect.
  *
  * @since 2.0.0
  */

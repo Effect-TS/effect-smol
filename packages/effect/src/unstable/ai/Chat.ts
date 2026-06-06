@@ -8,52 +8,6 @@
  * sessions, seed sessions from prompts, restore exported history, or connect a
  * chat to persistence.
  *
- * **Mental model**
- *
- * A {@link Service} is a mutable conversation handle. It stores history, while
- * the language model implementation is still supplied through the Effect
- * environment when `generateText`, `streamText`, or `generateObject` runs.
- * Local sessions created with {@link empty} and {@link fromPrompt} live only in
- * memory; persisted sessions add a backing store and save after generation.
- *
- * **Common tasks**
- *
- * - Start an empty session with {@link empty}.
- * - Seed system prompts or prior messages with {@link fromPrompt}.
- * - Restore saved history with {@link fromExport} or {@link fromJson}.
- * - Persist sessions by providing {@link Persistence} with {@link makePersisted}
- *   or {@link layerPersisted}.
- *
- * **Example** (Starting a chat session)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { Chat } from "effect/unstable/ai"
- *
- * const program = Effect.gen(function*() {
- *   const chat = yield* Chat.fromPrompt([{
- *     role: "system",
- *     content: "Answer in one sentence."
- *   }])
- *
- *   const response = yield* chat.generateText({
- *     prompt: "What does Effect provide for TypeScript applications?"
- *   })
- *
- *   const saved = yield* chat.exportJson
- *
- *   return { text: response.text, saved }
- * })
- * ```
- *
- * **Gotchas**
- *
- * Generation requires a language model service in the environment. `streamText`
- * records the parts emitted by the stream when the stream finalizes, so consume
- * the stream to completion when the full assistant response should become part
- * of history. Direct writes to `history` are possible, but bypass the helpers
- * that encode, decode, export, and persist the conversation.
- *
  * @since 4.0.0
  */
 import * as Channel from "../../Channel.ts"

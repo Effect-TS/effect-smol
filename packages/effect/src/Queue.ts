@@ -1,67 +1,10 @@
 /**
- * The `Queue` module provides asynchronous queues for communicating between
- * fibers. A `Queue<A, E>` accepts values of type `A`, hands each value to one
- * consumer in offer order, and can later complete, fail, interrupt, or shut
- * down through the queue lifecycle.
+ * Passes values asynchronously between fibers.
  *
- * **Mental model**
- *
- * - A queue is a fiber-aware channel with a write side ({@link Enqueue}) and a
- *   read side ({@link Dequeue}).
- * - Producers add values with {@link offer} or {@link offerAll}; consumers
- *   remove values with {@link take}, {@link takeN}, {@link takeBetween}, or
- *   {@link takeAll}.
- * - Unlike publish-subscribe hubs, consumers compete for values; a successful
- *   take removes the value from the queue.
- * - Bounded queues use an overflow strategy: {@link bounded} suspends
- *   producers, {@link dropping} rejects new values, and {@link sliding} drops
- *   old values.
- * - Operations are `Effect` values, so waiting producers and consumers compose
- *   with interruption, scheduling, and structured concurrency.
- *
- * **Common tasks**
- *
- * - Create queues: {@link make}, {@link bounded}, {@link dropping},
- *   {@link sliding}, {@link unbounded}.
- * - Restrict capabilities: {@link asEnqueue}, {@link asDequeue}.
- * - Produce values: {@link offer}, {@link offerAll}.
- * - Consume values: {@link take}, {@link takeN}, {@link takeBetween},
- *   {@link takeAll}, {@link poll}, {@link peek}.
- * - Drain or reset buffered values: {@link collect}, {@link clear}.
- * - Signal lifecycle: {@link end}, {@link fail}, {@link failCause},
- *   {@link interrupt}, {@link shutdown}.
- * - Inspect state: {@link size}, {@link isFull}.
- *
- * **Example** (One producer and one consumer)
- *
- * ```ts
- * import { Effect, Queue } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const queue = yield* Queue.bounded<string>(16)
- *
- *   yield* Queue.offer(queue, "work")
- *
- *   return yield* Queue.take(queue)
- * })
- * ```
- *
- * **Gotchas**
- *
- * - {@link take} waits when the queue is empty; use {@link poll} when absence
- *   should be represented as an empty `Option`.
- * - {@link dropping} and {@link sliding} queues can lose values by design; use
- *   {@link bounded} when every offered value must be preserved.
- * - Completion and failure are observed by consumers through the queue's error
- *   channel, so include `Cause.Done` in the error type when using {@link end}.
- * - The `Unsafe` variants are synchronous, low-level operations; prefer the
- *   effectful APIs in application code.
- *
- * **See also**
- *
- * - {@link Enqueue} for write-only queue handles.
- * - {@link Dequeue} for read-only queue handles.
- * - {@link Pull} for stream-style completion errors.
+ * A `Queue<A, E>` accepts values, hands each value to one consumer in offer
+ * order, and can complete, fail, interrupt, or shut down. Queues can be bounded
+ * or unbounded, and bounded queues can suspend, drop, or slide values when
+ * producers are faster than consumers.
  *
  * @since 3.8.0
  */

@@ -1,65 +1,12 @@
 /**
- * Lightweight wrapper types that prevent accidental mixing of structurally
- * identical values (e.g. `UserId` vs `OrderId`, both `string` at runtime).
+ * Creates compile-time-only wrappers around existing value types.
  *
- * **Mental model**
- *
- * - **Newtype** — a compile-time wrapper around a **carrier** type (the
- *   underlying primitive or object). At runtime the value is unchanged; the
- *   tag exists only in the type system.
- * - **Key** — a unique string literal that distinguishes one newtype from
- *   another (e.g. `"Label"`, `"UserId"`).
- * - **Carrier** — the underlying type the newtype wraps (e.g. `string`,
- *   `number`).
- * - **Iso** — a lossless two-way conversion between a newtype and its carrier,
- *   created with {@link makeIso}. Use `iso.set(carrier)` to wrap and
- *   `iso.get(newtype)` to unwrap.
- *
- * **Common tasks**
- *
- * - Define a newtype → declare an `interface` extending
- *   `Newtype.Newtype<Key, Carrier>`
- * - Wrap / unwrap values → {@link makeIso} (returns an `Optic.Iso`)
- * - Unwrap only → {@link value}
- * - Lift an `Equivalence` → {@link makeEquivalence}
- * - Lift an `Order` → {@link makeOrder}
- * - Lift a `Combiner` → {@link makeCombiner}
- * - Lift a `Reducer` → {@link makeReducer}
- *
- * **Gotchas**
- *
- * - Newtypes are **purely compile-time**. There is zero runtime overhead;
- *   `value` and `makeIso` use identity casts.
- * - Two newtypes sharing the same key string will be assignable to each other.
- *   Choose unique key strings.
- * - A newtype value is **not** assignable to its carrier type without
- *   explicitly unwrapping via {@link value} or an iso.
- *
- * **Quickstart**
- *
- * **Example** (defining and using a newtype)
- *
- * ```ts
- * import { Newtype } from "effect"
- *
- * // 1. Define a newtype
- * interface Label extends Newtype.Newtype<"Label", string> {}
- *
- * // 2. Create an iso for wrapping/unwrapping
- * const labelIso = Newtype.makeIso<Label>()
- *
- * // 3. Wrap a raw string
- * const myLabel: Label = labelIso.set("hello")
- *
- * // 4. Unwrap back to string
- * const raw: string = labelIso.get(myLabel) // "hello"
- * ```
- *
- * **See also**
- *
- * - {@link Newtype} (the tagged interface)
- * - {@link makeIso} (wrap and unwrap)
- * - {@link value} (unwrap only)
+ * A newtype lets TypeScript distinguish values with the same runtime shape, such
+ * as two different ids that are both strings. The tag exists only in the type
+ * system, so wrapping does not allocate a runtime object. This module includes
+ * the base `Newtype` interface, wrapping and unwrapping helpers, optics, and
+ * helpers for reusing carrier instances such as `Equivalence`, `Order`,
+ * `Combiner`, and `Reducer`.
  *
  * @since 4.0.0
  */

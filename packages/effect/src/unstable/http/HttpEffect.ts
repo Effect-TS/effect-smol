@@ -1,38 +1,10 @@
 /**
- * Bridges Effect HTTP server programs with platform request handlers.
+ * Runs Effect HTTP server handlers at platform boundaries.
  *
- * This module runs effects that produce `HttpServerResponse` values at the edge
- * of a server runtime. It can turn an Effect handler into a Web `Request`
- * handler, build that handler from a `Layer`, adapt an existing Web handler back
- * into an Effect server effect, apply HTTP middleware, translate failures into
- * responses, and run pre-response hooks immediately before a response is sent.
- *
- * **Mental model**
- *
- * Each incoming platform request becomes an `HttpServerRequest` in the Effect
- * context plus a request `Scope`. The server effect produces a response, or
- * fails with a cause that is converted into an HTTP response. Web handler
- * adapters fork the Effect program, resolve the platform `Response` promise when
- * the response is handled, and interrupt the fiber when the request aborts.
- * Streaming responses transfer scope ownership to the body stream so resources
- * remain open until the stream exits.
- *
- * **Common tasks**
- *
- * Use `toWebHandler` for a handler with no extra services, `toWebHandlerWith`
- * when each request may provide additional context, `toWebHandlerLayer` or
- * `toWebHandlerLayerWith` when services come from a layer that must later be
- * disposed, and `fromWebHandler` when embedding a Web-standard handler inside an
- * Effect HTTP server. Use pre-response handlers to adjust headers, cookies, or
- * status before the response is converted to the platform response type.
- *
- * **Gotchas**
- *
- * Layer-backed handlers return a `dispose` function for the layer scope; call it
- * when the hosting runtime shuts down. Pre-response handlers run before bytes
- * are sent, not after a streaming body has started. Web adapters handle
- * streaming scope transfer automatically, but lower-level integrations that call
- * `toHandled` directly must preserve request scope ownership themselves.
+ * This module turns effects that produce `HttpServerResponse` values into Web
+ * `Request` handlers and other server adapters. It also applies middleware,
+ * converts failures into responses, runs hooks before a response is sent, and
+ * manages request scopes for streamed responses.
  *
  * @since 4.0.0
  */

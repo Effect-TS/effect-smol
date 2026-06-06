@@ -1,35 +1,11 @@
 /**
- * OpenTelemetry metric export bridge for Effect metrics.
+ * OpenTelemetry support for Effect metrics.
  *
- * Effect applications record metrics through Effect's metric APIs. This module
- * exposes the current Effect metric snapshot as an OpenTelemetry
- * `MetricProducer` and registers it with SDK `MetricReader`s so existing
- * OpenTelemetry exporters can deliver those metrics to OTLP, Prometheus, or
- * vendor backends.
- *
- * **Mental model**
- *
- * {@link makeProducer} captures the current Effect context and `Resource` and
- * builds a producer that OpenTelemetry readers can pull from.
- * {@link registerProducer} attaches that producer to one or more readers for
- * the lifetime of a scope. {@link layer} composes both steps and is the path
- * used by the Node and Web SDK layers when metric readers are configured.
- *
- * **Common tasks**
- *
- * - Install Effect metrics into OpenTelemetry with {@link layer}
- * - Build a producer manually with {@link makeProducer}
- * - Attach an existing producer to readers with {@link registerProducer}
- * - Choose cumulative or delta export with {@link TemporalityPreference}
- *
- * **Gotchas**
- *
- * Readers are shut down when the layer scope closes, so periodic exporters need
- * the application runtime to stay alive long enough for collection and export.
- * This module defaults to cumulative temporality; configure
- * `temporality: "delta"` only when the backend expects interval values. Export
- * protocol, batching, and delivery behavior come from the OpenTelemetry
- * reader/exporter, not from this bridge.
+ * This module exposes Effect metrics as an OpenTelemetry `MetricProducer`.
+ * `makeProducer` creates the producer, `registerProducer` attaches it to one
+ * or more SDK `MetricReader`s, and `layer` manages that setup in a scoped
+ * layer. The `TemporalityPreference` type lets callers choose cumulative or
+ * delta metric values.
  *
  * @since 4.0.0
  */

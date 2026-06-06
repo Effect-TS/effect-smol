@@ -1,35 +1,10 @@
 /**
- * The `Resource` module provides refreshable, scoped values. A
- * `Resource<A, E>` stores the latest successful or failed acquisition result and
- * can be read with {@link get}, refreshed manually with {@link refresh}, or
- * refreshed automatically with {@link auto}.
+ * Stores refreshable scoped values.
  *
- * **Mental model**
- *
- * - A `Resource` wraps an acquisition `Effect` whose result is kept in a
- *   `ScopedRef`
- * - Each refresh re-runs acquisition and replaces the stored `Exit`
- * - Replacing the stored value releases resources associated with the previous
- *   scoped value
- * - Reading a resource returns the current acquired value or fails with the
- *   current acquisition error
- *
- * **Common tasks**
- *
- * - Create a manually refreshed resource with {@link manual}
- * - Create a schedule-driven resource with {@link auto}
- * - Read the current value with {@link get}
- * - Force a reload with {@link refresh}
- * - Check whether an unknown value is a resource with {@link isResource}
- *
- * **Gotchas**
- *
- * - Creating a resource requires a `Scope`; when the scope closes, scoped
- *   values held by the resource are released
- * - Failed acquisitions are stored too, so subsequent {@link get} calls fail
- *   until a refresh succeeds
- * - Automatic refreshes run in the resource scope and stop when that scope is
- *   closed
+ * A `Resource<A, E>` keeps the latest successful or failed acquisition result.
+ * It can be read repeatedly, refreshed manually, or refreshed automatically on a
+ * schedule. Resource acquisition runs in a scope, so replacements and final
+ * cleanup release the resources owned by previous values.
  *
  * @since 2.0.0
  */

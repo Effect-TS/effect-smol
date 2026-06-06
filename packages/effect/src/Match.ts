@@ -1,46 +1,12 @@
 /**
- * Pattern matching for TypeScript values, predicates, and tagged unions.
+ * Builds pattern matchers for TypeScript values.
  *
- * `Match` turns branching logic into a matcher that is built from ordered
- * cases and finished with an explicit finalizer. Use `Match.type` to define a
- * reusable matcher for a type, or `Match.value` to classify one value
- * immediately. Cases can match literal values, predicates, object patterns,
- * discriminators, tags, or negated patterns.
- *
- * **Mental model**
- *
- * A matcher checks cases in the order they are added and evaluates the handler
- * for the first match. Type matchers produce a function that can be reused with
- * different inputs, while value matchers already contain the input value. As
- * cases are added, the type system tracks which inputs remain unmatched, so
- * `Match.exhaustive` is only available when every remaining case has been
- * handled.
- *
- * **Common tasks**
- *
- * - Use `Match.type<Union>()` when a branch table should be reusable and
- *   exhaustiveness-checked.
- * - Use `Match.value(value)` when a single value should be matched immediately.
- * - Use `Match.tag`, `Match.tags`, or `Match.discriminator` for discriminated
- *   unions and domain objects with tag fields.
- * - Use `Match.orElse`, `Match.option`, or `Match.result` when unmatched input
- *   should be handled explicitly instead of requiring full exhaustiveness.
- *
- * **Example** (Matching a tagged union)
- *
- * ```ts
- * import { Match } from "effect"
- *
- * type Event =
- *   | { readonly _tag: "UserCreated"; readonly id: string }
- *   | { readonly _tag: "UserDeleted"; readonly id: string }
- *
- * const describe = Match.type<Event>().pipe(
- *   Match.tag("UserCreated", (event) => `created ${event.id}`),
- *   Match.tag("UserDeleted", (event) => `deleted ${event.id}`),
- *   Match.exhaustive
- * )
- * ```
+ * `Match` lets you add ordered cases and then finish them with a result,
+ * fallback, `Option`, or exhaustive check. Use `Match.type` to define a
+ * reusable matcher for a type, or `Match.value` to match one value immediately.
+ * Cases can match literal values, predicates, object shapes, tags, negated
+ * patterns, and common checks such as strings, numbers, records, and class
+ * instances.
  *
  * @since 4.0.0
  */

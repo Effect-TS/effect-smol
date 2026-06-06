@@ -1,83 +1,12 @@
 /**
- * The `Stream` module describes effectful sequences that may emit many values
- * over time. A `Stream<A, E, R>` can produce zero or more `A` values, fail with
- * an `E`, and require services from `R`; the Effect runtime handles
- * backpressure, interruption, scopes, and finalizers while the stream is being
- * consumed.
+ * Describes effectful sources that emit values over time.
  *
- * Streams are useful for files, sockets, queues, subscriptions, paginated APIs,
- * background jobs, and any workflow where values should be processed
- * incrementally instead of loaded into memory all at once.
- *
- * **Mental model**
- *
- * - A stream is a lazy description; it does not run until consumed with
- *   {@link run}, {@link runCollect}, {@link runForEach}, or another `run*`
- *   function.
- * - Pulling drives evaluation. Operators request values from upstream, and the
- *   runtime propagates demand instead of pushing unbounded data downstream.
- * - Values are batched internally as chunks for throughput, while user-facing
- *   combinators still work with individual elements unless they mention chunks.
- * - `A` is the element type, `E` is the failure type, and `R` is the required
- *   service context.
- * - Composition mirrors `Effect`: use `pipe`, {@link map}, {@link flatMap},
- *   error handling, resource operators, and service provisioning.
- *
- * **Common tasks**
- *
- * - Create streams from values, effects, and collections with {@link make},
- *   {@link fromEffect}, {@link fromIterable}, and {@link fromQueue}.
- * - Transform or select values with {@link map}, {@link mapEffect},
- *   {@link flatMap}, {@link filter}, and {@link filterMap}.
- * - Combine streams with {@link concat}, {@link merge}, {@link zip},
- *   {@link race}, and {@link interleave}.
- * - Control size and timing with {@link take}, {@link drop}, {@link debounce},
- *   {@link throttle}, {@link grouped}, and {@link groupedWithin}.
- * - Handle failures with {@link catchCause}, {@link catchIf},
- *   {@link mapError}, {@link retry}, and {@link withExecutionPlan}.
- * - Connect to other protocols with {@link fromReadableStream},
- *   {@link toReadableStream}, {@link fromAsyncIterable}, {@link toQueue}, and
- *   {@link runIntoQueue}.
- * - Consume streams with {@link runCollect}, {@link runForEach},
- *   {@link runFold}, {@link runDrain}, or a {@link Sink.Sink}.
- *
- * **Quickstart**
- *
- * **Example** (Transforming and collecting values)
- *
- * ```ts
- * import { Effect, Stream } from "effect"
- *
- * const program = Stream.make(1, 2, 3).pipe(
- *   Stream.map((n) => n * 2),
- *   Stream.runCollect
- * )
- *
- * Effect.runPromise(program).then(console.log)
- * // [2, 4, 6]
- * ```
- *
- * **Gotchas**
- *
- * - A stream is not a collection. Constructors and operators build a
- *   description; effects run each time the stream is consumed.
- * - {@link runCollect} stores every emitted value in memory. Prefer
- *   {@link runForEach}, {@link runFold}, or a streaming sink for large or
- *   infinite streams.
- * - Operators such as {@link merge}, {@link race}, {@link broadcast}, and
- *   {@link share} introduce concurrency, so interruption and finalizer timing
- *   can matter.
- * - Reusing the same stream value does not share execution by itself. Use
- *   {@link share}, {@link broadcast}, queues, or external state when multiple
- *   consumers must observe one running producer.
- *
- * **See also**
- *
- * - {@link Effect.Effect} for single-result effectful programs.
- * - {@link Sink.Sink} for reusable stream consumers.
- * - {@link Channel.Channel} for the lower-level primitive behind streams.
- * - {@link Queue.Queue} and {@link PubSub.PubSub} for coordinating producers
- *   and consumers.
+ * A `Stream<A, E, R>` can emit many `A` values, fail with `E`, and require
+ * services `R` while it is being consumed. Streams are useful for data that is
+ * pulled in steps, such as values from collections, queues, pubsubs, schedules,
+ * callbacks, async iterables, or platform streams. The APIs here cover the full
+ * stream lifecycle: create a stream, transform or combine it, control buffering
+ * and timing, handle failures, and finally consume it.
  *
  * @since 2.0.0
  */

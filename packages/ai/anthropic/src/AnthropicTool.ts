@@ -1,58 +1,9 @@
 /**
- * The `AnthropicTool` module defines Anthropic provider tools that can be
- * attached to Anthropic-backed Effect AI language model requests. These are
- * provider-defined tools: Anthropic owns the tool names, argument formats,
- * beta headers, and in some cases the execution environment.
- *
- * **Mental model**
- *
- * - Exports such as {@link Bash_20250124}, {@link CodeExecution_20250825},
- *   {@link ComputerUse_20250124}, and {@link WebSearch_20250305} create
- *   versioned provider-defined tool values understood by the Anthropic
- *   language model integration
- * - Tool-specific `Schema` exports describe the arguments Claude may provide
- *   when invoking that provider tool
- * - Some tools run on Anthropic infrastructure, such as
- *   {@link WebSearch_20250305}, {@link WebFetch_20250910}, and
- *   {@link CodeExecution_20250825}; handler-backed tools such as Bash,
- *   Computer Use, and Text Editor variants require application-side execution
- * - Selecting a versioned tool lets the Anthropic model layer add the beta
- *   header required by that exact Anthropic API version
- *
- * **Common tasks**
- *
- * - Enable terminal-style actions with {@link Bash_20250124}
- * - Enable sandboxed code execution with {@link CodeExecution_20250825}
- * - Enable desktop automation payloads with {@link ComputerUse_20250124}
- * - Enable persistent memory file operations with {@link Memory_20250818}
- * - Enable text-editor commands with {@link TextEditor_20250728}
- * - Enable hosted web capabilities with {@link WebSearch_20250305} or
- *   {@link WebFetch_20250910}
- * - Restrict tool discovery with {@link ToolSearchRegex_20251119} or
- *   {@link ToolSearchBM25_20251119}
- *
- * **Quickstart**
- *
- * **Example** (Creating hosted Anthropic tools)
- *
- * ```ts
- * import { AnthropicTool } from "@effect/ai-anthropic"
- *
- * const tools = [
- *   AnthropicTool.WebSearch_20250305({ maxUses: 3 }),
- *   AnthropicTool.WebFetch_20250910({
- *     citations: { enabled: true }
- *   })
- * ]
- * ```
- *
- * **Gotchas**
- *
- * - The suffix date is part of the Anthropic tool contract; choose the version
- *   that matches the model and beta behavior you intend to use
- * - Handler-backed tools expose schemas for Claude's requested actions, but
- *   your runtime is responsible for performing those actions and returning
- *   results
+ * The `AnthropicTool` module defines Anthropic provider tools and the schemas
+ * for their inputs and results. It covers Anthropic-owned tools such as Bash,
+ * Code Execution, Computer Use, Memory, Text Editor, Web Search, Web Fetch, and
+ * Tool Search, which can be attached to Anthropic-backed Effect AI language
+ * model requests.
  *
  * @since 4.0.0
  */

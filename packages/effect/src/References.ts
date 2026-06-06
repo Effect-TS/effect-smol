@@ -9,55 +9,6 @@
  * providing a new value changes behavior for the provided effect and the fibers
  * it starts.
  *
- * **Mental model**
- *
- * - Each exported value is a context key with a runtime default, so it can be
- *   read even when application code has not provided an override.
- * - Runtime services such as logging, tracing, scheduling, and concurrency
- *   controls read these keys from the current context.
- * - `Effect.provideService` overrides a reference for a specific effect scope;
- *   it does not mutate a process-wide global.
- * - Child fibers inherit the context active at the point they are started.
- *
- * **Common tasks**
- *
- * - Limit default concurrency with {@link CurrentConcurrency}.
- * - Control log severity and filtering with {@link CurrentLogLevel},
- *   {@link MinimumLogLevel}, and {@link UnhandledLogLevel}.
- * - Attach log metadata with {@link CurrentLogAnnotations} and
- *   {@link CurrentLogSpans}, or replace the active loggers with
- *   {@link CurrentLoggers}.
- * - Configure tracing with {@link Tracer}, {@link TracerEnabled},
- *   {@link TracerTimingEnabled}, {@link TracerSpanAnnotations}, and
- *   {@link TracerSpanLinks}.
- * - Tune scheduler behavior with {@link Scheduler}, {@link MaxOpsBeforeYield},
- *   and {@link PreventSchedulerYield}.
- *
- * **Example** (Providing a runtime reference)
- *
- * ```ts
- * import { Effect, References } from "effect"
- *
- * const readConcurrency = Effect.gen(function*() {
- *   return yield* References.CurrentConcurrency
- * })
- *
- * const limited = Effect.provideService(
- *   readConcurrency,
- *   References.CurrentConcurrency,
- *   4
- * )
- * ```
- *
- * **Gotchas**
- *
- * - Prefer higher-level logging, tracing, and concurrency APIs when they fit;
- *   this module is for direct access to the runtime knobs they use.
- * - `CurrentLogLevel` chooses the severity assigned to ordinary log entries,
- *   while `MinimumLogLevel` decides which entries are filtered out.
- * - References are context values, so scoped overrides end when the provided
- *   effect completes.
- *
  * @since 4.0.0
  */
 import type * as Context from "./Context.ts"

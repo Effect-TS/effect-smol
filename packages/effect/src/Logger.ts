@@ -1,85 +1,11 @@
 /**
- * The `Logger` module defines the logging model used by the Effect runtime and
- * provides constructors for formatting, routing, batching, and installing
- * loggers. A `Logger<Message, Output>` receives each runtime log event as an
- * {@link Options} value and transforms it into an output such as a string,
- * structured object, JSON line, console write, file write, or trace span event.
+ * Defines loggers and log-event data for Effect programs.
  *
- * **Mental model**
- *
- * - Effect programs emit log events with APIs such as `Effect.log`,
- *   `Effect.logInfo`, `Effect.logWarning`, and `Effect.logError`
- * - Each event contains a message, log level, cause, fiber, and timestamp
- * - Loggers are ordinary values created with {@link make} and installed with
- *   {@link layer}
- * - Multiple loggers can be active at once by providing a layer with several
- *   logger values
- * - Formatter loggers such as {@link formatLogFmt}, {@link formatStructured},
- *   and {@link formatJson} return formatted data without writing it anywhere
- * - Console loggers such as {@link consolePretty}, {@link consoleLogFmt},
- *   {@link consoleStructured}, and {@link consoleJson} write formatted output
- *   to the active Effect console
- *
- * **Log output structure**
- *
- * Built-in formatters include the log level, timestamp, fiber identifier, and
- * logged message. When present, they also include the pretty-printed cause,
- * active log annotations, and active log spans. Structured and JSON loggers keep
- * these fields as machine-readable data, while logfmt and pretty loggers render
- * them as human-readable text.
- *
- * **Common tasks**
- *
- * - Create a custom logger: {@link make}
- * - Transform logger output: {@link map}
- * - Write formatter output to the console: {@link withConsoleLog},
- *   {@link withConsoleError}, {@link withLeveledConsole}
- * - Use built-in console loggers: {@link consolePretty}, {@link consoleLogFmt},
- *   {@link consoleStructured}, {@link consoleJson}
- * - Use built-in formatter loggers: {@link formatSimple}, {@link formatLogFmt},
- *   {@link formatStructured}, {@link formatJson}
- * - Batch logger output before flushing to a sink: {@link batched}
- * - Write string logger output to a file: {@link toFile}
- * - Preserve trace correlation by including {@link tracerLogger}
- * - Install or replace loggers for an effect: {@link layer}
- *
- * **Gotchas**
- *
- * - {@link layer} replaces the current logger set by default; pass
- *   `mergeWithExisting: true` when adding loggers to the existing runtime
- *   loggers
- * - Formatter loggers only produce values; wrap them with console, file, batch,
- *   or custom sink loggers when output should be written somewhere
- * - {@link batched} and {@link toFile} are scoped; keep their scope open while
- *   logs are being emitted so buffered entries can flush reliably
- * - {@link toFile} accepts only loggers that output strings, so pair it with
- *   string formatters such as {@link formatJson} or {@link formatLogFmt}
- * - The default runtime logger set includes {@link tracerLogger}; replacing
- *   loggers without merging may remove automatic log-to-trace-span recording
- *
- * **Quickstart**
- *
- * **Example** (Installing a JSON console logger)
- *
- * ```ts
- * import { Effect, Logger } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   yield* Effect.logInfo("request started", { method: "GET", path: "/users" })
- *   yield* Effect.logError("request failed", { status: 500 })
- * }).pipe(
- *   Effect.annotateLogs("service", "users-api"),
- *   Effect.withLogSpan("http.request"),
- *   Effect.provide(Logger.layer([Logger.consoleJson]))
- * )
- * ```
- *
- * **See also**
- *
- * - {@link make} for defining custom loggers
- * - {@link layer} for installing loggers
- * - {@link formatJson} and {@link consoleJson} for structured production logs
- * - {@link consolePretty} for readable local logs
+ * A `Logger<Message, Output>` receives each log event as `Options` and turns it
+ * into output such as a formatted string, structured object, console write,
+ * file write, JSON line, or trace span event. This module also includes active
+ * logger references, console routing helpers, built-in formatters, batching,
+ * file logging, and layers for installing loggers.
  *
  * @since 2.0.0
  */

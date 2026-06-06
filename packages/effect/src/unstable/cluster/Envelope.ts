@@ -1,26 +1,11 @@
 /**
- * The `Envelope` module defines the transport messages exchanged by Effect
- * cluster entities while processing RPC requests. Envelopes wrap decoded
- * request payloads with routing metadata, trace context, and request ids, and
- * also model delivery-control messages such as streamed-reply acknowledgements
- * and request interrupts.
+ * Defines the transport envelopes exchanged by cluster entities.
  *
- * **Common use cases**
- *
- * - Construct a runtime request envelope with {@link makeRequest}
- * - Decode or encode envelopes crossing a network or durable queue with {@link PartialJson}
- * - Batch encoded envelopes with {@link PartialArray}
- * - Detect envelope values at runtime with {@link isEnvelope}
- * - Build storage keys for keyed request payloads with {@link primaryKey}
- *
- * **Serialization and delivery notes**
- *
- * Request envelopes are decoded in two phases: the envelope metadata is parsed
- * first, while the RPC payload remains `unknown` until the receiving side knows
- * the target RPC schema. Snowflake identifiers are encoded as strings for JSON
- * transport, and acknowledgement / interrupt envelopes carry the original
- * request id so delivery protocols can correlate control messages with the
- * in-flight request.
+ * Request envelopes wrap decoded RPC payloads with the target entity address,
+ * RPC tag, request id, headers, and optional tracing context. The module also
+ * includes acknowledgement envelopes for streamed reply chunks, interrupt
+ * envelopes for in-flight requests, JSON codecs for partially decoded
+ * envelopes, guards, request constructors, and storage primary-key helpers.
  *
  * @since 4.0.0
  */

@@ -1,72 +1,11 @@
 /**
- * The `Channel` module provides the low-level stream processing primitive used
- * to build Effect streams, sinks, and stream operators.
+ * Provides low-level building blocks for streaming data through Effect.
  *
- * A `Channel<OutElem, OutErr, OutDone, InElem, InErr, InDone, Env>` describes a
- * scoped process that can read elements from an upstream input, emit elements
- * downstream, fail with a typed error, or complete with a typed done value.
- * Most application code works with higher-level stream APIs; channels are for
- * implementing reusable streaming primitives, adapting pull-based sources, and
- * controlling how input, output, errors, final values, and resources compose.
- *
- * **Mental model**
- *
- * - `OutElem`, `OutErr`, and `OutDone` describe the values, failures, and final
- *   value produced by the channel.
- * - `InElem`, `InErr`, and `InDone` describe the upstream protocol consumed by
- *   the channel when it is piped after another channel.
- * - `Env` is the Effect environment required while the channel is interpreted.
- * - Constructors such as {@link fromArray}, {@link fromIterable},
- *   {@link fromEffect}, {@link succeed}, and {@link fail} create sources.
- * - Combinators such as {@link map}, {@link mapEffect}, {@link flatMap}, and
- *   {@link pipeTo} transform, sequence, and connect channels.
- * - Execution functions such as {@link runCollect} and {@link runDrain}
- *   interpret channels that no longer require upstream input.
- *
- * **Common tasks**
- *
- * - Build finite sources from values, arrays, iterables, queues, pub/sub
- *   subscriptions, effects, or pulls.
- * - Transform output elements with pure or effectful functions.
- * - Connect channels with {@link pipeTo} when one channel's output protocol
- *   should become another channel's input protocol.
- * - Sequence dependent channels with {@link flatMap}, or concatenate channels
- *   with {@link concat}.
- * - Manage channel-scoped resources with {@link acquireRelease} and
- *   {@link ensuring}.
- * - Bridge to lower-level pull loops with {@link toPull} and {@link fromPull}.
- *
- * **Example** (Collecting transformed output)
- *
- * ```ts
- * import { Channel, Effect } from "effect"
- *
- * const program = Channel.fromArray([1, 2, 3]).pipe(
- *   Channel.map((n) => n * 2),
- *   Channel.runCollect
- * )
- *
- * Effect.runPromise(program).then(console.log)
- * ```
- *
- * **Gotchas**
- *
- * - A channel's done value is distinct from its emitted elements; use
- *   done-focused APIs when the final value matters.
- * - `pipeTo` connects the output side of the left channel to the input side of
- *   the right channel, so type errors usually mean those protocols do not line
- *   up.
- * - Resource finalizers run when the channel scope closes, not when a channel
- *   value is merely constructed.
- * - Prefer stream and sink APIs unless you are implementing lower-level
- *   streaming behavior.
- *
- * **See also**
- *
- * - {@link Channel} for the type parameters and variance of channel values.
- * - {@link pipeTo} for wiring one channel into another.
- * - {@link runCollect}, {@link runDrain}, and {@link runDone} for common
- *   execution modes.
+ * A `Channel` can read input elements, write output elements, fail with a typed
+ * error, and finish with a typed result while managing resources safely.
+ * Streams and sinks are built on channels, so most application code uses those
+ * higher-level modules instead. This module is useful when implementing stream
+ * operators or specialized streaming workflows.
  *
  * @since 2.0.0
  */

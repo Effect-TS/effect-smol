@@ -1,38 +1,13 @@
 /**
- * Dependency-injected HTTP client for executing outgoing requests from Effect
- * programs.
+ * Provides the service used to run outgoing HTTP requests.
  *
- * This module defines the `HttpClient` service used by platform clients,
- * tests, and API-specific clients. It executes immutable `HttpClientRequest`
- * values, returns `HttpClientResponse` values, and keeps outbound HTTP behind a
- * service boundary so call sites do not depend on a concrete runtime transport.
- *
- * **Mental model**
- *
- * A client is an `execute` function plus method helpers such as `get`, `post`,
- * and `del`. Before a request reaches the runtime, it passes through a
- * preprocessing pipeline. After the runtime returns a response, it passes
- * through a postprocessing pipeline. Combinators such as `mapRequest`,
- * `filterStatusOk`, `retry`, `followRedirects`, `withCookiesRef`, and
- * `withRateLimiter` return a new client with behavior layered around the
- * previous one.
- *
- * **Common tasks**
- *
- * Use method helpers for straightforward calls, construct `HttpClientRequest`
- * values directly when a request is assembled across several steps, and use
- * `make` or `makeWith` when adapting a lower-level transport. Use
- * `filterStatus` or `filterStatusOk` when non-success HTTP statuses should fail
- * the Effect. Use `withScope` when response resources should live for a
- * surrounding scope instead of only the individual request.
- *
- * **Gotchas**
- *
- * Receiving a response is a successful Effect even for non-2xx statuses unless
- * a status filter has been applied. `mapRequestInput` prepends work before
- * existing request middleware, while `mapRequest` appends after it. Without
- * `withScope`, non-scoped responses are attached to an abort controller so
- * interruption can clean up the request.
+ * `HttpClient` executes immutable `HttpClientRequest` values and returns
+ * `HttpClientResponse` values. Keeping HTTP behind this service lets programs,
+ * tests, and generated API clients use the same request model without depending
+ * on one concrete platform transport. This module includes request accessors,
+ * constructors and layers, request and response transformations, status
+ * filtering, retries, rate limiting, cookies, redirect handling, scoped request
+ * abortion, and tracing support.
  *
  * @since 4.0.0
  */

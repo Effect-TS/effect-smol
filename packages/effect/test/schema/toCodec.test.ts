@@ -1452,6 +1452,10 @@ describe("Serializers", () => {
           new Error("a", { cause: "b" }),
           { name: "Error", message: "a", cause: "b" }
         )
+        await encoding.succeed(
+          new Cause.NoSuchElementError(),
+          { name: "NoSuchElementError", message: "" }
+        )
         const cyclicDefect: Record<string, unknown> = {}
         cyclicDefect.self = cyclicDefect
         await encoding.succeed(cyclicDefect, {})

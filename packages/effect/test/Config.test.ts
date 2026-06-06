@@ -923,7 +923,7 @@ describe("Config", () => {
       const config = Config.schema(schema)
 
       // ensure array
-      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1" } }), { a: [1] })
+      await assertSuccess(config, ConfigProvider.fromEnv({ env: { a: "1,2,3" } }), { a: [1, 2, 3] })
       await assertSuccess(config, ConfigProvider.fromEnv({ env: { a_0: "1", a_1: "2" } }), { a: [1, 2] })
       await assertFailure(
         config,

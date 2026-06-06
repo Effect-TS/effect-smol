@@ -1,25 +1,12 @@
 /**
- * Exports Effect spans to an OpenTelemetry Protocol (OTLP) traces endpoint.
+ * Exports Effect tracing spans over OTLP/HTTP.
  *
- * This module creates a `Tracer.Tracer` backed by the shared OTLP/HTTP batch
- * exporter, so Effect spans created with tracing APIs can be delivered to an
- * OpenTelemetry Collector, vendor OTLP intake, or local development collector.
- * Use `make` when you need to install the tracer manually, or `layer` when an
- * application should provide it through the Effect environment.
- *
- * Pass a concrete traces endpoint, typically `/v1/traces`, or use the
- * higher-level `Otlp` module when you want `baseUrl` path construction for all
- * observability signals. The tracer exports only ended sampled spans, converts
- * span attributes, events, links, status, parent identifiers, and failure
- * causes into OTLP trace data, and groups every batch under the configured
- * resource. Resource options are resolved through `OtlpResource`, so ensure a
- * stable `service.name` is available through options or standard OTEL resource
- * environment variables because it is also used as the instrumentation scope
- * name. Tune `exportInterval`, `maxBatchSize`, and `shutdownTimeout` for the
- * target backend and process shutdown behavior, provide `headers` for
- * authentication or routing, choose an `OtlpSerialization` layer accepted by
- * the endpoint, and use `context` only when a backend needs custom evaluation
- * around the active span.
+ * This module creates a `Tracer.Tracer` backed by the shared OTLP batch
+ * exporter, so spans created by Effect tracing APIs can be sent to an
+ * OpenTelemetry Collector, vendor endpoint, or local collector. Exported spans
+ * include identifiers, parent links, attributes, events, timing, kind, and
+ * status information. Use the constructor directly or install it through the
+ * provided layer.
  *
  * @since 4.0.0
  */
@@ -179,20 +166,23 @@ export const layerFromConfig = (options?: {
       baseTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TIMEOUT")),
       tracesTimeout: Config.option(Config.int("OTEL_EXPORTER_OTLP_TRACES_TIMEOUT")),
       exportTimeout: Config.option(Config.int("OTEL_BSP_EXPORT_TIMEOUT")),
-      scheduleDelay: Config.option(Config.int("OTEL_BSP_SCHEDULE_DELAY")),
+      scheduleDelay: Config.option(
+        Config.int("OTEL_BSP_SCHEDULE_DELAY").pipe(
+          Config.map(Duration.millis)
+        )
+      ),
       maxBatchSize: Config.option(Config.int("OTEL_BSP_MAX_EXPORT_BATCH_SIZE"))
     })
 
     const shutdownTimeout = Option.firstSomeOf([tracesTimeout, baseTimeout, exportTimeout]).pipe(
       Option.map((_) => Duration.millis(_))
     )
-    const exportInterval = Option.map(scheduleDelay, (_) => Duration.millis(_))
 
     return layer({
-      url: endpoint,
+      url: endpoint.toString(),
       resource: options?.resource,
       headers: options?.headers ?? (yield* OtlpEnv.headers("TRACES")),
-      exportInterval: Option.getOrUndefined(exportInterval),
+      exportInterval: Option.getOrUndefined(scheduleDelay),
       maxBatchSize: Option.getOrUndefined(maxBatchSize),
       context: options?.context,
       shutdownTimeout: Option.getOrUndefined(shutdownTimeout)

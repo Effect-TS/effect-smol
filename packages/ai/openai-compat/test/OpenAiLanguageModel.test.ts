@@ -1026,6 +1026,69 @@ describe("OpenAiLanguageModel", () => {
         assert.strictEqual(requestBody.stream, true)
         assert.isTrue(capturedRequest.url.endsWith("/chat/completions"))
       }))
+
+    it.effect("assembles streamed tool args when continuation fragments have function.name: null", () =>
+      Effect.gen(function*() {
+        // Some OpenAI-compatible providers (e.g. Fireworks) only send the tool
+        // name on the first fragment and `function.name: null` on every
+        // continuation. The argument fragments live on those continuations, so
+        // they must not be dropped during chunk validation.
+        const chunk = (fnDelta: Record<string, unknown>) => ({
+          id: "chatcmpl_null_name_1",
+          object: "chat.completion.chunk",
+          model: "gpt-4o-mini",
+          created: 1,
+          choices: [{
+            index: 0,
+            delta: { tool_calls: [{ index: 0, id: "call_1", type: "function", function: fnDelta }] }
+          }]
+        })
+
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                chunk({ name: "TestTool", arguments: "" }),
+                chunk({ name: null, arguments: "{\"in" }),
+                chunk({ name: null, arguments: "put\":\"hel" }),
+                chunk({ name: null, arguments: "lo\"}" }),
+                {
+                  id: "chatcmpl_null_name_1",
+                  object: "chat.completion.chunk",
+                  model: "gpt-4o-mini",
+                  created: 1,
+                  choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }]
+                },
+                "[DONE]"
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "use the tool",
+          toolkit: TestToolkit,
+          disableToolCallResolution: true
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(TestToolkitLayer),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const paramsDeltas = parts.filter((part) => part.type === "tool-params-delta")
+        assert.isAbove(paramsDeltas.length, 0)
+
+        const toolCall = parts.find((part) => part.type === "tool-call")
+        assert.isDefined(toolCall)
+        if (toolCall?.type !== "tool-call") {
+          return
+        }
+        assert.strictEqual(toolCall.name, "TestTool")
+        assert.deepStrictEqual(toolCall.params, { input: "hello" })
+      }))
   })
 
   describe("config", () => {

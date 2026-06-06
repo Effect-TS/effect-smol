@@ -1,34 +1,8 @@
 /**
- * The `AnthropicClient` module defines the low-level Effect service used to
- * call Anthropic's API. It wraps the generated Anthropic HTTP client with
- * Effect layers, request defaults, authentication headers, API versioning,
- * response decoding, and error mapping for Messages API calls.
- *
- * **Mental model**
- *
- * `HttpClient.HttpClient` provides the transport. {@link make} turns explicit
- * {@link Options} into an {@link AnthropicClient} service, while {@link layer}
- * and {@link layerConfig} provide that service as a layer. The service exposes
- * the generated client for direct endpoint access plus handwritten helpers for
- * regular and streaming message creation.
- *
- * **Common tasks**
- *
- * - Provide an authenticated Anthropic client from an API key and optional base
- *   URL
- * - Load client settings from Effect `Config` with {@link layerConfig}
- * - Apply HTTP client transformations for proxying, retries, instrumentation,
- *   or tests
- * - Decode Anthropic server-sent event streams into typed message events
- *
- * **Gotchas**
- *
- * - `apiKey` is optional so proxied and test clients can provide
- *   authentication elsewhere.
- * - `createMessageStream` filters Anthropic ping events and terminates the
- *   stream when a `message_stop` event is received.
- * - The message helpers map transport, schema, and provider failures to the
- *   unified Effect AI error type.
+ * The `AnthropicClient` module defines the low-level Effect service for
+ * Anthropic's Messages API. It builds a generated Anthropic HTTP client with
+ * authentication headers, API version headers, response decoding, and error
+ * mapping, then exposes helpers for regular and streaming message requests.
  *
  * @since 4.0.0
  */

@@ -1,27 +1,11 @@
 /**
- * The `WorkflowProxy` module derives transport contracts from durable
- * `Workflow` definitions.
+ * RPC and HTTP API definitions for workflows.
  *
- * Use it when workflows should be invoked through RPC or HTTP instead of by
- * importing the workflow implementation directly. `toRpcGroup` creates the
- * `RpcGroup` that RPC clients and servers share, while `toHttpApiGroup` creates
- * the `HttpApiGroup` that can be mounted in an HTTP API. Each workflow expands
- * into execute, discard, and resume operations so external callers can start a
- * workflow, start it through the discard path, or resume a suspended execution
- * by `executionId`.
- *
- * The generated names and schemas come from the workflow definitions, so keep
- * workflow names stable and pass the same workflow list to the matching
- * `WorkflowProxyServer` layer. RPC proxies may be prefixed, but the same prefix
- * must be used by the server handlers. HTTP endpoint paths are derived from the
- * lower-cased workflow name. Preserve workflow arrays as const tuples when you
- * want the generated RPC and HTTP API types to retain each workflow's literal
- * name, payload, success, and error types.
- *
- * Discard and resume are control operations rather than ordinary workflow
- * result reads. The discard proxy does not expose the normal success or error
- * schemas, and resume expects the persisted `executionId`; it cannot recreate
- * that boundary value from the original payload.
+ * Given one or more `Workflow` values, `toRpcGroup` creates the RPC definitions
+ * for clients and servers, while `toHttpApiGroup` creates HTTP POST endpoints
+ * that can be mounted in an API. Each workflow gets execute, discard, and
+ * resume operations, so callers can start a workflow or resume a suspended run
+ * by `executionId` without importing the workflow handler directly.
  *
  * @since 4.0.0
  */
