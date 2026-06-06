@@ -27,7 +27,7 @@ export type StepKind = "Step" | "Given" | "When" | "Then"
 /**
  * A named capture decoded from step text with a Schema.
  *
- * @category models
+ * @category utility types
  * @since 4.0.0
  */
 export type Capture<Name extends string, A> = expression.Capture<Name, A>
@@ -35,7 +35,7 @@ export type Capture<Name extends string, A> = expression.Capture<Name, A>
 /**
  * The decoded values produced by an expression matcher.
  *
- * @category models
+ * @category utility types
  * @since 4.0.0
  */
 export type CapturesOf<Captures extends ReadonlyArray<Capture<string, unknown>>> = {
@@ -46,7 +46,7 @@ export type CapturesOf<Captures extends ReadonlyArray<Capture<string, unknown>>>
 /**
  * A compiled step expression.
  *
- * @category models
+ * @category utility types
  * @since 4.0.0
  */
 export type Expression<A> = expression.Matcher<A>
@@ -444,7 +444,7 @@ export declare namespace Bdd {
 /**
  * Tagged-template function used to register transitions.
  *
- * @category models
+ * @category utility types
  * @since 4.0.0
  */
 export interface StepTag<Kind extends StepKind> {
@@ -457,7 +457,7 @@ export interface StepTag<Kind extends StepKind> {
 /**
  * Builder returned by a tagged-template transition.
  *
- * @category models
+ * @category utility types
  * @since 4.0.0
  */
 export interface StepBuilder<Captures, Kind extends StepKind> {
