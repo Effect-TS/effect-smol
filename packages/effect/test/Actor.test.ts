@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Actor, Cause, Data, Deferred, Effect, Fiber, Match, Queue, Stream } from "effect"
+import { Actor, Cause, Data, Deferred, Effect, Fiber, HashMap, Match, Option, Queue, Stream } from "effect"
 
 class Increment extends Data.TaggedClass("Increment")<{
   readonly by: number
@@ -184,6 +184,122 @@ describe("Actor", () => {
 
       yield* explicit.stop
       yield* generated.stop
+    }))
+
+  it.effect("registers root actors by system id", () =>
+    Effect.gen(function*() {
+      const actor = yield* Actor.start(counterLogic, { id: "root", systemId: "root-system" })
+
+      assert.strictEqual(actor.systemId, "root-system")
+      const registered = yield* actor.system.get<CounterEvent>("root-system")
+      assert.strictEqual(Option.isSome(registered), true)
+      if (Option.isSome(registered)) {
+        assert.strictEqual(registered.value.sessionId, actor.sessionId)
+      }
+      assert.strictEqual(HashMap.size(yield* actor.system.getAll), 1)
+
+      yield* actor.stop
+
+      assert.strictEqual(Option.isNone(yield* actor.system.get("root-system")), true)
+    }))
+
+  it.effect("registers spawned actors in the shared actor system", () =>
+    Effect.gen(function*() {
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<
+          number,
+          never,
+          never,
+          Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError
+        >(
+          0,
+          ({ spawn, system }) =>
+            Effect.gen(function*() {
+              yield* spawn(counterLogic, { id: "counter", systemId: "counter-system" })
+              yield* system.send("counter-system", new Increment({ by: 6 }))
+              yield* system.send("counter-system", new ReadCount({ reply }))
+              return yield* Effect.never
+            })
+        )
+      )
+
+      assert.strictEqual(yield* Deferred.await(reply), 6)
+      assert.strictEqual(Option.isSome(yield* actor.system.get("counter-system")), true)
+
+      yield* actor.stop
+
+      assert.strictEqual(Option.isNone(yield* actor.system.get("counter-system")), true)
+    }))
+
+  it.effect("fails when spawning a duplicate system id", () =>
+    Effect.gen(function*() {
+      const errorRef = yield* Deferred.make<Actor.ActorSystemIdAlreadyExistsError>()
+      const started = yield* Queue.unbounded<void>()
+      const childLogic = Actor.fromEffect<number, never>(
+        0,
+        () => Queue.offer(started, void 0).pipe(Effect.andThen(Effect.never))
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorSystemIdAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(childLogic, { systemId: "worker" })
+            yield* spawn(childLogic, { systemId: "worker" }).pipe(
+              Effect.catchTag("ActorSystemIdAlreadyExistsError", (error) => Deferred.succeed(errorRef, error))
+            )
+            return yield* Effect.never
+          })
+      ))
+
+      assert.deepStrictEqual(yield* Queue.take(started), void 0)
+      const error = yield* Deferred.await(errorRef)
+      assert.strictEqual(error._tag, "ActorSystemIdAlreadyExistsError")
+      assert.strictEqual(error.systemId, "worker")
+      yield* Effect.yieldNow
+      assert.strictEqual(yield* Queue.size(started), 0)
+
+      yield* actor.stop
+    }))
+
+  it.effect("spawns system-owned actors and reuses released system ids", () =>
+    Effect.gen(function*() {
+      const firstRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const secondRef = yield* Deferred.make<Actor.Actor<number, CounterEvent>>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorSystemIdAlreadyExistsError>(
+        0,
+        ({ system }) =>
+          Effect.gen(function*() {
+            const first = yield* system.spawn(counterLogic, { systemId: "worker" })
+            yield* Deferred.succeed(firstRef, first)
+            yield* system.stop("worker")
+            const second = yield* system.spawn(counterLogic, { systemId: "worker" })
+            yield* Deferred.succeed(secondRef, second)
+            return yield* Effect.never
+          })
+      ))
+
+      const first = yield* Deferred.await(firstRef)
+      const second = yield* Deferred.await(secondRef)
+      const registered = yield* actor.system.get<CounterEvent>("worker")
+
+      assert.notStrictEqual(first, second)
+      assert.deepStrictEqual(yield* first.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(Option.isSome(registered), true)
+      if (Option.isSome(registered)) {
+        assert.strictEqual(registered.value.sessionId, second.sessionId)
+      }
+
+      yield* actor.stop
+
+      assert.deepStrictEqual(yield* second.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(Option.isNone(yield* actor.system.get("worker")), true)
     }))
 
   it.effect("provides root actor identity and no parent to actor logic", () =>
