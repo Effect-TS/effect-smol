@@ -89,6 +89,14 @@ describe("StateMachine", () => {
     childState: Schema.String
   }) {}
 
+  class ParentRequestProgress extends Schema.TaggedClass<ParentRequestProgress>("ParentRequestProgress")(
+    "ParentRequestProgress",
+    {
+      id: Schema.String,
+      loaded: Schema.Number
+    }
+  ) {}
+
   class RequestFailed extends Schema.TaggedClass<RequestFailed>("RequestFailed")("RequestFailed", {
     error: Schema.Any,
     cause: Schema.Any
@@ -1072,6 +1080,92 @@ describe("StateMachine", () => {
       yield* parent.stop
     })))
 
+  it.effect("toActorLogic sends events from child actions to the parent", () =>
+    Effect.gen(function*() {
+      const childMachine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            StateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+          )
+      })
+      const parentMachine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit, ParentRequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                StateMachine.actorRuntime<Submit | ParentRequestProgress>().pipe(
+                  Effect.flatMap((runtime) =>
+                    runtime.spawn(StateMachine.toActorLogic(childMachine, { userId: "child-user" }), {
+                      id: "request"
+                    })
+                  ),
+                  Effect.asVoid
+                )
+              )
+            }),
+            ParentRequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.loaded}` })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(parentMachine, { userId: "parent-user" }))
+
+      yield* actor.send(new Submit({ value: "start" }))
+
+      assert.strictEqual(yield* actor.join, "request:42")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request:42" }),
+        output: "request:42"
+      })
+    }))
+
+  it.effect("toActorLogic ignores sendParent when the hosting actor has no parent", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [ParentRequestProgress],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          entry: () =>
+            StateMachine.action(
+              StateMachine.sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+            ),
+          on: {
+            ParentRequestProgress: () => new Success({ requestId: "unexpected" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
+      yield* actor.stop
+    }))
+
   it.effect("toActorLogic safely handles stopOwner children spawned during initial actions", () =>
     Effect.gen(function*() {
       const childLogic = Actor.fromEffect<number, never, never, InitialError>(
@@ -1107,7 +1201,7 @@ describe("StateMachine", () => {
       })
     }))
 
-  it.effect("toActorLogic provides child actor capabilities to machine actions", () =>
+  it.effect("toActorLogic spawns children from machine actions and sends to them by id", () =>
     Effect.gen(function*() {
       const childRef = yield* Deferred.make<Actor.Actor<number, ChildPing, never, void>>()
       const childLogic = Actor.fromEffect<number, ChildPing>(
@@ -1129,11 +1223,10 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*() {
               yield* StateMachine.action(
                 Effect.gen(function*() {
-                  const runtime = yield* StateMachine.actorRuntime<Submit | Resolve>()
-                  const child = yield* runtime.spawn(childLogic, { id: "child" })
+                  const child = yield* StateMachine.spawn(childLogic, { id: "child" })
                   const reply = yield* Deferred.make<void>()
                   yield* Deferred.succeed(childRef, child)
-                  yield* runtime.sendTo("child", new ChildPing({ reply }))
+                  yield* StateMachine.sendTo("child", new ChildPing({ reply }))
                   yield* Deferred.await(reply)
                 })
               )
@@ -1163,6 +1256,100 @@ describe("StateMachine", () => {
         status: "stopped",
         state: 0
       })
+    }))
+
+  it.effect("toActorLogic returns spawned child refs to machine actions", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, ChildPing, never, void>>()
+      const childLogic = Actor.fromEffect<number, ChildPing>(
+        0,
+        ({ receive }) =>
+          receive.pipe(
+            Effect.flatMap((event) => Deferred.succeed(event.reply, void 0)),
+            Effect.forever
+          )
+      )
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const child = yield* StateMachine.spawn(childLogic, { id: "child" })
+                  const reply = yield* Deferred.make<void>()
+                  yield* Deferred.succeed(childRef, child)
+                  yield* child.send(new ChildPing({ reply }))
+                  yield* Deferred.await(reply)
+                })
+              )
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Resolve: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          entry: () => StateMachine.action(StateMachine.stopChild("child")),
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      yield* actor.send(new Submit({ value: "hello" }))
+      const child = yield* Deferred.await(childRef)
+
+      yield* actor.send(new Resolve({}))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
+  it.effect("toActorLogic fails when machine actions spawn duplicate child ids", () =>
+    Effect.gen(function*() {
+      const childLogic = Actor.fromEffect<number, never>(0, () => Effect.never)
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  yield* StateMachine.spawn(childLogic, { id: "worker" })
+                  yield* StateMachine.spawn(childLogic, { id: "worker" })
+                })
+              )
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {})
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      const error = yield* Effect.flip(actor.join)
+
+      assert.strictEqual(error._tag, "ActorChildAlreadyExistsError")
+      if (error._tag === "ActorChildAlreadyExistsError") {
+        assert.strictEqual(error.id, "worker")
+      }
+      const snapshot = yield* actor.snapshot
+      assert.strictEqual(snapshot.status, "error")
     }))
 
   it.effect("toActorLogic invokes a child actor and handles its output event", () =>

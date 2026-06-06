@@ -17,6 +17,7 @@ import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Ref from "./Ref.ts"
 import type * as Schema from "./Schema.ts"
+import type * as Scope from "./Scope.ts"
 import * as Stream from "./Stream.ts"
 import * as SynchronizedRef from "./SynchronizedRef.ts"
 
@@ -155,6 +156,38 @@ class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
 export class ActorRuntime extends Context.Service<ActorRuntime, ActorModule.ActorScope<any>>()(
   "effect/StateMachine/ActorRuntime"
 ) {}
+
+type SupervisionRequirements<Options> = Options extends {
+  readonly supervision?: infer SupervisionOption
+} ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
+  : never
+  : never
+
+type SpawnRequirements<Requirements, Options = never> = Exclude<
+  Requirements | SupervisionRequirements<Options>,
+  Scope.Scope
+>
+
+type SpawnIdError<Options extends ActorModule.SpawnOptions> = "id" extends keyof Options ? Options extends {
+    readonly id?: infer Id
+  } ? [Id] extends [undefined] ? never : ActorModule.ActorChildAlreadyExistsError
+  : ActorModule.ActorChildAlreadyExistsError
+  : never
+
+type SpawnSystemIdError<Options extends ActorModule.SpawnOptions> = "systemId" extends keyof Options ? Options extends {
+    readonly systemId?: infer SystemId
+  } ? [SystemId] extends [undefined] ? never : ActorModule.ActorSystemIdAlreadyExistsError
+  : ActorModule.ActorSystemIdAlreadyExistsError
+  : never
+
+type SpawnError<Options extends ActorModule.SpawnOptions> = SpawnIdError<Options> | SpawnSystemIdError<Options>
+
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never, InitialError = never> =
+  Effect.Effect<
+    ActorModule.Actor<State, Event, Error | InitialError, Output>,
+    SpawnError | InitialError,
+    ActorRuntime | SpawnRequirements<Requirements, Options>
+  >
 
 /**
  * Namespace containing type-level members associated with `Machine`.
@@ -1595,6 +1628,67 @@ export const system: Effect.Effect<ActorModule.ActorSystem, never, ActorRuntime>
 )
 
 /**
+ * Spawns a child actor owned by the actor currently hosting this state machine.
+ *
+ * **When to use**
+ *
+ * Use to create child actors from state machine actions when the child should
+ * be addressed or stopped by the hosting actor instead of being tied to a
+ * single state's `invoke` lifecycle.
+ *
+ * **Gotchas**
+ *
+ * This effect requires `ActorRuntime`, so it only runs when the state machine
+ * is running as actor logic. A named child id must be unique for the current
+ * parent actor until that child stops.
+ *
+ * @see {@link invoke} for children that start and stop with a state.
+ * @see {@link sendTo} for sending events to named children.
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const spawn: {
+  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+    logic: ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
+  <
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    Options extends ActorModule.SpawnOptions,
+    ChildInitialError = never
+  >(
+    logic: ActorModule.ActorLogic<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ChildInitialError
+    >,
+    options: Options
+  ): SpawnResult<
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    SpawnError<Options>,
+    Options,
+    ChildInitialError
+  >
+} = ((
+  logic: ActorModule.ActorLogic<any, any, any, any, any, any>,
+  options?: ActorModule.SpawnOptions<any>
+) =>
+  Effect.flatMap(
+    ActorRuntime,
+    (runtime) => options === undefined ? runtime.spawn(logic) : (runtime.spawn as any)(logic, options)
+  )) as any
+
+/**
  * Sends an event to a named child actor of the hosting actor.
  *
  * @category actor runtime
@@ -1602,6 +1696,15 @@ export const system: Effect.Effect<ActorModule.ActorSystem, never, ActorRuntime>
  */
 export const sendTo = <Event>(id: string, event: Event): Effect.Effect<void, never, ActorRuntime> =>
   Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
+
+/**
+ * Sends an event to the parent actor of the hosting actor.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const sendParent = <Event>(event: Event): Effect.Effect<void, never, ActorRuntime> =>
+  Effect.flatMap(ActorRuntime, (runtime) => runtime.parent === undefined ? Effect.void : runtime.parent.send(event))
 
 /**
  * Stops a named child actor of the hosting actor.
