@@ -87,11 +87,12 @@ type SpawnError<Options extends Actor.SpawnOptions> = SpawnIdError<Options> | Sp
 
 type SystemSpawnError<Options extends Actor.SpawnOptions> = SpawnSystemIdError<Options>
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never> = Effect.Effect<
-  Actor.Actor<State, Event, Error, Output>,
-  SpawnError,
-  SpawnRequirements<Requirements, Options>
->
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never, InitialError = never> =
+  Effect.Effect<
+    Actor.Actor<State, Event, Error | InitialError, Output>,
+    SpawnError | InitialError,
+    SpawnRequirements<Requirements, Options>
+  >
 
 const reserveSystemId = (
   runtime: ActorRuntime,
@@ -162,18 +163,19 @@ const makeActorRuntime: Effect.Effect<ActorRuntime> = Effect.gen(function*() {
     )
   )
 
-  function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+  function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
   function spawn<
     ChildState,
     ChildEvent,
     ChildError,
     ChildRequirements,
     ChildOutput,
-    Options extends Actor.SpawnOptions
+    Options extends Actor.SpawnOptions,
+    ChildInitialError = never
   >(
-    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
     options: Options
   ): SpawnResult<
     ChildState,
@@ -182,10 +184,11 @@ const makeActorRuntime: Effect.Effect<ActorRuntime> = Effect.gen(function*() {
     ChildRequirements,
     ChildOutput,
     SystemSpawnError<Options>,
-    Options
+    Options,
+    ChildInitialError
   >
-  function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+  function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
     spawnOptions?: Actor.SpawnOptions<any>
   ): SpawnResult<
     ChildState,
@@ -194,7 +197,8 @@ const makeActorRuntime: Effect.Effect<ActorRuntime> = Effect.gen(function*() {
     ChildRequirements,
     ChildOutput,
     ActorSystemIdAlreadyExistsError,
-    Actor.SpawnOptions<any>
+    Actor.SpawnOptions<any>,
+    ChildInitialError
   > {
     return Effect.acquireRelease(
       startInternal(logic, {
@@ -269,29 +273,32 @@ const startInternal: <
   Error = never,
   Requirements = never,
   Output = never,
+  InitialError = never,
   SupervisionRequirements = never
 >(
-  logic: Actor.ActorLogic<State, Event, Error, Requirements, Output>,
+  logic: Actor.ActorLogic<State, Event, Error, Requirements, Output, InitialError>,
   options: InternalStartOptions<SupervisionRequirements>
 ) => Effect.Effect<
-  Actor.Actor<State, Event, Error, Output>,
-  ActorSystemIdAlreadyExistsError,
+  Actor.Actor<State, Event, Error | InitialError, Output>,
+  ActorSystemIdAlreadyExistsError | InitialError,
   Requirements | SupervisionRequirements
 > = Effect.fnUntraced(
-  function*<State, Event, Error, Requirements, Output, SupervisionRequirements>(
-    logic: Actor.ActorLogic<State, Event, Error, Requirements, Output>,
+  function*<State, Event, Error, Requirements, Output, InitialError, SupervisionRequirements>(
+    logic: Actor.ActorLogic<State, Event, Error, Requirements, Output, InitialError>,
     options: InternalStartOptions<SupervisionRequirements>
   ) {
     const sessionId = yield* options.runtime.nextSessionId
     const id = options.id ?? sessionId
     const initial = yield* logic.initial
     const queue = yield* Queue.unbounded<Event>()
-    const current = yield* SynchronizedRef.make<Actor.Snapshot<State, Error, Output>>({
+    const current = yield* SynchronizedRef.make<Actor.Snapshot<State, Error | InitialError, Output>>({
       status: "active",
       state: initial
     })
-    const changes = yield* PubSub.unbounded<Take.Take<Actor.Snapshot<State, Error, Output>>>({ replay: 1 })
-    const done = yield* Deferred.make<Output, Error | ActorStoppedError>()
+    const changes = yield* PubSub.unbounded<Take.Take<Actor.Snapshot<State, Error | InitialError, Output>>>({
+      replay: 1
+    })
+    const done = yield* Deferred.make<Output, Error | InitialError | ActorStoppedError>()
     const childrenScope = yield* Scope.make("parallel")
     const currentChildrenScope = yield* SynchronizedRef.make<Scope.Closeable>(childrenScope)
     const childRegistry = yield* SynchronizedRef.make<HashMap.HashMap<string, ChildEntry>>(HashMap.empty())
@@ -299,8 +306,8 @@ const startInternal: <
     const systemToken = Symbol()
 
     const publishSnapshot = (
-      snapshot: Actor.Snapshot<State, Error, Output>
-    ): Effect.Effect<Actor.Snapshot<State, Error, Output>> =>
+      snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output>> =>
       PubSub.publish(changes, [snapshot] as const).pipe(Effect.as(snapshot))
 
     const completeChanges: Effect.Effect<void> = PubSub.publish(changes, Exit.succeed<void>(undefined)).pipe(
@@ -308,8 +315,8 @@ const startInternal: <
     )
 
     const completeIfTerminal = (
-      snapshot: Actor.Snapshot<State, Error, Output>
-    ): Effect.Effect<Actor.Snapshot<State, Error, Output>> => {
+      snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output>> => {
       if (snapshot.status === "active") {
         return Effect.succeed(snapshot)
       }
@@ -317,10 +324,12 @@ const startInternal: <
     }
 
     const publishIfCurrent = (
-      snapshot: Actor.Snapshot<State, Error, Output>
-    ): Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined> =>
+      snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined> =>
       SynchronizedRef.get(current).pipe(
-        Effect.flatMap((currentSnapshot): Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined> =>
+        Effect.flatMap((
+          currentSnapshot
+        ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined> =>
           currentSnapshot === snapshot
             ? publishSnapshot(snapshot).pipe(Effect.flatMap(completeIfTerminal))
             : Effect.succeed(undefined)
@@ -329,9 +338,9 @@ const startInternal: <
 
     const modifySnapshot = <E2, R2>(
       f: (
-        snapshot: Actor.Snapshot<State, Error, Output>
-      ) => Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined, E2, R2>
-    ): Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined, E2, R2> =>
+        snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+      ) => Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2> =>
       SynchronizedRef.modifyEffect(
         current,
         (snapshot) =>
@@ -343,9 +352,9 @@ const startInternal: <
 
     const updateSnapshot = <E2, R2>(
       f: (
-        snapshot: Actor.Snapshot<State, Error, Output>
-      ) => Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined, E2, R2>
-    ): Effect.Effect<Actor.Snapshot<State, Error, Output> | undefined, E2, R2> =>
+        snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+      ) => Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2> =>
       modifySnapshot(f).pipe(
         Effect.flatMap((snapshot) => snapshot === undefined ? Effect.succeed(undefined) : publishIfCurrent(snapshot))
       )
@@ -505,22 +514,32 @@ const startInternal: <
       }
     }
 
-    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
     function spawn<
       ChildState,
       ChildEvent,
       ChildError,
       ChildRequirements,
       ChildOutput,
-      Options extends Actor.SpawnOptions
+      Options extends Actor.SpawnOptions,
+      ChildInitialError = never
     >(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
       options: Options
-    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>, Options>
-    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+    ): SpawnResult<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      SpawnError<Options>,
+      Options,
+      ChildInitialError
+    >
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
       spawnOptions?: Actor.SpawnOptions<any>
     ): SpawnResult<
       ChildState,
@@ -529,7 +548,8 @@ const startInternal: <
       ChildRequirements,
       ChildOutput,
       ActorChildAlreadyExistsError | ActorSystemIdAlreadyExistsError,
-      Actor.SpawnOptions<any>
+      Actor.SpawnOptions<any>,
+      ChildInitialError
     > {
       if (spawnOptions?.id === undefined) {
         return SynchronizedRef.get(currentChildrenScope).pipe(
@@ -596,7 +616,7 @@ const startInternal: <
 
     yield* publishSnapshot(yield* SynchronizedRef.get(current))
 
-    const changesStream: Stream.Stream<Actor.Snapshot<State, Error, Output>> = Stream.unwrap(
+    const changesStream: Stream.Stream<Actor.Snapshot<State, Error | InitialError, Output>> = Stream.unwrap(
       Effect.gen(function*() {
         const subscription = yield* PubSub.subscribe(changes)
         const snapshot = yield* SynchronizedRef.get(current)
@@ -618,7 +638,7 @@ const startInternal: <
       ? yield* Schedule.toStepWithSleep(supervision.schedule)
       : undefined
 
-    const terminalizeFailure = (cause: Cause.Cause<Error>): Effect.Effect<void> =>
+    const terminalizeFailure = (cause: Cause.Cause<Error | InitialError>): Effect.Effect<void> =>
       modifySnapshot((snapshot) =>
         Effect.succeed(
           snapshot.status === "active"
@@ -676,22 +696,27 @@ const startInternal: <
         )
       )
 
-    const resetForRestart: Effect.Effect<boolean, never, Requirements> = Effect.gen(function*() {
-      const nextChildrenScope = yield* Scope.make("parallel")
-      yield* SynchronizedRef.set(currentChildrenScope, nextChildrenScope)
-      const state = yield* logic.initial
-      const snapshot = yield* updateSnapshot((snapshot) =>
-        Effect.succeed(
-          snapshot.status === "active"
-            ? {
-              status: "active",
-              state
-            }
-            : undefined
-        )
-      )
-      return snapshot !== undefined
-    })
+    const resetForRestart: Effect.Effect<boolean, never, Requirements> = logic.initial.pipe(
+      Effect.matchCauseEffect({
+        onFailure: (cause) => terminalizeFailure(cause).pipe(Effect.as(false)),
+        onSuccess: (state) =>
+          Effect.gen(function*() {
+            const nextChildrenScope = yield* Scope.make("parallel")
+            yield* SynchronizedRef.set(currentChildrenScope, nextChildrenScope)
+            const snapshot = yield* updateSnapshot((snapshot) =>
+              Effect.succeed(
+                snapshot.status === "active"
+                  ? {
+                    status: "active",
+                    state
+                  }
+                  : undefined
+              )
+            )
+            return snapshot !== undefined
+          })
+      })
+    )
 
     const handleFailure = (
       cause: Cause.Cause<Error>
@@ -751,25 +776,36 @@ const startInternal: <
       join: Deferred.await(done),
       stop: stopSelf,
       send: self.send
-    } satisfies Actor.Actor<State, Event, Error, Output>
+    } satisfies Actor.Actor<State, Event, Error | InitialError, Output>
   }
 )
 
 /** @internal */
-export const start: <State, Event, Error = never, Requirements = never, Output = never>(
-  logic: Actor.ActorLogic<State, Event, Error, Requirements, Output>,
+export const start: <
+  State,
+  Event,
+  Error = never,
+  Requirements = never,
+  Output = never,
+  InitialError = never
+>(
+  logic: Actor.ActorLogic<State, Event, Error, Requirements, Output, InitialError>,
   options?: Actor.StartOptions
-) => Effect.Effect<Actor.Actor<State, Event, Error, Output>, never, Requirements> = Effect.fnUntraced(
-  function*<State, Event, Error, Requirements, Output>(
-    logic: Actor.ActorLogic<State, Event, Error, Requirements, Output>,
-    options?: Actor.StartOptions
-  ) {
-    const runtime = yield* makeActorRuntime
-    return yield* startInternal(
-      logic,
-      options === undefined
-        ? { finalizer: runtime.close, runtime }
-        : { ...options, finalizer: runtime.close, runtime }
-    ).pipe(Effect.orDie)
-  }
-)
+) => Effect.Effect<Actor.Actor<State, Event, Error | InitialError, Output>, InitialError, Requirements> = Effect
+  .fnUntraced(
+    function*<State, Event, Error, Requirements, Output, InitialError>(
+      logic: Actor.ActorLogic<State, Event, Error, Requirements, Output, InitialError>,
+      options?: Actor.StartOptions
+    ) {
+      const runtime = yield* makeActorRuntime
+      return yield* startInternal(
+        logic,
+        options === undefined
+          ? { finalizer: runtime.close, runtime }
+          : { ...options, finalizer: runtime.close, runtime }
+      ).pipe(
+        Effect.onExit((exit) => Exit.isFailure(exit) ? runtime.close(exit) : Effect.void),
+        Effect.catchTag("ActorSystemIdAlreadyExistsError", (error) => Effect.die(error))
+      )
+    }
+  )

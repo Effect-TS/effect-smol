@@ -357,27 +357,38 @@ type SpawnSystemIdError<Options extends SpawnOptions> = "systemId" extends keyof
 
 type SpawnError<Options extends SpawnOptions> = SpawnIdError<Options> | SpawnSystemIdError<Options>
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never> = Effect.Effect<
-  Actor<State, Event, Error, Output>,
-  SpawnError,
-  SpawnRequirements<Requirements, Options>
->
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never, InitialError = never> =
+  Effect.Effect<
+    Actor<State, Event, Error | InitialError, Output>,
+    SpawnError | InitialError,
+    SpawnRequirements<Requirements, Options>
+  >
 
 interface Spawn {
-  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
   <
     ChildState,
     ChildEvent,
     ChildError,
     ChildRequirements,
     ChildOutput,
-    Options extends SpawnOptions
+    Options extends SpawnOptions,
+    ChildInitialError = never
   >(
-    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+    logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
     options: Options
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>, Options>
+  ): SpawnResult<
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    SpawnError<Options>,
+    Options,
+    ChildInitialError
+  >
 }
 
 /**
@@ -407,8 +418,15 @@ export interface ActorContext<State, Event> {
  * @category models
  * @since 4.0.0
  */
-export interface ActorLogic<State, Event, out Error = never, out Requirements = never, out Output = never> {
-  readonly initial: Effect.Effect<State, never, Requirements>
+export interface ActorLogic<
+  State,
+  Event,
+  out Error = never,
+  out Requirements = never,
+  out Output = never,
+  out InitialError = never
+> {
+  readonly initial: Effect.Effect<State, InitialError, Requirements>
   readonly run: (context: ActorContext<State, Event>) => Effect.Effect<Output, Error, Requirements>
 }
 
@@ -448,7 +466,14 @@ export const fromTransition = <State, Event, Error = never, Requirements = never
  * @category constructors
  * @since 4.0.0
  */
-export const start: <State, Event, Error = never, Requirements = never, Output = never>(
-  logic: ActorLogic<State, Event, Error, Requirements, Output>,
+export const start: <
+  State,
+  Event,
+  Error = never,
+  Requirements = never,
+  Output = never,
+  InitialError = never
+>(
+  logic: ActorLogic<State, Event, Error, Requirements, Output, InitialError>,
   options?: StartOptions
-) => Effect.Effect<Actor<State, Event, Error, Output>, never, Requirements> = internalStart
+) => Effect.Effect<Actor<State, Event, Error | InitialError, Output>, InitialError, Requirements> = internalStart

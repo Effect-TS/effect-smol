@@ -4,6 +4,7 @@
  * @since 4.0.0
  */
 
+import type * as ActorModule from "./Actor.ts"
 import type * as Cause from "./Cause.ts"
 import * as Context from "./Context.ts"
 import * as Data from "./Data.ts"
@@ -157,6 +158,8 @@ export declare namespace Machine {
   /**
    * A schema whose decoded value contains a `_tag` discriminator.
    *
+   * **Details**
+   *
    * This mirrors the tagged-schema constraint used by `Schema.toTaggedUnion`.
    *
    * @category models
@@ -164,6 +167,12 @@ export declare namespace Machine {
    */
   export type TaggedSchema = Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }
 
+  /**
+   * Constructor arguments for a machine initial state function.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type InputArgs<Input extends Schema.Top> = Input extends typeof Schema.Void ? []
     : [input: Input["Type"]]
 
@@ -276,43 +285,127 @@ export declare namespace Machine {
     readonly event: EventOf<Events>
   }
 
+  /**
+   * Return value accepted from entry and exit state actions.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type StateActionResult<E, R> = void | Effect.Effect<void, E, R>
 
+  /**
+   * Return value accepted from a machine initial state function.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type InitialResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
     | StateOf<States>
     | Effect.Effect<StateOf<States>, E, R>
 
+  /**
+   * Return value accepted from transition handlers.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type HandlerResult<States extends ReadonlyArray<TaggedSchema>, E, R> =
     | StateOf<States>
     | void
     | Effect.Effect<StateOf<States> | void, E, R>
 
+  /**
+   * Extracts the union of handler return values from a handler map.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type HandlerEffect<Handlers> = Handlers[keyof Handlers]
+  /**
+   * Extracts the error type from a handler return value.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type HandlerError<Handlers> = Effect.Error<HandlerEffect<Handlers>>
+  /**
+   * Extracts the service requirements from a handler return value.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type HandlerServices<Handlers> = Effect.Services<HandlerEffect<Handlers>>
+  /**
+   * Extracts the return value from an initial state function.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type InitialReturn<Initial> = Initial extends (...args: any) => infer Ret ? Ret : never
+  /**
+   * Extracts the return value from an entry or exit action.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type StateActionReturn<Config, Key extends "entry" | "exit"> = Key extends keyof Config
     ? NonNullable<Config[Key]> extends (...args: any) => infer Ret ? Ret : never
     : never
+  /**
+   * Extracts the return value from an event transition config.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type EventTransitionReturn<Transition> = Transition extends (...args: any) => infer Ret ? Ret
     : Transition extends { readonly transition: (...args: any) => infer Ret } ? Ret
     : never
+  /**
+   * Extracts the return value from a state's event handlers.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type EventHandlerReturn<Config> = Config extends { readonly on?: infer On }
     ? { readonly [EventTag in keyof On]: EventTransitionReturn<NonNullable<On[EventTag]>> }[
       keyof On
     ]
     : never
+  /**
+   * Extracts the return value from an eventless transition.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type AlwaysReturn<Config> = Config extends { readonly always?: infer Always }
     ? NonNullable<Always> extends (...args: any) => infer Ret ? Ret : never
     : never
+  /**
+   * Extracts the return value from a final state output function.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type FinalOutputReturn<Config> = Config extends { readonly output?: infer Output }
     ? NonNullable<Output> extends (...args: any) => infer Ret ? Ret : never
     : never
 
+  /**
+   * Resolves the tag of a state config when it is final.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
   export type FinalStateFromConfig<Config, StateTag extends PropertyKey> = Config extends { readonly type: "final" }
     ? StateTag
     : never
 
+  /**
+   * Configuration accepted for a non-final state.
+   *
+   * @category models
+   * @since 4.0.0
+   */
   export type ActiveStateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
@@ -339,6 +432,12 @@ export declare namespace Machine {
     }
   }
 
+  /**
+   * Configuration accepted for a final state.
+   *
+   * @category models
+   * @since 4.0.0
+   */
   export type FinalStateConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
@@ -352,6 +451,12 @@ export declare namespace Machine {
     readonly on?: never
   }
 
+  /**
+   * Configuration accepted by `handle` for a state tag.
+   *
+   * @category models
+   * @since 4.0.0
+   */
   export type HandlerConfig<
     States extends ReadonlyArray<TaggedSchema>,
     Events extends ReadonlyArray<TaggedSchema>,
@@ -1161,6 +1266,8 @@ export const plan = macrostep
 /**
  * Computes the next state for a state machine without mutating a running actor.
  *
+ * **Details**
+ *
  * Deferred actions are executed after the next state is planned.
  *
  * @category combinators
@@ -1211,6 +1318,12 @@ const actionUnsafe = Effect.fnUntraced(function*<E, R>(
   yield* actions.add(effect)
 })
 
+/**
+ * Defers an effectful action until the current state machine step is planned.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
 ): Effect.Effect<void, E, R> => actionUnsafe(effect) as unknown as Effect.Effect<void, E, R>
@@ -1222,9 +1335,104 @@ const raiseUnsafe = Effect.fnUntraced(function*<Event>(
   yield* events.add(event)
 })
 
+/**
+ * Raises an event for the current state machine macrostep.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
 export const raise = <Event>(
   event: Event
 ): Effect.Effect<void> => raiseUnsafe(event) as unknown as Effect.Effect<void>
+
+/**
+ * Converts a state machine definition into actor logic that can be started by
+ * the actor runtime.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const toActorLogic: <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  ...args: [...Machine.InputArgs<Input>]
+) => ActorModule.ActorLogic<
+  Machine.StateOf<States>,
+  Machine.EventOf<Events>,
+  E | UnhandledEventError | InfiniteTransitionError,
+  InitialR | R,
+  Output | undefined,
+  InitialE | StartupError
+> = <
+  const States extends ReadonlyArray<Machine.TaggedSchema>,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never,
+  FinalStates extends Machine.TagOf<States[number]> = never,
+  Output = never
+>(
+  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
+  ...args: [...Machine.InputArgs<Input>]
+) => ({
+  initial: planInitial(machine, ...args).pipe(
+    Effect.flatMap((planned) =>
+      Effect.all(planned.actions, { discard: true }).pipe(
+        Effect.as(planned.state)
+      )
+    )
+  ),
+  run: ({ receive, state, setState }) =>
+    Effect.gen(function*() {
+      let done = false
+      let output: Output | undefined = undefined
+
+      const initialState = yield* state
+      if (isFinalState(machine, initialState)) {
+        return getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
+          machine,
+          initialState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+          InitialEvent as Machine.EventOf<Events>
+        )
+      }
+
+      yield* Effect.whileLoop({
+        while: () => !done,
+        body: () =>
+          Effect.gen(function*() {
+            const event = yield* receive
+            const current = yield* state
+            const planned = yield* macrostep(machine, current, event)
+
+            yield* setState(planned.next)
+            yield* Effect.all(planned.actions, { discard: true })
+
+            if (isFinalState(machine, planned.next)) {
+              done = true
+              output = planned.output
+            } else {
+              yield* Effect.yieldNow
+            }
+          }),
+        step: () => undefined
+      })
+
+      return output
+    })
+})
 
 /**
  * Starts a state machine runtime.

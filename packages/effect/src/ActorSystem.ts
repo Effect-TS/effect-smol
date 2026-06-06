@@ -41,11 +41,12 @@ type SpawnSystemIdError<Options extends Actor.SpawnOptions> = "systemId" extends
   : ActorSystemIdAlreadyExistsError
   : never
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never> = Effect.Effect<
-  Actor.Actor<State, Event, Error, Output>,
-  SpawnError,
-  SpawnRequirements<Requirements, Options>
->
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never, InitialError = never> =
+  Effect.Effect<
+    Actor.Actor<State, Event, Error | InitialError, Output>,
+    SpawnError | InitialError,
+    SpawnRequirements<Requirements, Options>
+  >
 
 /**
  * Lifecycle event emitted by an actor system.
@@ -81,18 +82,19 @@ export type Event =
  * @since 4.0.0
  */
 export interface SystemSpawn {
-  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>(
-    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never>
+  <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
   <
     ChildState,
     ChildEvent,
     ChildError,
     ChildRequirements,
     ChildOutput,
-    Options extends Actor.SpawnOptions
+    Options extends Actor.SpawnOptions,
+    ChildInitialError = never
   >(
-    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
+    logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
     options: Options
   ): SpawnResult<
     ChildState,
@@ -101,7 +103,8 @@ export interface SystemSpawn {
     ChildRequirements,
     ChildOutput,
     SpawnSystemIdError<Options>,
-    Options
+    Options,
+    ChildInitialError
   >
 }
 

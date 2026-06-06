@@ -1,5 +1,18 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Context, Data, Effect, Ref, Schema, StateMachine } from "effect"
+import {
+  Actor,
+  ActorSystem,
+  Cause,
+  Context,
+  Data,
+  Effect,
+  Fiber,
+  Option,
+  Ref,
+  Schema,
+  StateMachine,
+  Stream
+} from "effect"
 
 class DeferredLog extends Context.Service<DeferredLog, {
   readonly push: (message: string) => Effect.Effect<void>
@@ -818,6 +831,133 @@ describe("StateMachine", () => {
       yield* actor.send(new Submit({ value: "hello" }))
 
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+    }))
+
+  it.effect("toActorLogic runs with actor identity and active snapshots", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
+      })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }), {
+        id: "user-machine",
+        systemId: "user-machine-1"
+      })
+      const registered = yield* actor.system.get<Submit>("user-machine-1")
+      const observer = yield* actor.changes.pipe(
+        Stream.filter((snapshot) => snapshot.state._tag === "Loading"),
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkChild
+      )
+
+      assert.strictEqual(actor.id, "user-machine")
+      assert.strictEqual(actor.systemId, "user-machine-1")
+      assert.strictEqual(Option.isSome(registered), true)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      const snapshots = Array.from(yield* Fiber.join(observer))
+      assert.deepStrictEqual(snapshots, [{
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      }])
+      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+
+      yield* actor.stop
+      assert.strictEqual(Option.isNone(yield* actor.system.get("user-machine-1")), true)
+    }))
+
+  it.effect("toActorLogic completes actor output from a final state", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: "request-1"
+      })
+    }))
+
+  it.effect("toActorLogic can be spawned and addressed by actor system id", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+      const system = yield* ActorSystem.make
+      const actor = yield* system.spawn(StateMachine.toActorLogic(machine, { userId: "user-1" }), {
+        systemId: "user-machine-1"
+      })
+
+      const registered = yield* system.get<Submit>("user-machine-1")
+      assert.strictEqual(Option.isSome(registered), true)
+
+      yield* system.send("user-machine-1", new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.strictEqual(Option.isNone(yield* system.get("user-machine-1")), true)
+    })))
+
+  it.effect("toActorLogic propagates startup failures through Actor.start", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          const state = new Idle({ userId })
+          yield* StateMachine.action(Effect.fail(new InitialError({ state: state._tag })))
+          return state
+        })
+      })
+
+      const error = yield* Effect.flip(Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" })))
+
+      assert.instanceOf(error, InitialError)
+      assert.strictEqual(error._tag, "InitialError")
+      assert.strictEqual(error.state, "Idle")
     }))
 
   it.effect("sending an event that is not handled by the current state fails", () =>
