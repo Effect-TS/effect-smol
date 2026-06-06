@@ -7,12 +7,14 @@
 import type * as ActorSystemModule from "./ActorSystem.ts"
 import type * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
+import type * as Exit from "./Exit.ts"
 import type {
   ActorChildAlreadyExistsError,
   ActorStoppedError,
   ActorSystemIdAlreadyExistsError
 } from "./internal/actorErrors.ts"
 import { start as internalStart } from "./internal/actorSystem.ts"
+import type * as Schedule from "./Schedule.ts"
 import type * as Scope from "./Scope.ts"
 import type * as Stream from "./Stream.ts"
 
@@ -119,14 +121,57 @@ export type SystemSpawn = ActorSystemModule.SystemSpawn
 export type ActorSystemEvent = ActorSystemModule.Event
 
 /**
+ * Supervision strategy used when a child actor fails.
+ *
+ * **Details**
+ *
+ * `None` leaves the failed child in an error state. `StopOwner` stops the actor
+ * or actor system that spawned the child. `Restart` resets the failed actor to
+ * its initial state and runs it again according to the provided schedule.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type Supervision<Requirements = never> =
+  | {
+    readonly _tag: "None"
+  }
+  | {
+    readonly _tag: "StopOwner"
+  }
+  | {
+    readonly _tag: "Restart"
+    readonly schedule: Schedule.Schedule<unknown, Exit.Exit<unknown, unknown>, never, Requirements>
+  }
+
+/**
+ * Constructors for actor supervision strategies.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const Supervision: {
+  readonly none: Supervision
+  readonly stopOwner: Supervision
+  readonly restart: <Requirements>(
+    schedule: Schedule.Schedule<unknown, Exit.Exit<unknown, unknown>, never, Requirements>
+  ) => Supervision<Requirements>
+} = {
+  none: { _tag: "None" },
+  stopOwner: { _tag: "StopOwner" },
+  restart: (schedule) => ({ _tag: "Restart", schedule })
+}
+
+/**
  * Options for spawning child actors.
  *
  * @category models
  * @since 4.0.0
  */
-export interface SpawnOptions {
+export interface SpawnOptions<out Requirements = never> {
   readonly id?: string
   readonly systemId?: string
+  readonly supervision?: Supervision<Requirements>
 }
 
 /**
@@ -135,7 +180,7 @@ export interface SpawnOptions {
  * @category models
  * @since 4.0.0
  */
-export interface SpawnIdOptions extends SpawnOptions {
+export interface SpawnIdOptions<out Requirements = never> extends SpawnOptions<Requirements> {
   readonly id: string
 }
 
@@ -150,7 +195,15 @@ export interface StartOptions {
   readonly systemId?: string
 }
 
-type SpawnRequirements<Requirements> = Exclude<Requirements, Scope.Scope>
+type SupervisionRequirements<Options> = Options extends {
+  readonly supervision?: infer SupervisionOption
+} ? SupervisionOption extends { readonly _tag: "Restart" } & Supervision<infer Requirements> ? Requirements : never
+  : never
+
+type SpawnRequirements<Requirements, Options = never> = Exclude<
+  Requirements | SupervisionRequirements<Options>,
+  Scope.Scope
+>
 
 type SpawnIdError<Options extends SpawnOptions> = "id" extends keyof Options ? Options extends {
     readonly id?: infer Id
@@ -166,10 +219,10 @@ type SpawnSystemIdError<Options extends SpawnOptions> = "systemId" extends keyof
 
 type SpawnError<Options extends SpawnOptions> = SpawnIdError<Options> | SpawnSystemIdError<Options>
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError> = Effect.Effect<
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never> = Effect.Effect<
   Actor<State, Event, Error, Output>,
   SpawnError,
-  SpawnRequirements<Requirements>
+  SpawnRequirements<Requirements, Options>
 >
 
 interface Spawn {
@@ -186,7 +239,7 @@ interface Spawn {
   >(
     logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
     options: Options
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>>
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnError<Options>, Options>
 }
 
 /**

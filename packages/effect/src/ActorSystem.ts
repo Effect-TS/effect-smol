@@ -24,7 +24,16 @@ export {
   ActorSystemIdAlreadyExistsError
 } from "./internal/actorErrors.ts"
 
-type SpawnRequirements<Requirements> = Exclude<Requirements, Scope.Scope>
+type SupervisionRequirements<Options> = Options extends {
+  readonly supervision?: infer SupervisionOption
+} ? SupervisionOption extends { readonly _tag: "Restart" } & Actor.Supervision<infer Requirements> ? Requirements
+  : never
+  : never
+
+type SpawnRequirements<Requirements, Options = never> = Exclude<
+  Requirements | SupervisionRequirements<Options>,
+  Scope.Scope
+>
 
 type SpawnSystemIdError<Options extends Actor.SpawnOptions> = "systemId" extends keyof Options ? Options extends {
     readonly systemId?: infer SystemId
@@ -32,10 +41,10 @@ type SpawnSystemIdError<Options extends Actor.SpawnOptions> = "systemId" extends
   : ActorSystemIdAlreadyExistsError
   : never
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError> = Effect.Effect<
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never> = Effect.Effect<
   Actor.Actor<State, Event, Error, Output>,
   SpawnError,
-  SpawnRequirements<Requirements>
+  SpawnRequirements<Requirements, Options>
 >
 
 /**
@@ -85,7 +94,15 @@ export interface SystemSpawn {
   >(
     logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput>,
     options: Options
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, SpawnSystemIdError<Options>>
+  ): SpawnResult<
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    SpawnSystemIdError<Options>,
+    Options
+  >
 }
 
 /**

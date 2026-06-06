@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Actor, Cause, Data, Deferred, Effect, Fiber, HashMap, Match, Option, Queue, Stream } from "effect"
+import { Actor, Cause, Data, Deferred, Effect, Fiber, HashMap, Match, Option, Queue, Schedule, Stream } from "effect"
 
 class Increment extends Data.TaggedClass("Increment")<{
   readonly by: number
@@ -884,6 +884,155 @@ describe("Actor", () => {
         status: "active",
         state: 0
       })
+
+      yield* actor.stop
+    }))
+
+  it.effect("stops the parent when a child fails with stopOwner supervision", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(
+              Actor.fromEffect<number, never, never, LogicError>(
+                0,
+                () => Effect.fail(error)
+              ),
+              {
+                id: "child",
+                supervision: Actor.Supervision.stopOwner
+              }
+            )
+            return yield* Effect.never
+          })
+      ))
+
+      const stopped = yield* Effect.flip(actor.join)
+
+      assert.strictEqual(stopped._tag, "ActorStoppedError")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
+  it.effect("restarts a failed child from its initial state", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const observedStates = yield* Queue.unbounded<number>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, LogicError, never>>()
+      let runs = 0
+      const childLogic = Actor.fromEffect<number, never, never, LogicError>(
+        0,
+        ({ setState, state }) =>
+          Effect.gen(function*() {
+            const run = yield* Effect.sync(() => runs++)
+            const current = yield* state
+            yield* Queue.offer(observedStates, current)
+            if (run === 0) {
+              yield* setState(1)
+              return yield* Effect.fail(error)
+            }
+            return yield* Effect.never
+          })
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(Schedule.recurs(1))
+            })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.strictEqual(yield* Queue.take(observedStates), 0)
+      assert.strictEqual(yield* Queue.take(observedStates), 0)
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "active",
+        state: 0
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("leaves a restarted child in error state when the restart schedule is exhausted", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const runsQueue = yield* Queue.unbounded<number>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, LogicError, never>>()
+      let runs = 0
+      const childLogic = Actor.fromEffect<number, never, never, LogicError>(
+        0,
+        () =>
+          Effect.gen(function*() {
+            const run = yield* Effect.sync(() => runs++)
+            yield* Queue.offer(runsQueue, run)
+            return yield* Effect.fail(error)
+          })
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(Schedule.recurs(1))
+            })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+
+      assert.strictEqual(yield* Queue.take(runsQueue), 0)
+      assert.strictEqual(yield* Queue.take(runsQueue), 1)
+      assert.deepStrictEqual(yield* Effect.flip(child.join), error)
+      const snapshot = yield* child.snapshot
+      assert.strictEqual(snapshot.status, "error")
+
+      yield* actor.stop
+    }))
+
+  it.effect("does not restart a supervised child when it is explicitly stopped", () =>
+    Effect.gen(function*() {
+      const started = yield* Queue.unbounded<void>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const stopped = yield* Deferred.make<void>()
+      const childLogic = Actor.fromEffect<number, never>(
+        0,
+        () => Queue.offer(started, void 0).pipe(Effect.andThen(Effect.never))
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn, stopChild }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(Schedule.recurs(1))
+            })
+            yield* Deferred.succeed(childRef, child)
+            yield* Queue.take(started)
+            yield* stopChild("child")
+            yield* Deferred.succeed(stopped, void 0)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+      yield* Deferred.await(stopped)
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(yield* Queue.size(started), 0)
 
       yield* actor.stop
     }))
