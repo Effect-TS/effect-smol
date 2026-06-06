@@ -261,7 +261,7 @@ export declare namespace All {
   /**
    * Alias for any `Effect` value accepted by `Effect.all`.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type EffectAny = Effect<any, any, any>
@@ -269,7 +269,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting an iterable.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type ReturnIterable<
@@ -286,7 +286,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting a tuple.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type ReturnTuple<
@@ -317,7 +317,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` when collecting a record.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type ReturnObject<T, Discard extends boolean, Mode extends boolean = false> = [T] extends [
@@ -343,7 +343,7 @@ export declare namespace All {
   /**
    * Detects whether `Effect.all` should discard collected values.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type IsDiscard<A> = [Extract<A, { readonly discard: true }>] extends [
@@ -354,7 +354,7 @@ export declare namespace All {
   /**
    * Detects whether `Effect.all` should collect results in `Result` mode.
    *
-   * @category models
+   * @category utility types
    * @since 4.0.0
    */
   export type IsResult<A> = [Extract<A, { readonly mode: "result" }>] extends [never] ? false : true
@@ -362,7 +362,7 @@ export declare namespace All {
   /**
    * Computes the return type for `Effect.all` from its input and options.
    *
-   * @category models
+   * @category utility types
    * @since 2.0.0
    */
   export type Return<
@@ -9297,9 +9297,46 @@ export const runSyncExitWith: <R>(
  */
 export declare namespace fn {
   /**
-   * Generator return type accepted by `Effect.fn` and `Effect.fnUntraced`.
+   * Generator return type accepted by {@link fn} and {@link fnUntraced}.
    *
-   * @category models
+   * **When to use**
+   *
+   * Use when you need to annotate the return type of a generator body while
+   * keeping the produced function's `Effect` return type inferred.
+   *
+   * **Example** (Annotating an Effect function)
+   *
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * const f = Effect.fnUntraced(function*(
+   *   value: string
+   * ): Effect.fn.Return<number> {
+   *   return yield* Effect.succeed(value.length)
+   * })
+   *
+   * //      ┌─── Effect.Effect<number>
+   * //      ▼
+   * const program = f("hello")
+   * ```
+   *
+   * **Example** (Annotating a parametric Effect function)
+   *
+   * ```ts
+   * import { Effect } from "effect"
+   *
+   * const f = Effect.fnUntraced(function*<A>(
+   *   value: A
+   * ): Effect.fn.Return<A> {
+   *   return yield* Effect.succeed(value)
+   * })
+   *
+   * //      ┌─── Effect.Effect<string>
+   * //      ▼
+   * const program = f("hello")
+   * ```
+   *
+   * @category utility types
    * @since 3.19.0
    */
   export type Return<A, E = never, R = never> = Generator<Effect<any, E, R>, A, any>
@@ -9307,7 +9344,7 @@ export declare namespace fn {
   /**
    * Type of the untraced function builder used by `Effect.fnUntraced`.
    *
-   * @category models
+   * @category utility types
    * @since 3.11.0
    */
   export type Untraced = {
@@ -10895,7 +10932,7 @@ export declare namespace fn {
   /**
    * Type of the traced function builder used by `Effect.fn`.
    *
-   * @category models
+   * @category utility types
    * @since 4.0.0
    */
   export type Traced = {
@@ -13339,21 +13376,88 @@ export declare namespace fn {
 /**
  * Creates an Effect-returning function without tracing.
  *
+ * **When to use**
+ *
+ * Use when you are defining a reusable Effect function whose implementation
+ * would otherwise be a normal function returning {@link gen}, especially when
+ * tracing spans or stack-frame capture are not needed.
+ *
  * **Details**
  *
- * `Effect.fnUntraced` also acts as a `pipe` function, so you can append transforms after the body.
+ * Compared to a plain function that returns {@link gen}, `Effect.fnUntraced`
+ * reuses the generator body instead of allocating a fresh generator closure
+ * around the arguments on every call. It does not record an Effect stack-frame
+ * boundary and does not create tracing spans. Use {@link fn} when you need
+ * those stack frames or spans. Additional arguments after the generator body
+ * act like `pipe` transforms: each transform receives the previous result and
+ * the original function arguments. Annotate the generator return type with
+ * `Effect.fn.Return<A, E, R>` when the produced `Effect` type needs to be
+ * stated explicitly.
  *
  * **Example** (Defining untraced effect functions)
  *
  * ```ts
- * import { Console, Effect } from "effect"
+ * import { Effect } from "effect"
  *
- * const greet = Effect.fnUntraced(function* (name: string) {
- *   yield* Console.log(`Hello, ${name}`)
- *   return name.length
+ * const f = Effect.fnUntraced(function*(
+ *   value: string
+ * ) {
+ *   return yield* Effect.succeed(value.length)
  * })
  *
- * Effect.runFork(greet("Ada"))
+ * //      ┌─── Effect.Effect<number>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Transforming the returned Effect)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fnUntraced(
+ *   function*(value: string) {
+ *     return yield* Effect.succeed(value.length)
+ *   },
+ *   (effect, value) =>
+ *     effect.pipe(Effect.map((length) => `${value}: ${length}`))
+ * )
+ *
+ * //      ┌─── Effect.Effect<string>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Annotating an untraced non-parametric function)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fnUntraced(function*(
+ *   value: string
+ * ): Effect.fn.Return<number> {
+ *   return yield* Effect.succeed(value.length)
+ * })
+ *
+ * //      ┌─── Effect.Effect<number>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Annotating an untraced parametric function)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fnUntraced(function*<A>(
+ *   value: A
+ * ): Effect.fn.Return<A> {
+ *   return yield* Effect.succeed(value)
+ * })
+ *
+ * //      ┌─── Effect.Effect<string>
+ * //      ▼
+ * const program = f("hello")
  * ```
  *
  * @category functions
@@ -13362,30 +13466,117 @@ export declare namespace fn {
 export const fnUntraced: fn.Untraced = internal.fnUntraced
 
 /**
- * Creates a traced function with an optional span name and `SpanOptionsNoTrace` that adds spans and stack frames, plus pipeable post-processing that receives the Effect and the original arguments.
+ * Creates a reusable traced function from an Effect body.
+ *
+ * **When to use**
+ *
+ * Use when you are defining a reusable Effect function whose implementation
+ * would otherwise be a normal function returning {@link gen}, and you want
+ * tracing spans or stack-frame capture.
  *
  * **Details**
  *
- * Pipeable functions run after the body and can transform the resulting Effect.
+ * Compared to a plain function that returns {@link gen}, `Effect.fn` reuses the
+ * generator body instead of allocating a fresh generator closure around the
+ * arguments on every call. Call `Effect.fn(body, ...)` for a generic
+ * stack-frame boundary without creating a span. Call
+ * `Effect.fn("operationName", options?)(body, ...)` when that boundary should
+ * have a readable operation name and the returned `Effect` should create a
+ * tracing span when run. {@link SpanOptionsNoTrace} configures span metadata
+ * such as attributes, links, parent or root selection, kind, sampling, and log
+ * level. Additional arguments after the generator body act like `pipe`
+ * transforms: each transform receives the previous result and the original
+ * function arguments. When those transforms return an `Effect`, the returned
+ * effect includes stack-frame metadata and, for the named form, a tracing span.
+ * Generator bodies may declare a `this` parameter; pass `{ self }` before the
+ * body to bind `this` when the function is created.
  *
  * **Example** (Defining traced effect functions)
  *
  * ```ts
- * import { Console, Effect } from "effect"
+ * import { Effect } from "effect"
  *
- * // Create a named span and post-process the returned Effect.
- * const greet = Effect.fn("greet")(
- *   function*(name: string) {
- *     yield* Console.log(`Hello, ${name}`)
- *     return name.length
+ * const f = Effect.fn("calculateLength")(function*(value: string) {
+ *   return yield* Effect.succeed(value.length)
+ * })
+ *
+ * //      ┌─── Effect.Effect<number>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Transforming the returned Effect)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fn("formatLength")(
+ *   function*(value: string) {
+ *     return yield* Effect.succeed(value.length)
  *   },
- *   Effect.map((length) => length + 1)
+ *   (effect, value) =>
+ *     effect.pipe(Effect.map((length) => `${value}: ${length}`))
  * )
  *
- * const program = Effect.gen(function*() {
- *   const result = yield* greet("Ada")
- *   yield* Console.log(`Length: ${result}`)
+ * //      ┌─── Effect.Effect<string>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Binding this)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * class Counter {
+ *   count = 0
+ *
+ *   increment = Effect.fn("Counter.increment")(
+ *     { self: this },
+ *     function*(this: Counter, by: number) {
+ *       this.count += by
+ *       return yield* Effect.succeed(this.count)
+ *     }
+ *   )
+ * }
+ *
+ * const counter = new Counter()
+ *
+ * //      ┌─── Effect.Effect<number>
+ * //      ▼
+ * const program = counter.increment(1)
+ * ```
+ *
+ * **Example** (Annotating a traced non-parametric function)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fn("calculateLength")(function*(
+ *   value: string
+ * ): Effect.fn.Return<number> {
+ *   return yield* Effect.succeed(value.length)
  * })
+ *
+ * //      ┌─── Effect.Effect<number>
+ * //      ▼
+ * const program = f("hello")
+ * ```
+ *
+ * **Example** (Annotating a traced parametric function)
+ *
+ * ```ts
+ * import { Effect } from "effect"
+ *
+ * const f = Effect.fn("succeed")(function*<A>(
+ *   value: A
+ * ): Effect.fn.Return<A> {
+ *   return yield* Effect.succeed(value)
+ * })
+ *
+ * //      ┌─── Effect.Effect<string>
+ * //      ▼
+ * const program = f("hello")
  * ```
  *
  * @category functions
