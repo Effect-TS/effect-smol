@@ -22,6 +22,10 @@ it.live.each([1, 2, 3])(
   (n) => Effect.acquireRelease(Effect.sync(() => expect(n).toEqual(n)), () => Effect.void)
 )
 
+it.describe.each(["foo", "bar"] as const)("describe each %s", (text) => {
+  it.effect("runs", () => Effect.sync(() => assert.include(["foo", "bar"], text)))
+})
+
 // skip
 
 it.live.skip(

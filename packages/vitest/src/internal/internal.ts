@@ -65,7 +65,23 @@ const makeItProxy = <Methods extends object>(
         return Reflect.get(overrides, property)
       }
       const value = Reflect.get(target, property, receiver)
-      return typeof value === "function" ? value.bind(target) : value
+      if (typeof value !== "function") {
+        return value
+      }
+      // `value.bind(target)` would drop the static properties Vitest attaches to
+      // its test/suite functions (e.g. `describe.each`, `test.skip`). Wrap in a
+      // proxy that calls through with the original `this` while keeping access to
+      // those chained helpers, with `this` bound to the original function.
+      const fn = value as (...args: Array<unknown>) => unknown
+      return new Proxy(fn, {
+        apply(fn, _thisArg, argArray) {
+          return Reflect.apply(fn, value, argArray)
+        },
+        get(fn, prop, receiver) {
+          const inner = Reflect.get(fn, prop, receiver)
+          return typeof inner === "function" ? inner.bind(fn) : inner
+        }
+      })
     }
   })
 
