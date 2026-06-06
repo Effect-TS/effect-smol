@@ -11,15 +11,15 @@ type Cart = {
 
 const emptyCart: Cart = { items: [] }
 
-const qty = Bdd.capture("qty", Schema.NumberFromString)
+const qty = Bdd.capture("qty", Schema.FiniteFromString)
 const sku = Bdd.capture("sku", Schema.String)
-const price = Bdd.capture("price", Schema.NumberFromString)
-const expected = Bdd.capture("expected", Schema.NumberFromString)
+const price = Bdd.capture("price", Schema.FiniteFromString)
+const expected = Bdd.capture("expected", Schema.FiniteFromString)
 
 const Item = Schema.Struct({
   sku: Schema.String,
-  qty: Schema.NumberFromString,
-  price: Schema.NumberFromString
+  qty: Schema.FiniteFromString,
+  price: Schema.FiniteFromString
 })
 
 const addItem = (cart: Cart, sku: string, qty: number, price: number): Cart => ({

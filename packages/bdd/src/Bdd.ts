@@ -143,7 +143,7 @@ type DocStringArgType<A> = DocStringArg<A>
  * import { Bdd } from "@effect/bdd"
  * import { Schema } from "effect"
  *
- * const qty = Bdd.capture("qty", Schema.NumberFromString)
+ * const qty = Bdd.capture("qty", Schema.FiniteFromString)
  *
  * const step = Bdd.when`${qty} items are added`
  * ```
@@ -173,7 +173,7 @@ const capture_: <const Name extends string, A>(
  *
  * const Item = Schema.Struct({
  *   sku: Schema.String,
- *   qty: Schema.NumberFromString
+ *   qty: Schema.FiniteFromString
  * })
  *
  * const items = Bdd.table(Item)
@@ -357,7 +357,7 @@ const run_ = <State, E, R>(
  * import { Bdd } from "@effect/bdd"
  * import { Effect, Schema } from "effect"
  *
- * const qty = Bdd.capture("qty", Schema.NumberFromString)
+ * const qty = Bdd.capture("qty", Schema.FiniteFromString)
  *
  * const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
  *   Bdd.given`zero`(() => Effect.succeed(0)),

@@ -12,7 +12,7 @@ The package also ships an `effect-bdd` CLI for discovering feature files and ste
 import { Bdd } from "@effect/bdd"
 import { Effect, Schema } from "effect"
 
-const qty = Bdd.capture("qty", Schema.NumberFromString)
+const qty = Bdd.capture("qty", Schema.FiniteFromString)
 
 const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
   Bdd.given`zero`(() => Effect.succeed(0)),
@@ -48,6 +48,8 @@ This keeps step code pure and explicit. Mutable "world" objects are not required
 
 Captures are named values inside a tagged-template step expression. The source text is always a string, and the capture's `Schema` decides how to decode it before the step implementation runs.
 
+Prefer strict schemas. `Schema.FiniteFromString` rejects `"abc"`, `""`, and `"Infinity"`, surfacing a `MatchError` when a Gherkin value is malformed. `Schema.NumberFromString` decodes those to `NaN`, `0`, and `Infinity` instead, so a typo silently runs the step against a non-finite number.
+
 ```ts
 import { Bdd } from "@effect/bdd"
 import { Effect, Schema } from "effect"
@@ -56,7 +58,7 @@ type Cart = {
   readonly total: number
 }
 
-const expected = Bdd.capture("expected", Schema.NumberFromString)
+const expected = Bdd.capture("expected", Schema.FiniteFromString)
 
 const feature = Bdd.feature("Cart", { initial: { total: 0 } as Cart }).pipe(
   Bdd.then`the cart total is ${expected}`(({ expected }, state) =>
@@ -79,8 +81,8 @@ import { Effect, Schema } from "effect"
 
 const Item = Schema.Struct({
   sku: Schema.String,
-  qty: Schema.NumberFromString,
-  price: Schema.NumberFromString
+  qty: Schema.FiniteFromString,
+  price: Schema.FiniteFromString
 })
 
 const feature = Bdd.feature("Cart", { initial: [] as ReadonlyArray<typeof Item.Type> }).pipe(
@@ -137,7 +139,7 @@ class TaxRate extends Context.Service<TaxRate, {
   readonly rate: number
 }>()("TaxRate") {}
 
-const expected = Bdd.capture("expected", Schema.NumberFromString)
+const expected = Bdd.capture("expected", Schema.FiniteFromString)
 
 const feature = Bdd.feature("Cart", { initial: 100 }).pipe(
   Bdd.then`the taxed total is ${expected}`(({ expected }, subtotal) =>
@@ -227,8 +229,8 @@ Feature: Counter
 import { Bdd } from "@effect/bdd"
 import { Effect, Schema } from "effect"
 
-const amount = Bdd.capture("amount", Schema.NumberFromString)
-const expected = Bdd.capture("expected", Schema.NumberFromString)
+const amount = Bdd.capture("amount", Schema.FiniteFromString)
+const expected = Bdd.capture("expected", Schema.FiniteFromString)
 
 export const counter = Bdd.feature("Counter", { initial: 0 }).pipe(
   Bdd.given`zero`(() => Effect.succeed(0)),
