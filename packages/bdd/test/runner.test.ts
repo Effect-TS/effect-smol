@@ -1,6 +1,7 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Option, Schema } from "effect"
+import * as Arr from "effect/Array"
 
 type Cart = {
   readonly items: ReadonlyArray<{
@@ -55,6 +56,49 @@ Feature: Shopping cart
       assert.deepStrictEqual(report.scenarios, [{ name: "Adding items computes the total", steps: 3, tags: [] }])
     })
   })
+
+  it.effect("starts every scenario from the feature initial state", () => {
+    const expected = Bdd.capture("expected", Schema.NumberFromString)
+    const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
+      Bdd.when`increment`((_captures, state) => Effect.succeed(state + 1)),
+      Bdd.then`the counter is ${expected}`(({ expected }, state) =>
+        Effect.sync(() => {
+          assert.strictEqual(state, expected)
+          return state
+        })
+      )
+    )
+
+    return Bdd.run(
+      feature,
+      `
+Feature: Counter
+
+  Scenario: Mutates local scenario state
+    When increment
+    Then the counter is 1
+
+  Scenario: Starts clean
+    Then the counter is 0
+`
+    )
+  })
+
+  it.effect("fails when the feature definition name does not match the Gherkin feature", () =>
+    assertMatchError(
+      Bdd.run(
+        Bdd.feature("Counter definition", { initial: 0 }).pipe(
+          Bdd.then`the counter is 0`((_captures, state) => Effect.succeed(state))
+        ),
+        `
+Feature: Counter source
+
+  Scenario: Starts clean
+    Then the counter is 0
+`
+      ),
+      /Feature definition "Counter definition" does not match Gherkin feature "Counter source"/
+    ))
 
   it.effect("decodes data tables", () => {
     const Item = Schema.Struct({
@@ -146,6 +190,133 @@ Feature: Shopping cart
       }
     })
   })
+
+  it.effect("fails when step text matches a different concrete keyword", () =>
+    Effect.gen(function*() {
+      const givenSource = `
+Feature: Keyword semantics
+
+  Scenario: Given requires given
+    Given shared phrase
+`
+      const whenSource = `
+Feature: Keyword semantics
+
+  Scenario: When requires when
+    When shared phrase
+`
+      const thenSource = `
+Feature: Keyword semantics
+
+  Scenario: Then requires then
+    Then shared phrase
+`
+
+      yield* assertMatchError(
+        Bdd.run(
+          Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
+            Bdd.when`shared phrase`((_captures, state) => Effect.succeed(state))
+          ),
+          givenSource
+        ),
+        /No Given transition matched step "shared phrase"; matching text exists for When/
+      )
+      yield* assertMatchError(
+        Bdd.run(
+          Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
+            Bdd.given`shared phrase`((_captures, state) => Effect.succeed(state))
+          ),
+          whenSource
+        ),
+        /No When transition matched step "shared phrase"; matching text exists for Given/
+      )
+      yield* assertMatchError(
+        Bdd.run(
+          Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
+            Bdd.when`shared phrase`((_captures, state) => Effect.succeed(state))
+          ),
+          thenSource
+        ),
+        /No Then transition matched step "shared phrase"; matching text exists for When/
+      )
+    }))
+
+  it.effect("allows Bdd.step to match any concrete keyword", () => {
+    const feature = Bdd.feature("Keyword wildcard", { initial: 0 }).pipe(
+      Bdd.step`shared phrase`((_captures, state) => Effect.succeed(state))
+    )
+
+    return Effect.gen(function*() {
+      const report = yield* Bdd.run(
+        feature,
+        `
+Feature: Keyword wildcard
+
+  Scenario: Given wildcard
+    Given shared phrase
+
+  Scenario: When wildcard
+    When shared phrase
+
+  Scenario: Then wildcard
+    Then shared phrase
+`
+      )
+
+      assert.deepStrictEqual(report.scenarios, [
+        { name: "Given wildcard", steps: 1, tags: [] },
+        { name: "When wildcard", steps: 1, tags: [] },
+        { name: "Then wildcard", steps: 1, tags: [] }
+      ])
+    })
+  })
+
+  it.effect("inherits concrete keyword semantics for And and But", () => {
+    const feature = Bdd.feature("Keyword inheritance", { initial: [] as ReadonlyArray<string> }).pipe(
+      Bdd.given`setup`((_captures, state) => Effect.succeed(Arr.append(state, "setup"))),
+      Bdd.given`more setup`((_captures, state) => Effect.succeed(Arr.append(state, "more setup"))),
+      Bdd.when`act`((_captures, state) => Effect.succeed(Arr.append(state, "act"))),
+      Bdd.when`fallback action`((_captures, state) => Effect.succeed(Arr.append(state, "fallback action"))),
+      Bdd.then`done`((_captures, state) =>
+        Effect.sync(() => {
+          assert.deepStrictEqual(state, ["setup", "more setup", "act", "fallback action"])
+          return state
+        })
+      )
+    )
+
+    return Bdd.run(
+      feature,
+      `
+Feature: Keyword inheritance
+
+  Scenario: And and But inherit
+    Given setup
+    And more setup
+    When act
+    But fallback action
+    Then done
+`
+    )
+  })
+
+  it.effect("fails inherited And and But steps that only match a different keyword", () =>
+    assertMatchError(
+      Bdd.run(
+        Bdd.feature("Keyword inheritance", { initial: 0 }).pipe(
+          Bdd.given`setup`((_captures, state) => Effect.succeed(state)),
+          Bdd.when`more setup`((_captures, state) => Effect.succeed(state))
+        ),
+        `
+Feature: Keyword inheritance
+
+  Scenario: And inherits given
+    Given setup
+    And more setup
+`
+      ),
+      /No Given transition matched step "more setup"; matching text exists for When/
+    ))
 
   it.effect("preserves DataTable decode causes on MatchError", () => {
     const Item = Schema.Struct({
@@ -349,6 +520,52 @@ Feature: Shopping cart
     })
   })
 
+  it.effect("runs rule backgrounds after feature backgrounds", () => {
+    type State = ReadonlyArray<string>
+    const feature = Bdd.feature("Checkout", { initial: [] as State }).pipe(
+      Bdd.given`feature setup`((_captures, state) => Effect.succeed(Arr.append(state, "feature"))),
+      Bdd.given`rule setup`((_captures, state) => Effect.succeed(Arr.append(state, "rule"))),
+      Bdd.when`scenario runs`((_captures, state) => Effect.succeed(Arr.append(state, "scenario"))),
+      Bdd.then`rule setup ran after feature setup`((_captures, state) =>
+        Effect.sync(() => {
+          assert.deepStrictEqual(state, ["feature", "rule", "scenario"])
+          return state
+        })
+      )
+    )
+
+    return Effect.gen(function*() {
+      const report = yield* Bdd.run(
+        feature,
+        `
+@feature
+Feature: Checkout
+
+  Background:
+    Given feature setup
+
+  @rule
+  Rule: Paid accounts
+    Paid users can check out.
+
+    Background:
+      Given rule setup
+
+    @scenario
+    Scenario: Uses rule background
+      When scenario runs
+      Then rule setup ran after feature setup
+`
+      )
+
+      assert.deepStrictEqual(report.scenarios, [{
+        name: "Uses rule background",
+        steps: 4,
+        tags: ["@feature", "@rule", "@scenario"]
+      }])
+    })
+  })
+
   it.effect("decodes docstrings", () => {
     const Payload = Schema.Struct({
       sku: Schema.String,
@@ -386,3 +603,17 @@ Feature: Payload
     )
   })
 })
+
+const assertMatchError = (
+  effect: Effect.Effect<unknown, Bdd.RunError>,
+  message: RegExp = /MatchError/
+): Effect.Effect<void> =>
+  Effect.gen(function*() {
+    const result = yield* Effect.exit(effect)
+    assert.strictEqual(result._tag, "Failure")
+    if (result._tag === "Failure") {
+      const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
+      assert.strictEqual(error._tag, "MatchError")
+      assert.match(error.message, message)
+    }
+  })

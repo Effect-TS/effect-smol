@@ -86,6 +86,51 @@ Feature: Shopping cart
     })
   })
 
+  it.effect("dedents docstrings and preserves their content type", () => {
+    const feature = Bdd.feature("Payload", { initial: "" }).pipe(
+      Bdd.when`the payload is:`(
+        Bdd.docString(Schema.String),
+        (_captures, payload) => Effect.succeed(payload)
+      ),
+      Bdd.then`the payload is dedented`((_captures, payload) =>
+        Effect.sync(() => {
+          assert.strictEqual(payload, "line one\n  line two")
+          return payload
+        })
+      )
+    )
+
+    return Bdd.run(
+      feature,
+      `
+Feature: Payload
+
+  Scenario: Dedented docstring
+    When the payload is:
+      """text/plain
+      line one
+        line two
+      """
+    Then the payload is dedented
+`
+    )
+  })
+
+  it.effect("accepts CRLF line endings", () => {
+    const feature = Bdd.feature("Shopping cart", { initial: 0 }).pipe(
+      Bdd.given`an empty cart`((_captures, state) => Effect.succeed(state))
+    )
+
+    return Effect.gen(function*() {
+      const report = yield* Bdd.run(
+        feature,
+        "Feature: Shopping cart\r\n\r\n  Scenario: CRLF\r\n    Given an empty cart\r\n"
+      )
+
+      assert.deepStrictEqual(report.scenarios, [{ name: "CRLF", steps: 1, tags: [] }])
+    })
+  })
+
   it.effect("rejects malformed tags", () =>
     Effect.gen(function*() {
       const feature = Bdd.feature("Shopping cart", { initial: 0 })
@@ -127,5 +172,33 @@ Feature: Shopping cart
         assert.strictEqual(error._tag, "ParseError")
         assert.strictEqual(error.line, 4)
       }
+    }))
+
+  it.effect("accepts Rule syntax and inherits rule tags", () =>
+    Effect.gen(function*() {
+      const feature = Bdd.feature("Shopping cart", { initial: 0 }).pipe(
+        Bdd.given`an empty cart`((_captures, state) => Effect.succeed(state))
+      )
+      const report = yield* Bdd.run(
+        feature,
+        `
+@feature
+Feature: Shopping cart
+
+  @rule
+  Rule: Checkout
+    Checkout scenarios.
+
+  @scenario
+  Scenario: Rule scenario
+    Given an empty cart
+`
+      )
+
+      assert.deepStrictEqual(report.scenarios, [{
+        name: "Rule scenario",
+        steps: 1,
+        tags: ["@feature", "@rule", "@scenario"]
+      }])
     }))
 })

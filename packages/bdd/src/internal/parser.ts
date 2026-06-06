@@ -47,6 +47,11 @@ export interface Scenario {
   readonly name: string
   readonly description: string
   readonly line: number
+  readonly rule?: {
+    readonly name: string
+    readonly line: number
+  }
+  readonly background?: Background
   readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
 }
@@ -65,6 +70,11 @@ interface ScenarioBuilder {
   readonly name: string
   readonly description: ReadonlyArray<string>
   readonly line: number
+  readonly rule?: {
+    readonly name: string
+    readonly line: number
+  }
+  readonly background?: BackgroundBuilder
   readonly steps: ReadonlyArray<ParsedStep>
   readonly tags: ReadonlyArray<string>
 }
@@ -83,13 +93,23 @@ interface FeatureBuilder {
   readonly tags: ReadonlyArray<string>
 }
 
+interface RuleBuilder {
+  readonly name: string
+  readonly description: ReadonlyArray<string>
+  readonly line: number
+  readonly tags: ReadonlyArray<string>
+  readonly background: BackgroundBuilder | undefined
+  readonly scenarioCount: number
+}
+
 type Active =
-  | { readonly _tag: "Background"; readonly background: BackgroundBuilder }
+  | { readonly _tag: "Background"; readonly scope: "Feature" | "Rule"; readonly background: BackgroundBuilder }
   | { readonly _tag: "Scenario"; readonly scenario: ScenarioBuilder }
 
 interface ParseState {
   readonly feature: FeatureBuilder | undefined
   readonly background: BackgroundBuilder | undefined
+  readonly rule: RuleBuilder | undefined
   readonly scenarios: ReadonlyArray<ScenarioBuilder>
   readonly active: Active | undefined
   readonly lastStep: ParsedStep | undefined
@@ -103,6 +123,7 @@ interface LineResult {
 }
 
 const featureRegex = /^Feature:\s*(.*)$/
+const ruleRegex = /^Rule:\s*(.*)$/
 const backgroundRegex = /^Background:\s*(.*)$/
 const scenarioRegex = /^Scenario:\s*(.*)$/
 const stepRegex = /^(Given|When|Then|And|But)\s+(.*)$/
@@ -120,6 +141,7 @@ export const parse = (source: string): Effect.Effect<Feature, ParseError> =>
 const initialState: ParseState = {
   feature: undefined,
   background: undefined,
+  rule: undefined,
   scenarios: [],
   active: undefined,
   lastStep: undefined,
@@ -221,12 +243,13 @@ const parseAfterFeature = (
   const unsupported = unsupportedKeyword(line)
   if (unsupported !== undefined) {
     return Option.some(
-      parseError(`${unsupported} is not supported in @effect/bdd v1`, lineNumber, raw.indexOf(unsupported) + 1)
+      parseError(`${unsupported} is not supported by @effect/bdd`, lineNumber, raw.indexOf(unsupported) + 1)
     )
   }
 
   return pipe(
     parseBackgroundLine(state, line, lineNumber, raw, nextIndex),
+    Option.orElse(() => parseRuleLine(state, line, lineNumber, nextIndex)),
     Option.orElse(() => parseScenarioLine(state, line, lineNumber, nextIndex)),
     Option.orElse(() => parseStepLine(state, line, lineNumber, raw, nextIndex)),
     Option.orElse(() => parseDescriptionLine(state, line, nextIndex))
@@ -262,6 +285,37 @@ const parseFeatureLine = (
     )
   )
 
+const parseRuleLine = (
+  state: ParseState,
+  line: string,
+  lineNumber: number,
+  nextIndex: number
+): Option.Option<Effect.Effect<LineResult, ParseError>> =>
+  pipe(
+    line,
+    Str.match(ruleRegex),
+    Option.map((match) => {
+      const closed = closeActive(state)
+      return Effect.succeed({
+        state: {
+          ...closed,
+          rule: {
+            name: Str.trim(match[1]),
+            description: [],
+            line: lineNumber,
+            tags: closed.pendingTags,
+            background: undefined,
+            scenarioCount: 0
+          },
+          lastStep: undefined,
+          lastConcreteKind: undefined,
+          pendingTags: []
+        },
+        nextIndex
+      })
+    })
+  )
+
 const parseBackgroundLine = (
   state: ParseState,
   line: string,
@@ -274,10 +328,14 @@ const parseBackgroundLine = (
     Str.match(backgroundRegex),
     Option.map(() => {
       const closed = closeActive(state)
-      if (closed.background !== undefined) {
+      const currentBackground = closed.rule === undefined ? closed.background : closed.rule.background
+      if (currentBackground !== undefined) {
         return parseError("Background declared more than once", lineNumber, raw.indexOf("Background:") + 1)
       }
-      if (closed.scenarios.length > 0) {
+      if (closed.rule === undefined && closed.scenarios.length > 0) {
+        return parseError("Background must be declared before Scenario", lineNumber, raw.indexOf("Background:") + 1)
+      }
+      if (closed.rule !== undefined && closed.rule.scenarioCount > 0) {
         return parseError("Background must be declared before Scenario", lineNumber, raw.indexOf("Background:") + 1)
       }
       return Effect.succeed({
@@ -285,6 +343,7 @@ const parseBackgroundLine = (
           ...closed,
           active: {
             _tag: "Background",
+            scope: closed.rule === undefined ? "Feature" : "Rule",
             background: {
               description: [],
               line: lineNumber,
@@ -312,6 +371,9 @@ const parseScenarioLine = (
     Str.match(scenarioRegex),
     Option.map((match) => {
       const closed = closeActive(state)
+      const tags = closed.rule === undefined
+        ? closed.pendingTags
+        : Arr.appendAll(closed.rule.tags, closed.pendingTags)
       return Effect.succeed({
         state: {
           ...closed,
@@ -321,8 +383,17 @@ const parseScenarioLine = (
               name: Str.trim(match[1]),
               description: [],
               line: lineNumber,
+              ...(closed.rule === undefined
+                ? {}
+                : {
+                  rule: {
+                    name: closed.rule.name,
+                    line: closed.rule.line
+                  }
+                }),
+              ...(closed.rule?.background === undefined ? {} : { background: closed.rule.background }),
               steps: [],
-              tags: closed.pendingTags
+              tags
             }
           },
           lastStep: undefined,
@@ -382,7 +453,7 @@ const parseDescriptionLine = (
   }
   if (
     state.feature !== undefined && state.active === undefined && state.background === undefined &&
-    state.scenarios.length === 0
+    state.scenarios.length === 0 && state.rule === undefined
   ) {
     return Option.some(Effect.succeed({
       state: {
@@ -390,6 +461,21 @@ const parseDescriptionLine = (
         feature: {
           ...state.feature,
           description: Arr.append(state.feature.description, line)
+        }
+      },
+      nextIndex
+    }))
+  }
+  if (
+    state.rule !== undefined && state.active === undefined && state.rule.background === undefined &&
+    state.rule.scenarioCount === 0
+  ) {
+    return Option.some(Effect.succeed({
+      state: {
+        ...state,
+        rule: {
+          ...state.rule,
+          description: Arr.append(state.rule.description, line)
         }
       },
       nextIndex
@@ -410,27 +496,48 @@ const finalizeFeature = (state: ParseState): Effect.Effect<Feature, ParseError> 
     name: state.feature.name,
     description: joinDescription(state.feature.description),
     line: state.feature.line,
-    ...(state.background === undefined ? {} : {
-      background: {
-        description: joinDescription(state.background.description),
-        line: state.background.line,
-        steps: state.background.steps,
-        tags: state.background.tags
-      }
-    }),
-    scenarios: Arr.map(state.scenarios, (scenario) => ({
-      ...scenario,
-      description: joinDescription(scenario.description)
-    })),
+    ...(state.background === undefined ? {} : { background: finalizeBackground(state.background) }),
+    scenarios: Arr.map(state.scenarios, finalizeScenario),
     tags: state.feature.tags
   })
 }
+
+const finalizeBackground = (background: BackgroundBuilder): Background => ({
+  description: joinDescription(background.description),
+  line: background.line,
+  steps: background.steps,
+  tags: background.tags
+})
+
+const finalizeScenario = (scenario: ScenarioBuilder): Scenario => ({
+  name: scenario.name,
+  description: joinDescription(scenario.description),
+  line: scenario.line,
+  ...(scenario.rule === undefined ? {} : { rule: scenario.rule }),
+  ...(scenario.background === undefined ? {} : { background: finalizeBackground(scenario.background) }),
+  steps: scenario.steps,
+  tags: scenario.tags
+})
 
 const closeActive = (state: ParseState): ParseState => {
   if (state.active === undefined) {
     return state
   }
   if (state.active._tag === "Background") {
+    if (state.active.scope === "Rule") {
+      return {
+        ...state,
+        rule: state.rule === undefined
+          ? state.rule
+          : {
+            ...state.rule,
+            background: state.active.background
+          },
+        active: undefined,
+        lastStep: undefined,
+        lastConcreteKind: undefined
+      }
+    }
     return {
       ...state,
       background: state.active.background,
@@ -442,6 +549,12 @@ const closeActive = (state: ParseState): ParseState => {
   return {
     ...state,
     scenarios: Arr.append(state.scenarios, state.active.scenario),
+    rule: state.rule === undefined
+      ? state.rule
+      : {
+        ...state.rule,
+        scenarioCount: state.rule.scenarioCount + 1
+      },
     active: undefined,
     lastStep: undefined,
     lastConcreteKind: undefined
@@ -453,6 +566,7 @@ const appendStep = (state: ParseState, step: ParsedStep): ParseState => {
     return {
       ...state,
       active: {
+        ...state.active,
         _tag: "Background",
         background: {
           ...state.active.background,
@@ -497,6 +611,7 @@ const replaceLastStep = (state: ParseState, step: ParsedStep): ParseState => {
     return {
       ...state,
       active: {
+        ...state.active,
         _tag: "Background",
         background: {
           ...state.active.background,
@@ -533,6 +648,7 @@ const updateActiveDescription = (state: ParseState, line: string): ParseState =>
     return {
       ...state,
       active: {
+        ...state.active,
         _tag: "Background",
         background: {
           ...state.active.background,
@@ -578,7 +694,6 @@ const parseTableRow = (line: string): ReadonlyArray<string> => {
 
 const unsupportedKeyword = (line: string): string | undefined => {
   if (pipe(line, Str.startsWith("Scenario Outline:"))) return "Scenario Outline"
-  if (pipe(line, Str.startsWith("Rule:"))) return "Rule"
   return undefined
 }
 
@@ -594,7 +709,7 @@ const parseTags = (line: string): ReadonlyArray<string> | undefined => {
   return Arr.every(tags, (tag) => /^@[A-Za-z0-9][A-Za-z0-9_-]*$/.test(tag)) ? tags : undefined
 }
 
-const joinDescription = (lines: ReadonlyArray<string>): string => Arr.join(lines, "\n")
+const joinDescription = Arr.join("\n")
 
 const parseError = (message: string, line: number, column: number): Effect.Effect<never, ParseError> =>
   Effect.fail(new ParseError({ message, line, column }))

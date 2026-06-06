@@ -3,12 +3,13 @@ import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
 import * as Record from "effect/Record"
 import * as Schema from "effect/Schema"
+import * as Str from "effect/String"
 
 /** @internal */
 export interface Capture<Name extends string, A> {
   readonly _tag: "Capture"
   readonly name: Name
-  readonly schema: Schema.Decoder<A>
+  readonly schema: Schema.Codec<A, string>
 }
 
 /** @internal */
@@ -27,7 +28,7 @@ interface MatcherState {
 /** @internal */
 export const makeCapture = <const Name extends string, A>(
   name: Name,
-  schema: Schema.Decoder<A>
+  schema: Schema.Codec<A, string>
 ): Capture<Name, A> => ({
   _tag: "Capture",
   name,
@@ -88,7 +89,7 @@ const decodeCaptures = (
   decoders: ReadonlyArray<(input: unknown) => Option.Option<unknown>>,
   match: RegExpExecArray,
   index = 0,
-  out: Record<string, unknown> = {}
+  out: Record<string, unknown> = Record.empty()
 ): Option.Option<Record<string, unknown>> => {
   if (index >= names.length) {
     return Option.some(out)
@@ -99,4 +100,4 @@ const decodeCaptures = (
   )
 }
 
-const escapeRegExp = (string: string): string => string.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&")
+const escapeRegExp = Str.replace(/[/\\^$*+?.()|[\]{}]/g, "\\$&")

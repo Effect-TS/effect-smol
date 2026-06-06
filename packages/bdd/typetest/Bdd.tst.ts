@@ -24,6 +24,10 @@ describe("Bdd", () => {
     })
   })
 
+  test("captures require string encoded schemas", () => {
+    expect(Bdd.capture).type.not.toBeCallableWith("qty", Schema.Number)
+  })
+
   test("feature state is stable across transitions", () => {
     const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
       Bdd.given`zero`((_captures, state) => Effect.succeed(state)),
@@ -84,6 +88,41 @@ describe("Bdd", () => {
     )
 
     expect(feature).type.toBe<Bdd.Feature<number, "boom", Inventory>>()
+  })
+
+  test("feature accumulates errors and services across given, when, and then", () => {
+    interface Inventory {
+      readonly _: unique symbol
+    }
+    interface Pricing {
+      readonly _: unique symbol
+    }
+
+    const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
+      Bdd.given`zero`((_captures, state) => Effect.succeed(state) as Effect.Effect<number, "given failed", Inventory>),
+      Bdd.when`increment`((_captures, state) =>
+        Effect.succeed(state + 1) as Effect.Effect<number, "when failed", Pricing>
+      ),
+      Bdd.then`one`((_captures, state) => Effect.succeed(state) as Effect.Effect<number, "then failed">)
+    )
+
+    expect(feature).type.toBe<
+      Bdd.Feature<number, "given failed" | "when failed" | "then failed", Inventory | Pricing>
+    >()
+  })
+
+  test("run returns a report with run errors and feature services", () => {
+    interface Inventory {
+      readonly _: unique symbol
+    }
+
+    const feature = Bdd.feature("Counter", { initial: 0 }).pipe(
+      Bdd.when`needs inventory`((_captures, state) => Effect.succeed(state) as Effect.Effect<number, never, Inventory>)
+    )
+
+    expect(Bdd.run(feature, "Feature: Counter")).type.toBe<
+      Effect.Effect<Bdd.Report, Bdd.RunError, Inventory>
+    >()
   })
 
   test("step argument handlers reject the wrong decoded argument type", () => {
