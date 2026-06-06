@@ -37,6 +37,11 @@ export {
 export * as Actor from "./Actor.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as ActorSystem from "./ActorSystem.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Array from "./Array.ts"
