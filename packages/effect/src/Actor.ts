@@ -392,24 +392,33 @@ interface Spawn {
 }
 
 /**
+ * Runtime scope available to actor initialization and execution logic.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ActorScope<Event> {
+  readonly self: ActorRef<Event>
+  readonly parent: ActorRef<unknown> | undefined
+  readonly system: ActorSystemModule.ActorSystem
+  readonly spawn: Spawn
+  readonly sendTo: <ChildEvent>(id: string, event: ChildEvent) => Effect.Effect<void>
+  readonly stopChild: (id: string) => Effect.Effect<void>
+}
+
+/**
  * Runtime context available to an effect-backed actor.
  *
  * @category models
  * @since 4.0.0
  */
-export interface ActorContext<State, Event> {
-  readonly self: ActorRef<Event>
-  readonly parent: ActorRef<unknown> | undefined
+export interface ActorContext<State, Event> extends ActorScope<Event> {
   readonly receive: Effect.Effect<Event>
-  readonly system: ActorSystemModule.ActorSystem
   readonly state: Effect.Effect<State>
   readonly setState: (state: State) => Effect.Effect<void>
   readonly updateState: <E, R>(
     f: (state: State) => Effect.Effect<State, E, R>
   ) => Effect.Effect<void, E, R>
-  readonly spawn: Spawn
-  readonly sendTo: <ChildEvent>(id: string, event: ChildEvent) => Effect.Effect<void>
-  readonly stopChild: (id: string) => Effect.Effect<void>
 }
 
 /**
@@ -426,7 +435,7 @@ export interface ActorLogic<
   out Output = never,
   out InitialError = never
 > {
-  readonly initial: Effect.Effect<State, InitialError, Requirements>
+  readonly initial: (scope: ActorScope<Event>) => Effect.Effect<State, InitialError, Requirements>
   readonly run: (context: ActorContext<State, Event>) => Effect.Effect<Output, Error, Requirements>
 }
 
@@ -440,7 +449,7 @@ export const fromEffect = <State, Event, Output = void, Error = never, Requireme
   initial: State,
   effect: (context: ActorContext<State, Event>) => Effect.Effect<Output, Error, Requirements>
 ): ActorLogic<State, Event, Error, Requirements, Output> => ({
-  initial: Effect.succeed(initial),
+  initial: () => Effect.succeed(initial),
   run: effect
 })
 

@@ -5,6 +5,7 @@ import {
   Cause,
   Context,
   Data,
+  Deferred,
   Effect,
   Fiber,
   Option,
@@ -73,6 +74,9 @@ describe("StateMachine", () => {
 
   class Reset extends Schema.TaggedClass<Reset>("Reset")("Reset", {}) {}
   class Resolve extends Schema.TaggedClass<Resolve>("Resolve")("Resolve", {}) {}
+  class ChildPing extends Data.TaggedClass("ChildPing")<{
+    readonly reply: Deferred.Deferred<void>
+  }> {}
 
   it("make constructs the initial state from input", () => {
     const machine = StateMachine.make({
@@ -939,6 +943,205 @@ describe("StateMachine", () => {
       assert.strictEqual(yield* actor.join, "request-1")
       assert.strictEqual(Option.isNone(yield* system.get("user-machine-1")), true)
     })))
+
+  it.effect("toActorLogic provides actor identity to initial actions", () =>
+    Effect.gen(function*() {
+      const observed = yield* Ref.make<string | undefined>(undefined)
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            Effect.gen(function*() {
+              const self = yield* StateMachine.self<Submit>()
+              yield* Ref.set(observed, self.id)
+            })
+          )
+      })
+
+      yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }), { id: "user-machine" })
+
+      assert.strictEqual(yield* Ref.get(observed), "user-machine")
+    }))
+
+  it.effect("toActorLogic provides actor identity to transition actions", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const self = yield* StateMachine.self<Submit | Resolve>()
+                  yield* self.send(new Resolve({}))
+                })
+              )
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Resolve: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+    }))
+
+  it.effect("toActorLogic provides parent and system scope to initial actions", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const system = yield* ActorSystem.make
+      const observedParent = yield* Ref.make<string | undefined>(undefined)
+      const observedSystem = yield* Ref.make(false)
+      const ready = yield* Deferred.make<void>()
+      const childMachine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            Effect.gen(function*() {
+              const parent = yield* StateMachine.parent
+              const runtimeSystem = yield* StateMachine.system
+              yield* Ref.set(observedParent, parent?.id)
+              yield* Ref.set(observedSystem, runtimeSystem === system)
+              yield* Deferred.succeed(ready, void 0)
+            })
+          )
+      })
+      const parentLogic = Actor.fromEffect<
+        number,
+        never,
+        never,
+        Actor.ActorChildAlreadyExistsError | StateMachine.StartupError
+      >(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(StateMachine.toActorLogic(childMachine, { userId: "user-1" }), { id: "child" })
+            return yield* Effect.never
+          })
+      )
+
+      const parent = yield* system.spawn(parentLogic, { id: "parent" })
+      yield* Deferred.await(ready)
+
+      assert.strictEqual(yield* Ref.get(observedParent), "parent")
+      assert.strictEqual(yield* Ref.get(observedSystem), true)
+      yield* parent.stop
+    })))
+
+  it.effect("toActorLogic safely handles stopOwner children spawned during initial actions", () =>
+    Effect.gen(function*() {
+      const childLogic = Actor.fromEffect<number, never, never, InitialError>(
+        0,
+        () => Effect.fail(new InitialError({ state: "child" }))
+      )
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            Effect.gen(function*() {
+              const runtime = yield* StateMachine.actorRuntime<Submit>()
+              yield* runtime.spawn(childLogic, {
+                id: "child",
+                supervision: Actor.Supervision.stopOwner
+              })
+              yield* Effect.yieldNow
+            })
+          )
+      })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      const stopped = yield* Effect.flip(actor.join)
+
+      assert.strictEqual(stopped._tag, "ActorStoppedError")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "stopped",
+        state: new Idle({ userId: "user-1" })
+      })
+    }))
+
+  it.effect("toActorLogic provides child actor capabilities to machine actions", () =>
+    Effect.gen(function*() {
+      const childRef = yield* Deferred.make<Actor.Actor<number, ChildPing, never, void>>()
+      const childLogic = Actor.fromEffect<number, ChildPing>(
+        0,
+        ({ receive }) =>
+          receive.pipe(
+            Effect.flatMap((event) => Deferred.succeed(event.reply, void 0)),
+            Effect.forever
+          )
+      )
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const runtime = yield* StateMachine.actorRuntime<Submit | Resolve>()
+                  const child = yield* runtime.spawn(childLogic, { id: "child" })
+                  const reply = yield* Deferred.make<void>()
+                  yield* Deferred.succeed(childRef, child)
+                  yield* runtime.sendTo("child", new ChildPing({ reply }))
+                  yield* Deferred.await(reply)
+                })
+              )
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Resolve: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          entry: () => StateMachine.action(StateMachine.stopChild("child")),
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      yield* actor.send(new Submit({ value: "hello" }))
+      const child = yield* Deferred.await(childRef)
+
+      yield* actor.send(new Resolve({}))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
 
   it.effect("toActorLogic propagates startup failures through Actor.start", () =>
     Effect.gen(function*() {

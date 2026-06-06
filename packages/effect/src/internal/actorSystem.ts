@@ -289,12 +289,9 @@ const startInternal: <
   ) {
     const sessionId = yield* options.runtime.nextSessionId
     const id = options.id ?? sessionId
-    const initial = yield* logic.initial
     const queue = yield* Queue.unbounded<Event>()
-    const current = yield* SynchronizedRef.make<Actor.Snapshot<State, Error | InitialError, Output>>({
-      status: "active",
-      state: initial
-    })
+    const stopSelfDeferred = yield* Deferred.make<Effect.Effect<void>>()
+    const stopOwner = Deferred.await(stopSelfDeferred).pipe(Effect.flatMap((stopSelf) => stopSelf))
     const changes = yield* PubSub.unbounded<Take.Take<Actor.Snapshot<State, Error | InitialError, Output>>>({
       replay: 1
     })
@@ -304,6 +301,198 @@ const startInternal: <
     const childRegistry = yield* SynchronizedRef.make<HashMap.HashMap<string, ChildEntry>>(HashMap.empty())
     const fiberRef = yield* Deferred.make<Fiber.Fiber<void>>()
     const systemToken = Symbol()
+
+    const self: Actor.ActorRef<Event> = {
+      id,
+      sessionId,
+      systemId: options.systemId,
+      send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
+    }
+
+    const publishStarted = options.parent === undefined
+      ? options.runtime.publish({ _tag: "ActorStarted", ref: self as Actor.ActorRef<unknown> })
+      : options.runtime.publish({
+        _tag: "ActorStarted",
+        ref: self as Actor.ActorRef<unknown>,
+        parent: options.parent
+      })
+    const publishStopped = (exit: Exit.Exit<unknown, unknown>) =>
+      options.runtime.publish({ _tag: "ActorStopped", ref: self as Actor.ActorRef<unknown>, exit })
+    const closeChildren = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
+      SynchronizedRef.get(currentChildrenScope).pipe(
+        Effect.flatMap((scope) => Scope.close(scope, exit))
+      )
+    const cleanupStartupFailure = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
+      Exit.isFailure(exit)
+        ? Deferred.succeed(stopSelfDeferred, Effect.void).pipe(
+          Effect.andThen(closeChildren(exit))
+        )
+        : Effect.void
+    const finalize = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+      options.finalizer === undefined ? Effect.void : options.finalizer(exit)
+    const cleanup = options.systemId === undefined
+      ? options.onStop ?? Effect.void
+      : unregisterStartedSystemId(options.runtime, options.systemId, systemToken).pipe(
+        Effect.andThen(options.onStop ?? Effect.void)
+      )
+
+    const reserveChildId = (id: string): Effect.Effect<void, ActorChildAlreadyExistsError> =>
+      SynchronizedRef.modifyEffect(childRegistry, (children) =>
+        HashMap.has(children, id)
+          ? Effect.fail(new ActorChildAlreadyExistsError({ id }))
+          : Effect.succeed([undefined, HashMap.set(children, id, { _tag: "Reserved" })] as const))
+
+    const unregisterReservedChild = (id: string): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => {
+        const entry = HashMap.get(children, id)
+        return Option.isSome(entry) && entry.value._tag === "Reserved"
+          ? HashMap.remove(children, id)
+          : children
+      })
+
+    const unregisterStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
+      SynchronizedRef.update(childRegistry, (children) => {
+        const entry = HashMap.get(children, id)
+        return Option.isSome(entry) && entry.value._tag === "Started" && entry.value.token === token
+          ? HashMap.remove(children, id)
+          : children
+      })
+
+    const registerStartedChild = (
+      id: string,
+      token: symbol,
+      send: (event: unknown) => Effect.Effect<void>,
+      stop: Effect.Effect<void>
+    ): Effect.Effect<void> =>
+      SynchronizedRef.update(
+        childRegistry,
+        (children) => HashMap.set(children, id, { _tag: "Started", token, send, stop })
+      )
+
+    const sendTo = <ChildEvent>(id: string, event: ChildEvent): Effect.Effect<void> =>
+      SynchronizedRef.get(childRegistry).pipe(
+        Effect.flatMap((children) => {
+          const entry = HashMap.get(children, id)
+          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.send(event) : Effect.void
+        })
+      )
+
+    const stopChild = (id: string): Effect.Effect<void> =>
+      SynchronizedRef.get(childRegistry).pipe(
+        Effect.flatMap((children) => {
+          const entry = HashMap.get(children, id)
+          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.stop : Effect.void
+        })
+      )
+
+    const namedChild = <ChildState, ChildEvent, ChildError, ChildOutput>(
+      child: Actor.Actor<ChildState, ChildEvent, ChildError, ChildOutput>
+    ): Actor.Actor<ChildState, ChildEvent, ChildError, ChildOutput> => {
+      return {
+        id: child.id,
+        sessionId: child.sessionId,
+        systemId: child.systemId,
+        system: child.system,
+        state: child.state,
+        snapshot: child.snapshot,
+        changes: child.changes,
+        join: child.join,
+        stop: child.stop,
+        send: child.send
+      }
+    }
+
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
+    function spawn<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      Options extends Actor.SpawnOptions,
+      ChildInitialError = never
+    >(
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
+      options: Options
+    ): SpawnResult<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      SpawnError<Options>,
+      Options,
+      ChildInitialError
+    >
+    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
+      spawnOptions?: Actor.SpawnOptions<any>
+    ): SpawnResult<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ActorChildAlreadyExistsError | ActorSystemIdAlreadyExistsError,
+      Actor.SpawnOptions<any>,
+      ChildInitialError
+    > {
+      if (spawnOptions?.id === undefined) {
+        return SynchronizedRef.get(currentChildrenScope).pipe(
+          Effect.flatMap((childrenScope) =>
+            Effect.acquireRelease(
+              startInternal(logic, {
+                ...spawnOptions,
+                parent: self as Actor.ActorRef<unknown>,
+                runtime: options.runtime,
+                stopOwner
+              }),
+              (child) => child.stop
+            ).pipe(Scope.provide(childrenScope))
+          )
+        )
+      }
+      const id = spawnOptions.id
+      return SynchronizedRef.get(currentChildrenScope).pipe(
+        Effect.flatMap((childrenScope) =>
+          Effect.acquireRelease(
+            Effect.gen(function*() {
+              yield* reserveChildId(id)
+              const token = Symbol()
+              const child = yield* startInternal(logic, {
+                ...spawnOptions,
+                id,
+                onStop: unregisterStartedChild(id, token),
+                parent: self as Actor.ActorRef<unknown>,
+                runtime: options.runtime,
+                stopOwner
+              }).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void))
+              const named = namedChild(child)
+              yield* registerStartedChild(id, token, (event) => named.send(event as ChildEvent), named.stop)
+              return named
+            }),
+            (child) => child.stop
+          ).pipe(Scope.provide(childrenScope))
+        )
+      )
+    }
+
+    const scope: Actor.ActorScope<Event> = {
+      self,
+      parent: options.parent,
+      spawn,
+      sendTo,
+      stopChild,
+      system: options.runtime.system
+    }
+
+    const initial = yield* logic.initial(scope).pipe(Effect.onExit(cleanupStartupFailure))
+    const current = yield* SynchronizedRef.make<Actor.Snapshot<State, Error | InitialError, Output>>({
+      status: "active",
+      state: initial
+    })
 
     const publishSnapshot = (
       snapshot: Actor.Snapshot<State, Error | InitialError, Output>
@@ -371,83 +560,6 @@ const startInternal: <
         )
       ).pipe(Effect.asVoid)
 
-    const self: Actor.ActorRef<Event> = {
-      id,
-      sessionId,
-      systemId: options.systemId,
-      send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
-    }
-
-    const publishStarted = options.parent === undefined
-      ? options.runtime.publish({ _tag: "ActorStarted", ref: self as Actor.ActorRef<unknown> })
-      : options.runtime.publish({
-        _tag: "ActorStarted",
-        ref: self as Actor.ActorRef<unknown>,
-        parent: options.parent
-      })
-    const publishStopped = (exit: Exit.Exit<unknown, unknown>) =>
-      options.runtime.publish({ _tag: "ActorStopped", ref: self as Actor.ActorRef<unknown>, exit })
-    const closeChildren = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
-      SynchronizedRef.get(currentChildrenScope).pipe(
-        Effect.flatMap((scope) => Scope.close(scope, exit))
-      )
-    const finalize = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
-      options.finalizer === undefined ? Effect.void : options.finalizer(exit)
-    const cleanup = options.systemId === undefined
-      ? options.onStop ?? Effect.void
-      : unregisterStartedSystemId(options.runtime, options.systemId, systemToken).pipe(
-        Effect.andThen(options.onStop ?? Effect.void)
-      )
-
-    const reserveChildId = (id: string): Effect.Effect<void, ActorChildAlreadyExistsError> =>
-      SynchronizedRef.modifyEffect(childRegistry, (children) =>
-        HashMap.has(children, id)
-          ? Effect.fail(new ActorChildAlreadyExistsError({ id }))
-          : Effect.succeed([undefined, HashMap.set(children, id, { _tag: "Reserved" })] as const))
-
-    const unregisterReservedChild = (id: string): Effect.Effect<void> =>
-      SynchronizedRef.update(childRegistry, (children) => {
-        const entry = HashMap.get(children, id)
-        return Option.isSome(entry) && entry.value._tag === "Reserved"
-          ? HashMap.remove(children, id)
-          : children
-      })
-
-    const unregisterStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
-      SynchronizedRef.update(childRegistry, (children) => {
-        const entry = HashMap.get(children, id)
-        return Option.isSome(entry) && entry.value._tag === "Started" && entry.value.token === token
-          ? HashMap.remove(children, id)
-          : children
-      })
-
-    const registerStartedChild = (
-      id: string,
-      token: symbol,
-      send: (event: unknown) => Effect.Effect<void>,
-      stop: Effect.Effect<void>
-    ): Effect.Effect<void> =>
-      SynchronizedRef.update(
-        childRegistry,
-        (children) => HashMap.set(children, id, { _tag: "Started", token, send, stop })
-      )
-
-    const sendTo = <ChildEvent>(id: string, event: ChildEvent): Effect.Effect<void> =>
-      SynchronizedRef.get(childRegistry).pipe(
-        Effect.flatMap((children) => {
-          const entry = HashMap.get(children, id)
-          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.send(event) : Effect.void
-        })
-      )
-
-    const stopChild = (id: string): Effect.Effect<void> =>
-      SynchronizedRef.get(childRegistry).pipe(
-        Effect.flatMap((children) => {
-          const entry = HashMap.get(children, id)
-          return Option.isSome(entry) && entry.value._tag === "Started" ? entry.value.stop : Effect.void
-        })
-      )
-
     const stopSelf: Effect.Effect<void> = modifySnapshot((snapshot) =>
       Effect.succeed(
         snapshot.status === "active"
@@ -477,7 +589,7 @@ const startInternal: <
     )
 
     if (options.systemId !== undefined) {
-      yield* reserveSystemId(options.runtime, options.systemId)
+      yield* reserveSystemId(options.runtime, options.systemId).pipe(Effect.onExit(cleanupStartupFailure))
     }
 
     yield* publishStarted
@@ -492,113 +604,18 @@ const startInternal: <
         stopSelf
       ).pipe(
         Effect.onExit((exit) =>
-          Exit.isFailure(exit) ? unregisterReservedSystemId(options.runtime, systemId) : Effect.void
-        )
-      )
-    }
-
-    const namedChild = <ChildState, ChildEvent, ChildError, ChildOutput>(
-      child: Actor.Actor<ChildState, ChildEvent, ChildError, ChildOutput>
-    ): Actor.Actor<ChildState, ChildEvent, ChildError, ChildOutput> => {
-      return {
-        id: child.id,
-        sessionId: child.sessionId,
-        systemId: child.systemId,
-        system: child.system,
-        state: child.state,
-        snapshot: child.snapshot,
-        changes: child.changes,
-        join: child.join,
-        stop: child.stop,
-        send: child.send
-      }
-    }
-
-    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
-    ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
-    function spawn<
-      ChildState,
-      ChildEvent,
-      ChildError,
-      ChildRequirements,
-      ChildOutput,
-      Options extends Actor.SpawnOptions,
-      ChildInitialError = never
-    >(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
-      options: Options
-    ): SpawnResult<
-      ChildState,
-      ChildEvent,
-      ChildError,
-      ChildRequirements,
-      ChildOutput,
-      SpawnError<Options>,
-      Options,
-      ChildInitialError
-    >
-    function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
-      logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
-      spawnOptions?: Actor.SpawnOptions<any>
-    ): SpawnResult<
-      ChildState,
-      ChildEvent,
-      ChildError,
-      ChildRequirements,
-      ChildOutput,
-      ActorChildAlreadyExistsError | ActorSystemIdAlreadyExistsError,
-      Actor.SpawnOptions<any>,
-      ChildInitialError
-    > {
-      if (spawnOptions?.id === undefined) {
-        return SynchronizedRef.get(currentChildrenScope).pipe(
-          Effect.flatMap((childrenScope) =>
-            Effect.acquireRelease(
-              startInternal(logic, {
-                ...spawnOptions,
-                parent: self as Actor.ActorRef<unknown>,
-                runtime: options.runtime,
-                stopOwner: stopSelf
-              }),
-              (child) => child.stop
-            ).pipe(Scope.provide(childrenScope))
-          )
-        )
-      }
-      const id = spawnOptions.id
-      return SynchronizedRef.get(currentChildrenScope).pipe(
-        Effect.flatMap((childrenScope) =>
-          Effect.acquireRelease(
-            Effect.gen(function*() {
-              yield* reserveChildId(id)
-              const token = Symbol()
-              const child = yield* startInternal(logic, {
-                ...spawnOptions,
-                id,
-                onStop: unregisterStartedChild(id, token),
-                parent: self as Actor.ActorRef<unknown>,
-                runtime: options.runtime,
-                stopOwner: stopSelf
-              }).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(id) : Effect.void))
-              const named = namedChild(child)
-              yield* registerStartedChild(id, token, (event) => named.send(event as ChildEvent), named.stop)
-              return named
-            }),
-            (child) => child.stop
-          ).pipe(Scope.provide(childrenScope))
+          Exit.isFailure(exit)
+            ? unregisterReservedSystemId(options.runtime, systemId).pipe(
+              Effect.andThen(cleanupStartupFailure(exit))
+            )
+            : Effect.void
         )
       )
     }
 
     const context: Actor.ActorContext<State, Event> = {
-      self,
-      parent: options.parent,
-      spawn,
-      sendTo,
-      stopChild,
+      ...scope,
       receive: Queue.take(queue),
-      system: options.runtime.system,
       state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
       setState: setActiveState,
       updateState: (f) =>
@@ -615,6 +632,7 @@ const startInternal: <
     }
 
     yield* publishSnapshot(yield* SynchronizedRef.get(current))
+    yield* Deferred.succeed(stopSelfDeferred, stopSelf)
 
     const changesStream: Stream.Stream<Actor.Snapshot<State, Error | InitialError, Output>> = Stream.unwrap(
       Effect.gen(function*() {
@@ -696,7 +714,7 @@ const startInternal: <
         )
       )
 
-    const resetForRestart: Effect.Effect<boolean, never, Requirements> = logic.initial.pipe(
+    const resetForRestart: Effect.Effect<boolean, never, Requirements> = logic.initial(scope).pipe(
       Effect.matchCauseEffect({
         onFailure: (cause) => terminalizeFailure(cause).pipe(Effect.as(false)),
         onSuccess: (state) =>

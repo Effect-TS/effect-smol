@@ -142,6 +142,17 @@ class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
 }>()("effect/StateMachine/DeferredRaisedEvents") {}
 
 /**
+ * Actor runtime scope available to state machine actions when a machine runs
+ * through `toActorLogic`.
+ *
+ * @category services
+ * @since 4.0.0
+ */
+export class ActorRuntime extends Context.Service<ActorRuntime, ActorModule.ActorScope<any>>()(
+  "effect/StateMachine/ActorRuntime"
+) {}
+
+/**
  * Namespace containing type-level members associated with `Machine`.
  *
  * @since 4.0.0
@@ -655,6 +666,12 @@ const provideDeferredServices = <A, E, R>(
     Effect.provideService(DeferredActions, deferredActions),
     Effect.provideService(DeferredRaisedEvents, deferredRaisedEvents)
   )
+
+const provideActorRuntime = <A, E, R, Event>(
+  effect: Effect.Effect<A, E, R>,
+  scope: ActorModule.ActorScope<Event>
+): Effect.Effect<A, E, Exclude<R, ActorRuntime>> =>
+  Effect.provideService(effect, ActorRuntime, scope as ActorModule.ActorScope<any>)
 
 const runStateAction = <Context, E, R>(
   handler: ((context: Context) => Machine.StateActionResult<E, R>) | undefined,
@@ -1346,6 +1363,68 @@ export const raise = <Event>(
 ): Effect.Effect<void> => raiseUnsafe(event) as unknown as Effect.Effect<void>
 
 /**
+ * Returns the current actor runtime scope when a state machine is running as
+ * actor logic.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const actorRuntime = <Event = unknown>(): Effect.Effect<
+  ActorModule.ActorScope<Event>,
+  never,
+  ActorRuntime
+> => Effect.map(ActorRuntime, (runtime) => runtime as ActorModule.ActorScope<Event>)
+
+/**
+ * Returns a reference to the actor currently hosting this state machine.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const self = <Event = unknown>(): Effect.Effect<ActorModule.ActorRef<Event>, never, ActorRuntime> =>
+  Effect.map(actorRuntime<Event>(), (runtime) => runtime.self)
+
+/**
+ * Returns a reference to the parent actor when the hosting actor has one.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const parent: Effect.Effect<ActorModule.ActorRef<unknown> | undefined, never, ActorRuntime> = Effect.map(
+  ActorRuntime,
+  (runtime) => runtime.parent
+)
+
+/**
+ * Returns the actor system that owns the hosting actor.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const system: Effect.Effect<ActorModule.ActorSystem, never, ActorRuntime> = Effect.map(
+  ActorRuntime,
+  (runtime) => runtime.system
+)
+
+/**
+ * Sends an event to a named child actor of the hosting actor.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const sendTo = <Event>(id: string, event: Event): Effect.Effect<void, never, ActorRuntime> =>
+  Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
+
+/**
+ * Stops a named child actor of the hosting actor.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const stopChild = (id: string): Effect.Effect<void, never, ActorRuntime> =>
+  Effect.flatMap(ActorRuntime, (runtime) => runtime.stopChild(id))
+
+/**
  * Converts a state machine definition into actor logic that can be started by
  * the actor runtime.
  *
@@ -1370,7 +1449,7 @@ export const toActorLogic: <
   Machine.StateOf<States>,
   Machine.EventOf<Events>,
   E | UnhandledEventError | InfiniteTransitionError,
-  InitialR | R,
+  Exclude<InitialR | R, ActorRuntime>,
   Output | undefined,
   InitialE | StartupError
 > = <
@@ -1388,50 +1467,56 @@ export const toActorLogic: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output>,
   ...args: [...Machine.InputArgs<Input>]
 ) => ({
-  initial: planInitial(machine, ...args).pipe(
-    Effect.flatMap((planned) =>
-      Effect.all(planned.actions, { discard: true }).pipe(
-        Effect.as(planned.state)
-      )
+  initial: (scope) =>
+    provideActorRuntime(
+      Effect.gen(function*() {
+        const planned = yield* planInitial(machine, ...args)
+        yield* Effect.all(planned.actions, { discard: true })
+        return planned.state
+      }),
+      scope
+    ),
+  run: (context) =>
+    provideActorRuntime(
+      Effect.gen(function*() {
+        const { receive, state, setState } = context
+        let done = false
+        let output: Output | undefined = undefined
+
+        const initialState = yield* state
+        if (isFinalState(machine, initialState)) {
+          return getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
+            machine,
+            initialState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+            InitialEvent as Machine.EventOf<Events>
+          )
+        }
+
+        yield* Effect.whileLoop({
+          while: () => !done,
+          body: () =>
+            Effect.gen(function*() {
+              const event = yield* receive
+              const current = yield* state
+              const planned = yield* macrostep(machine, current, event)
+
+              yield* setState(planned.next)
+              yield* Effect.all(planned.actions, { discard: true })
+
+              if (isFinalState(machine, planned.next)) {
+                done = true
+                output = planned.output
+              } else {
+                yield* Effect.yieldNow
+              }
+            }),
+          step: () => undefined
+        })
+
+        return output
+      }),
+      context
     )
-  ),
-  run: ({ receive, state, setState }) =>
-    Effect.gen(function*() {
-      let done = false
-      let output: Output | undefined = undefined
-
-      const initialState = yield* state
-      if (isFinalState(machine, initialState)) {
-        return getFinalOutput<States, Events, Machine.TagOf<States[number]>, Output>(
-          machine,
-          initialState as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
-          InitialEvent as Machine.EventOf<Events>
-        )
-      }
-
-      yield* Effect.whileLoop({
-        while: () => !done,
-        body: () =>
-          Effect.gen(function*() {
-            const event = yield* receive
-            const current = yield* state
-            const planned = yield* macrostep(machine, current, event)
-
-            yield* setState(planned.next)
-            yield* Effect.all(planned.actions, { discard: true })
-
-            if (isFinalState(machine, planned.next)) {
-              done = true
-              output = planned.output
-            } else {
-              yield* Effect.yieldNow
-            }
-          }),
-        step: () => undefined
-      })
-
-      return output
-    })
 })
 
 /**
