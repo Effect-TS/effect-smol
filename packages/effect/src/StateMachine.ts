@@ -4,16 +4,20 @@
  * @since 4.0.0
  */
 
-import type * as ActorModule from "./Actor.ts"
+import * as ActorModule from "./Actor.ts"
 import type * as Cause from "./Cause.ts"
 import * as Context from "./Context.ts"
 import * as Data from "./Data.ts"
 import * as Effect from "./Effect.ts"
+import * as Exit from "./Exit.ts"
+import * as HashMap from "./HashMap.ts"
 import { PipeInspectableProto } from "./internal/core.ts"
+import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Ref from "./Ref.ts"
 import type * as Schema from "./Schema.ts"
+import * as Stream from "./Stream.ts"
 import * as SynchronizedRef from "./SynchronizedRef.ts"
 
 /**
@@ -267,6 +271,32 @@ export declare namespace Machine {
   }
 
   /**
+   * Context passed to an invoked child actor source.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface InvokeContext<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>
+  > {
+    readonly state: StateByTag<States, StateTag>
+    readonly event: EventOf<Events>
+  }
+
+  /**
+   * Context passed to an invoked child actor outcome mapper.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface InvokeEventContext<State, Error, Output> {
+    readonly id: string
+    readonly outcome: ActorModule.WatchEvent<State, Error, Output>
+  }
+
+  /**
    * Context passed to an eventless transition handler.
    *
    * @category models
@@ -383,6 +413,56 @@ export declare namespace Machine {
     ]
     : never
   /**
+   * Extracts the invoke config or configs from a state config.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeReturn<Config> = "invoke" extends keyof Config
+    ? Config extends { readonly invoke?: infer Invoke }
+      ? NonNullable<Invoke> extends ReadonlyArray<infer One> ? One : NonNullable<Invoke>
+    : never
+    : never
+  /**
+   * Extracts the actor logic returned by an invoke source.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeLogic<Invoke> = Invoke extends { readonly src: (...args: any) => infer Logic } ? Logic : never
+  /**
+   * Extracts the startup error from an invoke source actor logic.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeInitialError<Invoke> = InvokeLogic<Invoke> extends
+    ActorModule.ActorLogic<any, any, any, any, any, infer InitialError> ? InitialError : never
+  /**
+   * Extracts the service requirements from an invoke source actor logic.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeServices<Invoke> = InvokeLogic<Invoke> extends
+    ActorModule.ActorLogic<any, any, any, infer Requirements, any, any> ? Requirements : never
+  /**
+   * Extracts the parent transition error contribution from invoked children.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeError<Config> = [InvokeReturn<Config>] extends [never] ? never
+    : ActorModule.ActorChildAlreadyExistsError | InvokeInitialError<InvokeReturn<Config>>
+  /**
+   * Extracts the parent service requirement contribution from invoked children.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InvokeRequirements<Config> = [InvokeReturn<Config>] extends [never] ? never
+    : ActorRuntime | InvokeServices<InvokeReturn<Config>>
+  /**
    * Extracts the return value from an eventless transition.
    *
    * @category utility types
@@ -412,6 +492,33 @@ export declare namespace Machine {
     : never
 
   /**
+   * Configuration for invoking a child actor while a state is active.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface InvokeConfig<
+    States extends ReadonlyArray<TaggedSchema>,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateTag extends TagOf<States[number]>,
+    Event,
+    ChildState,
+    ChildEvent,
+    ChildError,
+    ChildRequirements,
+    ChildOutput,
+    ChildInitialError
+  > {
+    readonly id: string
+    src(
+      context: InvokeContext<States, Events, StateTag>
+    ): ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    event(
+      context: InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+    ): Event | undefined
+  }
+
+  /**
    * Configuration accepted for a non-final state.
    *
    * @category models
@@ -427,6 +534,9 @@ export declare namespace Machine {
     readonly type?: "active"
     readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
     readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<any, any>
+    readonly invoke?:
+      | InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>
+      | ReadonlyArray<InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, any, any>
     readonly output?: never
     readonly on?: {
@@ -511,12 +621,14 @@ export declare namespace Machine {
       | Effect.Error<EventHandlerReturn<Config>>
       | Effect.Error<AlwaysReturn<Config>>
       | Effect.Error<StateActionReturn<Config, "entry">>
-      | Effect.Error<StateActionReturn<Config, "exit">>,
+      | Effect.Error<StateActionReturn<Config, "exit">>
+      | InvokeError<Config>,
       | R
       | Effect.Services<EventHandlerReturn<Config>>
       | Effect.Services<AlwaysReturn<Config>>
       | Effect.Services<StateActionReturn<Config, "entry">>
-      | Effect.Services<StateActionReturn<Config, "exit">>,
+      | Effect.Services<StateActionReturn<Config, "exit">>
+      | InvokeRequirements<Config>,
       InitialE,
       InitialR,
       FinalStates | FinalStateFromConfig<Config, StateTag>,
@@ -575,6 +687,9 @@ export declare namespace Machine {
     readonly type?: "final" | "active"
     readonly entry?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
     readonly exit?: (context: StateActionContext<States, Events, StateTag>) => StateActionResult<E, R>
+    readonly invoke?:
+      | InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>
+      | ReadonlyArray<InvokeConfig<States, Events, StateTag, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, StateTag>) => HandlerResult<States, E, R>
     readonly output?: (context: FinalOutputContext<States, Events, StateTag>) => any
     readonly on?: EventHandlerMap<States, Events, StateTag, EventTag, E, R>
@@ -719,6 +834,8 @@ type MicrostepTransition<States extends ReadonlyArray<Machine.TaggedSchema>, E, 
   readonly transition: TransitionHandler<States, E, R, Context>
 }
 
+type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, any, any, any>
+
 const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context>(
   transition: EventTransition<States, E, R, Context> | undefined
 ): MicrostepTransition<States, E, R, Context> | undefined => {
@@ -728,6 +845,14 @@ const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSch
   return typeof transition === "function"
     ? { reenter: false, transition }
     : { reenter: transition.reenter === true, transition: transition.transition }
+}
+
+const getInvokes = (config: Machine.AnyStateConfig | undefined): ReadonlyArray<AnyInvokeConfig> => {
+  const invokes = config?.invoke
+  if (invokes === undefined) {
+    return []
+  }
+  return Array.isArray(invokes) ? invokes as ReadonlyArray<AnyInvokeConfig> : [invokes as AnyInvokeConfig]
 }
 
 const collectStateAction = Effect.fnUntraced(function*<Context, Event, E, R>(
@@ -865,6 +990,51 @@ export const make = <
   self.handlers = {}
   return self
 }
+
+/**
+ * Creates an invoked child actor configuration for an active state.
+ *
+ * **When to use**
+ *
+ * Use to run a child actor while a state machine remains in a state and map the
+ * child's terminal lifecycle outcome back into a state machine event.
+ *
+ * **Gotchas**
+ *
+ * Invoked child actors run only when the state machine is converted to actor
+ * logic with `toActorLogic`.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const invoke = <
+  Event,
+  ChildState,
+  ChildEvent,
+  ChildError = never,
+  ChildRequirements = never,
+  ChildOutput = never,
+  ChildInitialError = never
+>(config: {
+  readonly id: string
+  readonly src: (
+    context: Machine.InvokeContext<any, any, any>
+  ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+  readonly event: (
+    context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+  ) => Event | undefined
+}): Machine.InvokeConfig<
+  any,
+  any,
+  any,
+  Event,
+  ChildState,
+  ChildEvent,
+  ChildError,
+  ChildRequirements,
+  ChildOutput,
+  ChildInitialError
+> => config
 
 /**
  * Returns the initial state for a state machine.
@@ -1492,6 +1662,77 @@ export const toActorLogic: <
           )
         }
 
+        const invokeSessions = yield* Ref.make<HashMap.HashMap<string, symbol>>(HashMap.empty())
+        const isCurrentInvoke = (id: string, token: symbol): Effect.Effect<boolean> =>
+          Ref.get(invokeSessions).pipe(
+            Effect.map((sessions) => {
+              const current = HashMap.get(sessions, id)
+              return Option.isSome(current) && current.value === token
+            })
+          )
+        const clearInvoke = (id: string, token: symbol): Effect.Effect<void> =>
+          Ref.update(invokeSessions, (sessions) => {
+            const current = HashMap.get(sessions, id)
+            return Option.isSome(current) && current.value === token ? HashMap.remove(sessions, id) : sessions
+          })
+        const startInvoke = <StateTag extends Machine.TagOf<States[number]>>(
+          config: AnyInvokeConfig,
+          state: Machine.StateByTag<States, StateTag>,
+          event: Machine.EventOf<Events>
+        ) =>
+          Effect.gen(function*() {
+            const token = Symbol()
+            yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, token))
+            const child = yield* context.spawn(config.src({ state, event }), { id: config.id }).pipe(
+              Effect.onExit((exit) => Exit.isFailure(exit) ? clearInvoke(config.id, token) : Effect.void)
+            )
+            yield* ActorModule.watch(child).pipe(
+              Stream.runForEach((outcome) =>
+                isCurrentInvoke(config.id, token).pipe(
+                  Effect.flatMap((isCurrent) => {
+                    if (!isCurrent) {
+                      return Effect.void
+                    }
+                    const event = config.event({ id: config.id, outcome })
+                    return event === undefined ? Effect.void : context.self.send(event as Machine.EventOf<Events>)
+                  })
+                )
+              ),
+              Effect.forkChild,
+              Effect.asVoid
+            )
+          })
+        const startInvokes = (
+          state: Machine.StateOf<States>,
+          event: Machine.EventOf<Events>
+        ): Effect.Effect<void, E, R> =>
+          Effect.all(
+            getInvokes(machine.handlers[state._tag]).map((config) =>
+              startInvoke(
+                config,
+                state as Machine.StateByTag<States, Machine.TagOf<States[number]>>,
+                event
+              ) as Effect.Effect<void, E, R>
+            ),
+            { discard: true }
+          )
+        const stopInvokes = (state: Machine.StateOf<States>): Effect.Effect<void> =>
+          Effect.all(
+            getInvokes(machine.handlers[state._tag]).map((config) =>
+              Ref.modify(invokeSessions, (sessions) => {
+                const current = HashMap.get(sessions, config.id)
+                return Option.isSome(current)
+                  ? [current.value, HashMap.remove(sessions, config.id)] as const
+                  : [undefined, sessions] as const
+              }).pipe(
+                Effect.flatMap((token) => token === undefined ? Effect.void : context.stopChild(config.id))
+              )
+            ),
+            { discard: true }
+          )
+
+        yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
+
         yield* Effect.whileLoop({
           while: () => !done,
           body: () =>
@@ -1499,7 +1740,11 @@ export const toActorLogic: <
               const event = yield* receive
               const current = yield* state
               const planned = yield* macrostep(machine, current, event)
+              const changed = planned.microsteps.some((step) => step.changed)
 
+              if (changed) {
+                yield* stopInvokes(current)
+              }
               yield* setState(planned.next)
               yield* Effect.all(planned.actions, { discard: true })
 
@@ -1507,6 +1752,9 @@ export const toActorLogic: <
                 done = true
                 output = planned.output
               } else {
+                if (changed) {
+                  yield* startInvokes(planned.next, event)
+                }
                 yield* Effect.yieldNow
               }
             }),
