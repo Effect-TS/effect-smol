@@ -1238,7 +1238,7 @@ const makeStreamResponse = Effect.fnUntraced(
             // fragments; keep the name already accumulated for this tool call
             // rather than overwriting it with a placeholder.
             const providerToolName = deltaTool.function?.name
-            const toolName = typeof providerToolName === "string"
+            const toolName = Predicate.isNotNullish(providerToolName)
               ? toolNameMapper.getCustomName(providerToolName)
               : activeToolCall?.name ?? toolNameMapper.getCustomName("unknown_tool")
             const argumentsDelta = deltaTool.function?.arguments ?? ""
