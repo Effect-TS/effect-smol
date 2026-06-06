@@ -1,5 +1,19 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Actor, Cause, Data, Deferred, Effect, Fiber, HashMap, Match, Option, Queue, Schedule, Stream } from "effect"
+import {
+  Actor,
+  Cause,
+  Data,
+  Deferred,
+  Effect,
+  Fiber,
+  HashMap,
+  Match,
+  Option,
+  Queue,
+  Ref,
+  Schedule,
+  Stream
+} from "effect"
 
 class Increment extends Data.TaggedClass("Increment")<{
   readonly by: number
@@ -988,6 +1002,80 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("restarts with a fresh child scope before running initial", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const runs = yield* Ref.make(0)
+      const workerStarts = yield* Ref.make(0)
+      const workerInterrupts = yield* Ref.make(0)
+      const firstWorkerInterrupted = yield* Deferred.make<void>()
+      const secondInitialStarted = yield* Deferred.make<void>()
+      const secondWorkerStarted = yield* Deferred.make<void>()
+      const workerLogic: Actor.ActorLogic<number, never> = {
+        initial: () =>
+          Ref.updateAndGet(workerStarts, (count) => count + 1).pipe(
+            Effect.flatMap((count) => count === 2 ? Deferred.succeed(secondWorkerStarted, void 0) : Effect.void),
+            Effect.as(0)
+          ),
+        run: () =>
+          Effect.never.pipe(
+            Effect.onInterrupt(() =>
+              Ref.updateAndGet(workerInterrupts, (count) => count + 1).pipe(
+                Effect.flatMap((count) => count === 1 ? Deferred.succeed(firstWorkerInterrupted, void 0) : Effect.void)
+              )
+            )
+          )
+      }
+      const childLogic: Actor.ActorLogic<
+        number,
+        never,
+        LogicError,
+        never,
+        never,
+        Actor.ActorChildAlreadyExistsError
+      > = {
+        initial: ({ spawn }) =>
+          Effect.gen(function*() {
+            const run = yield* Ref.updateAndGet(runs, (count) => count + 1)
+            if (run === 2) {
+              yield* Deferred.await(firstWorkerInterrupted)
+              yield* Deferred.succeed(secondInitialStarted, void 0)
+            }
+            yield* spawn(workerLogic, { id: "worker" })
+            return 0
+          }),
+        run: () =>
+          Effect.gen(function*() {
+            const run = yield* Ref.get(runs)
+            if (run === 1) {
+              return yield* Effect.fail(error)
+            }
+            return yield* Effect.never
+          })
+      }
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(Schedule.recurs(1))
+            })
+            return yield* Effect.never
+          })
+      ))
+
+      yield* Deferred.await(secondInitialStarted)
+      yield* Deferred.await(secondWorkerStarted)
+      yield* Effect.yieldNow
+
+      assert.strictEqual(yield* Ref.get(runs), 2)
+      assert.strictEqual(yield* Ref.get(workerStarts), 2)
+      assert.strictEqual(yield* Ref.get(workerInterrupts), 1)
+
+      yield* actor.stop
+    }))
+
   it.effect("leaves a restarted child in error state when the restart schedule is exhausted", () =>
     Effect.gen(function*() {
       const error = new LogicError({ message: "boom" })
@@ -1133,6 +1221,107 @@ describe("Actor", () => {
         { status: "active", state: 1 },
         { status: "done", state: 1, output: "done" }
       ])
+    }))
+
+  it.effect("publishes terminal snapshots after child and registry cleanup", () =>
+    Effect.gen(function*() {
+      const releaseParent = yield* Deferred.make<void>()
+      const childStarted = yield* Deferred.make<void>()
+      const childStopping = yield* Deferred.make<void>()
+      const releaseChildStop = yield* Deferred.make<void>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
+      const joinDone = yield* Ref.make(false)
+      const terminalObserved = yield* Deferred.make<{
+        readonly childSnapshot: Actor.Snapshot<number, never, void>
+        readonly childRegistered: boolean
+        readonly parentRegistered: boolean
+        readonly snapshot: Actor.Snapshot<
+          number,
+          Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError,
+          string
+        >
+      }>()
+      const childLogic = Actor.fromEffect<number, never>(
+        0,
+        () =>
+          Deferred.succeed(childStarted, void 0).pipe(
+            Effect.andThen(Effect.never),
+            Effect.onInterrupt(() =>
+              Deferred.succeed(childStopping, void 0).pipe(
+                Effect.andThen(Deferred.await(releaseChildStop))
+              )
+            )
+          )
+      )
+      const actor = yield* Actor.start(
+        Actor.fromEffect<
+          number,
+          never,
+          string,
+          Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError
+        >(
+          0,
+          ({ spawn }) =>
+            Effect.gen(function*() {
+              const child = yield* spawn(childLogic, { id: "child", systemId: "child-system" })
+              yield* Deferred.succeed(childRef, child)
+              yield* Deferred.await(releaseParent)
+              return "done"
+            })
+        ),
+        { systemId: "parent-system" }
+      )
+      const child = yield* Deferred.await(childRef)
+      yield* Deferred.await(childStarted)
+      const observer = yield* actor.changes.pipe(
+        Stream.filter((snapshot) => snapshot.status !== "active"),
+        Stream.take(1),
+        Stream.runForEach((snapshot) =>
+          Effect.gen(function*() {
+            const parentRegistered = Option.isSome(yield* actor.system.get("parent-system"))
+            const childRegistered = Option.isSome(yield* actor.system.get("child-system"))
+            const childSnapshot = yield* child.snapshot
+            yield* Deferred.succeed(terminalObserved, {
+              childRegistered,
+              childSnapshot,
+              parentRegistered,
+              snapshot
+            })
+          })
+        ),
+        Effect.forkChild
+      )
+      const joinFiber = yield* actor.join.pipe(
+        Effect.tap(() => Ref.set(joinDone, true)),
+        Effect.forkChild
+      )
+
+      yield* Deferred.succeed(releaseParent, void 0)
+      yield* Deferred.await(childStopping)
+
+      assert.strictEqual(yield* Ref.get(joinDone), false)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: 0
+      })
+      assert.strictEqual(Option.isSome(yield* actor.system.get("parent-system")), true)
+
+      yield* Deferred.succeed(releaseChildStop, void 0)
+
+      const observed = yield* Deferred.await(terminalObserved)
+      assert.deepStrictEqual(observed.snapshot, {
+        status: "done",
+        state: 0,
+        output: "done"
+      })
+      assert.deepStrictEqual(observed.childSnapshot, {
+        status: "stopped",
+        state: 0
+      })
+      assert.strictEqual(observed.parentRegistered, false)
+      assert.strictEqual(observed.childRegistered, false)
+      assert.strictEqual(yield* Fiber.join(joinFiber), "done")
+      yield* Fiber.join(observer)
     }))
 
   it.effect("watches completion as a done event", () =>

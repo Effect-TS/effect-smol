@@ -632,6 +632,26 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
     }))
 
+  it.effect("start ignores events sent after stop", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
+      })
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.stop
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+    }))
+
   it.effect("plans no-op transitions from final states", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
@@ -1892,6 +1912,159 @@ describe("StateMachine", () => {
       })
 
       yield* actor.stop
+    }))
+
+  it.effect("toActorLogic finishes invoke cleanup before leaving a state", () =>
+    Effect.gen(function*() {
+      const childStarted = yield* Deferred.make<void>()
+      const childStopping = yield* Deferred.make<void>()
+      const releaseChildStop = yield* Deferred.make<void>()
+      const resetHandled = yield* Deferred.make<void>()
+      let stoppedOutcomes = 0
+      const childLogic = Actor.fromEffect("pending", () =>
+        Deferred.succeed(childStarted, void 0).pipe(
+          Effect.andThen(Effect.never),
+          Effect.onInterrupt(() =>
+            Deferred.succeed(childStopping, void 0).pipe(
+              Effect.andThen(Deferred.await(releaseChildStop))
+            )
+          )
+        ))
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Reset, RequestSucceeded],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => childLogic,
+            event: ({ outcome }) => {
+              if (outcome._tag === "Stopped") {
+                stoppedOutcomes++
+                return new RequestSucceeded({ value: "stopped" })
+              }
+              return undefined
+            }
+          }),
+          on: {
+            Reset: Effect.fn(function*() {
+              yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
+              return new Idle({ userId: "user-1" })
+            }),
+            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+          }
+        })
+        .handle("Success", {
+          type: "final"
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Deferred.await(childStarted)
+      yield* actor.send(new Reset({}))
+      yield* Deferred.await(childStopping)
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
+
+      yield* Deferred.succeed(releaseChildStop, void 0)
+      yield* Deferred.await(resetHandled)
+      yield* Effect.yieldNow
+
+      assert.strictEqual(stoppedOutcomes, 0)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
+
+      yield* actor.stop
+    }))
+
+  it.effect("toActorLogic stops active invokes before final join completes", () =>
+    Effect.gen(function*() {
+      const childStarted = yield* Deferred.make<void>()
+      const childStopping = yield* Deferred.make<void>()
+      const releaseChildStop = yield* Deferred.make<void>()
+      const joinDone = yield* Ref.make(false)
+      let stoppedOutcomes = 0
+      const childLogic = Actor.fromEffect("pending", () =>
+        Deferred.succeed(childStarted, void 0).pipe(
+          Effect.andThen(Effect.never),
+          Effect.onInterrupt(() =>
+            Deferred.succeed(childStopping, void 0).pipe(
+              Effect.andThen(Deferred.await(releaseChildStop))
+            )
+          )
+        ))
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve, RequestSucceeded],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => childLogic,
+            event: ({ outcome }) => {
+              if (outcome._tag === "Stopped") {
+                stoppedOutcomes++
+                return new RequestSucceeded({ value: "stopped" })
+              }
+              return undefined
+            }
+          }),
+          on: {
+            Resolve: () => new Success({ requestId: "request-1" }),
+            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      const joinFiber = yield* actor.join.pipe(
+        Effect.tap(() => Ref.set(joinDone, true)),
+        Effect.forkChild
+      )
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Deferred.await(childStarted)
+      yield* actor.send(new Resolve({}))
+      yield* Deferred.await(childStopping)
+
+      assert.strictEqual(yield* Ref.get(joinDone), false)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
+
+      yield* Deferred.succeed(releaseChildStop, void 0)
+
+      assert.strictEqual(yield* Fiber.join(joinFiber), "request-1")
+      assert.strictEqual(stoppedOutcomes, 0)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: "request-1"
+      })
     }))
 
   it.effect("toActorLogic keeps invokes on implicit self-transitions and restarts them on reentry", () =>

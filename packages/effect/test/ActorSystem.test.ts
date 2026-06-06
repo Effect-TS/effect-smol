@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Actor, ActorSystem, Effect, Exit, Fiber, Queue, Scope, Stream } from "effect"
+import { Actor, ActorSystem, Effect, Exit, Fiber, Option, Queue, Scope, Stream } from "effect"
 
 const neverLogic = Actor.fromEffect(0, () => Effect.never)
 
@@ -134,6 +134,17 @@ describe("ActorSystem", () => {
 
       yield* Effect.yieldNow
       assert.strictEqual(yield* Queue.size(observed), 0)
+    })))
+
+  it.effect("ignores sends to stopped system ids", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const system = yield* ActorSystem.make
+      const actor = yield* system.spawn(neverLogic, { systemId: "worker" })
+
+      yield* actor.stop
+      yield* system.send("worker", { _tag: "Ping" })
+
+      assert.strictEqual(Option.isNone(yield* system.get("worker")), true)
     })))
 
   it.effect("completes the events stream when the system scope closes", () =>

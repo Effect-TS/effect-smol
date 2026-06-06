@@ -17,7 +17,7 @@ import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Ref from "./Ref.ts"
 import type * as Schema from "./Schema.ts"
-import type * as Scope from "./Scope.ts"
+import * as Scope from "./Scope.ts"
 import * as Stream from "./Stream.ts"
 import * as SynchronizedRef from "./SynchronizedRef.ts"
 
@@ -1089,6 +1089,11 @@ type MicrostepTransition<States extends ReadonlyArray<Machine.TaggedSchema>, E, 
 
 type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, any, any, any, any>
 
+interface InvokeSession {
+  readonly token: symbol
+  readonly scope: Scope.Closeable
+}
+
 const normalizeEventTransition = <States extends ReadonlyArray<Machine.TaggedSchema>, E, R, Context>(
   transition: EventTransition<States, E, R, Context> | undefined
 ): MicrostepTransition<States, E, R, Context> | undefined => {
@@ -2023,37 +2028,58 @@ export const toActorLogic: <
             )
           }
 
-          const invokeSessions = yield* Ref.make<HashMap.HashMap<string, symbol>>(HashMap.empty())
+          const invokeSessions = yield* Ref.make<HashMap.HashMap<string, InvokeSession>>(HashMap.empty())
           const isCurrentInvoke = (id: string, token: symbol): Effect.Effect<boolean> =>
             Ref.get(invokeSessions).pipe(
               Effect.map((sessions) => {
                 const current = HashMap.get(sessions, id)
-                return Option.isSome(current) && current.value === token
+                return Option.isSome(current) && current.value.token === token
               })
             )
-          const clearInvoke = (id: string, token: symbol): Effect.Effect<void> =>
-            Ref.update(invokeSessions, (sessions) => {
+          const stopInvoke = (id: string, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+            Ref.modify(invokeSessions, (sessions) => {
               const current = HashMap.get(sessions, id)
-              return Option.isSome(current) && current.value === token ? HashMap.remove(sessions, id) : sessions
-            })
-          const startInvoke = <StateTag extends Machine.TagOf<States[number]>>(
-            config: AnyInvokeConfig,
-            state: Machine.StateByTag<States, StateTag>,
-            event: Machine.EventOf<Events>
-          ) =>
-            Effect.gen(function*() {
-              const token = Symbol()
-              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, token))
-              const child = yield* context.spawn(
-                config.src({
-                  state,
-                  event,
-                  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
-                }),
-                { id: config.id }
-              ).pipe(
-                Effect.onExit((exit) => Exit.isFailure(exit) ? clearInvoke(config.id, token) : Effect.void)
+              return Option.isSome(current)
+                ? [current.value, HashMap.remove(sessions, id)] as const
+                : [undefined, sessions] as const
+            }).pipe(
+              Effect.flatMap((session) =>
+                session === undefined
+                  ? Effect.void
+                  : Scope.close(session.scope, exit).pipe(
+                    Effect.andThen(context.stopChild(id))
+                  )
               )
+            )
+          const clearInvoke = (id: string, token: symbol, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+            Ref.modify(invokeSessions, (sessions) => {
+              const current = HashMap.get(sessions, id)
+              return Option.isSome(current) && current.value.token === token
+                ? [current.value, HashMap.remove(sessions, id)] as const
+                : [undefined, sessions] as const
+            }).pipe(
+              Effect.flatMap((session) => session === undefined ? Effect.void : Scope.close(session.scope, exit))
+            )
+          const stopAllInvokes = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+            Ref.modify(invokeSessions, (sessions) => [HashMap.toEntries(sessions), HashMap.empty()] as const).pipe(
+              Effect.flatMap((sessions) =>
+                Effect.all(
+                  sessions.map(([id, session]) =>
+                    Scope.close(session.scope, exit).pipe(
+                      Effect.andThen(context.stopChild(id))
+                    )
+                  ),
+                  { discard: true }
+                )
+              )
+            )
+          const startInvokeWatchers = (
+            config: AnyInvokeConfig,
+            child: ActorModule.Actor<any, any, any, any>,
+            token: symbol,
+            scope: Scope.Closeable
+          ): Effect.Effect<void> =>
+            Effect.gen(function*() {
               if (config.snapshot !== undefined) {
                 const mapSnapshot = config.snapshot
                 yield* child.changes.pipe(
@@ -2071,7 +2097,7 @@ export const toActorLogic: <
                       })
                     )
                   ),
-                  Effect.forkChild,
+                  Effect.forkIn(scope),
                   Effect.asVoid
                 )
               }
@@ -2091,10 +2117,33 @@ export const toActorLogic: <
                       })
                     )
                   ),
-                  Effect.forkChild,
+                  Effect.forkIn(scope),
                   Effect.asVoid
                 )
               }
+            })
+          const startInvoke = <StateTag extends Machine.TagOf<States[number]>>(
+            config: AnyInvokeConfig,
+            state: Machine.StateByTag<States, StateTag>,
+            event: Machine.EventOf<Events>
+          ) =>
+            Effect.gen(function*() {
+              const token = Symbol()
+              const child = yield* context.spawn(
+                config.src({
+                  state,
+                  event,
+                  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
+                }),
+                { id: config.id }
+              ).pipe(
+                Effect.onExit((exit) =>
+                  Exit.isFailure(exit) ? clearInvoke(config.id, token, Exit.failCause(exit.cause)) : Effect.void
+                )
+              )
+              const scope = yield* Scope.make("parallel")
+              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, { token, scope }))
+              yield* startInvokeWatchers(config, child, token, scope)
             })
           const startInvokes = (
             state: Machine.StateOf<States>,
@@ -2112,53 +2161,49 @@ export const toActorLogic: <
             )
           const stopInvokes = (state: Machine.StateOf<States>): Effect.Effect<void> =>
             Effect.all(
-              getInvokes(machine.handlers[state._tag]).map((config) =>
-                Ref.modify(invokeSessions, (sessions) => {
-                  const current = HashMap.get(sessions, config.id)
-                  return Option.isSome(current)
-                    ? [current.value, HashMap.remove(sessions, config.id)] as const
-                    : [undefined, sessions] as const
-                }).pipe(
-                  Effect.flatMap((token) => token === undefined ? Effect.void : context.stopChild(config.id))
-                )
-              ),
+              getInvokes(machine.handlers[state._tag]).map((config) => stopInvoke(config.id, Exit.void)),
               { discard: true }
             )
 
-          yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
+          return yield* Effect.gen(function*() {
+            yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
 
-          yield* Effect.whileLoop({
-            while: () => !done,
-            body: () =>
-              Effect.gen(function*() {
-                const event = yield* receive
-                const current = yield* state
-                const planned = yield* macrostep(machine, current, event)
-                const changed = planned.microsteps.some((step) => step.changed)
+            yield* Effect.whileLoop({
+              while: () => !done,
+              body: () =>
+                Effect.gen(function*() {
+                  const event = yield* receive
+                  const current = yield* state
+                  const planned = yield* macrostep(machine, current, event)
+                  const changed = planned.microsteps.some((step) => step.changed)
 
-                if (changed) {
-                  yield* stopInvokes(current)
-                }
-                yield* setState(planned.next)
-                yield* runActions(
-                  planned.actions,
-                  makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
-                )
-
-                if (isFinalState(machine, planned.next)) {
-                  done = true
-                  output = planned.output
-                } else {
                   if (changed) {
-                    yield* startInvokes(planned.next, event)
+                    yield* stopInvokes(current)
                   }
-                  yield* Effect.yieldNow
-                }
-              }),
-            step: () => undefined
-          })
+                  yield* setState(planned.next)
+                  yield* runActions(
+                    planned.actions,
+                    makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
+                  )
 
-          return output
+                  if (isFinalState(machine, planned.next)) {
+                    done = true
+                    output = planned.output
+                    yield* stopAllInvokes(Exit.succeed(output))
+                  } else {
+                    if (changed) {
+                      yield* startInvokes(planned.next, event)
+                    }
+                    yield* Effect.yieldNow
+                  }
+                }),
+              step: () => undefined
+            })
+
+            return output
+          }).pipe(
+            Effect.onExit((exit) => stopAllInvokes(exit))
+          )
         }),
         context
       )

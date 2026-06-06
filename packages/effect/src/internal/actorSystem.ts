@@ -11,6 +11,7 @@ import * as Option from "../Option.ts"
 import * as PubSub from "../PubSub.ts"
 import * as Pull from "../Pull.ts"
 import * as Queue from "../Queue.ts"
+import * as Ref from "../Ref.ts"
 import * as Schedule from "../Schedule.ts"
 import * as Scope from "../Scope.ts"
 import * as Stream from "../Stream.ts"
@@ -496,6 +497,7 @@ const startInternal: <
       status: "active",
       state: initial
     })
+    const terminalizing = yield* Ref.make(false)
 
     const publishSnapshot = (
       snapshot: Actor.Snapshot<State, Error | InitialError, Output>
@@ -528,7 +530,12 @@ const startInternal: <
         )
       )
 
-    const modifySnapshot = <E2, R2>(
+    type SnapshotModification = readonly [
+      Actor.Snapshot<State, Error | InitialError, Output> | undefined,
+      Actor.Snapshot<State, Error | InitialError, Output>
+    ]
+
+    const updateSnapshot = <E2, R2>(
       f: (
         snapshot: Actor.Snapshot<State, Error | InitialError, Output>
       ) => Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2>
@@ -536,19 +543,47 @@ const startInternal: <
       SynchronizedRef.modifyEffect(
         current,
         (snapshot) =>
-          Effect.map(
-            f(snapshot),
-            (next) => next === undefined ? [undefined, snapshot] as const : [next, next] as const
+          Ref.get(terminalizing).pipe(
+            Effect.flatMap((isTerminalizing) =>
+              isTerminalizing
+                ? Effect.succeed([undefined, snapshot] as const)
+                : Effect.map(
+                  f(snapshot),
+                  (next) => next === undefined ? [undefined, snapshot] as const : [next, next] as const
+                )
+            )
+          )
+      ).pipe(
+        Effect.flatMap((snapshot) => snapshot === undefined ? Effect.succeed(undefined) : publishIfCurrent(snapshot))
+      )
+
+    const reserveTerminalSnapshot = (
+      f: (
+        snapshot: Extract<Actor.Snapshot<State, Error | InitialError, Output>, { readonly status: "active" }>
+      ) => Actor.Snapshot<State, Error | InitialError, Output>
+    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined> =>
+      SynchronizedRef.modifyEffect(
+        current,
+        (snapshot) =>
+          Ref.get(terminalizing).pipe(
+            Effect.flatMap((isTerminalizing): Effect.Effect<SnapshotModification> => {
+              if (isTerminalizing || snapshot.status !== "active") {
+                return Effect.succeed([undefined, snapshot] as SnapshotModification)
+              }
+              return Ref.set(terminalizing, true).pipe(
+                Effect.as([f(snapshot), snapshot] as SnapshotModification)
+              )
+            })
           )
       )
 
-    const updateSnapshot = <E2, R2>(
-      f: (
-        snapshot: Actor.Snapshot<State, Error | InitialError, Output>
-      ) => Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2>
-    ): Effect.Effect<Actor.Snapshot<State, Error | InitialError, Output> | undefined, E2, R2> =>
-      modifySnapshot(f).pipe(
-        Effect.flatMap((snapshot) => snapshot === undefined ? Effect.succeed(undefined) : publishIfCurrent(snapshot))
+    const setAndPublishSnapshot = (
+      snapshot: Actor.Snapshot<State, Error | InitialError, Output>
+    ): Effect.Effect<void> =>
+      SynchronizedRef.set(current, snapshot).pipe(
+        Effect.andThen(publishSnapshot(snapshot)),
+        Effect.flatMap(completeIfTerminal),
+        Effect.asVoid
       )
 
     const setActiveState = (state: State) =>
@@ -563,16 +598,10 @@ const startInternal: <
         )
       ).pipe(Effect.asVoid)
 
-    const stopSelf: Effect.Effect<void> = modifySnapshot((snapshot) =>
-      Effect.succeed(
-        snapshot.status === "active"
-          ? {
-            status: "stopped",
-            state: snapshot.state
-          }
-          : undefined
-      )
-    ).pipe(
+    const stopSelf: Effect.Effect<void> = reserveTerminalSnapshot((snapshot) => ({
+      status: "stopped",
+      state: snapshot.state
+    })).pipe(
       Effect.flatMap((snapshot) =>
         snapshot === undefined
           ? Effect.void
@@ -582,7 +611,7 @@ const startInternal: <
               Effect.andThen(closeChildren(exit)),
               Effect.andThen(publishStopped(exit)),
               Effect.andThen(cleanup),
-              Effect.andThen(publishIfCurrent(snapshot)),
+              Effect.andThen(setAndPublishSnapshot(snapshot)),
               Effect.andThen(finalize(exit)),
               Effect.andThen(Deferred.fail(done, new ActorStoppedError())),
               Effect.andThen(Deferred.await(fiberRef).pipe(Effect.flatMap(Fiber.interrupt)))
@@ -660,17 +689,11 @@ const startInternal: <
       : undefined
 
     const terminalizeFailure = (cause: Cause.Cause<Error | InitialError>): Effect.Effect<void> =>
-      modifySnapshot((snapshot) =>
-        Effect.succeed(
-          snapshot.status === "active"
-            ? {
-              status: "error",
-              state: snapshot.state,
-              cause
-            }
-            : undefined
-        )
-      ).pipe(
+      reserveTerminalSnapshot((snapshot) => ({
+        status: "error",
+        state: snapshot.state,
+        cause
+      })).pipe(
         Effect.flatMap((snapshot) =>
           snapshot === undefined
             ? Effect.void
@@ -680,7 +703,7 @@ const startInternal: <
                 Effect.andThen(closeChildren(exit)),
                 Effect.andThen(publishStopped(exit)),
                 Effect.andThen(cleanup),
-                Effect.andThen(publishIfCurrent(snapshot)),
+                Effect.andThen(setAndPublishSnapshot(snapshot)),
                 Effect.andThen(finalize(exit)),
                 Effect.andThen(Deferred.failCause(done, cause))
               )
@@ -689,17 +712,11 @@ const startInternal: <
       )
 
     const terminalizeSuccess = (output: Output): Effect.Effect<void> =>
-      modifySnapshot((snapshot) =>
-        Effect.succeed(
-          snapshot.status === "active"
-            ? {
-              status: "done",
-              state: snapshot.state,
-              output
-            }
-            : undefined
-        )
-      ).pipe(
+      reserveTerminalSnapshot((snapshot) => ({
+        status: "done",
+        state: snapshot.state,
+        output
+      })).pipe(
         Effect.flatMap((snapshot) =>
           snapshot === undefined
             ? Effect.void
@@ -709,7 +726,7 @@ const startInternal: <
                 Effect.andThen(closeChildren(exit)),
                 Effect.andThen(publishStopped(exit)),
                 Effect.andThen(cleanup),
-                Effect.andThen(publishIfCurrent(snapshot)),
+                Effect.andThen(setAndPublishSnapshot(snapshot)),
                 Effect.andThen(finalize(exit)),
                 Effect.andThen(Deferred.succeed(done, output))
               )
@@ -717,27 +734,29 @@ const startInternal: <
         )
       )
 
-    const resetForRestart: Effect.Effect<boolean, never, Requirements> = logic.initial(scope).pipe(
-      Effect.matchCauseEffect({
-        onFailure: (cause) => terminalizeFailure(cause).pipe(Effect.as(false)),
-        onSuccess: (state) =>
-          Effect.gen(function*() {
-            const nextChildrenScope = yield* Scope.make("parallel")
-            yield* SynchronizedRef.set(currentChildrenScope, nextChildrenScope)
-            const snapshot = yield* updateSnapshot((snapshot) =>
-              Effect.succeed(
-                snapshot.status === "active"
-                  ? {
-                    status: "active",
-                    state
-                  }
-                  : undefined
+    const resetForRestart: Effect.Effect<boolean, never, Requirements> = Effect.gen(function*() {
+      const nextChildrenScope = yield* Scope.make("parallel")
+      yield* SynchronizedRef.set(currentChildrenScope, nextChildrenScope)
+      return yield* logic.initial(scope).pipe(
+        Effect.matchCauseEffect({
+          onFailure: (cause) => terminalizeFailure(cause).pipe(Effect.as(false)),
+          onSuccess: (state) =>
+            Effect.gen(function*() {
+              const snapshot = yield* updateSnapshot((snapshot) =>
+                Effect.succeed(
+                  snapshot.status === "active"
+                    ? {
+                      status: "active",
+                      state
+                    }
+                    : undefined
+                )
               )
-            )
-            return snapshot !== undefined
-          })
-      })
-    )
+              return snapshot !== undefined
+            })
+        })
+      )
+    })
 
     const handleFailure = (
       cause: Cause.Cause<Error>
