@@ -244,7 +244,7 @@ export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setti
   ).pipe(
     Flag.optional,
     Flag.withDescription("Sets the minimum log level"),
-    Flag.withMetavar("<all|trace|debug|info|warn|warning|error|fatal|none>"),
+    Flag.withMetavar("<all|trace|debug|info|warn|warning|error|fatal|none>")
   )
 })
 
