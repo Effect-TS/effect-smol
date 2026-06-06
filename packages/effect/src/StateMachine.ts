@@ -1274,19 +1274,22 @@ export const invoke = <
   ChildRequirements = never,
   ChildOutput = never,
   ChildInitialError = never,
-  Event = never
->(config: {
-  readonly id: string
-  readonly src: (
-    context: Machine.InvokeContext<any, any, any, any>
-  ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
-  readonly event?: (
-    context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
-  ) => Event | undefined
-  readonly snapshot?: (
-    context: Machine.InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
-  ) => Event | undefined
-}): Machine.InvokeConfig<
+  Event = never,
+  Id extends string = string
+>(
+  config: {
+    readonly id: Id
+    readonly src: (
+      context: Machine.InvokeContext<any, any, any, any>
+    ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    readonly event?: (
+      context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+    ) => Event | undefined
+    readonly snapshot?: (
+      context: Machine.InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
+    ) => Event | undefined
+  } & ActorModule.ChildAddress.Compatibility<Id, ChildEvent>
+): Machine.InvokeConfig<
   any,
   any,
   any,
@@ -1830,6 +1833,14 @@ export const actorRuntime = <Event = unknown>(): Effect.Effect<
 > => Effect.map(ActorRuntime, (runtime) => runtime as ActorModule.ActorScope<Event>)
 
 /**
+ * Creates a typed parent-local address for a child actor.
+ *
+ * @category actor runtime
+ * @since 4.0.0
+ */
+export const child = <Event>(id: string): ActorModule.ChildAddress<Event> => ActorModule.child<Event>(id)
+
+/**
  * Returns a reference to the actor currently hosting this state machine.
  *
  * @category actor runtime
@@ -1901,7 +1912,7 @@ export const spawn: {
       ChildOutput,
       ChildInitialError
     >,
-    options: Options
+    options: Options & ActorModule.ChildAddress.OptionsCompatibility<Options, ChildEvent>
   ): SpawnResult<
     ChildState,
     ChildEvent,
@@ -1927,8 +1938,10 @@ export const spawn: {
  * @category actor runtime
  * @since 4.0.0
  */
-export const sendTo = <Event>(id: string, event: Event): Effect.Effect<void, never, ActorRuntime> =>
-  Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
+export const sendTo = <Address extends string>(
+  id: Address,
+  event: ActorModule.ChildAddress.Event<Address>
+): Effect.Effect<void, never, ActorRuntime> => Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
 
 /**
  * Stops a named child actor of the hosting actor.

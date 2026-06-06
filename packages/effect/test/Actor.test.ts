@@ -97,6 +97,13 @@ const effectCounterLogic = Actor.fromEffect<number, EffectCounterEvent>(
 )
 
 describe("Actor", () => {
+  it("child creates string ids at runtime", () => {
+    const Counter = Actor.child<CounterEvent>("counter")
+
+    assert.strictEqual(Counter, "counter")
+    assert.strictEqual(typeof Counter, "string")
+  })
+
   it.effect("updates the state from sent events", () =>
     Effect.gen(function*() {
       const reply = yield* Deferred.make<number>()
@@ -560,6 +567,25 @@ describe("Actor", () => {
             yield* spawn(counterLogic, { id: "counter" })
             yield* sendTo("counter", new Increment({ by: 5 }))
             yield* sendTo("counter", new ReadCount({ reply }))
+            return yield* Effect.never
+          })
+      ))
+
+      assert.strictEqual(yield* Deferred.await(reply), 5)
+      yield* actor.stop
+    }))
+
+  it.effect("sends events to named child actors by typed child address", () =>
+    Effect.gen(function*() {
+      const Counter = Actor.child<CounterEvent>("counter")
+      const reply = yield* Deferred.make<number>()
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ sendTo, spawn }) =>
+          Effect.gen(function*() {
+            yield* spawn(counterLogic, { id: Counter })
+            yield* sendTo(Counter, new Increment({ by: 5 }))
+            yield* sendTo(Counter, new ReadCount({ reply }))
             return yield* Effect.never
           })
       ))

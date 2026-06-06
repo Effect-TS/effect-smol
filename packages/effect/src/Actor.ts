@@ -18,6 +18,7 @@ import * as Result from "./Result.ts"
 import type * as Schedule from "./Schedule.ts"
 import type * as Scope from "./Scope.ts"
 import * as Stream from "./Stream.ts"
+import type * as Types from "./Types.ts"
 
 export {
   /**
@@ -55,6 +56,81 @@ export interface ActorRef<in Event> {
   readonly systemId: string | undefined
   readonly send: (event: Event) => Effect.Effect<void>
 }
+
+const ChildAddressTypeId = "~effect/Actor/ChildAddress"
+const ChildAddressCompatibilityErrorTypeId = "~effect/Actor/ChildAddressCompatibilityError"
+
+/**
+ * Parent-local address for a child actor that can receive events.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type ChildAddress<Event> = string & ChildAddress.Variance<Event>
+
+/**
+ * Namespace containing type-level members associated with `ChildAddress`.
+ *
+ * @since 4.0.0
+ */
+export declare namespace ChildAddress {
+  /**
+   * Variance marker carried by a typed child actor address.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Variance<in Event> {
+    readonly [ChildAddressTypeId]: {
+      readonly _Event: Types.Contravariant<Event>
+    }
+  }
+
+  /**
+   * Extracts the event protocol accepted by a child address.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Event<Address> = Address extends ChildAddress<infer Event> ? Event : unknown
+
+  /**
+   * Ensures a child address protocol is compatible with an actor event
+   * protocol.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Compatibility<Address, Event> = [Address] extends [ChildAddress<infer AddressEvent>] ?
+    [AddressEvent] extends [Event] ? unknown : {
+      readonly [ChildAddressCompatibilityErrorTypeId]: {
+        readonly address: AddressEvent
+        readonly actor: Event
+      }
+    }
+    : unknown
+
+  /**
+   * Ensures spawn options with a typed child address are compatible with an
+   * actor event protocol.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type OptionsCompatibility<Options, Event> = "id" extends keyof Options ? Options extends {
+      readonly id?: infer Address
+    } ? Compatibility<Exclude<Address, undefined>, Event>
+    : unknown
+    : unknown
+}
+
+/**
+ * Creates a typed parent-local address for a child actor.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const child = <Event>(id: string): ChildAddress<Event> => id as ChildAddress<Event>
 
 /**
  * Lifecycle-aware snapshot of an actor.
@@ -378,7 +454,7 @@ interface Spawn {
     ChildInitialError = never
   >(
     logic: ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
-    options: Options
+    options: Options & ChildAddress.OptionsCompatibility<Options, ChildEvent>
   ): SpawnResult<
     ChildState,
     ChildEvent,
@@ -402,7 +478,7 @@ export interface ActorScope<Event> {
   readonly parent: ActorRef<unknown> | undefined
   readonly system: ActorSystemModule.ActorSystem
   readonly spawn: Spawn
-  readonly sendTo: <ChildEvent>(id: string, event: ChildEvent) => Effect.Effect<void>
+  readonly sendTo: <Address extends string>(id: Address, event: ChildAddress.Event<Address>) => Effect.Effect<void>
   readonly stopChild: (id: string) => Effect.Effect<void>
 }
 

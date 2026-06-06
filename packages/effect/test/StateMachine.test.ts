@@ -1365,6 +1365,64 @@ describe("StateMachine", () => {
       })
     }))
 
+  it.effect("toActorLogic sends to spawned child actors by typed child address", () =>
+    Effect.gen(function*() {
+      const Child = StateMachine.child<ChildPing>("child")
+      const childRef = yield* Deferred.make<Actor.Actor<number, ChildPing, never, void>>()
+      const childLogic = Actor.fromEffect<number, ChildPing>(
+        0,
+        ({ receive }) =>
+          receive.pipe(
+            Effect.flatMap((event) => Deferred.succeed(event.reply, void 0)),
+            Effect.forever
+          )
+      )
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* StateMachine.action(
+                Effect.gen(function*() {
+                  const child = yield* StateMachine.spawn(childLogic, { id: Child })
+                  const reply = yield* Deferred.make<void>()
+                  yield* Deferred.succeed(childRef, child)
+                  yield* StateMachine.sendTo(Child, new ChildPing({ reply }))
+                  yield* Deferred.await(reply)
+                })
+              )
+              return new Loading({ requestId: "request-1" })
+            })
+          }
+        })
+        .handle("Loading", {
+          on: {
+            Resolve: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          entry: () => StateMachine.action(StateMachine.stopChild(Child)),
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      yield* actor.send(new Submit({ value: "hello" }))
+      const child = yield* Deferred.await(childRef)
+
+      yield* actor.send(new Resolve({}))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* child.snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    }))
+
   it.effect("toActorLogic returns spawned child refs to machine actions", () =>
     Effect.gen(function*() {
       const childRef = yield* Deferred.make<Actor.Actor<number, ChildPing, never, void>>()
@@ -1476,6 +1534,52 @@ describe("StateMachine", () => {
           invoke: StateMachine.invoke({
             id: "request",
             src: ({ state }) => Actor.fromEffect("pending", () => Effect.succeed(`done:${state.requestId}`)),
+            event: ({ outcome }) =>
+              outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
+          }),
+          on: {
+            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "done:request-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "done:request-1" }),
+        output: "done:request-1"
+      })
+    }))
+
+  it.effect("toActorLogic invokes a child actor by typed child address", () =>
+    Effect.gen(function*() {
+      const Request = StateMachine.child<ChildPing>("request")
+      const childLogic = Actor.fromEffect<string, ChildPing, string>(
+        "pending",
+        () => Effect.succeed("done:request-1")
+      )
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, RequestSucceeded],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: Request,
+            src: () => childLogic,
             event: ({ outcome }) =>
               outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
           }),

@@ -369,7 +369,10 @@ const startInternal: <
         (children) => HashMap.set(children, id, { _tag: "Started", token, send, stop })
       )
 
-    const sendTo = <ChildEvent>(id: string, event: ChildEvent): Effect.Effect<void> =>
+    const sendTo = <Address extends string>(
+      id: Address,
+      event: Actor.ChildAddress.Event<Address>
+    ): Effect.Effect<void> =>
       SynchronizedRef.get(childRegistry).pipe(
         Effect.flatMap((children) => {
           const entry = HashMap.get(children, id)
@@ -415,7 +418,7 @@ const startInternal: <
       ChildInitialError = never
     >(
       logic: Actor.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
-      options: Options
+      options: Options & Actor.ChildAddress.OptionsCompatibility<Options, ChildEvent>
     ): SpawnResult<
       ChildState,
       ChildEvent,
