@@ -5,7 +5,7 @@
  */
 
 import type * as ActorSystemModule from "./ActorSystem.ts"
-import type * as Cause from "./Cause.ts"
+import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import type * as Exit from "./Exit.ts"
 import type {
@@ -14,9 +14,10 @@ import type {
   ActorSystemIdAlreadyExistsError
 } from "./internal/actorErrors.ts"
 import { start as internalStart } from "./internal/actorSystem.ts"
+import * as Result from "./Result.ts"
 import type * as Schedule from "./Schedule.ts"
 import type * as Scope from "./Scope.ts"
-import type * as Stream from "./Stream.ts"
+import * as Stream from "./Stream.ts"
 
 export {
   /**
@@ -79,6 +80,45 @@ export type Snapshot<State, Error = never, Output = never> =
   | {
     readonly status: "stopped"
     readonly state: State
+  }
+
+/**
+ * Terminal lifecycle event derived from an actor snapshot.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type WatchEvent<State, Error = never, Output = never> =
+  | {
+    readonly _tag: "Done"
+    readonly output: Output
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "done" }>
+  }
+  | {
+    readonly _tag: "Failure"
+    readonly error: Error
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Defect"
+    readonly defect: unknown
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Interrupted"
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Cause"
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Stopped"
+    readonly snapshot: Extract<Snapshot<State, Error, Output>, { readonly status: "stopped" }>
   }
 
 /**
@@ -161,6 +201,104 @@ export const Supervision: {
   stopOwner: { _tag: "StopOwner" },
   restart: (schedule) => ({ _tag: "Restart", schedule })
 }
+
+const classifyWatchEvent = <State, Error, Output>(
+  snapshot: Snapshot<State, Error, Output>
+): WatchEvent<State, Error, Output> | undefined => {
+  switch (snapshot.status) {
+    case "active": {
+      return undefined
+    }
+    case "done": {
+      return {
+        _tag: "Done",
+        output: snapshot.output,
+        snapshot
+      }
+    }
+    case "error": {
+      const failure = snapshot.cause.reasons.find(Cause.isFailReason)
+      if (failure !== undefined) {
+        return {
+          _tag: "Failure",
+          error: failure.error,
+          cause: snapshot.cause,
+          snapshot
+        }
+      }
+      const defect = snapshot.cause.reasons.find(Cause.isDieReason)
+      if (defect !== undefined) {
+        return {
+          _tag: "Defect",
+          defect: defect.defect,
+          cause: snapshot.cause,
+          snapshot
+        }
+      }
+      const interrupted = snapshot.cause.reasons.find(Cause.isInterruptReason)
+      if (interrupted !== undefined) {
+        return {
+          _tag: "Interrupted",
+          cause: snapshot.cause,
+          snapshot
+        }
+      }
+      return {
+        _tag: "Cause",
+        cause: snapshot.cause,
+        snapshot
+      }
+    }
+    case "stopped": {
+      return {
+        _tag: "Stopped",
+        snapshot
+      }
+    }
+  }
+}
+
+/**
+ * Returns a stream of terminal lifecycle events for an actor.
+ *
+ * **When to use**
+ *
+ * Use to observe actor completion, failure, interruption, defects, or explicit
+ * stops without consuming every active state snapshot.
+ *
+ * **Details**
+ *
+ * The stream emits at most one event. It ignores active snapshots, emits the
+ * first terminal event derived from the actor's `changes` stream, and then
+ * completes. Error snapshots are classified in this order: typed failure,
+ * defect, interruption, and finally the full cause fallback.
+ *
+ * **Example** (Forwarding child termination)
+ *
+ * ```ts
+ * import { Actor, Effect, Stream } from "effect"
+ *
+ * const watchChild = (self: Actor.ActorRef<{ readonly _tag: "ChildStopped" }>, child: Actor.Actor<number, never>) =>
+ *   Actor.watch(child).pipe(
+ *     Stream.runForEach(() => self.send({ _tag: "ChildStopped" })),
+ *     Effect.forkChild
+ *   )
+ * ```
+ *
+ * @see {@link Actor} for the raw `changes` stream of lifecycle snapshots
+ * @category combinators
+ * @since 4.0.0
+ */
+export const watch = <State, Event, Error = never, Output = never>(
+  actor: Actor<State, Event, Error, Output>
+): Stream.Stream<WatchEvent<State, Error, Output>> =>
+  actor.changes.pipe(
+    Stream.filterMap((snapshot) => {
+      const event = classifyWatchEvent(snapshot)
+      return event === undefined ? Result.failVoid : Result.succeed(event)
+    }),
+    Stream.take(1)
+  )
 
 /**
  * Options for spawning child actors.

@@ -1109,6 +1109,167 @@ describe("Actor", () => {
       ])
     }))
 
+  it.effect("watches completion as a done event", () =>
+    Effect.gen(function*() {
+      const release = yield* Deferred.make<void>()
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, never, string>(
+          0,
+          ({ setState }) =>
+            Deferred.await(release).pipe(
+              Effect.andThen(setState(1)),
+              Effect.as("done")
+            )
+        )
+      )
+      const observer = yield* Actor.watch(actor).pipe(
+        Stream.runCollect,
+        Effect.forkChild
+      )
+
+      yield* Deferred.succeed(release, void 0)
+
+      const events = Array.from(yield* Fiber.join(observer))
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0]?._tag, "Done")
+      const event = events[0]
+      if (event?._tag === "Done") {
+        assert.strictEqual(event.output, "done")
+        assert.deepStrictEqual(event.snapshot, {
+          status: "done",
+          state: 1,
+          output: "done"
+        })
+      }
+    }))
+
+  it.effect("watches explicit stops as stopped events", () =>
+    Effect.gen(function*() {
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(0, () => Effect.never))
+      const observer = yield* Actor.watch(actor).pipe(
+        Stream.runCollect,
+        Effect.forkChild
+      )
+
+      yield* actor.stop
+
+      const events = Array.from(yield* Fiber.join(observer))
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0]?._tag, "Stopped")
+      const event = events[0]
+      if (event?._tag === "Stopped") {
+        assert.deepStrictEqual(event.snapshot, {
+          status: "stopped",
+          state: 0
+        })
+      }
+    }))
+
+  it.effect("replays already terminal actor snapshots", () =>
+    Effect.gen(function*() {
+      const actor = yield* Actor.start(Actor.fromEffect<number, never>(0, () => Effect.never))
+      yield* actor.stop
+
+      const events = Array.from(yield* Actor.watch(actor).pipe(Stream.runCollect))
+
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0]?._tag, "Stopped")
+    }))
+
+  it.effect("classifies typed failures before defects", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const defect = new Error("defect")
+      const actor = yield* Actor.start(
+        Actor.fromEffect<number, never, never, LogicError>(
+          0,
+          () => Effect.failCause(Cause.combine(Cause.die(defect), Cause.fail(error)))
+        )
+      )
+
+      const events = Array.from(yield* Actor.watch(actor).pipe(Stream.runCollect))
+
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0]?._tag, "Failure")
+      const event = events[0]
+      if (event?._tag === "Failure") {
+        assert.deepStrictEqual(event.error, error)
+        assert.strictEqual(event.cause.reasons.length, 2)
+        assert.strictEqual(event.snapshot.status, "error")
+      }
+    }))
+
+  it.effect("classifies defects, interruptions, and empty causes", () =>
+    Effect.gen(function*() {
+      const defect = new Error("defect")
+      const defectActor = yield* Actor.start(Actor.fromEffect<number, never>(0, () => Effect.die(defect)))
+      const interruptedActor = yield* Actor.start(Actor.fromEffect<number, never>(0, () => Effect.interrupt))
+      const emptyCauseActor = yield* Actor.start(
+        Actor.fromEffect<number, never>(0, () => Effect.failCause(Cause.empty))
+      )
+
+      const defectEvents = Array.from(yield* Actor.watch(defectActor).pipe(Stream.runCollect))
+      const interruptedEvents = Array.from(yield* Actor.watch(interruptedActor).pipe(Stream.runCollect))
+      const emptyCauseEvents = Array.from(yield* Actor.watch(emptyCauseActor).pipe(Stream.runCollect))
+
+      assert.strictEqual(defectEvents[0]?._tag, "Defect")
+      if (defectEvents[0]?._tag === "Defect") {
+        assert.strictEqual(defectEvents[0].defect, defect)
+      }
+      assert.strictEqual(interruptedEvents[0]?._tag, "Interrupted")
+      assert.strictEqual(emptyCauseEvents[0]?._tag, "Cause")
+    }))
+
+  it.effect("does not watch restarted failures before the child becomes terminal", () =>
+    Effect.gen(function*() {
+      const error = new LogicError({ message: "boom" })
+      const observed = yield* Queue.unbounded<Actor.WatchEvent<number, LogicError>>()
+      const childRef = yield* Deferred.make<Actor.Actor<number, never, LogicError, never>>()
+      const secondStarted = yield* Deferred.make<void>()
+      const releaseSecond = yield* Deferred.make<void>()
+      let runs = 0
+      const childLogic = Actor.fromEffect<number, never, never, LogicError>(
+        0,
+        () =>
+          Effect.gen(function*() {
+            const run = yield* Effect.sync(() => runs++)
+            if (run === 0) {
+              return yield* Effect.fail(error)
+            }
+            yield* Deferred.succeed(secondStarted, void 0)
+            yield* Deferred.await(releaseSecond)
+            return yield* Effect.fail(error)
+          })
+      )
+      const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
+        0,
+        ({ spawn }) =>
+          Effect.gen(function*() {
+            const child = yield* spawn(childLogic, {
+              id: "child",
+              supervision: Actor.Supervision.restart(Schedule.recurs(1))
+            })
+            yield* Deferred.succeed(childRef, child)
+            return yield* Effect.never
+          })
+      ))
+      const child = yield* Deferred.await(childRef)
+      const observer = yield* Actor.watch(child).pipe(
+        Stream.runForEach((event) => Queue.offer(observed, event)),
+        Effect.forkChild
+      )
+
+      yield* Deferred.await(secondStarted)
+      assert.strictEqual(yield* Queue.size(observed), 0)
+      yield* Deferred.succeed(releaseSecond, void 0)
+
+      const event = yield* Queue.take(observed)
+      assert.strictEqual(event._tag, "Failure")
+      yield* Fiber.join(observer)
+
+      yield* actor.stop
+    }))
+
   it.effect("joins with the output when actor logic completes", () =>
     Effect.gen(function*() {
       const actor = yield* Actor.start(
