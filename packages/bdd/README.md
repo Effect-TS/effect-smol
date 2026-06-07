@@ -6,6 +6,22 @@ An Effect-native runner for testing Gherkin feature source with strongly typed s
 
 The package also ships an `effect-bdd` CLI for discovering feature files and step definition modules from globs.
 
+## When to Use `@effect/bdd`
+
+Use `@effect/bdd` when a Gherkin feature should drive a typed state machine:
+
+- domain acceptance tests
+- reducers and command handlers
+- event-sourced workflows
+- service-backed business rules
+- scenario tests where the state under test is ordinary immutable data
+
+In this model, feature files are input. They do not dictate a mutable runtime architecture. State is data returned by each transition, and shared capabilities come from normal Effect services.
+
+## When Not to Use `@effect/bdd`
+
+Use another BDD tool when you primarily need a runner integration rather than a state-machine API. Browser E2E suites that rely on Playwright traces, fixtures, UI mode, or project sharding are usually better served by `playwright-bdd`. Teams that need Cucumber's hook ecosystem, formatter plugins, snippets, retry/shard behavior, or mutable `World` compatibility should use Cucumber directly.
+
 ## Quick Start
 
 ```ts
@@ -43,6 +59,18 @@ A `Bdd.Feature` is an immutable state machine:
 - `Background` steps run before each scenario.
 
 This keeps step code pure and explicit. Mutable "world" objects are not required; shared capabilities come from normal Effect services.
+
+## Public API Surface
+
+Most users should import from `@effect/bdd` and use the `Bdd` namespace:
+
+- constructors: `Bdd.capture`, `Bdd.table`, `Bdd.docString`, `Bdd.feature`
+- transitions: `Bdd.given`, `Bdd.when`, `Bdd.then`, `Bdd.step`
+- runner: `Bdd.run`
+- parser/compiler service: `Bdd.GherkinCompiler`
+- models and errors: `Bdd.Feature`, `Bdd.Report`, `Bdd.RunError`, `Bdd.ParseError`, `Bdd.MatchError`, `Bdd.StepError`
+
+The deeper `@effect/bdd/Bdd` module also exposes lower-level types such as `Transition`, `AnyTransition`, `StepBuilder`, and `Expression`. Those types describe the builder and feature-definition machinery for advanced typing and documentation. `Transition` tracks a concrete capture and step argument type, while `AnyTransition` is the existential type used by `Bdd.Feature` to store heterogeneous transitions. They are not intended as a separate registration API; prefer the namespace constructors unless you are writing type-level helpers around `Bdd.feature`.
 
 ## Captures
 
@@ -191,6 +219,8 @@ const program = Bdd.run(feature, source).pipe(
 
 `Bdd.run` depends on the `Bdd.GherkinCompiler` service. The built-in `Bdd.GherkinCompiler.Cucumber` layer uses Cucumber's parser and Pickle compiler; tests and applications can provide another implementation if the parser backend changes.
 
+The compiler service is the package boundary around Gherkin parsing. The current internal executable model is still Cucumber Pickle-compatible, so a replacement compiler must preserve the same compiled step, argument, tag, and source-location semantics. This is a deliberate bounded dependency, not a claim that arbitrary Gherkin parsers can be plugged in without an adapter.
+
 Reports include the feature name, scenario names, step counts, and inherited tags:
 
 ```ts
@@ -280,6 +310,8 @@ effect-bdd \
 
 The command exits with status `0` when every scenario passes and with a non-zero status when discovery, parsing, matching, reporting, diagnostics, or any scenario fails. Reports are emitted before the command fails.
 
+Diagnostics are contract failures, not warnings. A feature file with no matching exported `Bdd.feature`, a source step with no matching transition, or an exported transition that is never matched means the feature source and step definition module have drifted.
+
 ### Globs
 
 Both `--features` (`-f`) and `--steps` (`-s`) are required, repeatable, and support glob patterns:
@@ -307,12 +339,14 @@ effect-bdd \
   --output-file.html reports/bdd.html
 ```
 
-The CLI supports:
+The CLI has built-in reporters:
 
 - `text`: writes to stdout by default, or `--output-file.text <path>`.
 - `html`: writes to `--output-file.html <path>`.
 - `json`: writes to stdout by default, or `--output-file.json <path>`.
 - `junit`: writes to `--output-file.junit <path>`.
+
+The JSON and JUnit reporters are intended for CI consumption, but the package does not expose a stable reporter plugin API yet. If richer reporter interoperability becomes necessary, the preferred direction is a dedicated reporting contract, likely Cucumber Messages output, rather than user code depending on internal reporter functions.
 
 The default text reporter is compact. It prints the summary, failed scenarios, and diagnostics. Add `--verbose` to print every passing scenario:
 
@@ -341,6 +375,8 @@ effect-bdd \
 ```
 
 Diagnostics are reported separately from failed assertions. They include feature files with no matching `Bdd.feature(...)` export, scenarios that cannot run because their feature definition is missing, source steps with no or multiple matching transitions, exported feature definitions that were not matched by any feature file, and step definitions that were never matched.
+
+Step diagnostics are match coverage. They check text and keyword matching before execution. DataTable and DocString presence, unexpected step arguments, and Schema decode failures are validated during scenario execution and surface as `MatchError`.
 
 ### Filtering
 

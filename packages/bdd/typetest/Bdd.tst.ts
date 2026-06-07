@@ -1,4 +1,5 @@
 import { Bdd } from "@effect/bdd"
+import type { AnyTransition, Transition } from "@effect/bdd/Bdd"
 import { Effect, Schema } from "effect"
 import { describe, expect, test } from "tstyche"
 
@@ -41,6 +42,79 @@ describe("Bdd", () => {
     )
 
     expect(feature).type.toBe<Bdd.Feature<number, never, never>>()
+    expect(feature.transitions).type.toBe<ReadonlyArray<AnyTransition<number, never, never>>>()
+  })
+
+  test("features can contain transitions with different capture and argument shapes", () => {
+    const qty = Bdd.capture("qty", Schema.NumberFromString)
+    const Payload = Schema.Struct({
+      sku: Schema.String
+    })
+    const Item = Schema.Struct({
+      sku: Schema.String,
+      qty: Schema.NumberFromString
+    })
+
+    const feature = Bdd.feature("Mixed", { initial: 0 }).pipe(
+      Bdd.given`zero`((_captures, state) => Effect.succeed(state)),
+      Bdd.when`add ${qty}`(({ qty }, state) => {
+        expect(qty).type.toBe<number>()
+        return Effect.succeed(state + qty)
+      }),
+      Bdd.when`the request body is:`(
+        Bdd.docString(Schema.fromJsonString(Payload)),
+        (_captures, payload, state) => {
+          expect(payload).type.toBe<{ readonly sku: string }>()
+          return Effect.succeed(state)
+        }
+      ),
+      Bdd.when`the following items are added:`(
+        Bdd.table(Item),
+        (_captures, items, state) => {
+          expect(items).type.toBe<ReadonlyArray<{ readonly sku: string; readonly qty: number }>>()
+          return Effect.succeed(state + items.length)
+        }
+      )
+    )
+
+    expect(feature).type.toBe<Bdd.Feature<number, never, never>>()
+    expect(feature.transitions).type.toBe<ReadonlyArray<AnyTransition<number, never, never>>>()
+  })
+
+  test("transition tracks capture and step argument types", () => {
+    const qty = Bdd.capture("qty", Schema.NumberFromString)
+    const Item = Schema.Struct({
+      sku: Schema.String,
+      qty: Schema.NumberFromString
+    })
+
+    const transition: Transition<
+      number,
+      never,
+      never,
+      { readonly qty: number },
+      ReadonlyArray<{ readonly sku: string; readonly qty: number }>
+    > = {
+      kind: "When",
+      expression: Bdd.when`add ${qty} items`.expression,
+      argument: Bdd.table(Item),
+      run: (captures, items, state) => {
+        expect(captures.qty).type.toBe<number>()
+        expect(items).type.toBe<ReadonlyArray<{ readonly sku: string; readonly qty: number }>>()
+        expect(state).type.toBe<number>()
+        return Effect.succeed(state + captures.qty + items.length)
+      }
+    }
+
+    expect(transition).type.toBe<
+      Transition<
+        number,
+        never,
+        never,
+        { readonly qty: number },
+        ReadonlyArray<{ readonly sku: string; readonly qty: number }>
+      >
+    >()
   })
 
   test("docstrings infer the decoded schema type", () => {
@@ -129,10 +203,26 @@ describe("Bdd", () => {
     const Payload = Schema.Struct({
       sku: Schema.String
     })
+    const Item = Schema.Struct({
+      sku: Schema.String,
+      qty: Schema.NumberFromString
+    })
 
     expect(Bdd.when`the request body is:`).type.not.toBeCallableWith(
       Bdd.docString(Schema.fromJsonString(Payload)),
       (_captures: {}, _payload: { readonly sku: number }, state: number) => Effect.succeed(state)
+    )
+
+    expect(Bdd.when`the following items are added:`).type.not.toBeCallableWith(
+      Bdd.table(Item),
+      (_captures: {}, _items: ReadonlyArray<{ readonly sku: string; readonly qty: string }>, state: number) =>
+        Effect.succeed(state)
+    )
+  })
+
+  test("no-argument step handlers reject accidental step arguments", () => {
+    expect(Bdd.when`increment`).type.not.toBeCallableWith(
+      (_captures: {}, _argument: string, state: number) => Effect.succeed(state)
     )
   })
 })

@@ -21,6 +21,12 @@ export type RunError = ParseError | MatchError | StepError
 /**
  * Service used to compile Gherkin source into executable scenarios.
  *
+ * **Details**
+ *
+ * The built-in `Cucumber` layer uses Cucumber's parser and Pickle compiler.
+ * Custom implementations must preserve the compiled step, argument, tag, and
+ * source-location semantics expected by the runner.
+ *
  * @category services
  * @since 4.0.0
  */
@@ -31,13 +37,19 @@ export const GherkinCompiler = Object.assign(parser.GherkinCompiler, {
 /**
  * Service used to compile Gherkin source into executable scenarios.
  *
+ * **Details**
+ *
+ * The built-in `Cucumber` layer uses Cucumber's parser and Pickle compiler.
+ * Custom implementations must preserve the compiled step, argument, tag, and
+ * source-location semantics expected by the runner.
+ *
  * @category services
  * @since 4.0.0
  */
 export type GherkinCompiler = parser.GherkinCompiler
 
 /**
- * Keyword metadata attached to a transition.
+ * Advanced keyword metadata attached to a transition.
  *
  * @category models
  * @since 4.0.0
@@ -53,7 +65,7 @@ export type StepKind = "Step" | "Given" | "When" | "Then"
 export type Capture<Name extends string, A> = expression.Capture<Name, A>
 
 /**
- * The decoded values produced by an expression matcher.
+ * Advanced type helper that maps capture definitions to decoded values.
  *
  * @category utility types
  * @since 4.0.0
@@ -64,7 +76,7 @@ export type CapturesOf<Captures extends ReadonlyArray<Capture<string, unknown>>>
 }
 
 /**
- * A compiled step expression.
+ * Advanced matcher type for a compiled step expression.
  *
  * @category utility types
  * @since 4.0.0
@@ -94,7 +106,7 @@ export interface DocStringArg<A> {
 }
 
 /**
- * A decoded step argument.
+ * Advanced union of decoded step argument descriptors.
  *
  * @category models
  * @since 4.0.0
@@ -102,17 +114,32 @@ export interface DocStringArg<A> {
 export type StepArg<A> = TableArg<A> | DocStringArg<A>
 
 /**
- * A transition registered on a feature definition.
+ * Advanced model for a transition registered on a feature definition.
  *
  * @category models
  * @since 4.0.0
  */
-export interface Transition<State, E, R> {
+export interface Transition<State, E, R, Captures = unknown, Argument = unknown> {
   readonly kind: StepKind
-  readonly expression: Expression<unknown>
-  readonly argument?: StepArg<unknown>
-  readonly run: (captures: unknown, argument: unknown, state: State) => Effect.Effect<State, E, R>
+  readonly expression: Expression<Captures>
+  readonly argument?: StepArg<Argument>
+  readonly run: (captures: Captures, argument: Argument, state: State) => Effect.Effect<State, E, R>
 }
+
+/**
+ * Existential transition type stored by feature definitions.
+ *
+ * **Details**
+ *
+ * A feature can contain many transitions with different capture and step
+ * argument shapes. The public constructors keep those shapes typed at the
+ * handler boundary, while the runtime matcher stores transitions through this
+ * existential type.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type AnyTransition<State, E, R> = Transition<State, E, R, any, any>
 
 /**
  * A local immutable feature definition used to interpret scenarios from Gherkin source.
@@ -124,7 +151,7 @@ export interface Feature<State, E = never, R = never> extends Pipeable {
   readonly _tag: "Feature"
   readonly name: string
   readonly initial: State
-  readonly transitions: ReadonlyArray<Transition<State, E, R>>
+  readonly transitions: ReadonlyArray<AnyTransition<State, E, R>>
 }
 
 /**
@@ -471,7 +498,7 @@ export declare namespace Bdd {
 }
 
 /**
- * Tagged-template function used to register transitions.
+ * Advanced tagged-template function type used to register transitions.
  *
  * @category utility types
  * @since 4.0.0
@@ -484,7 +511,7 @@ export interface StepTag<Kind extends StepKind> {
 }
 
 /**
- * Builder returned by a tagged-template transition.
+ * Advanced builder returned by a tagged-template transition.
  *
  * @category utility types
  * @since 4.0.0
@@ -504,7 +531,7 @@ export interface StepBuilder<Captures, Kind extends StepKind> {
 const makeFeature = <State, E, R>(
   name: string,
   initial: State,
-  transitions: ReadonlyArray<Transition<State, E, R>>
+  transitions: ReadonlyArray<AnyTransition<State, E, R>>
 ): Feature<State, E, R> => ({
   _tag: "Feature",
   name,
@@ -519,7 +546,7 @@ function makeStepTag<Kind extends StepKind>(kind: Kind): StepTag<Kind> {
   return ((strings: TemplateStringsArray, ...captures: ReadonlyArray<Capture<string, unknown>>) => {
     const matcher = expression.makeMatcher(strings, captures)
     const builder = ((first: unknown, second?: unknown) => (self: Feature<unknown, unknown, unknown>) => {
-      const transition: Transition<unknown, unknown, unknown> = second === undefined ?
+      const transition: AnyTransition<unknown, unknown, unknown> = second === undefined ?
         {
           kind,
           expression: matcher,
