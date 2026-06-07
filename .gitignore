@@ -41,3 +41,7 @@ opencode.json
 
 # oxlint data
 .data/
+
+# @effect/bdd scoped CLI test fixtures
+packages/bdd/test/.effect-bdd-*
+packages/bdd/test/.effect-bdd-report-*

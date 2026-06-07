@@ -29,7 +29,7 @@ describe("cli", () => {
       const path = yield* Path.Path
       const bddRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)))
       const repoRoot = path.dirname(path.dirname(bddRoot))
-      const fixtureRoot = path.join(bddRoot, "test", "e2e")
+      const fixtureRoot = path.join(bddRoot, "test", "fixtures")
       const result = yield* Effect.promise(() =>
         execFilePromise(process.execPath, [
           path.join(bddRoot, "src", "bin.ts"),
@@ -44,14 +44,14 @@ describe("cli", () => {
         ], { cwd: repoRoot })
       )
 
-      assert.match(result.stdout, /Features: 2, Scenarios: 4, passed: 4, failed: 0/)
-      assert.strictEqual(/PASS CLI account access/.test(result.stdout), false)
+      assert.match(result.stdout, /Features: 9, Scenarios: 27, passed: 27, failed: 0/)
+      assert.strictEqual(/PASS .*fixtures/.test(result.stdout), false)
     })).pipe(Effect.provide(NodeServices.layer)))
 
-  it.effect("runs checked-in e2e feature and step fixtures", () =>
+  it.effect("runs checked-in feature and step fixtures", () =>
     Effect.scoped(Effect.gen(function*() {
       const path = yield* Path.Path
-      const fixtureRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "e2e")
+      const fixtureRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "fixtures")
       const textReport = yield* makeReportFile("e2e-report.txt")
 
       yield* runCli([
@@ -71,11 +71,12 @@ describe("cli", () => {
       const fs = yield* FileSystem.FileSystem
       const text = yield* fs.readFileString(textReport)
 
-      assert.match(text, /Features: 2, Scenarios: 4, passed: 4, failed: 0/)
-      assert.match(text, /CLI account access \/ Account status controls access \/ Allows an active account/)
-      assert.match(text, /CLI account access \/ Account status controls access \/ Denies a locked account/)
-      assert.match(text, /CLI shopping cart \/ Adds one item from captures/)
-      assert.match(text, /CLI shopping cart \/ Adds multiple items from a DataTable/)
+      assert.match(text, /Features: 9, Scenarios: 27, passed: 27, failed: 0/)
+      assert.match(text, /Minimal \/ minimalistic/)
+      assert.match(text, /Some rules \/ A \/ Example A/)
+      assert.match(text, /DocString variations \/ minimalistic/)
+      assert.match(text, /Effect BDD kitchen sink \/ Checkout totals \/ capture totals include tax/)
+      assert.match(text, /Effect BDD kitchen sink \/ Checkout totals \/ outline examples start from initial state/)
     })).pipe(Effect.provide(NodeServices.layer)))
 
   it.effect("runs repeated feature and step globs with text and html reporters", () =>
