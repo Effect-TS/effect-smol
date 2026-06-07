@@ -444,10 +444,16 @@ If a CLI-loaded step definition needs additional services, provide them inside t
 
 ## Non-Goals
 
-The current package deliberately does not include:
+`@effect/bdd` is not a drop-in replacement for Cucumber's runtime. The current package deliberately does not include:
 
 - Vitest adapter APIs
-- hooks
+- mutable `World` objects or global step registries
+- hooks (`Before`, `After`, `BeforeStep`, `AfterStep`, `BeforeAll`, `AfterAll`)
+- attachments for screenshots, logs, or other report artifacts
+- snippet generation for unmatched steps
+- retry / rerun support
+- dry-run mode
+- Cucumber expression parameter registries such as `defineParameterType`
 - user-pluggable reporter APIs
 
-Those features can be added later as layers on top of the core runner.
+Some of those features can be added later as layers on top of the core runner. Others, especially mutable worlds and global step registration, are intentionally outside the package's state-machine model.
