@@ -11,6 +11,7 @@ import type { CliOptions } from "./internal/cli/models.ts"
 import { ModuleLoader } from "./internal/cli/moduleLoader.ts"
 import * as Reporter from "./internal/cli/reporter.ts"
 import * as Runner from "./internal/cli/runner.ts"
+import * as CucumberCompiler from "./internal/cucumberCompiler.ts"
 
 const features = Flag.string("features").pipe(
   Flag.withAlias("f"),
@@ -150,7 +151,7 @@ export const cli = Command.make(
   })
 ).pipe(
   Command.withDescription("Run @effect/bdd feature files"),
-  Command.provide(Layer.mergeAll(GlobResolver.Live, ModuleLoader.Live))
+  Command.provide(Layer.mergeAll(GlobResolver.Live, ModuleLoader.Live, CucumberCompiler.Cucumber))
 )
 
 /** @internal */

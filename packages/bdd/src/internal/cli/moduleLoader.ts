@@ -24,13 +24,18 @@ export class ModuleLoader extends Context.Service<ModuleLoader, {
 }
 
 const moduleLoadError = (path: string, cause: unknown): ModuleLoadError => {
-  const message = String(cause)
-  const isTsLoaderFailure = message.includes("Unknown file extension") && message.includes(".ts")
+  const reason = causeMessage(cause)
+  const isTsLoaderFailure = reason.includes("Unknown file extension") && reason.includes(".ts")
   return new ModuleLoadError({
     path,
     message: isTsLoaderFailure
       ? `Could not load TypeScript step module "${path}". Register a TypeScript loader when running on Node, for example: node --import tsx ./node_modules/.bin/effect-bdd`
-      : `Could not load step module "${path}"`,
+      : `Could not load step module "${path}": ${reason}`,
     cause
   })
 }
+
+const causeMessage = (cause: unknown): string =>
+  typeof cause === "object" && cause !== null && "message" in cause && typeof cause.message === "string"
+    ? cause.message
+    : String(cause)

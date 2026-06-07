@@ -1,18 +1,19 @@
+import type { Pickle, PickleDocString, PickleStep, PickleTable } from "@cucumber/messages"
 import * as Arr from "effect/Array"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
-import type * as Option from "effect/Option"
+import * as Option from "effect/Option"
 import * as Record from "effect/Record"
 import * as Schema from "effect/Schema"
-import { MatchError, type ParseError, StepError } from "../Errors.ts"
+import { MatchError, ParseError, StepError } from "../Errors.ts"
 import * as Matching from "./matching.ts"
 import * as Parser from "./parser.ts"
 
 /** @internal */
-export type DataTableInput = Parser.DataTable
+export type DataTableInput = PickleTable
 
 /** @internal */
-export type DocStringInput = Parser.DocString
+export type DocStringInput = PickleDocString
 
 /** @internal */
 export type StepKind = "Step" | "Given" | "When" | "Then"
@@ -63,6 +64,9 @@ export interface Report {
 export type RunError = ParseError | MatchError | StepError
 
 /** @internal */
+export type GherkinCompiler = Parser.GherkinCompiler
+
+/** @internal */
 export interface ScenarioTask<State, E, R> {
   readonly featureDefinition: Feature<State, E, R>
   readonly featureName: string
@@ -72,7 +76,8 @@ export interface ScenarioTask<State, E, R> {
   readonly ruleName?: string
   readonly ruleLine?: number
   readonly tags: ReadonlyArray<string>
-  readonly steps: ReadonlyArray<Parser.ParsedStep>
+  readonly pickle: Pickle
+  readonly source: Parser.SourceIndex
 }
 
 interface ResolvedTransition<State, E, R> {
@@ -86,8 +91,8 @@ export type ScenarioReport = Report["scenarios"][number]
 /** @internal */
 export const decodeTable = <S extends Schema.Decoder<unknown, never>>(row: S) => {
   const decode = Schema.decodeUnknownEffect(row)
-  return (table: Parser.DataTable): Effect.Effect<ReadonlyArray<S["Type"]>, unknown> => {
-    const [headers, ...rows] = table.rows
+  return (table: PickleTable): Effect.Effect<ReadonlyArray<S["Type"]>, unknown> => {
+    const [headers, ...rows] = table.rows.map((row) => row.cells.map((cell) => cell.value))
     if (headers === undefined) {
       return Effect.succeed([])
     }
@@ -98,14 +103,14 @@ export const decodeTable = <S extends Schema.Decoder<unknown, never>>(row: S) =>
 /** @internal */
 export const decodeDocString = <S extends Schema.Decoder<unknown, never>>(schema: S) => {
   const decode = Schema.decodeUnknownEffect(schema)
-  return (docString: Parser.DocString): Effect.Effect<S["Type"], unknown> => decode(docString.content)
+  return (docString: PickleDocString): Effect.Effect<S["Type"], unknown> => decode(docString.content)
 }
 
 /** @internal */
 export const run = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
   source: string
-): Effect.Effect<Report, RunError, R> =>
+): Effect.Effect<Report, RunError, R | Parser.GherkinCompiler> =>
   pipe(
     Parser.parse(source),
     Effect.flatMap((feature) =>
@@ -122,7 +127,7 @@ export const run = <State, E, R>(
 
 const validateFeatureDefinition = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
-  feature: Parser.Feature
+  feature: Parser.CompiledFeature
 ): Effect.Effect<void, MatchError> =>
   featureDefinition.name === feature.name
     ? Effect.void
@@ -139,22 +144,32 @@ const validateFeatureDefinition = <State, E, R>(
 /** @internal */
 export const buildScenarioTasks = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
-  feature: Parser.Feature
+  feature: Parser.CompiledFeature
 ): ReadonlyArray<ScenarioTask<State, E, R>> =>
-  Arr.map(feature.scenarios, (scenario, scenarioIndex): ScenarioTask<State, E, R> => {
-    const steps = scenarioSteps(feature, scenario)
+  Arr.map(feature.pickles, (pickle, scenarioIndex): ScenarioTask<State, E, R> => {
+    const source = Parser.findScenario(pickle, feature.source)
+    const rule = pipe(
+      source,
+      Option.map(({ rule }) => rule),
+      Option.getOrUndefined
+    )
     return {
       featureDefinition,
       featureName: feature.name,
-      scenarioName: scenario.name,
+      scenarioName: pickle.name,
       scenarioIndex,
-      scenarioLine: scenario.line,
-      ...(scenario.rule === undefined ? {} : {
-        ruleName: scenario.rule.name,
-        ruleLine: scenario.rule.line
+      scenarioLine: pickle.location?.line ?? pipe(
+        source,
+        Option.map(({ scenario }) => scenario.location.line),
+        Option.getOrElse(() => feature.line)
+      ),
+      ...(rule === undefined ? {} : {
+        ruleName: rule.name,
+        ruleLine: rule.location.line
       }),
-      tags: Arr.appendAll(feature.tags, scenario.tags),
-      steps
+      tags: pickle.tags.map((tag) => tag.name),
+      pickle,
+      source: feature.source
     }
   })
 
@@ -163,10 +178,10 @@ export const runScenarioTask = <State, E, R>(
   task: ScenarioTask<State, E, R>
 ): Effect.Effect<ScenarioReport, RunError, R> =>
   pipe(
-    runSteps(task.featureDefinition, task.scenarioName, task.steps, task.featureDefinition.initial),
+    runSteps(task.featureDefinition, task.scenarioName, task.pickle.steps, task.source, task.featureDefinition.initial),
     Effect.as({
       name: task.scenarioName,
-      steps: task.steps.length,
+      steps: task.pickle.steps.length,
       tags: task.tags
     })
   )
@@ -174,39 +189,46 @@ export const runScenarioTask = <State, E, R>(
 const runSteps = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
   scenario: string,
-  steps: ReadonlyArray<Parser.ParsedStep>,
+  steps: ReadonlyArray<PickleStep>,
+  source: Parser.SourceIndex,
   state: State,
   index = 0
 ): Effect.Effect<State, RunError, R> =>
   index >= steps.length
     ? Effect.succeed(state)
     : pipe(
-      runStep(featureDefinition, scenario, steps[index], state),
-      Effect.flatMap((state) => runSteps(featureDefinition, scenario, steps, state, index + 1))
+      runStep(featureDefinition, scenario, steps[index], source, state),
+      Effect.flatMap((state) => runSteps(featureDefinition, scenario, steps, source, state, index + 1))
     )
 
 const runStep = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
   scenario: string,
-  step: Parser.ParsedStep,
+  step: PickleStep,
+  source: Parser.SourceIndex,
   state: State
 ): Effect.Effect<State, RunError, R> =>
   pipe(
-    resolve(featureDefinition, scenario, step),
-    Effect.flatMap(({ transition, captures }) =>
+    stepKind(step, source),
+    Effect.flatMap((kind) =>
       pipe(
-        decodeArgument(transition, scenario, step),
-        Effect.flatMap((argument) =>
+        resolve(featureDefinition, scenario, step, kind, source),
+        Effect.flatMap(({ transition, captures }) =>
           pipe(
-            transition.run(captures, argument, state),
-            Effect.mapError((cause) =>
-              new StepError({
-                message: `Step failed: ${step.text}`,
-                scenario,
-                step: step.text,
-                line: step.line,
-                cause
-              })
+            decodeArgument(transition, scenario, step, source),
+            Effect.flatMap((argument) =>
+              pipe(
+                transition.run(captures, argument, state),
+                Effect.mapError((cause) =>
+                  new StepError({
+                    message: `Step failed: ${step.text}`,
+                    scenario,
+                    step: step.text,
+                    line: Parser.stepLine(step, source),
+                    cause
+                  })
+                )
+              )
             )
           )
         )
@@ -214,45 +236,36 @@ const runStep = <State, E, R>(
     )
   )
 
-const scenarioSteps = (
-  feature: Parser.Feature,
-  scenario: Parser.Scenario
-): ReadonlyArray<Parser.ParsedStep> =>
-  pipe(
-    feature.background?.steps ?? [],
-    Arr.appendAll(scenario.background?.steps ?? []),
-    Arr.appendAll(scenario.steps)
-  )
-
 const decodeArgument = <State, E, R>(
   transition: Transition<State, E, R>,
   scenario: string,
-  step: Parser.ParsedStep
+  step: PickleStep,
+  source: Parser.SourceIndex
 ): Effect.Effect<unknown, MatchError> => {
   const candidates = [transition.expression.source]
   if (transition.argument === undefined) {
     return hasStepArgument(step)
-      ? failMatch(`Step "${step.text}" has an unexpected argument`, scenario, step, candidates)
+      ? failMatch(`Step "${step.text}" has an unexpected argument`, scenario, step, source, candidates)
       : Effect.succeed(undefined)
   }
 
   if (transition.argument._tag === "TableArg") {
-    return step.table === undefined
-      ? failMatch(`Step "${step.text}" requires a DataTable`, scenario, step, candidates)
+    return step.argument?.dataTable === undefined
+      ? failMatch(`Step "${step.text}" requires a DataTable`, scenario, step, source, candidates)
       : pipe(
-        transition.argument.decode(step.table),
+        transition.argument.decode(step.argument.dataTable),
         Effect.mapError((cause) =>
-          matchError(`Could not decode DataTable for step "${step.text}"`, scenario, step, candidates, cause)
+          matchError(`Could not decode DataTable for step "${step.text}"`, scenario, step, source, candidates, cause)
         )
       )
   }
 
-  return step.docString === undefined
-    ? failMatch(`Step "${step.text}" requires a DocString`, scenario, step, candidates)
+  return step.argument?.docString === undefined
+    ? failMatch(`Step "${step.text}" requires a DocString`, scenario, step, source, candidates)
     : pipe(
-      transition.argument.decode(step.docString),
+      transition.argument.decode(step.argument.docString),
       Effect.mapError((cause) =>
-        matchError(`Could not decode DocString for step "${step.text}"`, scenario, step, candidates, cause)
+        matchError(`Could not decode DocString for step "${step.text}"`, scenario, step, source, candidates, cause)
       )
     )
 }
@@ -260,10 +273,12 @@ const decodeArgument = <State, E, R>(
 const resolve = <State, E, R>(
   featureDefinition: Feature<State, E, R>,
   scenario: string,
-  step: Parser.ParsedStep
+  step: PickleStep,
+  kind: "Given" | "When" | "Then",
+  source: Parser.SourceIndex
 ): Effect.Effect<ResolvedTransition<State, E, R>, MatchError> => {
-  const textMatches = Matching.matchingTextTransitions(featureDefinition.transitions, step)
-  const matches = Matching.matchingKeywordTransitions(textMatches, step)
+  const textMatches = Matching.matchingTextTransitions(featureDefinition.transitions, step.text)
+  const matches = Matching.matchingKeywordTransitions(textMatches, kind)
 
   return pipe(
     matches,
@@ -274,14 +289,16 @@ const resolve = <State, E, R>(
             `No transition matched step "${step.text}"`,
             scenario,
             step,
+            source,
             Arr.map(featureDefinition.transitions, (transition) => transition.expression.source)
           )
           : failMatch(
-            `No ${step.kind} transition matched step "${step.text}"; matching text exists for ${
+            `No ${kind} transition matched step "${step.text}"; matching text exists for ${
               Matching.renderTransitionKinds(Arr.map(textMatches, (match) => match.transition))
             }`,
             scenario,
             step,
+            source,
             Arr.map(textMatches, (match) => match.transition.expression.source)
           ),
       onNonEmpty: (matches) =>
@@ -291,6 +308,7 @@ const resolve = <State, E, R>(
             `Multiple transitions matched step "${step.text}"`,
             scenario,
             step,
+            source,
             Arr.map(matches, (match) => match.transition.expression.source)
           )
     })
@@ -307,20 +325,41 @@ const rowObject = (
     Record.fromEntries
   )
 
-const hasStepArgument = (step: Parser.ParsedStep): boolean => step.table !== undefined || step.docString !== undefined
+const hasStepArgument = (step: PickleStep): boolean => step.argument !== undefined
+
+const stepKind = (
+  step: PickleStep,
+  source: Parser.SourceIndex
+): Effect.Effect<"Given" | "When" | "Then", ParseError> =>
+  pipe(
+    Matching.concreteStepKind(step),
+    Option.match({
+      onNone: () =>
+        Effect.fail(
+          new ParseError({
+            message: `${Parser.stepKeyword(step, source)} found before a Given, When, or Then step`,
+            line: Parser.stepLine(step, source),
+            column: 1
+          })
+        ),
+      onSome: Effect.succeed
+    })
+  )
 
 const failMatch = (
   message: string,
   scenario: string,
-  step: Parser.ParsedStep,
+  step: PickleStep,
+  source: Parser.SourceIndex,
   candidates: ReadonlyArray<string>,
   cause?: unknown
-): Effect.Effect<never, MatchError> => Effect.fail(matchError(message, scenario, step, candidates, cause))
+): Effect.Effect<never, MatchError> => Effect.fail(matchError(message, scenario, step, source, candidates, cause))
 
 const matchError = (
   message: string,
   scenario: string,
-  step: Parser.ParsedStep,
+  step: PickleStep,
+  source: Parser.SourceIndex,
   candidates: ReadonlyArray<string>,
   cause?: unknown
 ): MatchError =>
@@ -328,7 +367,7 @@ const matchError = (
     message,
     scenario,
     step: step.text,
-    line: step.line,
+    line: Parser.stepLine(step, source),
     candidates,
     ...(cause === undefined ? {} : { cause })
   })

@@ -2,6 +2,9 @@ import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Option, Schema } from "effect"
 
+const runBdd = <State, E, R>(feature: Bdd.Feature<State, E, R>, source: string) =>
+  Bdd.run(feature, source).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
+
 describe("parser", () => {
   it.effect("parses scenarios, steps, and data tables through run", () => {
     const Item = Schema.Struct({
@@ -22,7 +25,7 @@ describe("parser", () => {
       )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         `
 Feature: Shopping cart
@@ -44,7 +47,7 @@ Feature: Shopping cart
   it.effect("rejects And before a concrete step", () =>
     Effect.gen(function*() {
       const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         feature,
         `
 Feature: Shopping cart
@@ -68,7 +71,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         `
 # file comment
@@ -100,7 +103,7 @@ Feature: Shopping cart
       )
     )
 
-    return Bdd.run(
+    return runBdd(
       feature,
       `
 Feature: Payload
@@ -122,7 +125,7 @@ Feature: Payload
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         "Feature: Shopping cart\r\n\r\n  Scenario: CRLF\r\n    Given an empty cart\r\n"
       )
@@ -131,16 +134,16 @@ Feature: Payload
     })
   })
 
-  it.effect("rejects malformed tags", () =>
+  it.effect("rejects invalid Gherkin syntax", () =>
     Effect.gen(function*() {
       const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         feature,
         `
-@valid @
+Given a step before the feature
 Feature: Shopping cart
 
-  Scenario: Invalid tags
+  Scenario: Invalid syntax
     Given an empty cart
 `
       ))
@@ -153,25 +156,38 @@ Feature: Shopping cart
       }
     }))
 
-  it.effect("rejects unsupported Scenario Outline syntax", () =>
+  it.effect("expands Scenario Outline examples into executable scenarios", () =>
     Effect.gen(function*() {
-      const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(Bdd.run(
+      const qty = Bdd.capture("qty", Schema.FiniteFromString)
+      const feature = Bdd.feature("Shopping cart", { initial: 0 }).pipe(
+        Bdd.when`${qty} items are added`(({ qty }) => Effect.succeed(qty)),
+        Bdd.then`the cart has ${qty} items`(({ qty }, state) =>
+          Effect.sync(() => {
+            assert.strictEqual(state, qty)
+            return state
+          })
+        )
+      )
+      const report = yield* runBdd(
         feature,
         `
 Feature: Shopping cart
 
-  Scenario Outline: Adding items
-    Given an empty cart
-`
-      ))
+  Scenario Outline: Adding <qty> items
+    When <qty> items are added
+    Then the cart has <qty> items
 
-      assert.strictEqual(result._tag, "Failure")
-      if (result._tag === "Failure") {
-        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
-        assert.strictEqual(error._tag, "ParseError")
-        assert.strictEqual(error.line, 4)
-      }
+    Examples:
+      | qty |
+      | 2   |
+      | 3   |
+`
+      )
+
+      assert.deepStrictEqual(report.scenarios, [
+        { name: "Adding 2 items", steps: 2, tags: [] },
+        { name: "Adding 3 items", steps: 2, tags: [] }
+      ])
     }))
 
   it.effect("accepts Rule syntax and inherits rule tags", () =>
@@ -179,7 +195,7 @@ Feature: Shopping cart
       const feature = Bdd.feature("Shopping cart", { initial: 0 }).pipe(
         Bdd.given`an empty cart`((_captures, state) => Effect.succeed(state))
       )
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         `
 @feature

@@ -86,6 +86,8 @@
     "vitest": "4.1.4"
   },
   "dependencies": {
+    "@cucumber/gherkin": "^39.1.0",
+    "@cucumber/messages": "^32.3.1",
     "@effect/platform-node": "workspace:^",
     "glob": "^13.0.6"
   }

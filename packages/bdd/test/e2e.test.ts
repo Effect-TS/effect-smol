@@ -84,6 +84,7 @@ const shoppingCart = Bdd.feature("Shopping cart", { initial: emptyCart }).pipe(
 
 const runShoppingCart = (source: string) =>
   Bdd.run(shoppingCart, source).pipe(
+    Effect.provide(Bdd.GherkinCompiler.Cucumber),
     Effect.provideService(TaxRate, { rate: 0.1 })
   )
 

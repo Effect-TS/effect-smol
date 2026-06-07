@@ -3,6 +3,9 @@ import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Option, Schema } from "effect"
 import * as Arr from "effect/Array"
 
+const runBdd = <State, E, R>(feature: Bdd.Feature<State, E, R>, source: string) =>
+  Bdd.run(feature, source).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
+
 type Cart = {
   readonly items: ReadonlyArray<{
     readonly sku: string
@@ -40,7 +43,7 @@ describe("runner", () => {
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -69,7 +72,7 @@ Feature: Shopping cart
       )
     )
 
-    return Bdd.run(
+    return runBdd(
       feature,
       `
 Feature: Counter
@@ -86,7 +89,7 @@ Feature: Counter
 
   it.effect("fails when the feature definition name does not match the Gherkin feature", () =>
     assertMatchError(
-      Bdd.run(
+      runBdd(
         Bdd.feature("Counter definition", { initial: 0 }).pipe(
           Bdd.then`the counter is 0`((_captures, state) => Effect.succeed(state))
         ),
@@ -123,7 +126,7 @@ Feature: Counter source
       )
     )
 
-    return Bdd.run(
+    return runBdd(
       cart,
       `
 Feature: Shopping cart
@@ -145,7 +148,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -172,7 +175,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -213,7 +216,7 @@ Feature: Keyword semantics
 `
 
       yield* assertMatchError(
-        Bdd.run(
+        runBdd(
           Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
             Bdd.when`shared phrase`((_captures, state) => Effect.succeed(state))
           ),
@@ -222,7 +225,7 @@ Feature: Keyword semantics
         /No Given transition matched step "shared phrase"; matching text exists for When/
       )
       yield* assertMatchError(
-        Bdd.run(
+        runBdd(
           Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
             Bdd.given`shared phrase`((_captures, state) => Effect.succeed(state))
           ),
@@ -231,7 +234,7 @@ Feature: Keyword semantics
         /No When transition matched step "shared phrase"; matching text exists for Given/
       )
       yield* assertMatchError(
-        Bdd.run(
+        runBdd(
           Bdd.feature("Keyword semantics", { initial: 0 }).pipe(
             Bdd.when`shared phrase`((_captures, state) => Effect.succeed(state))
           ),
@@ -247,7 +250,7 @@ Feature: Keyword semantics
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         `
 Feature: Keyword wildcard
@@ -285,7 +288,7 @@ Feature: Keyword wildcard
       )
     )
 
-    return Bdd.run(
+    return runBdd(
       feature,
       `
 Feature: Keyword inheritance
@@ -302,7 +305,7 @@ Feature: Keyword inheritance
 
   it.effect("fails inherited And and But steps that only match a different keyword", () =>
     assertMatchError(
-      Bdd.run(
+      runBdd(
         Bdd.feature("Keyword inheritance", { initial: 0 }).pipe(
           Bdd.given`setup`((_captures, state) => Effect.succeed(state)),
           Bdd.when`more setup`((_captures, state) => Effect.succeed(state))
@@ -332,7 +335,7 @@ Feature: Keyword inheritance
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -365,7 +368,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -390,7 +393,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Payload
@@ -424,7 +427,7 @@ Feature: Payload
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         feature,
         `
 Feature: Payload
@@ -454,7 +457,7 @@ Feature: Payload
     )
 
     return Effect.gen(function*() {
-      const result = yield* Effect.exit(Bdd.run(
+      const result = yield* Effect.exit(runBdd(
         cart,
         `
 Feature: Shopping cart
@@ -494,7 +497,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         cart,
         `
 @checkout
@@ -535,7 +538,7 @@ Feature: Shopping cart
     )
 
     return Effect.gen(function*() {
-      const report = yield* Bdd.run(
+      const report = yield* runBdd(
         feature,
         `
 @feature
@@ -588,7 +591,7 @@ Feature: Checkout
       )
     )
 
-    return Bdd.run(
+    return runBdd(
       feature,
       `
 Feature: Payload

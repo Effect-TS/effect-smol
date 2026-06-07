@@ -1,10 +1,13 @@
+import { type PickleStep, PickleStepType } from "@cucumber/messages"
 import * as Arr from "effect/Array"
 import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
-import type * as Parser from "./parser.ts"
 
 /** @internal */
 export type StepKind = "Step" | "Given" | "When" | "Then"
+
+/** @internal */
+export type ConcreteStepKind = "Given" | "When" | "Then"
 
 /** @internal */
 export interface MatchableTransition {
@@ -24,13 +27,13 @@ export interface MatchedTransition<Transition extends MatchableTransition> {
 /** @internal */
 export const matchingTextTransitions = <Transition extends MatchableTransition>(
   transitions: ReadonlyArray<Transition>,
-  step: Parser.ParsedStep
+  text: string
 ): ReadonlyArray<MatchedTransition<Transition>> =>
   pipe(
     transitions,
     Arr.map((transition): Option.Option<MatchedTransition<Transition>> =>
       pipe(
-        transition.expression.match(step.text),
+        transition.expression.match(text),
         Option.map((captures) => ({ transition, captures }))
       )
     ),
@@ -40,13 +43,31 @@ export const matchingTextTransitions = <Transition extends MatchableTransition>(
 /** @internal */
 export const matchingKeywordTransitions = <Transition extends MatchableTransition>(
   transitions: ReadonlyArray<MatchedTransition<Transition>>,
-  step: Parser.ParsedStep
+  kind: ConcreteStepKind
 ): ReadonlyArray<MatchedTransition<Transition>> =>
-  Arr.filter(transitions, (match) => keywordMatches(match.transition.kind, step.kind))
+  Arr.filter(transitions, (match) => keywordMatches(match.transition.kind, kind))
 
 /** @internal */
-export const keywordMatches = (transition: StepKind, keyword: Parser.StepKind): boolean =>
+export const keywordMatches = (transition: StepKind, keyword: ConcreteStepKind): boolean =>
   transition === "Step" || transition === keyword
+
+/** @internal */
+export const concreteStepKind = (step: PickleStep): Option.Option<ConcreteStepKind> => {
+  switch (step.type) {
+    case PickleStepType.CONTEXT: {
+      return Option.some("Given")
+    }
+    case PickleStepType.ACTION: {
+      return Option.some("When")
+    }
+    case PickleStepType.OUTCOME: {
+      return Option.some("Then")
+    }
+    default: {
+      return Option.none()
+    }
+  }
+}
 
 /** @internal */
 export const renderTransitionKinds = <Transition extends MatchableTransition>(
