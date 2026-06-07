@@ -3,7 +3,9 @@ import {
   Array as Arr,
   Cause,
   Context,
+  Data,
   Effect,
+  Equal,
   Hash,
   Latch,
   Layer,
@@ -106,6 +108,68 @@ describe.sequential("Atom", () => {
 
     expect(first).toEqual(1)
     expect(second).toEqual(1)
+  })
+
+  it("set suppresses notify for a fresh-reference but Equal.equals value", () => {
+    class Box extends Data.Class<{ readonly n: number }> {}
+    const box = Atom.make(new Box({ n: 1 }))
+    const r = AtomRegistry.make()
+
+    const current = r.get(box)
+    let count = 0
+    r.subscribe(box, () => {
+      count++
+    })
+
+    const next = new Box({ n: 1 })
+    expect(Object.is(current, next)).toBe(false)
+    expect(Equal.equals(current, next)).toBe(true)
+
+    r.set(box, next)
+    expect(count).toEqual(0)
+    expect(r.get(box)).toEqual(new Box({ n: 1 }))
+  })
+
+  it("set does not invalidate downstream for a fresh-reference but Equal.equals value", () => {
+    class Box extends Data.Class<{ readonly n: number }> {}
+    const seed = Atom.make(new Box({ n: 1 }))
+    let recomputes = 0
+    const derived = Atom.make((get) => {
+      recomputes++
+      return get(seed).n + 100
+    })
+    const r = AtomRegistry.make()
+
+    expect(r.get(derived)).toEqual(101)
+    expect(recomputes).toEqual(1)
+
+    r.set(seed, new Box({ n: 1 }))
+    expect(r.get(derived)).toEqual(101)
+    expect(recomputes).toEqual(1)
+  })
+
+  it("set still notifies and invalidates downstream for a genuinely different value", () => {
+    class Box extends Data.Class<{ readonly n: number }> {}
+    const seed = Atom.make(new Box({ n: 1 }))
+    let recomputes = 0
+    const derived = Atom.make((get) => {
+      recomputes++
+      return get(seed).n + 100
+    })
+    const r = AtomRegistry.make()
+
+    expect(r.get(derived)).toEqual(101)
+    expect(recomputes).toEqual(1)
+
+    let count = 0
+    r.subscribe(seed, () => {
+      count++
+    })
+
+    r.set(seed, new Box({ n: 2 }))
+    expect(count).toEqual(1)
+    expect(r.get(derived)).toEqual(102)
+    expect(recomputes).toEqual(2)
   })
 
   it("searchParam with schema reads initial query value", () => {

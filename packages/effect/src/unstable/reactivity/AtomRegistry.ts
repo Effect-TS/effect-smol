@@ -11,6 +11,7 @@
  */
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import * as Equal from "../../Equal.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import { constVoid, dual } from "../../Function.ts"
@@ -685,7 +686,7 @@ class NodeImpl<A> {
     }
 
     this.state = NodeState.valid
-    if (Object.is(this._value, value)) {
+    if (Equal.equals(this._value, value)) {
       return
     }
 
