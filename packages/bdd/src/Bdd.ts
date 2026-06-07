@@ -5,7 +5,9 @@ import type * as Effect from "effect/Effect"
 import { type Pipeable, pipeArguments } from "effect/Pipeable"
 import type * as Schema from "effect/Schema"
 import { MatchError, ParseError, StepError } from "./Errors.ts"
+import * as cucumberCompiler from "./internal/cucumberCompiler.ts"
 import * as expression from "./internal/expression.ts"
+import * as parser from "./internal/parser.ts"
 import * as runner from "./internal/runner.ts"
 
 /**
@@ -15,6 +17,24 @@ import * as runner from "./internal/runner.ts"
  * @since 4.0.0
  */
 export type RunError = ParseError | MatchError | StepError
+
+/**
+ * Service used to compile Gherkin source into executable scenarios.
+ *
+ * @category services
+ * @since 4.0.0
+ */
+export const GherkinCompiler = Object.assign(parser.GherkinCompiler, {
+  Cucumber: cucumberCompiler.Cucumber
+})
+
+/**
+ * Service used to compile Gherkin source into executable scenarios.
+ *
+ * @category services
+ * @since 4.0.0
+ */
+export type GherkinCompiler = parser.GherkinCompiler
 
 /**
  * Keyword metadata attached to a transition.
@@ -125,6 +145,7 @@ export interface Report {
 type FeatureType<State, E, R> = Feature<State, E, R>
 type ReportType = Report
 type RunErrorType = RunError
+type GherkinCompilerType = GherkinCompiler
 type CaptureType<Name extends string, A> = Capture<Name, A>
 type TableArgType<A> = TableArg<A>
 type DocStringArgType<A> = DocStringArg<A>
@@ -332,7 +353,7 @@ const then_: StepTag<"Then"> = makeStepTag("Then")
  *   Scenario: Increment
  *     Given zero
  *     When increment
- * `)
+ * `).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
  * ```
  *
  * @category running
@@ -341,7 +362,7 @@ const then_: StepTag<"Then"> = makeStepTag("Then")
 const run_ = <State, E, R>(
   self: Feature<State, E, R>,
   source: string
-): Effect.Effect<Report, RunError, R> => runner.run(self, source)
+): Effect.Effect<Report, RunError, R | GherkinCompiler> => runner.run(self, source)
 
 /**
  * Namespace-style API for building and running BDD feature definitions.
@@ -370,7 +391,7 @@ const run_ = <State, E, R>(
  *   Scenario: Increment
  *     Given zero
  *     When increment by 2
- * `)
+ * `).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
  * ```
  *
  * @category models
@@ -380,6 +401,7 @@ export const Bdd = {
   ParseError,
   MatchError,
   StepError,
+  GherkinCompiler,
   capture: capture_,
   table: table_,
   docString: docString_,
@@ -418,6 +440,13 @@ export declare namespace Bdd {
    * @since 4.0.0
    */
   export type RunError = RunErrorType
+
+  /**
+   * Service used to compile Gherkin source into executable scenarios.
+   *
+   * @since 4.0.0
+   */
+  export type GherkinCompiler = GherkinCompilerType
 
   /**
    * A named capture decoded from step text with a Schema.

@@ -1,8 +1,8 @@
 # @effect/bdd
 
-An Effect-native core runner for testing Gherkin feature source with strongly typed step definitions.
+An Effect-native runner for testing Gherkin feature source with strongly typed step definitions.
 
-`@effect/bdd` exposes a small `Bdd` module for building immutable feature definitions from tagged-template step definitions. Captures, DataTables, and DocStrings are decoded with `Schema`, and each step implementation returns an `Effect` that produces the next state.
+`@effect/bdd` uses Cucumber's Gherkin parser/compiler for feature-file syntax and exposes a small `Bdd` module for building immutable feature definitions from tagged-template step definitions. Captures, DataTables, and DocStrings are decoded with `Schema`, and each step implementation returns an `Effect` that produces the next state.
 
 The package also ships an `effect-bdd` CLI for discovering feature files and step definition modules from globs.
 
@@ -28,7 +28,7 @@ Feature: Counter
     Given zero
     When increment by 2
 `
-)
+).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
 ```
 
 ## Model
@@ -154,16 +154,18 @@ const feature = Bdd.feature("Cart", { initial: 100 }).pipe(
 )
 
 const program = Bdd.run(feature, source).pipe(
+  Effect.provide(Bdd.GherkinCompiler.Cucumber),
   Effect.provideService(TaxRate, { rate: 0.1 })
 )
 ```
 
 ## Supported Gherkin
 
-The core parser currently supports:
+Feature files are parsed and compiled with Cucumber's Gherkin implementation. The runner supports:
 
 - `Feature`
 - `Scenario`
+- `Scenario Outline` and `Examples`
 - `Background`
 - `Rule`
 - tags on features, rules, and scenarios
@@ -173,6 +175,8 @@ The core parser currently supports:
 - DocStrings
 - comments and descriptions
 
+Scenario Outlines are expanded before execution. Every Examples row runs as an independent scenario with its own initial state.
+
 `Bdd.given`, `Bdd.when`, and `Bdd.then` are semantic, not decorative. They only match their corresponding concrete kind after `And` / `But` inheritance is resolved. `Bdd.step` is keyword-agnostic and can match any concrete step kind; use it sparingly for transitions that are truly valid as setup, action, or assertion.
 
 ## Running
@@ -180,8 +184,12 @@ The core parser currently supports:
 `Bdd.run(feature, source)` parses the Gherkin source, matches every scenario step, runs each transition in order, and returns a report when all scenarios pass.
 
 ```ts
-const program = Bdd.run(feature, source)
+const program = Bdd.run(feature, source).pipe(
+  Effect.provide(Bdd.GherkinCompiler.Cucumber)
+)
 ```
+
+`Bdd.run` depends on the `Bdd.GherkinCompiler` service. The built-in `Bdd.GherkinCompiler.Cucumber` layer uses Cucumber's parser and Pickle compiler; tests and applications can provide another implementation if the parser backend changes.
 
 Reports include the feature name, scenario names, step counts, and inherited tags:
 
@@ -198,14 +206,16 @@ Reports include the feature name, scenario names, step counts, and inherited tag
 
 `Bdd.run` fails with `Bdd.RunError`:
 
-- `ParseError` when Gherkin source is invalid or uses unsupported syntax.
+- `ParseError` when Gherkin source is invalid.
 - `MatchError` when the feature definition name does not match the Gherkin `Feature:` name, a step cannot be matched, a step matches only transitions registered under the wrong keyword, a step matches multiple transitions, has a missing/unexpected argument, or a DataTable / DocString fails Schema decoding.
 - `StepError` when a matched step implementation fails.
 
 Schema decode failures are preserved on `MatchError.cause`. Step implementation failures are preserved on `StepError.cause`.
 
 ```ts
-const program = Effect.exit(Bdd.run(feature, source))
+const program = Effect.exit(
+  Bdd.run(feature, source).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
+)
 ```
 
 ## CLI
@@ -402,8 +412,6 @@ The current package deliberately does not include:
 
 - Vitest adapter APIs
 - hooks
-- Scenario Outline
-- i18n keywords
 - user-pluggable reporter APIs
 
 Those features can be added later as layers on top of the core runner.

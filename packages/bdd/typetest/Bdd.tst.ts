@@ -121,7 +121,7 @@ describe("Bdd", () => {
     )
 
     expect(Bdd.run(feature, "Feature: Counter")).type.toBe<
-      Effect.Effect<Bdd.Report, Bdd.RunError, Inventory>
+      Effect.Effect<Bdd.Report, Bdd.RunError, Inventory | Bdd.GherkinCompiler>
     >()
   })
 

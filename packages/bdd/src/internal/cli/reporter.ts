@@ -5,6 +5,7 @@ import * as FileSystem from "effect/FileSystem"
 import { pipe } from "effect/Function"
 import * as Path from "effect/Path"
 import * as Str from "effect/String"
+import * as Parser from "../parser.ts"
 import { ReporterError } from "./errors.ts"
 import type { CliDiagnostic, CliRunResult, ReporterName, ScenarioResult } from "./models.ts"
 
@@ -158,7 +159,7 @@ const renderText = (result: CliRunResult, verbose: boolean): string => {
 
 const renderScenarioText = (result: ScenarioResult): string => {
   const prefix = result.outcome._tag === "Passed" ? "PASS" : "FAIL"
-  const base = `${prefix} ${result.task.featurePath}:${result.task.scenarioLine} ${
+  const base = `${prefix} ${result.task.featurePath}:${result.task.core.scenarioLine} ${
     renderScenarioName(result)
   } (${result.durationMillis}ms)`
   return result.outcome._tag === "Passed"
@@ -205,10 +206,10 @@ const renderScenarioHtml = (result: ScenarioResult): string => {
     : renderError(result.outcome.error)
   return `        <tr>
           <td class="${status}">${status}</td>
-          <td>${escapeHtml(`${result.task.featurePath}:${result.task.scenarioLine}`)}</td>
-          <td>${escapeHtml(result.task.featureName)}</td>
+          <td>${escapeHtml(`${result.task.featurePath}:${result.task.core.scenarioLine}`)}</td>
+          <td>${escapeHtml(result.task.core.featureName)}</td>
           <td>${escapeHtml(renderScenarioName(result))}</td>
-          <td>${escapeHtml(pipe(result.task.tags, Arr.join(", ")))}</td>
+          <td>${escapeHtml(pipe(result.task.core.tags, Arr.join(", ")))}</td>
           <td>${result.durationMillis}ms</td>
           <td>${escapeHtml(error)}</td>
         </tr>`
@@ -250,7 +251,11 @@ const renderDiagnosticText = (diagnostic: CliDiagnostic): string => {
       return `  ${diagnostic.featurePath}:${diagnostic.scenarioLine}\n    Scenario: ${diagnostic.scenarioName}\n    Reason: ${diagnostic.message}`
     }
     case "UnmatchedStep": {
-      return `  ${diagnostic.featurePath}:${diagnostic.step.line}\n    Scenario: ${diagnostic.featureName} / ${diagnostic.scenarioName}\n    Step: ${diagnostic.step.keyword} ${diagnostic.step.text}\n    Reason: ${diagnostic.message}`
+      return `  ${diagnostic.featurePath}:${
+        Parser.stepLine(diagnostic.step, diagnostic.source)
+      }\n    Scenario: ${diagnostic.featureName} / ${diagnostic.scenarioName}\n    Step: ${
+        Parser.stepKeyword(diagnostic.step, diagnostic.source)
+      } ${diagnostic.step.text}\n    Reason: ${diagnostic.message}`
     }
     case "UnusedFeatureDefinition": {
       return `  ${diagnostic.message}`
@@ -268,17 +273,17 @@ const renderJson = (result: CliRunResult): string =>
       scenarios: Arr.map(result.results, (scenario) => ({
         source: {
           path: scenario.task.featurePath,
-          line: scenario.task.scenarioLine
+          line: scenario.task.core.scenarioLine
         },
-        feature: scenario.task.featureName,
-        rule: scenario.task.ruleName === undefined
+        feature: scenario.task.core.featureName,
+        rule: scenario.task.core.ruleName === undefined
           ? undefined
           : {
-            name: scenario.task.ruleName,
-            line: scenario.task.ruleLine
+            name: scenario.task.core.ruleName,
+            line: scenario.task.core.ruleLine
           },
-        scenario: scenario.task.scenarioName,
-        tags: scenario.task.tags,
+        scenario: scenario.task.core.scenarioName,
+        tags: scenario.task.core.tags,
         durationMillis: scenario.durationMillis,
         outcome: scenario.outcome._tag === "Passed"
           ? {
@@ -316,9 +321,9 @@ const renderJunitScenario = (result: ScenarioResult): string => {
     <failure message="${escapeXml(renderError(result.outcome.error))}">${
       escapeXml(renderError(result.outcome.error))
     }</failure>`
-  return `  <testcase classname="${escapeXml(result.task.featureName)}" name="${escapeXml(name)}" file="${
+  return `  <testcase classname="${escapeXml(result.task.core.featureName)}" name="${escapeXml(name)}" file="${
     escapeXml(result.task.featurePath)
-  }" line="${result.task.scenarioLine}" time="${result.durationMillis / 1000}">${failure}
+  }" line="${result.task.core.scenarioLine}" time="${result.durationMillis / 1000}">${failure}
   </testcase>`
 }
 
@@ -328,9 +333,9 @@ const renderJunitDiagnostic = (diagnostic: CliDiagnostic): string =>
   </testcase>`
 
 const renderScenarioName = (result: ScenarioResult): string =>
-  result.task.ruleName === undefined
-    ? `${result.task.featureName} / ${result.task.scenarioName}`
-    : `${result.task.featureName} / ${result.task.ruleName} / ${result.task.scenarioName}`
+  result.task.core.ruleName === undefined
+    ? `${result.task.core.featureName} / ${result.task.core.scenarioName}`
+    : `${result.task.core.featureName} / ${result.task.core.ruleName} / ${result.task.core.scenarioName}`
 
 const renderError = (error: { readonly _tag: string; readonly message: string; readonly cause?: unknown }): string => {
   const cause = renderCause(error.cause)

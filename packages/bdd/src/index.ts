@@ -3,6 +3,7 @@ import type {
   Capture as Capture_,
   DocStringArg as DocStringArg_,
   Feature as Feature_,
+  GherkinCompiler as GherkinCompiler_,
   Report as Report_,
   RunError as RunError_,
   TableArg as TableArg_
@@ -43,6 +44,13 @@ export declare namespace Bdd {
    * @since 4.0.0
    */
   export type RunError = RunError_
+
+  /**
+   * Service used to compile Gherkin source into executable scenarios.
+   *
+   * @since 4.0.0
+   */
+  export type GherkinCompiler = GherkinCompiler_
 
   /**
    * A named capture decoded from step text with a Schema.
@@ -129,6 +137,14 @@ export type Report = Report_
  * @since 4.0.0
  */
 export type RunError = RunError_
+
+/**
+ * Service used to compile Gherkin source into executable scenarios.
+ *
+ * @category re-exports
+ * @since 4.0.0
+ */
+export type GherkinCompiler = GherkinCompiler_
 
 /**
  * A decoded DataTable argument.

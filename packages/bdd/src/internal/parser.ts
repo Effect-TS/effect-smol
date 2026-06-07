@@ -1,775 +1,155 @@
-import * as Arr from "effect/Array"
+import type {
+  Background as CucumberBackground,
+  GherkinDocument,
+  Pickle,
+  Rule as CucumberRule,
+  Scenario as CucumberScenario,
+  Step as CucumberStep
+} from "@cucumber/messages"
+import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import { pipe } from "effect/Function"
 import * as Option from "effect/Option"
-import * as Str from "effect/String"
 import { ParseError } from "../Errors.ts"
 
 /** @internal */
-export type Keyword = "Given" | "When" | "Then" | "And" | "But"
+export type Keyword = "Given" | "When" | "Then" | "And" | "But" | "*"
 
 /** @internal */
-export type StepKind = "Given" | "When" | "Then"
-
-/** @internal */
-export interface DataTable {
-  readonly rows: ReadonlyArray<ReadonlyArray<string>>
-  readonly line: number
-}
-
-/** @internal */
-export interface DocString {
-  readonly content: string
-  readonly contentType: string | undefined
-  readonly line: number
-}
-
-/** @internal */
-export interface ParsedStep {
-  readonly keyword: Keyword
-  readonly kind: StepKind
-  readonly text: string
-  readonly line: number
-  readonly table?: DataTable
-  readonly docString?: DocString
-}
-
-/** @internal */
-export interface Background {
-  readonly description: string
-  readonly line: number
-  readonly steps: ReadonlyArray<ParsedStep>
-  readonly tags: ReadonlyArray<string>
-}
-
-/** @internal */
-export interface Scenario {
+export interface CompiledFeature {
   readonly name: string
-  readonly description: string
   readonly line: number
-  readonly rule?: {
-    readonly name: string
-    readonly line: number
-  }
-  readonly background?: Background
-  readonly steps: ReadonlyArray<ParsedStep>
-  readonly tags: ReadonlyArray<string>
+  readonly pickles: ReadonlyArray<Pickle>
+  readonly source: SourceIndex
 }
 
 /** @internal */
-export interface Feature {
-  readonly name: string
-  readonly description: string
-  readonly line: number
-  readonly background?: Background
-  readonly scenarios: ReadonlyArray<Scenario>
-  readonly tags: ReadonlyArray<string>
+export interface ParsedSource {
+  readonly document: GherkinDocument
+  readonly pickles: ReadonlyArray<Pickle>
 }
-
-interface ScenarioBuilder {
-  readonly name: string
-  readonly description: ReadonlyArray<string>
-  readonly line: number
-  readonly rule?: {
-    readonly name: string
-    readonly line: number
-  }
-  readonly background?: BackgroundBuilder
-  readonly steps: ReadonlyArray<ParsedStep>
-  readonly tags: ReadonlyArray<string>
-}
-
-interface BackgroundBuilder {
-  readonly description: ReadonlyArray<string>
-  readonly line: number
-  readonly steps: ReadonlyArray<ParsedStep>
-  readonly tags: ReadonlyArray<string>
-}
-
-interface FeatureBuilder {
-  readonly name: string
-  readonly description: ReadonlyArray<string>
-  readonly line: number
-  readonly tags: ReadonlyArray<string>
-}
-
-interface RuleBuilder {
-  readonly name: string
-  readonly description: ReadonlyArray<string>
-  readonly line: number
-  readonly tags: ReadonlyArray<string>
-  readonly background: BackgroundBuilder | undefined
-  readonly scenarioCount: number
-}
-
-type Active =
-  | { readonly _tag: "Background"; readonly scope: "Feature" | "Rule"; readonly background: BackgroundBuilder }
-  | { readonly _tag: "Scenario"; readonly scenario: ScenarioBuilder }
-
-interface ParseState {
-  readonly feature: FeatureBuilder | undefined
-  readonly background: BackgroundBuilder | undefined
-  readonly rule: RuleBuilder | undefined
-  readonly scenarios: ReadonlyArray<ScenarioBuilder>
-  readonly active: Active | undefined
-  readonly lastStep: ParsedStep | undefined
-  readonly lastConcreteKind: StepKind | undefined
-  readonly pendingTags: ReadonlyArray<string>
-}
-
-interface LineResult {
-  readonly state: ParseState
-  readonly nextIndex: number
-}
-
-const featureRegex = /^Feature:\s*(.*)$/
-const ruleRegex = /^Rule:\s*(.*)$/
-const backgroundRegex = /^Background:\s*(.*)$/
-const scenarioRegex = /^Scenario:\s*(.*)$/
-const stepRegex = /^(Given|When|Then|And|But)\s+(.*)$/
 
 /** @internal */
-export const parse = (source: string): Effect.Effect<Feature, ParseError> =>
-  pipe(
-    source,
-    Str.replace(/\r\n?/g, "\n"),
-    Str.split("\n"),
-    (lines) => parseLines(lines, 0, initialState),
-    Effect.flatMap(finalizeFeature)
-  )
+export class GherkinCompiler extends Context.Service<GherkinCompiler, {
+  readonly compile: (source: string, uri: string) => Effect.Effect<ParsedSource, ParseError>
+}>()("@effect/bdd/GherkinCompiler") {}
 
-const initialState: ParseState = {
-  feature: undefined,
-  background: undefined,
-  rule: undefined,
-  scenarios: [],
-  active: undefined,
-  lastStep: undefined,
-  lastConcreteKind: undefined,
-  pendingTags: []
+/** @internal */
+export interface SourceIndex {
+  readonly steps: ReadonlyMap<string, CucumberStep>
+  readonly scenarios: ReadonlyMap<string, {
+    readonly scenario: CucumberScenario
+    readonly rule: CucumberRule | undefined
+  }>
 }
 
-const parseLines = (
-  lines: ReadonlyArray<string>,
-  index: number,
-  state: ParseState
-): Effect.Effect<ParseState, ParseError> =>
-  index >= lines.length
-    ? Effect.succeed(closeActive(state))
-    : pipe(
-      parseLine(lines, index, state),
-      Effect.flatMap(({ state, nextIndex }) => parseLines(lines, nextIndex, state))
-    )
+/** @internal */
+export const parse = (source: string, uri = "<inline>"): Effect.Effect<CompiledFeature, ParseError, GherkinCompiler> =>
+  Effect.flatMap(GherkinCompiler, (compiler) => pipe(compiler.compile(source, uri), Effect.flatMap(toFeature)))
 
-const parseLine = (
-  lines: ReadonlyArray<string>,
-  index: number,
-  state: ParseState
-): Effect.Effect<LineResult, ParseError> => {
-  const lineNumber = index + 1
-  const nextIndex = index + 1
-  const raw = lines[index]
-  const line = Str.trim(raw)
-  const next = (state: ParseState, nextIndex = index + 1): LineResult => ({ state, nextIndex })
-
-  if (Str.isEmpty(line) || pipe(line, Str.startsWith("#"))) {
-    return Effect.succeed(next(state))
+const toFeature: (parsed: ParsedSource) => Effect.Effect<CompiledFeature, ParseError> = Effect.fnUntraced(function*(
+  parsed
+) {
+  const feature = parsed.document.feature
+  if (feature === undefined) {
+    return yield* parseError("Expected a Feature declaration", 1, 1)
+  }
+  if (parsed.pickles.length === 0) {
+    return yield* parseError("Expected at least one Scenario", feature.location.line, feature.location.column ?? 1)
   }
 
-  if (pipe(line, Str.startsWith("\"\"\""))) {
-    if (state.lastStep === undefined) {
-      return parseError("DocString found before a step", lineNumber, raw.indexOf("\"\"\"") + 1)
-    }
-    if (state.lastStep.table !== undefined || state.lastStep.docString !== undefined) {
-      return parseError("Step already has an argument", lineNumber, raw.indexOf("\"\"\"") + 1)
-    }
-    return pipe(
-      parseDocString(lines, index, lineNumber, raw),
-      Effect.flatMap(({ docString, nextIndex }) =>
-        pipe(
-          updateLastStep(state, lineNumber, raw.indexOf("\"\"\"") + 1, (step) => withDocString(step, docString)),
-          Effect.map((state) => next(state, nextIndex + 1))
-        )
-      )
-    )
-  }
-
-  if (pipe(line, Str.startsWith("|"))) {
-    if (state.lastStep === undefined) {
-      return parseError("DataTable found before a step", lineNumber, raw.indexOf("|") + 1)
-    }
-    if (state.lastStep.docString !== undefined) {
-      return parseError("Step already has an argument", lineNumber, raw.indexOf("|") + 1)
-    }
-    return pipe(
-      updateLastStep(state, lineNumber, raw.indexOf("|") + 1, (step) => withTableRow(step, line, lineNumber)),
-      Effect.map((state) => next(state))
-    )
-  }
-
-  if (pipe(line, Str.startsWith("@"))) {
-    const tags = parseTags(line)
-    const closed = closeActive(state)
-    return tags === undefined
-      ? parseError(`Malformed tag line: ${line}`, lineNumber, 1)
-      : Effect.succeed(next({
-        ...closed,
-        lastStep: undefined,
-        pendingTags: Arr.appendAll(closed.pendingTags, tags)
-      }))
-  }
-
-  return pipe(
-    parseFeatureLine(state, line, lineNumber, raw, nextIndex),
-    Option.orElse(() => parseAfterFeature(state, line, lineNumber, raw, nextIndex)),
-    Option.match({
-      onNone: () => parseError(`Unexpected Gherkin line: ${line}`, lineNumber, 1),
-      onSome: (effect) => effect
-    })
-  )
-}
-
-const parseAfterFeature = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  raw: string,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> => {
-  if (state.feature === undefined) {
-    return Option.some(parseError("Expected a Feature declaration", lineNumber, 1))
-  }
-
-  const unsupported = unsupportedKeyword(line)
-  if (unsupported !== undefined) {
-    return Option.some(
-      parseError(`${unsupported} is not supported by @effect/bdd`, lineNumber, raw.indexOf(unsupported) + 1)
-    )
-  }
-
-  return pipe(
-    parseBackgroundLine(state, line, lineNumber, raw, nextIndex),
-    Option.orElse(() => parseRuleLine(state, line, lineNumber, nextIndex)),
-    Option.orElse(() => parseScenarioLine(state, line, lineNumber, nextIndex)),
-    Option.orElse(() => parseStepLine(state, line, lineNumber, raw, nextIndex)),
-    Option.orElse(() => parseDescriptionLine(state, line, nextIndex))
-  )
-}
-
-const parseFeatureLine = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  raw: string,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> =>
-  pipe(
-    line,
-    Str.match(featureRegex),
-    Option.map((match) =>
-      state.feature !== undefined
-        ? parseError("Feature declared more than once", lineNumber, raw.indexOf("Feature:") + 1)
-        : Effect.succeed({
-          state: {
-            ...state,
-            feature: {
-              name: Str.trim(match[1]),
-              description: [],
-              line: lineNumber,
-              tags: state.pendingTags
-            },
-            pendingTags: []
-          },
-          nextIndex
-        })
-    )
-  )
-
-const parseRuleLine = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> =>
-  pipe(
-    line,
-    Str.match(ruleRegex),
-    Option.map((match) => {
-      const closed = closeActive(state)
-      return Effect.succeed({
-        state: {
-          ...closed,
-          rule: {
-            name: Str.trim(match[1]),
-            description: [],
-            line: lineNumber,
-            tags: closed.pendingTags,
-            background: undefined,
-            scenarioCount: 0
-          },
-          lastStep: undefined,
-          lastConcreteKind: undefined,
-          pendingTags: []
-        },
-        nextIndex
-      })
-    })
-  )
-
-const parseBackgroundLine = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  raw: string,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> =>
-  pipe(
-    line,
-    Str.match(backgroundRegex),
-    Option.map(() => {
-      const closed = closeActive(state)
-      const currentBackground = closed.rule === undefined ? closed.background : closed.rule.background
-      if (currentBackground !== undefined) {
-        return parseError("Background declared more than once", lineNumber, raw.indexOf("Background:") + 1)
-      }
-      if (closed.rule === undefined && closed.scenarios.length > 0) {
-        return parseError("Background must be declared before Scenario", lineNumber, raw.indexOf("Background:") + 1)
-      }
-      if (closed.rule !== undefined && closed.rule.scenarioCount > 0) {
-        return parseError("Background must be declared before Scenario", lineNumber, raw.indexOf("Background:") + 1)
-      }
-      return Effect.succeed({
-        state: {
-          ...closed,
-          active: {
-            _tag: "Background",
-            scope: closed.rule === undefined ? "Feature" : "Rule",
-            background: {
-              description: [],
-              line: lineNumber,
-              steps: [],
-              tags: closed.pendingTags
-            }
-          },
-          lastStep: undefined,
-          lastConcreteKind: undefined,
-          pendingTags: []
-        },
-        nextIndex
-      })
-    })
-  )
-
-const parseScenarioLine = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> =>
-  pipe(
-    line,
-    Str.match(scenarioRegex),
-    Option.map((match) => {
-      const closed = closeActive(state)
-      const tags = closed.rule === undefined
-        ? closed.pendingTags
-        : Arr.appendAll(closed.rule.tags, closed.pendingTags)
-      return Effect.succeed({
-        state: {
-          ...closed,
-          active: {
-            _tag: "Scenario",
-            scenario: {
-              name: Str.trim(match[1]),
-              description: [],
-              line: lineNumber,
-              ...(closed.rule === undefined
-                ? {}
-                : {
-                  rule: {
-                    name: closed.rule.name,
-                    line: closed.rule.line
-                  }
-                }),
-              ...(closed.rule?.background === undefined ? {} : { background: closed.rule.background }),
-              steps: [],
-              tags
-            }
-          },
-          lastStep: undefined,
-          lastConcreteKind: undefined,
-          pendingTags: []
-        },
-        nextIndex
-      })
-    })
-  )
-
-const parseStepLine = (
-  state: ParseState,
-  line: string,
-  lineNumber: number,
-  raw: string,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> =>
-  pipe(
-    line,
-    Str.match(stepRegex),
-    Option.map((match) => {
-      if (state.active === undefined) {
-        return parseError("Step found before a Scenario or Background", lineNumber, raw.indexOf(match[1]) + 1)
-      }
-
-      const keyword = match[1] as Keyword
-      const kind = effectiveKind(keyword, state.lastConcreteKind)
-      if (kind === undefined) {
-        return parseError(`${keyword} found before a Given, When, or Then step`, lineNumber, raw.indexOf(keyword) + 1)
-      }
-
-      const step: ParsedStep = {
-        keyword,
-        kind,
-        text: Str.trim(match[2]),
-        line: lineNumber
-      }
-
-      return Effect.succeed({
-        state: appendStep(state, step),
-        nextIndex
-      })
-    })
-  )
-
-const parseDescriptionLine = (
-  state: ParseState,
-  line: string,
-  nextIndex: number
-): Option.Option<Effect.Effect<LineResult, ParseError>> => {
-  if (state.active !== undefined && activeHasNoSteps(state.active)) {
-    return Option.some(Effect.succeed({
-      state: updateActiveDescription(state, line),
-      nextIndex
-    }))
-  }
-  if (
-    state.feature !== undefined && state.active === undefined && state.background === undefined &&
-    state.scenarios.length === 0 && state.rule === undefined
-  ) {
-    return Option.some(Effect.succeed({
-      state: {
-        ...state,
-        feature: {
-          ...state.feature,
-          description: Arr.append(state.feature.description, line)
-        }
-      },
-      nextIndex
-    }))
-  }
-  if (
-    state.rule !== undefined && state.active === undefined && state.rule.background === undefined &&
-    state.rule.scenarioCount === 0
-  ) {
-    return Option.some(Effect.succeed({
-      state: {
-        ...state,
-        rule: {
-          ...state.rule,
-          description: Arr.append(state.rule.description, line)
-        }
-      },
-      nextIndex
-    }))
-  }
-  return Option.none()
-}
-
-const finalizeFeature = (state: ParseState): Effect.Effect<Feature, ParseError> => {
-  if (state.feature === undefined) {
-    return parseError("Expected a Feature declaration", 1, 1)
-  }
-  if (state.scenarios.length === 0) {
-    return parseError("Expected at least one Scenario", state.feature.line, 1)
-  }
-
-  return Effect.succeed({
-    name: state.feature.name,
-    description: joinDescription(state.feature.description),
-    line: state.feature.line,
-    ...(state.background === undefined ? {} : { background: finalizeBackground(state.background) }),
-    scenarios: Arr.map(state.scenarios, finalizeScenario),
-    tags: state.feature.tags
-  })
-}
-
-const finalizeBackground = (background: BackgroundBuilder): Background => ({
-  description: joinDescription(background.description),
-  line: background.line,
-  steps: background.steps,
-  tags: background.tags
-})
-
-const finalizeScenario = (scenario: ScenarioBuilder): Scenario => ({
-  name: scenario.name,
-  description: joinDescription(scenario.description),
-  line: scenario.line,
-  ...(scenario.rule === undefined ? {} : { rule: scenario.rule }),
-  ...(scenario.background === undefined ? {} : { background: finalizeBackground(scenario.background) }),
-  steps: scenario.steps,
-  tags: scenario.tags
-})
-
-const closeActive = (state: ParseState): ParseState => {
-  if (state.active === undefined) {
-    return state
-  }
-  if (state.active._tag === "Background") {
-    if (state.active.scope === "Rule") {
-      return {
-        ...state,
-        rule: state.rule === undefined
-          ? state.rule
-          : {
-            ...state.rule,
-            background: state.active.background
-          },
-        active: undefined,
-        lastStep: undefined,
-        lastConcreteKind: undefined
-      }
-    }
-    return {
-      ...state,
-      background: state.active.background,
-      active: undefined,
-      lastStep: undefined,
-      lastConcreteKind: undefined
-    }
-  }
+  const source = indexDocument(parsed.document)
   return {
-    ...state,
-    scenarios: Arr.append(state.scenarios, state.active.scenario),
-    rule: state.rule === undefined
-      ? state.rule
-      : {
-        ...state.rule,
-        scenarioCount: state.rule.scenarioCount + 1
-      },
-    active: undefined,
-    lastStep: undefined,
-    lastConcreteKind: undefined
+    name: feature.name,
+    line: feature.location.line,
+    pickles: parsed.pickles,
+    source
   }
-}
-
-const appendStep = (state: ParseState, step: ParsedStep): ParseState => {
-  if (state.active?._tag === "Background") {
-    return {
-      ...state,
-      active: {
-        ...state.active,
-        _tag: "Background",
-        background: {
-          ...state.active.background,
-          steps: Arr.append(state.active.background.steps, step)
-        }
-      },
-      lastStep: step,
-      lastConcreteKind: step.kind
-    }
-  }
-  if (state.active?._tag === "Scenario") {
-    return {
-      ...state,
-      active: {
-        _tag: "Scenario",
-        scenario: {
-          ...state.active.scenario,
-          steps: Arr.append(state.active.scenario.steps, step)
-        }
-      },
-      lastStep: step,
-      lastConcreteKind: step.kind
-    }
-  }
-  return state
-}
-
-const updateLastStep = (
-  state: ParseState,
-  lineNumber: number,
-  column: number,
-  f: (step: ParsedStep) => ParsedStep
-): Effect.Effect<ParseState, ParseError> => {
-  if (state.lastStep === undefined || state.active === undefined) {
-    return parseError("Step argument found before a step", lineNumber, column)
-  }
-  return Effect.succeed(replaceLastStep(state, f(state.lastStep)))
-}
-
-const replaceLastStep = (state: ParseState, step: ParsedStep): ParseState => {
-  if (state.active?._tag === "Background") {
-    return {
-      ...state,
-      active: {
-        ...state.active,
-        _tag: "Background",
-        background: {
-          ...state.active.background,
-          steps: replaceLast(state.active.background.steps, step)
-        }
-      },
-      lastStep: step
-    }
-  }
-  if (state.active?._tag === "Scenario") {
-    return {
-      ...state,
-      active: {
-        _tag: "Scenario",
-        scenario: {
-          ...state.active.scenario,
-          steps: replaceLast(state.active.scenario.steps, step)
-        }
-      },
-      lastStep: step
-    }
-  }
-  return state
-}
-
-const replaceLast = <A>(self: ReadonlyArray<A>, value: A): ReadonlyArray<A> =>
-  Arr.map(self, (item, index) => index === self.length - 1 ? value : item)
-
-const activeHasNoSteps = (active: Active): boolean =>
-  active._tag === "Background" ? active.background.steps.length === 0 : active.scenario.steps.length === 0
-
-const updateActiveDescription = (state: ParseState, line: string): ParseState => {
-  if (state.active?._tag === "Background") {
-    return {
-      ...state,
-      active: {
-        ...state.active,
-        _tag: "Background",
-        background: {
-          ...state.active.background,
-          description: Arr.append(state.active.background.description, line)
-        }
-      }
-    }
-  }
-  if (state.active?._tag === "Scenario") {
-    return {
-      ...state,
-      active: {
-        _tag: "Scenario",
-        scenario: {
-          ...state.active.scenario,
-          description: Arr.append(state.active.scenario.description, line)
-        }
-      }
-    }
-  }
-  return state
-}
-
-const withTableRow = (step: ParsedStep, line: string, lineNumber: number): ParsedStep => {
-  const row = parseTableRow(line)
-  return {
-    ...step,
-    table: step.table === undefined
-      ? { rows: [row], line: lineNumber }
-      : { ...step.table, rows: Arr.append(step.table.rows, row) }
-  }
-}
-
-const withDocString = (step: ParsedStep, docString: DocString): ParsedStep => ({
-  ...step,
-  docString
 })
 
-const parseTableRow = (line: string): ReadonlyArray<string> => {
-  const body = pipe(line, Str.endsWith("|")) ? line.slice(1, -1) : line.slice(1)
-  return pipe(body, Str.split("|"), Arr.map(Str.trim))
-}
-
-const unsupportedKeyword = (line: string): string | undefined => {
-  if (pipe(line, Str.startsWith("Scenario Outline:"))) return "Scenario Outline"
-  return undefined
-}
-
-const effectiveKind = (keyword: Keyword, previous: StepKind | undefined): StepKind | undefined => {
-  if (keyword === "And" || keyword === "But") {
-    return previous
+const indexDocument = (document: GherkinDocument): SourceIndex => {
+  const steps = new Map<string, CucumberStep>()
+  const scenarios = new Map<string, { readonly scenario: CucumberScenario; readonly rule: CucumberRule | undefined }>()
+  const feature = document.feature
+  if (feature === undefined) {
+    return { steps, scenarios }
   }
-  return keyword
+  for (const child of feature.children) {
+    if (child.background !== undefined) {
+      indexBackground(steps, child.background)
+    }
+    if (child.scenario !== undefined) {
+      indexScenario(steps, scenarios, child.scenario, undefined)
+    }
+    if (child.rule !== undefined) {
+      for (const ruleChild of child.rule.children) {
+        if (ruleChild.background !== undefined) {
+          indexBackground(steps, ruleChild.background)
+        }
+        if (ruleChild.scenario !== undefined) {
+          indexScenario(steps, scenarios, ruleChild.scenario, child.rule)
+        }
+      }
+    }
+  }
+  return { steps, scenarios }
 }
 
-const parseTags = (line: string): ReadonlyArray<string> | undefined => {
-  const tags = pipe(line, Str.split(/\s+/))
-  return Arr.every(tags, (tag) => /^@[A-Za-z0-9][A-Za-z0-9_-]*$/.test(tag)) ? tags : undefined
+const indexBackground = (steps: Map<string, CucumberStep>, background: CucumberBackground): void => {
+  for (const step of background.steps) {
+    steps.set(step.id, step)
+  }
 }
 
-const joinDescription = Arr.join("\n")
+const indexScenario = (
+  steps: Map<string, CucumberStep>,
+  scenarios: Map<string, { readonly scenario: CucumberScenario; readonly rule: CucumberRule | undefined }>,
+  scenario: CucumberScenario,
+  rule: CucumberRule | undefined
+): void => {
+  scenarios.set(scenario.id, { scenario, rule })
+  for (const step of scenario.steps) {
+    steps.set(step.id, step)
+  }
+}
+
+/** @internal */
+export const findScenario = (pickle: Pickle, index: SourceIndex) =>
+  pipe(
+    pickle.astNodeIds,
+    Option.liftPredicate((ids): ids is ReadonlyArray<string> => ids.length > 0),
+    Option.flatMap(() => Option.fromNullishOr(pickle.astNodeIds.find((id) => index.scenarios.has(id)))),
+    Option.flatMap((id) => Option.fromNullishOr(index.scenarios.get(id)))
+  )
+
+/** @internal */
+export const findStep = (
+  pickleStep: { readonly astNodeIds: ReadonlyArray<string> },
+  index: SourceIndex
+): CucumberStep | undefined =>
+  pickleStep.astNodeIds
+    .map((id) => index.steps.get(id))
+    .find((step) => step !== undefined)
+
+/** @internal */
+export const stepLine = (
+  step: { readonly astNodeIds: ReadonlyArray<string> },
+  index: SourceIndex
+): number => findStep(step, index)?.location.line ?? 1
+
+/** @internal */
+export const stepKeyword = (
+  step: { readonly astNodeIds: ReadonlyArray<string> },
+  index: SourceIndex
+): Keyword => {
+  const source = findStep(step, index)
+  return source === undefined ? "Given" : normalizeKeyword(source.keyword)
+}
+
+const normalizeKeyword = (keyword: string): Keyword => {
+  const trimmed = keyword.trim()
+  return trimmed === "*" ? "*" : trimmed as Keyword
+}
 
 const parseError = (message: string, line: number, column: number): Effect.Effect<never, ParseError> =>
   Effect.fail(new ParseError({ message, line, column }))
-
-const parseDocString = (
-  lines: ReadonlyArray<string>,
-  startIndex: number,
-  lineNumber: number,
-  raw: string
-): Effect.Effect<{
-  readonly docString: DocString
-  readonly nextIndex: number
-}, ParseError> => {
-  const opening = Str.trim(raw)
-  const mediaType = Str.trim(opening.slice(3))
-  const contentType = Str.isEmpty(mediaType) ? undefined : mediaType
-  return collectDocString(lines, startIndex + 1, [], lineNumber, raw.indexOf("\"\"\"") + 1, contentType)
-}
-
-const collectDocString = (
-  lines: ReadonlyArray<string>,
-  index: number,
-  content: ReadonlyArray<string>,
-  lineNumber: number,
-  column: number,
-  contentType: string | undefined
-): Effect.Effect<{
-  readonly docString: DocString
-  readonly nextIndex: number
-}, ParseError> => {
-  if (index >= lines.length) {
-    return parseError("Unterminated DocString", lineNumber, column)
-  }
-
-  const line = lines[index]
-  return pipe(Str.trim(line), Str.startsWith("\"\"\""))
-    ? Effect.succeed({
-      docString: {
-        content: pipe(dedent(content), Arr.join("\n")),
-        contentType,
-        line: lineNumber
-      },
-      nextIndex: index
-    })
-    : collectDocString(lines, index + 1, Arr.append(content, line), lineNumber, column, contentType)
-}
-
-const dedent = (lines: ReadonlyArray<string>): ReadonlyArray<string> => {
-  const nonEmpty = Arr.filter(lines, (line) => !Str.isEmpty(Str.trim(line)))
-  if (nonEmpty.length === 0) {
-    return []
-  }
-  const indent = Arr.reduce(nonEmpty, Number.POSITIVE_INFINITY, (min, line) => Math.min(min, indentation(line)))
-  return Arr.map(lines, (line) => line.slice(indent))
-}
-
-const indentation = (line: string): number =>
-  pipe(
-    line,
-    Str.match(/^ */),
-    Option.map((match) => match[0].length),
-    Option.getOrElse(() => 0)
-  )
