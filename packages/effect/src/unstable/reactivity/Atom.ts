@@ -16,6 +16,8 @@ import * as Channel from "../../Channel.ts"
 import * as Context from "../../Context.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
+import * as Equal from "../../Equal.ts"
+import type { Equivalence } from "../../Equivalence.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
 import type { LazyArg } from "../../Function.ts"
@@ -72,6 +74,8 @@ export interface Atom<A> extends Pipeable, Inspectable.Inspectable {
   readonly label?: readonly [name: string, stack: string]
   readonly idleTTL?: number
   readonly initialValueTarget?: Atom<A>
+  // Method signature (not a `readonly` arrow property) keeps `Atom<A>` covariant in `A`.
+  equivalence?(self: A, that: A): boolean
 }
 
 /**
@@ -226,6 +230,75 @@ export const setIdleTTL: {
 })
 
 const removeTtl = setIdleTTL(0)
+
+const setEquivalence = <A extends Atom<any>>(self: A, equivalence: Equivalence<Type<A>>): A =>
+  Object.assign(Object.create(Object.getPrototypeOf(self)), {
+    ...self,
+    equivalence
+  })
+
+/**
+ * Returns a copy of an atom that suppresses emissions when a new value is
+ * considered equal to the current one by {@link Equal.equals} (value equality).
+ *
+ * **Details**
+ *
+ * By default an atom emits whenever its value changes by reference identity
+ * (`Object.is`). `dedupe` replaces that check with {@link Equal.equals}, so
+ * writing or recomputing a value that is structurally equal to the current one
+ * does not notify subscribers or invalidate downstream atoms.
+ *
+ * The check applies to the atom's own emissions, so applying it to a derived
+ * atom (for example one produced by {@link map} or {@link transform}) dedupes
+ * that atom's computed output even when its inputs change. This matches the
+ * value-equality semantics of `AtomRef`.
+ *
+ * When two values compare equal the suppressed write is dropped and the current
+ * value is kept, so subsequent reads observe the first of an equal run.
+ *
+ * The name mirrors `Array.dedupe` / `Array.dedupeWith`: `dedupe` uses the
+ * default {@link Equal.equals}, while {@link dedupeWith} takes a custom
+ * `Equivalence`.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const dedupe = <A extends Atom<any>>(self: A): A => setEquivalence(self, Equal.equals)
+
+/**
+ * Returns a copy of an atom that suppresses emissions when a new value is
+ * considered equivalent to the current one by the supplied `Equivalence`.
+ *
+ * **Details**
+ *
+ * By default an atom emits whenever its value changes by reference identity
+ * (`Object.is`). `dedupeWith` replaces that check with a value-based
+ * `Equivalence`, so writing or recomputing a value that is equivalent to the
+ * current one does not notify subscribers or invalidate downstream atoms.
+ *
+ * The check applies to the atom's own emissions, so applying it to a derived
+ * atom (for example one produced by {@link map} or {@link transform}) dedupes
+ * that atom's computed output even when its inputs change.
+ *
+ * When two values compare equivalent the suppressed write is dropped and the
+ * current value is kept, so subsequent reads observe the first of an equivalent
+ * run. With a custom `Equivalence` that ignores some fields, the dropped value's
+ * ignored-field contents are therefore unobservable. This matches `AtomRef`,
+ * which likewise retains the existing value on an equal write.
+ *
+ * The name mirrors `Array.dedupe` / `Array.dedupeWith`: {@link dedupe} uses the
+ * default {@link Equal.equals}, while `dedupeWith` takes a custom `Equivalence`.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const dedupeWith: {
+  <A extends Atom<any>>(equivalence: Equivalence<Type<A>>): (self: A) => A
+  <A extends Atom<any>>(self: A, equivalence: Equivalence<Type<A>>): A
+} = dual(
+  2,
+  <A extends Atom<any>>(self: A, equivalence: Equivalence<Type<A>>): A => setEquivalence(self, equivalence)
+)
 
 const AtomProto = {
   [TypeId]: TypeId,
