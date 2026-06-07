@@ -1,21 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
-import {
-  Actor,
-  ActorSystem,
-  Cause,
-  Data,
-  Deferred,
-  Effect,
-  Fiber,
-  HashMap,
-  Match,
-  Option,
-  Queue,
-  Ref,
-  Schedule,
-  Stream
-} from "effect"
+import { Cause, Data, Deferred, Effect, Fiber, HashMap, Match, Option, Queue, Ref, Schedule, Stream } from "effect"
 import { TestClock } from "effect/testing"
+import { Actor, ActorSystem } from "effect/unstable/actors"
 
 class Increment extends Data.TaggedClass("Increment")<{
   readonly by: number

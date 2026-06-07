@@ -4,21 +4,21 @@
  * @since 4.0.0
  */
 
-import type * as ActorSystemModule from "./ActorSystem.ts"
-import * as Cause from "./Cause.ts"
-import * as Effect from "./Effect.ts"
-import type * as Exit from "./Exit.ts"
+import * as Cause from "../../Cause.ts"
+import * as Effect from "../../Effect.ts"
+import type * as Exit from "../../Exit.ts"
 import type {
   ActorChildAlreadyExistsError,
   ActorStoppedError,
   ActorSystemIdAlreadyExistsError
-} from "./internal/actorErrors.ts"
-import { start as internalStart } from "./internal/actorSystem.ts"
-import * as Result from "./Result.ts"
-import type * as Schedule from "./Schedule.ts"
-import type * as Scope from "./Scope.ts"
-import * as Stream from "./Stream.ts"
-import type * as Types from "./Types.ts"
+} from "../../internal/actorErrors.ts"
+import { start as internalStart } from "../../internal/actorSystem.ts"
+import * as Result from "../../Result.ts"
+import type * as Schedule from "../../Schedule.ts"
+import type * as Scope from "../../Scope.ts"
+import * as Stream from "../../Stream.ts"
+import type * as Types from "../../Types.ts"
+import type * as ActorSystemModule from "./ActorSystem.ts"
 
 export {
   /**
@@ -42,7 +42,7 @@ export {
    * @since 4.0.0
    */
   ActorSystemIdAlreadyExistsError
-} from "./internal/actorErrors.ts"
+} from "../../internal/actorErrors.ts"
 
 /**
  * Reference to an actor that can receive events.
@@ -352,7 +352,8 @@ const classifyWatchEvent = <State, Error, Output>(
  * **Example** (Forwarding child termination)
  *
  * ```ts
- * import { Actor, Effect, Stream } from "effect"
+ * import { Effect, Stream } from "effect"
+ * import { Actor } from "effect/unstable/actors"
  *
  * const watchChild = (self: Actor.ActorRef<{ readonly _tag: "ChildStopped" }>, child: Actor.Actor<number, never>) =>
  *   Actor.watch(child).pipe(

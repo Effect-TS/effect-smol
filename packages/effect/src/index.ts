@@ -32,16 +32,6 @@ export {
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
- * @since 4.0.0
- */
-export * as Actor from "./Actor.ts"
-
-/**
- * @since 4.0.0
- */
-export * as ActorSystem from "./ActorSystem.ts"
-
-/**
  * @since 2.0.0
  */
 export * as Array from "./Array.ts"
@@ -585,11 +575,6 @@ export * as Semaphore from "./Semaphore.ts"
  * @since 2.0.0
  */
 export * as Sink from "./Sink.ts"
-
-/**
- * @since 4.0.0
- */
-export * as StateMachine from "./StateMachine.ts"
 
 /**
  * @since 4.0.0

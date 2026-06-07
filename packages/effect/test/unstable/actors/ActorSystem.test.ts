@@ -1,5 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Actor, ActorSystem, Effect, Exit, Fiber, Option, Queue, Scope, Stream } from "effect"
+import { Effect, Exit, Fiber, Option, Queue, Scope, Stream } from "effect"
+import { Actor, ActorSystem } from "effect/unstable/actors"
 
 const neverLogic = Actor.fromEffect(0, () => Effect.never)
 

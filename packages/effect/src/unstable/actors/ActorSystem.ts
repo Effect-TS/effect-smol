@@ -4,15 +4,15 @@
  * @since 4.0.0
  */
 
+import type * as Effect from "../../Effect.ts"
+import type * as Exit from "../../Exit.ts"
+import type * as HashMap from "../../HashMap.ts"
+import type { ActorSystemIdAlreadyExistsError } from "../../internal/actorErrors.ts"
+import * as internal from "../../internal/actorSystem.ts"
+import type * as Option from "../../Option.ts"
+import type * as Scope from "../../Scope.ts"
+import type * as Stream from "../../Stream.ts"
 import type * as Actor from "./Actor.ts"
-import type * as Effect from "./Effect.ts"
-import type * as Exit from "./Exit.ts"
-import type * as HashMap from "./HashMap.ts"
-import type { ActorSystemIdAlreadyExistsError } from "./internal/actorErrors.ts"
-import * as internal from "./internal/actorSystem.ts"
-import type * as Option from "./Option.ts"
-import type * as Scope from "./Scope.ts"
-import type * as Stream from "./Stream.ts"
 
 export {
   /**
@@ -22,7 +22,7 @@ export {
    * @since 4.0.0
    */
   ActorSystemIdAlreadyExistsError
-} from "./internal/actorErrors.ts"
+} from "../../internal/actorErrors.ts"
 
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption

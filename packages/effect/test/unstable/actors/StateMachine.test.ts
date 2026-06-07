@@ -1,19 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
-import {
-  Actor,
-  ActorSystem,
-  Cause,
-  Context,
-  Data,
-  Deferred,
-  Effect,
-  Fiber,
-  Option,
-  Ref,
-  Schema,
-  StateMachine,
-  Stream
-} from "effect"
+import { Cause, Context, Data, Deferred, Effect, Fiber, Option, Ref, Schema, Stream } from "effect"
+import { Actor, ActorSystem, StateMachine } from "effect/unstable/actors"
 
 class DeferredLog extends Context.Service<DeferredLog, {
   readonly push: (message: string) => Effect.Effect<void>

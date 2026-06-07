@@ -4,22 +4,22 @@
  * @since 4.0.0
  */
 
+import type * as Cause from "../../Cause.ts"
+import * as Context from "../../Context.ts"
+import * as Data from "../../Data.ts"
+import * as Effect from "../../Effect.ts"
+import * as Exit from "../../Exit.ts"
+import * as HashMap from "../../HashMap.ts"
+import { PipeInspectableProto } from "../../internal/core.ts"
+import * as Option from "../../Option.ts"
+import type { Pipeable } from "../../Pipeable.ts"
+import { hasProperty } from "../../Predicate.ts"
+import * as Ref from "../../Ref.ts"
+import type * as Schema from "../../Schema.ts"
+import * as Scope from "../../Scope.ts"
+import * as Stream from "../../Stream.ts"
+import * as SynchronizedRef from "../../SynchronizedRef.ts"
 import * as ActorModule from "./Actor.ts"
-import type * as Cause from "./Cause.ts"
-import * as Context from "./Context.ts"
-import * as Data from "./Data.ts"
-import * as Effect from "./Effect.ts"
-import * as Exit from "./Exit.ts"
-import * as HashMap from "./HashMap.ts"
-import { PipeInspectableProto } from "./internal/core.ts"
-import * as Option from "./Option.ts"
-import type { Pipeable } from "./Pipeable.ts"
-import { hasProperty } from "./Predicate.ts"
-import * as Ref from "./Ref.ts"
-import type * as Schema from "./Schema.ts"
-import * as Scope from "./Scope.ts"
-import * as Stream from "./Stream.ts"
-import * as SynchronizedRef from "./SynchronizedRef.ts"
 
 /**
  * String literal type used as the runtime type identifier for `StateMachine`

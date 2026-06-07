@@ -1,5 +1,3 @@
-import type * as Actor from "../Actor.ts"
-import type * as ActorSystem from "../ActorSystem.ts"
 import type * as Cause from "../Cause.ts"
 import * as Channel from "../Channel.ts"
 import * as Deferred from "../Deferred.ts"
@@ -17,6 +15,8 @@ import * as Scope from "../Scope.ts"
 import * as Stream from "../Stream.ts"
 import * as SynchronizedRef from "../SynchronizedRef.ts"
 import type * as Take from "../Take.ts"
+import type * as Actor from "../unstable/actors/Actor.ts"
+import type * as ActorSystem from "../unstable/actors/ActorSystem.ts"
 import { ActorChildAlreadyExistsError, ActorStoppedError, ActorSystemIdAlreadyExistsError } from "./actorErrors.ts"
 
 type ChildEntry =
