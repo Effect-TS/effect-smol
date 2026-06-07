@@ -2,9 +2,7 @@ import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
 import { Cause, Effect, Option, Schema } from "effect"
 import * as Arr from "effect/Array"
-
-const runBdd = <State, E, R>(feature: Bdd.Feature<State, E, R>, source: string) =>
-  Bdd.run(feature, source).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
+import { assertMatchError, runBdd } from "./helpers.ts"
 
 type Cart = {
   readonly items: ReadonlyArray<{
@@ -606,17 +604,3 @@ Feature: Payload
     )
   })
 })
-
-const assertMatchError = (
-  effect: Effect.Effect<unknown, Bdd.RunError>,
-  message: RegExp = /MatchError/
-): Effect.Effect<void> =>
-  Effect.gen(function*() {
-    const result = yield* Effect.exit(effect)
-    assert.strictEqual(result._tag, "Failure")
-    if (result._tag === "Failure") {
-      const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
-      assert.strictEqual(error._tag, "MatchError")
-      assert.match(error.message, message)
-    }
-  })

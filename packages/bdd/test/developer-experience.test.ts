@@ -1,6 +1,7 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Context, Effect, Exit, Option, Schema } from "effect"
+import { Context, Effect, Schema } from "effect"
+import { runError } from "./helpers.ts"
 
 class TaxRate extends Context.Service<TaxRate, {
   readonly rate: number
@@ -149,18 +150,6 @@ Feature: Shopping cart
     And an empty cart
 `
 
-const runError = (source: string) =>
-  Effect.gen(function*() {
-    const exit = yield* Effect.exit(runShoppingCart(source))
-    assert.strictEqual(Exit.isFailure(exit), true)
-
-    if (Exit.isFailure(exit)) {
-      return Option.getOrThrow(Cause.findErrorOption(exit.cause)) as Bdd.RunError
-    }
-
-    return yield* Effect.fail("expected Bdd.run to fail" as const)
-  })
-
 describe("developer experience", () => {
   it.effect("runs a feature as a readable executable specification", () =>
     Effect.gen(function*() {
@@ -179,11 +168,11 @@ describe("developer experience", () => {
 
   it.effect("surfaces ParseError, MatchError, and StepError as typed failures", () =>
     Effect.gen(function*() {
-      const stepError = yield* runError(stepFailureFeature)
+      const stepError = yield* runError(runShoppingCart(stepFailureFeature))
       assert.strictEqual(stepError._tag, "StepError")
       assert.strictEqual((stepError as { readonly cause: unknown }).cause, "expected subtotal 99, got 42")
 
-      const matchError = yield* runError(matchFailureFeature)
+      const matchError = yield* runError(runShoppingCart(matchFailureFeature))
       assert.strictEqual(matchError._tag, "MatchError")
       assert.deepStrictEqual((matchError as { readonly candidates: ReadonlyArray<string> }).candidates, [
         "the cart starts empty",
@@ -198,7 +187,7 @@ describe("developer experience", () => {
         "the scenario can finish with any keyword"
       ])
 
-      const parseError = yield* runError(parseFailureFeature)
+      const parseError = yield* runError(runShoppingCart(parseFailureFeature))
       assert.strictEqual(parseError._tag, "ParseError")
       assert.strictEqual(
         (parseError as { readonly message: string }).message,

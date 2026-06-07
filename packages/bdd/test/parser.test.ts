@@ -1,9 +1,7 @@
 import { Bdd } from "@effect/bdd"
 import { assert, describe, it } from "@effect/vitest"
-import { Cause, Effect, Option, Schema } from "effect"
-
-const runBdd = <State, E, R>(feature: Bdd.Feature<State, E, R>, source: string) =>
-  Bdd.run(feature, source).pipe(Effect.provide(Bdd.GherkinCompiler.Cucumber))
+import { Effect, Schema } from "effect"
+import { runBdd, runError } from "./helpers.ts"
 
 describe("parser", () => {
   it.effect("parses scenarios, steps, and data tables through run", () => {
@@ -47,7 +45,7 @@ Feature: Shopping cart
   it.effect("rejects And before a concrete step", () =>
     Effect.gen(function*() {
       const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(runBdd(
+      const error = yield* runError(runBdd(
         feature,
         `
 Feature: Shopping cart
@@ -57,12 +55,8 @@ Feature: Shopping cart
 `
       ))
 
-      assert.strictEqual(result._tag, "Failure")
-      if (result._tag === "Failure") {
-        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
-        assert.strictEqual(error._tag, "ParseError")
-        assert.strictEqual(error.line, 5)
-      }
+      assert.strictEqual(error._tag, "ParseError")
+      assert.strictEqual(error.line, 5)
     }))
 
   it.effect("ignores comments and accepts descriptions", () => {
@@ -137,7 +131,7 @@ Feature: Payload
   it.effect("rejects invalid Gherkin syntax", () =>
     Effect.gen(function*() {
       const feature = Bdd.feature("Shopping cart", { initial: 0 })
-      const result = yield* Effect.exit(runBdd(
+      const error = yield* runError(runBdd(
         feature,
         `
 Given a step before the feature
@@ -148,12 +142,8 @@ Feature: Shopping cart
 `
       ))
 
-      assert.strictEqual(result._tag, "Failure")
-      if (result._tag === "Failure") {
-        const error = Option.getOrThrow(Cause.findErrorOption(result.cause)) as Bdd.RunError
-        assert.strictEqual(error._tag, "ParseError")
-        assert.strictEqual(error.line, 2)
-      }
+      assert.strictEqual(error._tag, "ParseError")
+      assert.strictEqual(error.line, 2)
     }))
 
   it.effect("expands Scenario Outline examples into executable scenarios", () =>
