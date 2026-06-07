@@ -160,6 +160,49 @@ describe("Actor", () => {
       yield* actor.stop
     }))
 
+  it.effect("runs actor logic from make", () =>
+    Effect.gen(function*() {
+      type MakeEvent =
+        | {
+          readonly _tag: "Add"
+          readonly by: number
+        }
+        | {
+          readonly _tag: "Get"
+          readonly reply: Deferred.Deferred<number>
+        }
+
+      const initialized = yield* Deferred.make<string>()
+      const reply = yield* Deferred.make<number>()
+      const logic = Actor.make({
+        initial: ({ self }: Actor.ActorScope<MakeEvent>) => Deferred.succeed(initialized, self.id).pipe(Effect.as(1)),
+        run: ({ receive, state, updateState }) =>
+          receive.pipe(
+            Effect.flatMap((event) => {
+              switch (event._tag) {
+                case "Add": {
+                  return updateState((count) => Effect.succeed(count + event.by))
+                }
+                case "Get": {
+                  return state.pipe(Effect.flatMap((count) => Deferred.succeed(event.reply, count)))
+                }
+              }
+            }),
+            Effect.forever
+          )
+      })
+      const actor = yield* Actor.start(logic, { id: "made-counter" })
+
+      yield* actor.send({ _tag: "Add", by: 2 })
+      yield* actor.send({ _tag: "Get", reply })
+
+      assert.strictEqual(yield* Deferred.await(initialized), "made-counter")
+      assert.strictEqual(yield* Deferred.await(reply), 3)
+      assert.strictEqual(yield* actor.state, 3)
+
+      yield* actor.stop
+    }))
+
   it.effect("serializes effect-backed snapshot updates", () =>
     Effect.gen(function*() {
       const processing = yield* Deferred.make<void>()
@@ -317,22 +360,15 @@ describe("Actor", () => {
       const error = new LogicError({ message: "boom" })
       const childRef = yield* Deferred.make<Actor.Actor<number, never, never, void>>()
       const childLogic = Actor.fromEffect<number, never>(0, () => Effect.never)
-      const parentLogic: Actor.ActorLogic<
-        number,
-        never,
-        never,
-        never,
-        never,
-        LogicError | Actor.ActorChildAlreadyExistsError | Actor.ActorSystemIdAlreadyExistsError
-      > = {
-        initial: ({ spawn }) =>
+      const parentLogic = Actor.make({
+        initial: ({ spawn }: Actor.ActorScope<never>) =>
           Effect.gen(function*() {
             const child = yield* spawn(childLogic, { id: "child", systemId: "startup-child" })
             yield* Deferred.succeed(childRef, child)
             return yield* Effect.fail(error)
           }),
         run: () => Effect.never
-      }
+      })
 
       const startError = yield* Effect.flip(system.spawn(parentLogic, { systemId: "startup-parent" }))
       const child = yield* Deferred.await(childRef)
@@ -1037,8 +1073,8 @@ describe("Actor", () => {
       const firstWorkerInterrupted = yield* Deferred.make<void>()
       const secondInitialStarted = yield* Deferred.make<void>()
       const secondWorkerStarted = yield* Deferred.make<void>()
-      const workerLogic: Actor.ActorLogic<number, never> = {
-        initial: () =>
+      const workerLogic = Actor.make({
+        initial: (_: Actor.ActorScope<never>) =>
           Ref.updateAndGet(workerStarts, (count) => count + 1).pipe(
             Effect.flatMap((count) => count === 2 ? Deferred.succeed(secondWorkerStarted, void 0) : Effect.void),
             Effect.as(0)
@@ -1051,16 +1087,9 @@ describe("Actor", () => {
               )
             )
           )
-      }
-      const childLogic: Actor.ActorLogic<
-        number,
-        never,
-        LogicError,
-        never,
-        never,
-        Actor.ActorChildAlreadyExistsError
-      > = {
-        initial: ({ spawn }) =>
+      })
+      const childLogic = Actor.make({
+        initial: ({ spawn }: Actor.ActorScope<never>) =>
           Effect.gen(function*() {
             const run = yield* Ref.updateAndGet(runs, (count) => count + 1)
             if (run === 2) {
@@ -1078,7 +1107,7 @@ describe("Actor", () => {
             }
             return yield* Effect.never
           })
-      }
+      })
       const actor = yield* Actor.start(Actor.fromEffect<number, never, never, Actor.ActorChildAlreadyExistsError>(
         0,
         ({ spawn }) =>

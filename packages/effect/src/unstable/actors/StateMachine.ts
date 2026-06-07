@@ -2002,7 +2002,7 @@ export const toActorLogic: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) =>
-  ({
+  ActorModule.make({
     initial: (scope) =>
       provideActorRuntime(
         Effect.gen(function*() {

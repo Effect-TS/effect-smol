@@ -517,6 +517,27 @@ export interface ActorLogic<
 }
 
 /**
+ * Creates actor logic from low-level initialization and execution methods.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const make = <
+  State,
+  Event = never,
+  Error = never,
+  Output = never,
+  InitialError = never,
+  InitialRequirements = never,
+  RunRequirements = never
+>(
+  options: {
+    readonly initial: (scope: ActorScope<Event>) => Effect.Effect<State, InitialError, InitialRequirements>
+    readonly run: (context: ActorContext<State, Event>) => Effect.Effect<Output, Error, RunRequirements>
+  }
+): ActorLogic<State, Event, Error, InitialRequirements | RunRequirements, Output, InitialError> => options
+
+/**
  * Creates actor logic from an initial state and an effectful actor process.
  *
  * @category constructors
@@ -525,10 +546,11 @@ export interface ActorLogic<
 export const fromEffect = <State, Event, Output = void, Error = never, Requirements = never>(
   initial: State,
   effect: (context: ActorContext<State, Event>) => Effect.Effect<Output, Error, Requirements>
-): ActorLogic<State, Event, Error, Requirements, Output> => ({
-  initial: () => Effect.succeed(initial),
-  run: effect
-})
+): ActorLogic<State, Event, Error, Requirements, Output> =>
+  make({
+    initial: (_: ActorScope<Event>) => Effect.succeed(initial),
+    run: effect
+  })
 
 /**
  * Creates actor logic from an initial state and a transition function.

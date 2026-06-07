@@ -108,10 +108,10 @@ describe("ActorSystem", () => {
       const system = yield* ActorSystem.make
       const observed = yield* Queue.unbounded<ActorSystem.Event>()
       const duplicateInitials = yield* Queue.unbounded<void>()
-      const duplicateLogic: Actor.ActorLogic<number, never> = {
-        initial: () => Queue.offer(duplicateInitials, void 0).pipe(Effect.as(0)),
+      const duplicateLogic = Actor.make({
+        initial: (_: Actor.ActorScope<never>) => Queue.offer(duplicateInitials, void 0).pipe(Effect.as(0)),
         run: () => Effect.never
-      }
+      })
       yield* system.events.pipe(
         Stream.runForEach((event) => Queue.offer(observed, event)),
         Effect.forkScoped
@@ -147,8 +147,8 @@ describe("ActorSystem", () => {
     Effect.scoped(Effect.gen(function*() {
       const system = yield* ActorSystem.make
       const childSpawnResult = yield* Queue.unbounded<string>()
-      const parentLogic: Actor.ActorLogic<number, never> = {
-        initial: ({ spawn }) =>
+      const parentLogic = Actor.make({
+        initial: ({ spawn }: Actor.ActorScope<never>) =>
           Effect.gen(function*() {
             yield* spawn(neverLogic, { systemId: "worker" }).pipe(
               Effect.matchEffect({
@@ -162,7 +162,7 @@ describe("ActorSystem", () => {
             return 0
           }),
         run: () => Effect.never
-      }
+      })
 
       const actor = yield* system.spawn(parentLogic, { systemId: "worker" })
 

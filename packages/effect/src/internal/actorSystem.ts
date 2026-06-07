@@ -290,18 +290,24 @@ const startInternal: <
   ) {
     const sessionId = yield* options.runtime.nextSessionId
     const id = options.id ?? sessionId
+    const systemToken = Symbol()
+
     const queue = yield* Queue.unbounded<Event>()
+
     const stopSelfDeferred = yield* Deferred.make<Effect.Effect<void>>()
+    const done = yield* Deferred.make<Output, Error | InitialError | ActorStoppedError>()
+    const fiberRef = yield* Deferred.make<Fiber.Fiber<void>>()
+
     const stopOwner = Deferred.await(stopSelfDeferred).pipe(Effect.flatMap((stopSelf) => stopSelf))
+
     const changes = yield* PubSub.unbounded<Take.Take<Actor.Snapshot<State, Error | InitialError, Output>>>({
       replay: 1
     })
-    const done = yield* Deferred.make<Output, Error | InitialError | ActorStoppedError>()
+
     const childrenScope = yield* Scope.make("parallel")
-    const currentChildrenScope = yield* SynchronizedRef.make<Scope.Closeable>(childrenScope)
+
     const childRegistry = yield* SynchronizedRef.make<HashMap.HashMap<string, ChildEntry>>(HashMap.empty())
-    const fiberRef = yield* Deferred.make<Fiber.Fiber<void>>()
-    const systemToken = Symbol()
+    const currentChildrenScope = yield* SynchronizedRef.make<Scope.Closeable>(childrenScope)
 
     const self: Actor.ActorRef<Event> = {
       id,
@@ -317,29 +323,36 @@ const startInternal: <
         ref: self as Actor.ActorRef<unknown>,
         parent: options.parent
       })
+
     const publishStopped = (exit: Exit.Exit<unknown, unknown>) =>
       options.runtime.publish({ _tag: "ActorStopped", ref: self as Actor.ActorRef<unknown>, exit })
+
     const closeChildren = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
       SynchronizedRef.get(currentChildrenScope).pipe(
         Effect.flatMap((scope) => Scope.close(scope, exit))
       )
+
     const cleanupStartupFailure = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
       Exit.isFailure(exit)
         ? Deferred.succeed(stopSelfDeferred, Effect.void).pipe(
           Effect.andThen(closeChildren(exit))
         )
         : Effect.void
+
     const cleanupReservedSystemId = options.systemId === undefined
       ? Effect.void
       : unregisterReservedSystemId(options.runtime, options.systemId)
+
     const cleanupReservedStartupFailure = <A, E>(exit: Exit.Exit<A, E>): Effect.Effect<void> =>
       Exit.isFailure(exit)
         ? cleanupStartupFailure(exit).pipe(
           Effect.andThen(cleanupReservedSystemId)
         )
         : Effect.void
+
     const finalize = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
       options.finalizer === undefined ? Effect.void : options.finalizer(exit)
+
     const cleanup = options.systemId === undefined
       ? options.onStop ?? Effect.void
       : unregisterStartedSystemId(options.runtime, options.systemId, systemToken).pipe(
@@ -467,6 +480,7 @@ const startInternal: <
           )
         )
       }
+
       const id = spawnOptions.id
       return SynchronizedRef.get(currentChildrenScope).pipe(
         Effect.flatMap((childrenScope) =>
