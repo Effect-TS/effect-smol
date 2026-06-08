@@ -43,6 +43,28 @@ class InvokeError extends Data.TaggedError("InvokeError")<{
   readonly message: string
 }> {}
 
+const waitForSnapshot = <State, Event, Error, Output>(
+  actor: Actor.Actor<State, Event, Error, Output>,
+  predicate: (snapshot: Actor.Snapshot<State, Error, Output>) => boolean
+) =>
+  actor.changes.pipe(
+    Stream.filter(predicate),
+    Stream.take(1),
+    Stream.runCollect,
+    Effect.map((snapshots) => Array.from(snapshots)[0] as Actor.Snapshot<State, Error, Output>)
+  )
+
+const sendAndWaitForSnapshot = <State, Event, Error, Output>(
+  actor: Actor.Actor<State, Event, Error, Output>,
+  event: Event,
+  predicate: (snapshot: Actor.Snapshot<State, Error, Output>) => boolean
+) =>
+  Effect.gen(function*() {
+    const observer = yield* waitForSnapshot(actor, predicate).pipe(Effect.forkChild)
+    yield* actor.send(event)
+    return yield* Fiber.join(observer)
+  })
+
 describe("StateMachine", () => {
   const Input = Schema.Struct({
     userId: Schema.String
@@ -422,9 +444,16 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
 
-      yield* actor.send(new Submit({ value: "hello" }))
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
 
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it("enabled returns the event tags handled by the current state", () => {
@@ -490,12 +519,18 @@ describe("StateMachine", () => {
           })
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, undefined)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: undefined
+      })
       assert.deepStrictEqual(yield* deferredLog.read, ["success"])
     }))
 
@@ -519,11 +554,14 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
 
-      assert.strictEqual(yield* actor.output, undefined)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
 
       yield* actor.send(new Submit({ value: "hello" }))
 
-      assert.strictEqual(yield* actor.output, "request-1:Submit")
+      assert.strictEqual(yield* actor.join, "request-1:Submit")
     }))
 
   it.effect("plans final state output without running deferred actions", () =>
@@ -568,7 +606,12 @@ describe("StateMachine", () => {
       const actor = yield* StateMachine.start(machine)
 
       assert.strictEqual(planned.output, "request-1")
-      assert.strictEqual(yield* actor.output, "request-1")
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: "request-1"
+      })
     }))
 
   it.effect("defaults final state output to undefined", () =>
@@ -591,7 +634,12 @@ describe("StateMachine", () => {
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
 
-      assert.strictEqual(yield* actor.output, undefined)
+      assert.strictEqual(yield* actor.join, undefined)
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: undefined
+      })
     }))
 
   it.effect("does not process events after reaching a final state", () =>
@@ -614,9 +662,14 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
+      yield* actor.join
       yield* actor.send(new Reset({}))
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: undefined
+      })
     }))
 
   it.effect("start ignores events sent after stop", () =>
@@ -636,7 +689,10 @@ describe("StateMachine", () => {
       yield* actor.stop
       yield* actor.send(new Submit({ value: "hello" }))
 
-      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "stopped",
+        state: new Idle({ userId: "user-1" })
+      })
     }))
 
   it.effect("plans no-op transitions from final states", () =>
@@ -681,8 +737,13 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
+      yield* actor.join
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: undefined
+      })
     }))
 
   it.effect("next computes the next state without starting an actor", () =>
@@ -698,12 +759,11 @@ describe("StateMachine", () => {
         }
       })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-      const state = yield* actor.state
+      const state = new Idle({ userId: "user-1" })
       const nextState = yield* StateMachine.next(machine, state, new Submit({ value: "hello" }))
 
       assert.deepStrictEqual(nextState, new Loading({ requestId: "request-1" }))
-      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      assert.deepStrictEqual(state, new Idle({ userId: "user-1" }))
     }))
 
   it.effect("plan computes the next state without running deferred actions", () =>
@@ -778,6 +838,7 @@ describe("StateMachine", () => {
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
 
       yield* actor.send(new Submit({ value: "hello" }))
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
@@ -803,11 +864,12 @@ describe("StateMachine", () => {
         }
       })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
+
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* deferredLog.read, ["submitted"])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
@@ -870,9 +932,190 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
 
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
+
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
+    }))
+
+  it.effect("start returns an actor-backed runtime with lifecycle snapshots", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+      const observer = yield* actor.changes.pipe(
+        Stream.filter((snapshot) => snapshot.state._tag === "Loading"),
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkChild
+      )
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-1" })
+      })
+
       yield* actor.send(new Submit({ value: "hello" }))
 
+      const snapshots = Array.from(yield* Fiber.join(observer))
+      assert.deepStrictEqual(snapshots, [{
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      }])
       assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+
+      yield* actor.stop
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "stopped",
+        state: new Loading({ requestId: "request-1" })
+      })
+    }))
+
+  it.effect("start completes actor output from a final state", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Success],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Success({ requestId: "request-1" })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "request-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "request-1" }),
+        output: "request-1"
+      })
+    }))
+
+  it.effect("start surfaces transition failures through the actor lifecycle", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        id: "UserMachine",
+        states: [Idle, Loading],
+        events: [Submit, Reset],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        on: {
+          Submit: () => new Loading({ requestId: "request-1" })
+        }
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Reset({}))
+
+      const error = yield* Effect.flip(actor.join)
+      assert.instanceOf(error, StateMachine.UnhandledEventError)
+      assert.strictEqual(error._tag, "UnhandledEventError")
+      assert.strictEqual(error.machineId, "UserMachine")
+      assert.strictEqual(error.state, "Idle")
+      assert.strictEqual(error.event, "Reset")
+
+      const snapshot = yield* actor.snapshot
+      assert.strictEqual(snapshot.status, "error")
+      if (snapshot.status === "error") {
+        assert.deepStrictEqual(snapshot.state, new Idle({ userId: "user-1" }))
+        const reason = snapshot.cause.reasons[0]
+        assert.ok(reason !== undefined)
+        assert.strictEqual(Cause.isFailReason(reason), true)
+        if (Cause.isFailReason(reason)) {
+          assert.instanceOf(reason.error, StateMachine.UnhandledEventError)
+        }
+      }
+    }))
+
+  it.effect("start provides actor runtime to initial actions", () =>
+    Effect.gen(function*() {
+      const observed = yield* Ref.make(false)
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            StateMachine.self<Submit>().pipe(
+              Effect.flatMap((self) => Ref.set(observed, self.id.length > 0 && self.sessionId.length > 0))
+            )
+          )
+      })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      assert.strictEqual(yield* Ref.get(observed), true)
+      yield* actor.stop
+    }))
+
+  it.effect("start runs invoke configs", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle, Loading, Success],
+        events: [Submit, RequestSucceeded],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
+        .handle("Idle", {
+          on: {
+            Submit: () => new Loading({ requestId: "request-1" })
+          }
+        })
+        .handle("Loading", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: ({ state }) => Actor.fromEffect("pending", () => Effect.succeed(`done:${state.requestId}`)),
+            event: ({ outcome }) =>
+              outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
+          }),
+          on: {
+            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+          }
+        })
+        .handle("Success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
+
+      yield* actor.send(new Submit({ value: "hello" }))
+
+      assert.strictEqual(yield* actor.join, "done:request-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "done:request-1" }),
+        output: "done:request-1"
+      })
     }))
 
   it.effect("toActorLogic runs with actor identity and active snapshots", () =>
@@ -1208,8 +1451,12 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine)
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "user-1" }))
-      assert.strictEqual(yield* actor.output, "user-1")
+      assert.strictEqual(yield* actor.join, "user-1")
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: new Success({ requestId: "user-1" }),
+        output: "user-1"
+      })
     }))
 
   it.effect("runtime sends emitted events to the parent from external action helpers", () =>
@@ -2168,14 +2415,19 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
 
-      const error = yield* Effect.flip(actor.send(new Reset({})))
+      yield* actor.send(new Reset({}))
+      const error = yield* Effect.flip(actor.join)
 
       assert.instanceOf(error, StateMachine.UnhandledEventError)
       assert.strictEqual(error._tag, "UnhandledEventError")
       assert.strictEqual(error.machineId, "UserMachine")
       assert.strictEqual(error.state, "Idle")
       assert.strictEqual(error.event, "Reset")
-      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
+      const snapshot = yield* actor.snapshot
+      assert.strictEqual(snapshot.status, "error")
+      if (snapshot.status === "error") {
+        assert.deepStrictEqual(snapshot.state, new Idle({ userId: "user-1" }))
+      }
     }))
 
   it.effect("handles required services in actions", () =>
@@ -2202,14 +2454,22 @@ describe("StateMachine", () => {
           }
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
+      yield* Effect.yieldNow
+
       assert.deepStrictEqual(yield* deferredLog.read, ["submitted"])
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it.effect("runs the actions in sequential order", () =>
@@ -2237,14 +2497,22 @@ describe("StateMachine", () => {
           }
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
+      yield* Effect.yieldNow
+
       assert.deepStrictEqual(yield* deferredLog.read, ["submitted1", "submitted2"])
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it.effect("runs exit, transition, and entry actions in order", () =>
@@ -2276,14 +2544,22 @@ describe("StateMachine", () => {
           })
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
+      yield* Effect.yieldNow
+
       assert.deepStrictEqual(yield* deferredLog.read, ["exit:Submit", "transition", "entry:Submit"])
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it.effect("plan collects entry and exit actions without running them", () =>
@@ -2390,13 +2666,21 @@ describe("StateMachine", () => {
           })
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Success"
+      )
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Success({ requestId: "request-1" })
+      })
       assert.deepStrictEqual(yield* deferredLog.read, ["submit", "always"])
     }))
 
@@ -2455,9 +2739,16 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
 
-      yield* actor.send(new Submit({ value: "hello" }))
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Success"
+      )
 
-      assert.deepStrictEqual(yield* actor.state, new Success({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Success({ requestId: "request-1" })
+      })
     }))
 
   it.effect("processes raised events in FIFO order", () =>
@@ -2542,12 +2833,18 @@ describe("StateMachine", () => {
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
-        Effect.provideService(DeferredLog, deferredLog)
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
       )
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* deferredLog.read, ["exit", "transition", "reset", "resolve"])
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it.effect("selects always transitions before raised events", () =>
@@ -2679,9 +2976,8 @@ describe("StateMachine", () => {
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
-        Effect.provideService(DeferredLog, deferredLog)
-      )
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* deferredLog.read, ["entry", "transition"])
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
@@ -2720,9 +3016,12 @@ describe("StateMachine", () => {
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
-        Effect.provideService(DeferredLog, deferredLog)
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Idle" && snapshot.state.userId === "user-2"
       )
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* deferredLog.read, [
         "entry:Symbol(effect/StateMachine/InitialEvent)",
@@ -2730,7 +3029,10 @@ describe("StateMachine", () => {
         "transition",
         "entry:Submit"
       ])
-      assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-2" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Idle({ userId: "user-2" })
+      })
     }))
 
   it.effect("reentering self-transitions can omit returning a state", () =>
@@ -2765,9 +3067,8 @@ describe("StateMachine", () => {
         Effect.provideService(DeferredLog, deferredLog)
       )
 
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
-        Effect.provideService(DeferredLog, deferredLog)
-      )
+      yield* actor.send(new Submit({ value: "hello" }))
+      yield* Effect.yieldNow
 
       assert.deepStrictEqual(yield* deferredLog.read, [
         "entry:Symbol(effect/StateMachine/InitialEvent)",
@@ -2811,16 +3112,24 @@ describe("StateMachine", () => {
             )
         })
 
-      const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-
-      yield* actor.send(new Submit({ value: "hello" })).pipe(
+      const actor = yield* StateMachine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(EntryRequirement, EntryRequirement.of({ entryMessage: "entry" })),
         Effect.provideService(ExitRequirement, ExitRequirement.of({ exitMessage: "exit" })),
         Effect.provideService(DeferredLog, deferredLog)
       )
 
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "hello" }),
+        (snapshot) => snapshot.state._tag === "Loading"
+      )
+      yield* Effect.yieldNow
+
       assert.deepStrictEqual(yield* deferredLog.read, ["exit", "entry"])
-      assert.deepStrictEqual(yield* actor.state, new Loading({ requestId: "request-1" }))
+      assert.deepStrictEqual(snapshot, {
+        status: "active",
+        state: new Loading({ requestId: "request-1" })
+      })
     }))
 
   it.effect("propagates entry action failures", () =>
@@ -2841,7 +3150,8 @@ describe("StateMachine", () => {
         })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-      const error = yield* Effect.flip(actor.send(new Submit({ value: "hello" })))
+      yield* actor.send(new Submit({ value: "hello" }))
+      const error = yield* Effect.flip(actor.join)
 
       assert.instanceOf(error, EntryError)
       assert.strictEqual(error._tag, "EntryError")
@@ -2863,7 +3173,8 @@ describe("StateMachine", () => {
       })
 
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
-      const error = yield* Effect.flip(actor.send(new Submit({ value: "hello" })))
+      yield* actor.send(new Submit({ value: "hello" }))
+      const error = yield* Effect.flip(actor.join)
 
       assert.instanceOf(error, ExitError)
       assert.strictEqual(error._tag, "ExitError")

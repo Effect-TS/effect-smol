@@ -18,7 +18,6 @@ import * as Ref from "../../Ref.ts"
 import type * as Schema from "../../Schema.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import * as SynchronizedRef from "../../SynchronizedRef.ts"
 import * as ActorModule from "./Actor.ts"
 
 /**
@@ -83,19 +82,6 @@ export interface Machine<
 
   /** @internal */
   readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
-}
-
-/**
- * A running state machine.
- *
- * @category models
- * @since 4.0.0
- */
-export interface Actor<State, Event, out E = never, out R = never, out Output = never> {
-  readonly state: Effect.Effect<State>
-  readonly output: Effect.Effect<Output | undefined>
-  readonly send: (event: Event) => Effect.Effect<void, E | UnhandledEventError | InfiniteTransitionError, R>
-  readonly stop: Effect.Effect<void>
 }
 
 /**
@@ -1012,14 +998,6 @@ const makeActorRuntime = <Events, Emits>(
     sendParent: (event) => scope.parent === undefined ? Effect.void : scope.parent.send(event)
   })
 
-const makeLocalRuntime = <Events, Emits, E = never, R = never>(
-  send: (event: Events) => Effect.Effect<void, E, R>
-): Runtime<Events, Emits> =>
-  RuntimeContext.of({
-    raise: (event) => send(event) as Effect.Effect<void>,
-    sendParent: () => Effect.void
-  })
-
 const makeNoopRuntime = <Events, Emits>(): Runtime<Events, Emits> =>
   RuntimeContext.of({
     raise: () => Effect.void,
@@ -1266,8 +1244,8 @@ export const make = <
  *
  * **Gotchas**
  *
- * Invoked child actors run only when the state machine is converted to actor
- * logic with `toActorLogic`.
+ * Invoked child actors run when the state machine runs through the actor
+ * runtime with `start` or `toActorLogic`.
  *
  * @category constructors
  * @since 4.0.0
@@ -2217,7 +2195,21 @@ export const toActorLogic: <
   >
 
 /**
- * Starts a state machine runtime.
+ * Starts a state machine as an actor.
+ *
+ * **When to use**
+ *
+ * Use when you want actor runtime semantics for a state machine, including
+ * asynchronous event delivery, lifecycle snapshots, `join`, actor-system
+ * registration, and invoked child actors.
+ *
+ * **Gotchas**
+ *
+ * The returned actor's `send` operation only enqueues events. Transition
+ * failures are reported through the actor snapshot, `changes`, and `join`
+ * rather than being returned by `send`.
+ *
+ * @see {@link toActorLogic} for creating reusable actor logic from a state machine
  *
  * @category constructors
  * @since 4.0.0
@@ -2238,99 +2230,15 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  Actor<
+  ActorModule.Actor<
     Machine.StateOf<States>,
     Machine.EventOf<Events>,
-    E,
-    ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
-    Output
+    E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
+    Output | undefined
   >,
   InitialE | StartupError,
-  ExcludeCompatibleRuntime<InitialR, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-> = Effect.fnUntraced(function*<
-  const States extends ReadonlyArray<Machine.TaggedSchema>,
-  const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
-  const Input extends Schema.Top = typeof Schema.Void,
-  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
-  E = never,
-  R = never,
-  InitialE = never,
-  InitialR = never,
-  FinalStates extends Machine.TagOf<States[number]> = never,
-  Output = never
->(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  ...args: [...Machine.InputArgs<Input>]
-) {
-  const stopped = yield* Ref.make(false)
-  const planned = yield* planInitial(machine, ...args)
-  const current = yield* SynchronizedRef.make(planned.state)
-  const currentOutput = yield* Ref.make<Output | undefined>(planned.output)
-
-  const send = ((
-    event: Machine.EventOf<Events>
-  ) =>
-    Effect.gen(function*() {
-      if (yield* Ref.get(stopped)) {
-        // TODO: Some error or warning?
-        return
-      }
-
-      const [actions, isFinal, output] = yield* SynchronizedRef.modifyEffect(current, (state) =>
-        macrostep(machine, state, event).pipe(
-          Effect.map((planned) =>
-            [[planned.actions, isFinalState(machine, planned.next), planned.output] as const, planned.next] as const
-          )
-        ))
-      if (isFinal) {
-        yield* Ref.set(stopped, true)
-        yield* Ref.set(currentOutput, output)
-      }
-
-      return yield* (runActions(
-        actions,
-        makeLocalRuntime<
-          Machine.EventOf<Events>,
-          Machine.EmitOf<Emits>,
-          E | UnhandledEventError | InfiniteTransitionError,
-          ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-        >(send)
-      ) as Effect.Effect<
-        void,
-        E,
-        ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-      >)
-    })) as (
-      event: Machine.EventOf<Events>
-    ) => Effect.Effect<
-      void,
-      E | UnhandledEventError | InfiniteTransitionError,
-      ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-    >
-
-  if (isFinalState(machine, planned.state)) {
-    yield* Ref.set(stopped, true)
-  }
-
-  yield* (runActions(
-    planned.actions,
-    makeLocalRuntime<
-      Machine.EventOf<Events>,
-      Machine.EmitOf<Emits>,
-      E | UnhandledEventError | InfiniteTransitionError,
-      ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-    >(send)
-  ) as Effect.Effect<
-    void,
-    InitialE | StartupError,
-    ExcludeCompatibleRuntime<InitialR, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-  >)
-
-  return {
-    state: SynchronizedRef.get(current),
-    output: Ref.get(currentOutput),
-    stop: Ref.set(stopped, true),
-    send
-  }
-})
+  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+> = (
+  machine,
+  ...args
+) => ActorModule.start(toActorLogic(machine, ...args))
