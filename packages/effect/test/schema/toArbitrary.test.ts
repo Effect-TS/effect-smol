@@ -224,19 +224,24 @@ describe("Arbitrary generation", () => {
     })
 
     it("should fail fast for invalid candidate weights", () => {
-      const schema = Schema.String.check(
-        Schema.makeFilter(() => true, {
-          arbitrary: {
-            candidate: {
-              weight: 0,
-              make: (fc) => fc.constant("candidate")
+      const makeSchema = (weight: number) =>
+        Schema.String.check(
+          Schema.makeFilter(() => true, {
+            arbitrary: {
+              candidate: {
+                weight,
+                make: (fc) => fc.constant("candidate")
+              }
             }
-          }
-        })
-      )
+          })
+        )
 
       throws(
-        () => Schema.toArbitrary(schema),
+        () => Schema.toArbitrary(makeSchema(0)),
+        "Unable to derive an arbitrary for a candidate with an invalid weight"
+      )
+      throws(
+        () => Schema.toArbitrary(makeSchema(0.5)),
         "Unable to derive an arbitrary for a candidate with an invalid weight"
       )
     })
@@ -661,6 +666,20 @@ describe("Arbitrary generation", () => {
           assertInclude(e.message, "at [0]")
         }
       )
+    })
+
+    it("optional-key recursive tuple made non-empty without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Tuple([Schema.optionalKey(Rec)]).check(Schema.isMinLength(1))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("optional-key recursive struct made non-empty without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Struct({
+        a: Schema.optionalKey(Rec)
+      }).check(Schema.isMinProperties(1))
+      assertRecursiveNoFiniteGenerationPath(schema)
     })
 
     it("should use filter candidates in recursive terminal paths", () => {

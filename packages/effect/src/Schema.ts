@@ -13610,7 +13610,7 @@ export function resolveAnnotationsKey<S extends Top>(schema: S): Annotations.Key
  * Use {@link resolveAnnotations} to read the annotations attached to a schema at
  * runtime.
  *
- * @since 3.10.0
+ * @since 4.0.0
  */
 export declare namespace Annotations {
   /**
@@ -13654,7 +13654,7 @@ export declare namespace Annotations {
    * ```
    *
    * @category models
-   * @since 3.10.0
+   * @since 4.0.0
    */
   export interface Annotations {
     readonly [x: string]: unknown
@@ -13783,7 +13783,7 @@ export declare namespace Annotations {
      * values.
      *
      * @category utility types
-     * @since 3.10.0
+     * @since 4.0.0
      */
     export type Type<TypeParameters extends ReadonlyArray<Top>> = {
       readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Type"]>
@@ -13792,7 +13792,7 @@ export declare namespace Annotations {
      * Maps declaration type-parameter schemas to codecs for their `Encoded` values.
      *
      * @category utility types
-     * @since 3.10.0
+     * @since 4.0.0
      */
     export type Encoded<TypeParameters extends ReadonlyArray<Top>> = {
       readonly [K in keyof TypeParameters]: Codec<TypeParameters[K]["Encoded"]>
@@ -13848,7 +13848,7 @@ export declare namespace Annotations {
    * Filters are intentionally non-parametric to keep them covariant.
    *
    * @category models
-   * @since 3.10.0
+   * @since 4.0.0
    */
   export interface Filter extends Augment {
     /**
@@ -13932,10 +13932,11 @@ export declare namespace Annotations {
      * **Details**
      *
      * The base generator keeps weight `1`; candidates default to weight `1`
-     * and must use a positive finite weight. `make` receives the merged constraint
-     * for the current node and may return `undefined` to opt out, including for
-     * recursive terminal branches. Candidate values are still checked by every
-     * schema filter, so invalid candidates affect efficiency but not validity.
+     * and must use a positive integer weight. `make` receives the merged
+     * constraint for the current node and may return `undefined` to opt out,
+     * including for recursive terminal branches. Candidate values are still
+     * checked by every schema filter, so invalid candidates affect efficiency but
+     * not validity.
      *
      * @category models
      * @since 4.0.0
@@ -14029,7 +14030,7 @@ export declare namespace Annotations {
      * the finite branch first.
      *
      * @category models
-     * @since 3.10.0
+     * @since 4.0.0
      */
     export interface Context {
       readonly constraint?: ToArbitrary.Constraint | undefined

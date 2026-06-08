@@ -5753,7 +5753,7 @@ const Palindrome = Schema.String.check(palindrome)
 
 A candidate is an extra source used together with the schema node's base
 generator. The base generator has weight `1`. A candidate has weight `1` unless
-you set another positive weight.
+you set another positive integer weight.
 
 With one candidate at weight `5`, fast-check tries the candidate roughly five
 times as often as the base generator. Candidate values are still checked by all

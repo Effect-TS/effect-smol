@@ -466,7 +466,7 @@ function applyCandidates(
       continue
     }
     const weight = candidate.weight ?? 1
-    if (!globalThis.Number.isFinite(weight) || weight <= 0) {
+    if (!globalThis.Number.isInteger(weight) || weight <= 0) {
       throw new Error("Unable to derive an arbitrary for a candidate with an invalid weight")
     }
     weighted.push({ arbitrary, weight })
@@ -624,21 +624,45 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
       ): FastCheck.Arbitrary<any> | undefined => {
         const reset = resetContext(ctx)
         const elementArbitraries: Array<FastCheck.Arbitrary<Option.Option<any>>> = []
+        const optionals: Array<FastCheck.Arbitrary<any> | undefined> = []
+        let length = 0
         for (const element of elements) {
+          const out = element.arbitrary.terminal(fc, reset, recursionStack)
           if (SchemaAST.isOptional(element.ast)) {
+            optionals.push(out)
             continue
           }
-          const out = element.arbitrary.terminal(fc, reset, recursionStack)
           if (out === undefined) {
             return undefined
           }
+          length++
           elementArbitraries.push(out.map(Option.some))
+        }
+        const minLength = ctx.constraint?.minLength ?? 0
+        const needsRest = Array.isReadonlyArrayNonEmpty(rest) && minLength > length + optionals.length
+        const optionalTarget = needsRest ? optionals.length : Math.max(0, minLength - length)
+        let includedOptionals = 0
+        for (const out of optionals) {
+          if (includedOptionals >= optionalTarget) {
+            elementArbitraries.push(fc.constant(Option.none()))
+            continue
+          }
+          if (out === undefined) {
+            elementArbitraries.push(fc.constant(Option.none()))
+            continue
+          }
+          includedOptionals++
+          length++
+          elementArbitraries.push(out.map(Option.some))
+        }
+        if (includedOptionals < optionalTarget) {
+          return undefined
         }
         let out = fc.tuple(...elementArbitraries).map(Array.getSomes)
         if (Array.isReadonlyArrayNonEmpty(rest)) {
           const [head, ...tail] = rest
           const restCtx = ast.elements.length === 0 ? ctx : reset
-          const minRestLength = ast.elements.length === 0 ? restCtx.constraint?.minLength ?? 0 : 0
+          const minRestLength = Math.max(0, minLength - length - tail.length)
           const headArbitrary = minRestLength === 0
             ? undefined
             : head.arbitrary.terminal(fc, reset, recursionStack)
@@ -719,17 +743,33 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         const reset = resetContext(ctx)
         const pss: any = {}
         const requiredKeys: Array<PropertyKey> = []
+        const optionals: Array<readonly [PropertyKey, FastCheck.Arbitrary<any>]> = []
         for (const { ps, arbitrary } of propertySignatures) {
-          if (SchemaAST.isOptional(ps.type)) {
-            continue
-          }
           const name = ps.name
           const out = arbitrary.terminal(fc, reset, recursionStack)
+          if (SchemaAST.isOptional(ps.type)) {
+            if (out !== undefined) {
+              optionals.push([name, out])
+            }
+            continue
+          }
           if (out === undefined) {
             return undefined
           }
           requiredKeys.push(name)
           pss[name] = out
+        }
+        let optionalCount = Math.max(0, (ctx.constraint?.minLength ?? 0) - requiredKeys.length)
+        for (const [name, out] of optionals) {
+          if (optionalCount === 0) {
+            break
+          }
+          optionalCount--
+          requiredKeys.push(name)
+          pss[name] = out
+        }
+        if (optionalCount > 0 && ast.indexSignatures.length === 0) {
+          return undefined
         }
         let out = fc.record<any>(pss, { requiredKeys })
         const entriesConstraints = objectEntriesConstraints(ast, ctx.constraint, requiredKeys.length)
