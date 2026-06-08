@@ -47,6 +47,12 @@ export function toReport(report: MutableReport): Schema.Annotations.ToArbitrary.
   return { warnings: report.warnings.slice() }
 }
 
+function arbitraryError(what: string) {
+  return new Error(`Unable to derive an arbitrary for ${what}`)
+}
+
+const entryComparator = ([a]: readonly [any, any], [b]: readonly [any, any]) => Equal.equals(a, b)
+
 function applyChecks(ast: SchemaAST.AST, filters: Array<SchemaAST.Filter<any>>, arbitrary: FastCheck.Arbitrary<any>) {
   return filters.reduce(
     (acc, filter) => acc.filter((a) => filter.run(a, ast, SchemaAST.defaultParseOptions) === undefined),
@@ -59,7 +65,7 @@ function validateArrayConstraints(constraint: FastCheck.ArrayConstraints | undef
     constraint?.minLength !== undefined && constraint.maxLength !== undefined &&
     constraint.minLength > constraint.maxLength
   ) {
-    throw new Error(`Unable to derive an arbitrary for ${label} constraints`)
+    throw arbitraryError(`${label} constraints`)
   }
 }
 
@@ -240,7 +246,7 @@ function objectEntriesConstraints(ast: SchemaAST.Objects, constraint: Constraint
     ast.indexSignatures.length === 0 &&
     constraint.minLength > ast.propertySignatures.length
   ) {
-    throw new Error("Unable to derive an arbitrary for object property constraints")
+    throw arbitraryError("object property constraints")
   }
   const out: FastCheck.ArrayConstraints = {}
   if (constraint.minLength !== undefined) {
@@ -249,7 +255,7 @@ function objectEntriesConstraints(ast: SchemaAST.Objects, constraint: Constraint
   if (constraint.maxLength !== undefined) {
     out.maxLength = constraint.maxLength - requiredKeys
     if (out.maxLength < 0) {
-      throw new Error("Unable to derive an arbitrary for object property constraints")
+      throw arbitraryError("object property constraints")
     }
   }
   validateArrayConstraints(out, "object property")
@@ -266,14 +272,14 @@ function objectWithOptionalCount(
 ) {
   const requiredCount = requiredKeys.length
   if (constraint.maxLength !== undefined && constraint.maxLength < requiredCount) {
-    throw new Error("Unable to derive an arbitrary for object property constraints")
+    throw arbitraryError("object property constraints")
   }
   const minOptional = constraint.minLength === undefined ? 0 : Math.max(0, constraint.minLength - requiredCount)
   const maxOptional = constraint.maxLength === undefined
     ? optionalNames.length
     : Math.min(optionalNames.length, constraint.maxLength - requiredCount)
   if (minOptional > maxOptional) {
-    throw new Error("Unable to derive an arbitrary for object property constraints")
+    throw arbitraryError("object property constraints")
   }
   const full = fc.record<any>(pss, { requiredKeys: [...requiredKeys, ...optionalNames] })
   const chosen = fc.shuffledSubarray([...optionalNames], { minLength: minOptional, maxLength: maxOptional })
@@ -303,7 +309,7 @@ function toRangeConstraints<T extends number | bigint>(
     out.max = max(ordered.maximum as T, ordered.exclusiveMaximum === true)
   }
   if (out.min !== undefined && out.max !== undefined && out.min > out.max) {
-    throw new Error(error)
+    throw arbitraryError(error)
   }
   return out
 }
@@ -313,7 +319,7 @@ function toIntegerConstraints(ordered: OrderedConstraint | undefined) {
     ordered,
     (minimum, excluded) => excluded ? Math.floor(minimum) + 1 : Math.ceil(minimum),
     (maximum, excluded) => excluded ? Math.ceil(maximum) - 1 : Math.floor(maximum),
-    "Unable to derive an arbitrary for integer constraints"
+    "integer constraints"
   )
 }
 
@@ -331,7 +337,7 @@ function toFloatConstraints(constraint: Constraint | undefined, ordered: Ordered
     out.max !== undefined &&
     (out.min > out.max || (out.min === out.max && (out.minExcluded || out.maxExcluded)))
   ) {
-    throw new Error("Unable to derive an arbitrary for number constraints")
+    throw arbitraryError("number constraints")
   }
   return out
 }
@@ -341,7 +347,7 @@ function toBigIntConstraints(ordered: OrderedConstraint | undefined) {
     ordered,
     (minimum, excluded) => excluded ? minimum + BigInt(1) : minimum,
     (maximum, excluded) => excluded ? maximum - BigInt(1) : maximum,
-    "Unable to derive an arbitrary for the ordered bigint constraints"
+    "the ordered bigint constraints"
   )
 }
 
@@ -357,10 +363,8 @@ interface LazyArbitraryWithContext<T> {
 function makeLazy<T>(normal: Lazy<T>, terminal: LazyOption<T>): LazyArbitraryWithContext<T> {
   const out =
     ((fc, ctx, recursionStack = emptyRecursionStack) => normal(fc, ctx, recursionStack)) as LazyArbitraryWithContext<T>
-  Object.defineProperty(out, "terminal", {
-    value: (fc: typeof FastCheck, ctx: Context, recursionStack = emptyRecursionStack) =>
-      terminal(fc, ctx, recursionStack)
-  })
+  ;(out as { terminal: LazyOption<T> }).terminal = (fc, ctx, recursionStack = emptyRecursionStack) =>
+    terminal(fc, ctx, recursionStack)
   return out
 }
 
@@ -454,7 +458,7 @@ function applyCandidates(
     }
     const weight = candidate.weight ?? 1
     if (!globalThis.Number.isInteger(weight) || weight <= 0) {
-      throw new Error("Unable to derive an arbitrary for a candidate with an invalid weight")
+      throw arbitraryError("a candidate with an invalid weight")
     }
     weighted.push({ arbitrary, weight })
   }
@@ -635,11 +639,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         const optionalTarget = needsRest ? optionals.length : Math.max(0, minLength - length)
         let includedOptionals = 0
         for (const out of optionals) {
-          if (includedOptionals >= optionalTarget) {
-            elementArbitraries.push(fc.constant(Option.none()))
-            continue
-          }
-          if (out === undefined) {
+          if (includedOptionals >= optionalTarget || out === undefined) {
             elementArbitraries.push(fc.constant(Option.none()))
             continue
           }
@@ -783,7 +783,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
               fc,
               fc.tuple(key, value),
               { ...entriesConstraints, maxLength: minEntries },
-              ([a], [b]) => Equal.equals(a, b)
+              entryComparator
             )
           }
           out = appendObjectEntries(out, entries)
@@ -831,12 +831,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         // ---------------------------------------------
         for (const { parameter, type } of indexSignatures) {
           const entry = fc.tuple(parameter(fc, reset, recursionStack), type(fc, reset, recursionStack))
-          const entries = arrayWithConstraints(
-            fc,
-            entry,
-            entriesConstraints,
-            ([a], [b]) => Equal.equals(a, b)
-          )
+          const entries = arrayWithConstraints(fc, entry, entriesConstraints, entryComparator)
           out = appendObjectEntries(out, entries)
         }
         return out
@@ -856,7 +851,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         }
         const out = oneOf(fc, arbitraries)
         if (out === undefined) {
-          throw new Error("Unable to derive an arbitrary for a union with no members")
+          throw arbitraryError("a union with no members")
         }
         return out
       }, terminal)
