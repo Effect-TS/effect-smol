@@ -1,0 +1,241 @@
+import { assert, describe, it } from "@effect/vitest"
+import { Context, Data, Effect, Fiber, Layer, Option, Schema, Stream } from "effect"
+import { Actor, StateMachine } from "effect/unstable/actors"
+import { AsyncResult, Atom, AtomActor, AtomRegistry } from "effect/unstable/reactivity"
+
+class Increment extends Data.TaggedClass("Increment")<{
+  readonly by: number
+}> {}
+
+class Count extends Schema.TaggedClass<Count>("Count")("Count", {
+  value: Schema.Number
+}) {}
+
+class Done extends Schema.TaggedClass<Done>("Done")("Done", {
+  value: Schema.Number
+}) {}
+
+class Finish extends Schema.TaggedClass<Finish>("Finish")("Finish", {
+  by: Schema.Number
+}) {}
+
+class ReadValue extends Schema.TaggedClass<ReadValue>("ReadValue")("ReadValue", {}) {}
+
+class ValueRead extends Schema.TaggedClass<ValueRead>("ValueRead")("ValueRead", {
+  value: Schema.String
+}) {}
+
+class StartError extends Data.TaggedError("StartError")<{
+  readonly reason: string
+}> {}
+
+class Multiplier extends Context.Service<Multiplier, {
+  readonly multiply: (value: number) => number
+}>()("test/AtomActor/Multiplier") {}
+
+const makeRegistry = Effect.acquireRelease(
+  Effect.sync(() => AtomRegistry.make()),
+  (registry) => Effect.sync(() => registry.dispose())
+)
+
+const mount = <A>(registry: AtomRegistry.AtomRegistry, atom: Atom.Atom<A>) =>
+  Effect.acquireRelease(
+    Effect.sync(() => registry.mount(atom)),
+    (release) => Effect.sync(release)
+  )
+
+const waitForResult = <A, E>(
+  registry: AtomRegistry.AtomRegistry,
+  atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  predicate: (value: A) => boolean
+) =>
+  AtomRegistry.toStreamResult(registry, atom).pipe(
+    Stream.filter(predicate),
+    Stream.take(1),
+    Stream.runCollect,
+    Effect.map((values) => Array.from(values)[0]!)
+  )
+
+describe("AtomActor", () => {
+  it.effect("exposes actor snapshots and sends events", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const bridge = AtomActor.make(
+        Actor.fromTransition(0, (state, event: Increment) => Effect.succeed(state + event.by))
+      )
+      yield* mount(registry, bridge.snapshot)
+
+      const initial = yield* AtomRegistry.getResult(registry, bridge.snapshot)
+      assert.deepStrictEqual(initial, {
+        status: "active",
+        state: 0
+      })
+
+      yield* Effect.sync(() => registry.set(bridge.send, new Increment({ by: 2 })))
+
+      const state = yield* waitForResult(registry, bridge.state, (state) => state === 2)
+      assert.strictEqual(state, 2)
+    })))
+
+  it.effect("stops the actor when the registry is disposed", () =>
+    Effect.gen(function*() {
+      const registry = AtomRegistry.make()
+      const bridge = AtomActor.make(Actor.fromEffect<number, never>(0, () => Effect.never))
+      const actor = yield* AtomRegistry.getResult(registry, bridge.actor)
+      const watcher = yield* Actor.watch(actor).pipe(
+        Stream.runCollect,
+        Effect.forkScoped
+      )
+
+      yield* Effect.sync(() => registry.dispose())
+
+      const events = Array.from(yield* Fiber.join(watcher))
+      assert.strictEqual(events.length, 1)
+      assert.strictEqual(events[0]?._tag, "Stopped")
+    }))
+
+  it.effect("stops the actor through the writable stop atom", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const bridge = AtomActor.make(
+        Actor.fromTransition(0, (state, event: Increment) => Effect.succeed(state + event.by))
+      )
+      yield* mount(registry, bridge.snapshot)
+
+      yield* AtomRegistry.getResult(registry, bridge.snapshot)
+      yield* Effect.sync(() => registry.set(bridge.stop, undefined))
+
+      const snapshot = yield* waitForResult(registry, bridge.snapshot, (snapshot) => snapshot.status === "stopped")
+      assert.deepStrictEqual(snapshot, {
+        status: "stopped",
+        state: 0
+      })
+    })))
+
+  it.effect("keeps snapshot previous success when actor refresh startup fails", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const failOnStart = Atom.make(false)
+      const bridge = AtomActor.make(Actor.make({
+        initial: () =>
+          Atom.get(failOnStart).pipe(
+            Effect.flatMap((fail) =>
+              fail
+                ? Effect.fail(new StartError({ reason: "refresh" }))
+                : Effect.succeed(0)
+            )
+          ),
+        run: () => Effect.never
+      }))
+      yield* mount(registry, bridge.snapshot)
+
+      const initial = yield* AtomRegistry.getResult(registry, bridge.snapshot)
+      assert.deepStrictEqual(initial, {
+        status: "active",
+        state: 0
+      })
+
+      yield* Effect.sync(() => {
+        registry.set(failOnStart, true)
+        registry.refresh(bridge.actor)
+      })
+
+      const failed = yield* Effect.sync(() => registry.get(bridge.snapshot))
+      assert(AsyncResult.isFailure(failed))
+      const previous = AsyncResult.value(failed)
+      assert(Option.isSome(previous))
+      assert.deepStrictEqual(previous.value, {
+        status: "stopped",
+        state: 0
+      })
+    })))
+
+  it.effect("runs a state machine and exposes the final snapshot", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const machine = StateMachine.make({
+        states: [Count, Done],
+        events: [Finish],
+        initial: () => new Count({ value: 1 })
+      })
+        .handle("Count", {
+          on: {
+            Finish: ({ state, event }) => new Done({ value: state.value + event.by })
+          }
+        })
+        .handle("Done", {
+          type: "final",
+          output: ({ state }) => state.value
+        })
+      const bridge = AtomActor.fromStateMachine(machine)
+      yield* mount(registry, bridge.snapshot)
+
+      yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 3 })))
+
+      const snapshot = yield* waitForResult(registry, bridge.snapshot, (snapshot) => snapshot.status === "done")
+      assert.deepStrictEqual(snapshot, {
+        status: "done",
+        state: new Done({ value: 4 }),
+        output: 4
+      })
+    })))
+
+  it.effect("provides AtomRegistry to state machine effects", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const valueAtom = Atom.make("from-atom")
+      const machine = StateMachine.make({
+        states: [Count, ValueRead],
+        events: [ReadValue],
+        initial: () => new Count({ value: 0 })
+      })
+        .handle("Count", {
+          on: {
+            ReadValue: Effect.fn(function*() {
+              const value = yield* Atom.get(valueAtom)
+              return new ValueRead({ value })
+            })
+          }
+        })
+        .handle("ValueRead", {
+          type: "final"
+        })
+      const bridge = AtomActor.fromStateMachine(machine)
+      yield* mount(registry, bridge.snapshot)
+
+      yield* Effect.sync(() => registry.set(bridge.send, new ReadValue({})))
+
+      const state = yield* waitForResult(registry, bridge.state, (state) => state._tag === "ValueRead")
+      assert.deepStrictEqual(state, new ValueRead({ value: "from-atom" }))
+    })))
+
+  it.effect("uses AtomRuntime services when starting a state machine", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const runtime = Atom.runtime(Layer.succeed(
+        Multiplier,
+        Multiplier.of({
+          multiply: (value) => value * 2
+        })
+      ))
+      const machine = StateMachine.make({
+        states: [Count],
+        events: [Finish],
+        initial: () => new Count({ value: 0 })
+      }).handle("Count", {
+        on: {
+          Finish: Effect.fn(function*({ event }) {
+            const multiplier = yield* Multiplier
+            return new Count({ value: multiplier.multiply(event.by) })
+          })
+        }
+      })
+      const bridge = AtomActor.fromStateMachine(runtime, machine)
+      yield* mount(registry, bridge.state)
+
+      yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 3 })))
+
+      const state = yield* waitForResult(registry, bridge.state, (state) => state.value === 6)
+      assert.deepStrictEqual(state, new Count({ value: 6 }))
+    })))
+})

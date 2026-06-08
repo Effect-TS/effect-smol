@@ -17,6 +17,11 @@ export * as Atom from "./Atom.ts"
 /**
  * @since 4.0.0
  */
+export * as AtomActor from "./AtomActor.ts"
+
+/**
+ * @since 4.0.0
+ */
 export * as AtomHttpApi from "./AtomHttpApi.ts"
 
 /**
