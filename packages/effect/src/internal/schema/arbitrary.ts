@@ -264,6 +264,39 @@ function objectEntriesConstraints(
   return out
 }
 
+function objectWithOptionalCount(
+  fc: typeof FastCheck,
+  pss: Record<PropertyKey, FastCheck.Arbitrary<any>>,
+  orderedNames: ReadonlyArray<PropertyKey>,
+  requiredKeys: ReadonlyArray<PropertyKey>,
+  optionalNames: ReadonlyArray<PropertyKey>,
+  constraint: Schema.Annotations.ToArbitrary.Constraint
+) {
+  const requiredCount = requiredKeys.length
+  if (constraint.maxLength !== undefined && constraint.maxLength < requiredCount) {
+    throw new Error("Unable to derive an arbitrary for object property constraints")
+  }
+  const minOptional = constraint.minLength === undefined ? 0 : Math.max(0, constraint.minLength - requiredCount)
+  const maxOptional = constraint.maxLength === undefined
+    ? optionalNames.length
+    : Math.min(optionalNames.length, constraint.maxLength - requiredCount)
+  if (minOptional > maxOptional) {
+    throw new Error("Unable to derive an arbitrary for object property constraints")
+  }
+  const full = fc.record<any>(pss, { requiredKeys: [...requiredKeys, ...optionalNames] })
+  const chosen = fc.shuffledSubarray([...optionalNames], { minLength: minOptional, maxLength: maxOptional })
+  return fc.tuple(full, chosen).map(([base, names]) => {
+    const keep = new Set<PropertyKey>([...requiredKeys, ...names])
+    const out: Record<PropertyKey, any> = {}
+    for (const name of orderedNames) {
+      if (keep.has(name)) {
+        out[name] = base[name]
+      }
+    }
+    return out
+  })
+}
+
 function toRangeConstraints<T extends number | bigint>(
   ordered: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined,
   min: (value: T, excluded: boolean) => T,
@@ -801,13 +834,33 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         // handle property signatures
         // ---------------------------------------------
         const pss: any = {}
+        const orderedNames: Array<PropertyKey> = []
         const requiredKeys: Array<PropertyKey> = []
+        const optionalNames: Array<PropertyKey> = []
         for (const { ps, arbitrary } of propertySignatures) {
           const name = ps.name
-          if (!SchemaAST.isOptional(ps.type)) {
+          orderedNames.push(name)
+          if (SchemaAST.isOptional(ps.type)) {
+            optionalNames.push(name)
+          } else {
             requiredKeys.push(name)
           }
           pss[name] = arbitrary(fc, reset, recursionStack)
+        }
+        // When property-count constraints must be satisfied by selecting
+        // optional keys (no index signatures are available to fill the gap),
+        // generate a count-controlled subset of optional keys instead of
+        // relying on fast-check's independent inclusion plus discards. This
+        // enforces both bounds precisely while still varying which optionals
+        // appear.
+        const constraint = ctx.constraint
+        if (
+          optionalNames.length > 0 &&
+          indexSignatures.length === 0 &&
+          constraint !== undefined &&
+          (constraint.minLength !== undefined || constraint.maxLength !== undefined)
+        ) {
+          return objectWithOptionalCount(fc, pss, orderedNames, requiredKeys, optionalNames, constraint)
         }
         let out = fc.record<any>(pss, { requiredKeys })
         const entriesConstraints = objectEntriesConstraints(ast, ctx.constraint, requiredKeys.length)

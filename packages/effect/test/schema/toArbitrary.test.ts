@@ -304,6 +304,82 @@ describe("Arbitrary generation", () => {
     })
   })
 
+  describe("object property counts", () => {
+    it("enforces minProperties on optional-only structs", () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.String),
+        c: Schema.optionalKey(Schema.String)
+      }).check(Schema.isMinProperties(2))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (o) => globalThis.Object.keys(o).length >= 2),
+        { numRuns: 100 }
+      )
+      verifyGeneration(schema)
+    })
+
+    it("enforces maxProperties on optional-only structs", () => {
+      const schema = Schema.Struct({
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.String),
+        c: Schema.optionalKey(Schema.String)
+      }).check(Schema.isMaxProperties(1))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (o) => globalThis.Object.keys(o).length <= 1),
+        { numRuns: 100 }
+      )
+      verifyGeneration(schema)
+    })
+
+    it("enforces a property-count range with required and optional keys", () => {
+      const schema = Schema.Struct({
+        r: Schema.String,
+        a: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.String),
+        c: Schema.optionalKey(Schema.String)
+      }).check(Schema.isPropertiesLengthBetween(2, 3))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (o) => {
+          const n = globalThis.Object.keys(o).length
+          return n >= 2 && n <= 3
+        }),
+        { numRuns: 100 }
+      )
+      verifyGeneration(schema)
+    })
+
+    it("fails fast when optional keys cannot satisfy minProperties", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ r: Schema.String, a: Schema.optionalKey(Schema.String) }).check(Schema.isMinProperties(3)),
+        "Unable to derive an arbitrary for object property constraints"
+      )
+    })
+
+    it("fails fast when required keys already exceed maxProperties", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ r: Schema.String, a: Schema.optionalKey(Schema.String) }).check(Schema.isMaxProperties(0)),
+        "Unable to derive an arbitrary for object property constraints"
+      )
+    })
+
+    // Regression guard: with the previous discard-based generation, requiring
+    // every optional key to be present is astronomically unlikely
+    // (~0.75 ** 64), so sampling would effectively hang. The count-controlled
+    // subset generates these instantly. The tight timeout fails (times out) if
+    // the optimization is ever lost.
+    it("generates dense optional-key structs without excessive filtering", { timeout: 1000 }, () => {
+      const fields: Record<string, Schema.optionalKey<typeof Schema.String>> = {}
+      for (let i = 0; i < 64; i++) {
+        fields[`k${i}`] = Schema.optionalKey(Schema.String)
+      }
+      const schema = Schema.Struct(fields).check(Schema.isMinProperties(64))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (o) => globalThis.Object.keys(o).length === 64),
+        { numRuns: 100 }
+      )
+    })
+  })
+
   it("Any", () => {
     verifyGeneration(Schema.Any)
   })
