@@ -998,12 +998,6 @@ const makeActorRuntime = <Events, Emits>(
     sendParent: (event) => scope.parent === undefined ? Effect.void : scope.parent.send(event)
   })
 
-const makeNoopRuntime = <Events, Emits>(): Runtime<Events, Emits> =>
-  RuntimeContext.of({
-    raise: () => Effect.void,
-    sendParent: () => Effect.void
-  })
-
 const runActions = <E, R, Events, Emits>(
   actions: Iterable<Effect.Effect<void, E, R>>,
   runtime: Runtime<Events, Emits>
@@ -1287,26 +1281,6 @@ export const invoke = <
 > => config
 
 /**
- * Returns the initial state for a state machine.
- *
- * @category constructors
- * @since 4.0.0
- */
-export const initial = <
-  const States extends ReadonlyArray<Machine.TaggedSchema>,
-  const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Input extends Schema.Top = typeof Schema.Void,
-  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
-  E = never,
-  R = never,
-  InitialE = never,
-  InitialR = never
->(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR>,
-  ...args: [...Machine.InputArgs<Input>]
-): Machine.InitialResult<States, InitialE, InitialR> => machine.initial(...args)
-
-/**
  * Plans the initial state for a state machine without running deferred actions.
  *
  * @category constructors
@@ -1352,7 +1326,7 @@ export const planInitial: <
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const deferredActions = yield* makeDeferredActions
-  const result = initial(machine, ...args)
+  const result = machine.initial(...args)
   const state = Effect.isEffect(result)
     ? yield* (result.pipe(Effect.provideService(DeferredActions, deferredActions)) as Effect.Effect<
       Machine.StateOf<States>
@@ -1717,56 +1691,6 @@ const macrostep: <
  * @since 4.0.0
  */
 export const plan = macrostep
-
-/**
- * Computes the next state for a state machine without mutating a running actor.
- *
- * **Details**
- *
- * Deferred actions are executed after the next state is planned.
- *
- * @category combinators
- * @since 4.0.0
- */
-export const next: <
-  const States extends ReadonlyArray<Machine.TaggedSchema>,
-  const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
-  const Input extends Schema.Top = typeof Schema.Void,
-  UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
-  E = never,
-  R = never,
-  InitialE = never,
-  InitialR = never,
-  FinalStates extends Machine.TagOf<States[number]> = never,
-  Output = never
->(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
-  event: Machine.EventOf<Events>
-) => Effect.Effect<Machine.StateOf<States>, E | UnhandledEventError | InfiniteTransitionError, R> = Effect.fnUntraced(
-  function*<
-    const States extends ReadonlyArray<Machine.TaggedSchema>,
-    const Events extends ReadonlyArray<Machine.TaggedSchema>,
-    const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
-    const Input extends Schema.Top = typeof Schema.Void,
-    UnhandledStates extends Machine.TagOf<States[number]> = Machine.TagOf<States[number]>,
-    E = never,
-    R = never,
-    InitialE = never,
-    InitialR = never,
-    FinalStates extends Machine.TagOf<States[number]> = never,
-    Output = never
-  >(
-    machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-    state: Machine.StateOf<States>,
-    event: Machine.EventOf<Events>
-  ) {
-    const planned = yield* plan(machine, state, event)
-    yield* runActions(planned.actions, makeNoopRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>())
-    return planned.next
-  }
-)
 
 const actionUnsafe = Effect.fnUntraced(function*<E, R>(
   effect: Effect.Effect<void, E, R>

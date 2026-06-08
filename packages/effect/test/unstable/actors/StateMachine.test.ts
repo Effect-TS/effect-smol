@@ -117,17 +117,20 @@ describe("StateMachine", () => {
     readonly reply: Deferred.Deferred<void>
   }> {}
 
-  it("make constructs the initial state from input", () => {
-    const machine = StateMachine.make({
-      states: [Idle],
-      events: [Submit],
-      input: Input,
-      initial: (input) => new Idle({ userId: input.userId })
-    })
+  it.effect("make constructs the initial state from input", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: [Idle],
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      })
 
-    assert.strictEqual(StateMachine.isMachine(machine), true)
-    assert.deepStrictEqual(StateMachine.initial(machine, { userId: "user-1" }), new Idle({ userId: "user-1" }))
-  })
+      const planned = yield* StateMachine.planInitial(machine, { userId: "user-1" })
+
+      assert.strictEqual(StateMachine.isMachine(machine), true)
+      assert.deepStrictEqual(planned.state, new Idle({ userId: "user-1" }))
+    }))
 
   it("make stores the machine id", () => {
     const machine = StateMachine.make({
@@ -157,7 +160,6 @@ describe("StateMachine", () => {
 
       const actor = yield* StateMachine.start(machine)
 
-      assert.deepStrictEqual(StateMachine.initial(machine), new Idle({ userId: "user-1" }))
       assert.deepStrictEqual(yield* actor.state, new Idle({ userId: "user-1" }))
     }))
 
@@ -708,12 +710,10 @@ describe("StateMachine", () => {
 
       const state = new Success({ requestId: "request-1" })
       const planned = yield* StateMachine.plan(machine, state, new Submit({ value: "hello" }))
-      const nextState = yield* StateMachine.next(machine, state, new Submit({ value: "hello" }))
 
       assert.deepStrictEqual(planned.next, state)
       assert.deepStrictEqual(planned.actions, [])
       assert.deepStrictEqual(planned.microsteps, [])
-      assert.deepStrictEqual(nextState, state)
     }))
 
   it.effect("does not process raised events from final state entry actions", () =>
@@ -746,26 +746,6 @@ describe("StateMachine", () => {
       })
     }))
 
-  it.effect("next computes the next state without starting an actor", () =>
-    Effect.gen(function*() {
-      const machine = StateMachine.make({
-        states: [Idle, Loading],
-        events: [Submit],
-        input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
-      }).handle("Idle", {
-        on: {
-          Submit: () => new Loading({ requestId: "request-1" })
-        }
-      })
-
-      const state = new Idle({ userId: "user-1" })
-      const nextState = yield* StateMachine.next(machine, state, new Submit({ value: "hello" }))
-
-      assert.deepStrictEqual(nextState, new Loading({ requestId: "request-1" }))
-      assert.deepStrictEqual(state, new Idle({ userId: "user-1" }))
-    }))
-
   it.effect("plan computes the next state without running deferred actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
@@ -792,34 +772,6 @@ describe("StateMachine", () => {
 
       assert.deepStrictEqual(planned.next, new Loading({ requestId: "request-1" }))
       assert.deepStrictEqual(yield* deferredLog.read, [])
-    }))
-
-  it.effect("next runs deferred actions", () =>
-    Effect.gen(function*() {
-      const deferredLog = yield* makeDeferredLog
-      const machine = StateMachine.make({
-        states: [Idle, Loading],
-        events: [Submit],
-        input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
-      }).handle("Idle", {
-        on: {
-          Submit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* StateMachine.action(deferredLog.push("submitted"))
-            return new Loading({ requestId: "request-1" })
-          })
-        }
-      })
-
-      const nextState = yield* StateMachine.next(
-        machine,
-        new Idle({ userId: "user-1" }),
-        new Submit({ value: "hello" })
-      ).pipe(Effect.provideService(DeferredLog, deferredLog))
-
-      assert.deepStrictEqual(nextState, new Loading({ requestId: "request-1" }))
-      assert.deepStrictEqual(yield* deferredLog.read, ["submitted"])
     }))
 
   it.effect("handlers can omit returning a state for self-transitions", () =>
