@@ -21,6 +21,18 @@ const emptyRecursionStack: RecursionStack = []
 
 type RecursionStack = ReadonlyArray<SchemaAST.Suspend>
 
+type Context = Schema.Annotations.ToArbitrary.Context
+type Constraint = Schema.Annotations.ToArbitrary.Constraint
+type OrderedConstraint = Schema.Annotations.ToArbitrary.OrderedConstraint<any>
+type ArbitraryFilter = Schema.Annotations.ToArbitrary.Filter
+
+type Lazy<T> = (fc: typeof FastCheck, ctx: Context, recursionStack: RecursionStack) => FastCheck.Arbitrary<T>
+type LazyOption<T> = (
+  fc: typeof FastCheck,
+  ctx: Context,
+  recursionStack: RecursionStack
+) => FastCheck.Arbitrary<T> | undefined
+
 export interface MutableReport {
   readonly warnings: Array<Schema.Annotations.ToArbitrary.Warning>
 }
@@ -42,10 +54,7 @@ function applyChecks(ast: SchemaAST.AST, filters: Array<SchemaAST.Filter<any>>, 
   )
 }
 
-function validateArrayConstraints(
-  constraint: FastCheck.ArrayConstraints | undefined,
-  label: string
-) {
+function validateArrayConstraints(constraint: FastCheck.ArrayConstraints | undefined, label: string) {
   if (
     constraint?.minLength !== undefined && constraint.maxLength !== undefined &&
     constraint.minLength > constraint.maxLength
@@ -76,12 +85,7 @@ function arrayWithConstraints(
     : fc.array(item, constraint)
 }
 
-function array(
-  fc: typeof FastCheck,
-  ctx: Schema.Annotations.ToArbitrary.Context,
-  item: FastCheck.Arbitrary<any>,
-  terminal = false
-) {
+function array(fc: typeof FastCheck, ctx: Context, item: FastCheck.Arbitrary<any>, terminal = false) {
   const constraint = ctx.constraint
   const arrayConstraints = lengthToFastCheckConstraints(constraint)
   validateArrayConstraints(arrayConstraints, "array")
@@ -146,10 +150,7 @@ function mergeOrderedBound<T>(
     : [self, selfExclusive]
 }
 
-function mergeOrderedConstraints(
-  self: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined,
-  that: Schema.Annotations.ToArbitrary.OrderedConstraint<any>
-) {
+function mergeOrderedConstraints(self: OrderedConstraint | undefined, that: OrderedConstraint) {
   if (self === undefined) {
     return that
   }
@@ -183,10 +184,7 @@ function mergeOrderedConstraints(
   }
 }
 
-function mergeConstraint(
-  self: Schema.Annotations.ToArbitrary.Constraint | undefined,
-  that: Schema.Annotations.ToArbitrary.Constraint
-): Schema.Annotations.ToArbitrary.Constraint {
+function mergeConstraint(self: Constraint | undefined, that: Constraint): Constraint {
   const { ordered: selfOrdered, ...selfRest } = self ?? {}
   const { ordered: thatOrdered, ...thatRest } = that
   const ordered = thatOrdered === undefined
@@ -201,7 +199,7 @@ function mergeConstraint(
 
 function collectChecks(checks: SchemaAST.Checks | undefined) {
   const filters: Array<SchemaAST.Filter<any>> = []
-  const arbitraries: Array<Schema.Annotations.ToArbitrary.Filter> = []
+  const arbitraries: Array<ArbitraryFilter> = []
   function visit(check: SchemaAST.Check<any>) {
     if (check.annotations?.arbitrary) {
       arbitraries.push(check.annotations.arbitrary)
@@ -218,28 +216,22 @@ function collectChecks(checks: SchemaAST.Checks | undefined) {
   return { filters, arbitraries }
 }
 
-function constraintContext(
-  arbitraries: Array<Schema.Annotations.ToArbitrary.Filter>
-): (ctx: Schema.Annotations.ToArbitrary.Context) => Schema.Annotations.ToArbitrary.Context {
+function constraintContext(arbitraries: Array<ArbitraryFilter>): (ctx: Context) => Context {
   const constraintAnnotations = arbitraries.map(({ constraint }) => constraint).filter(Predicate.isNotUndefined)
   return (ctx) => {
     const constraint = constraintAnnotations.reduce(
-      (acc: Schema.Annotations.ToArbitrary.Constraint | undefined, c) => mergeConstraint(acc, c),
+      (acc: Constraint | undefined, c) => mergeConstraint(acc, c),
       ctx.constraint
     )
     return { ...ctx, constraint }
   }
 }
 
-function resetContext(ctx: Schema.Annotations.ToArbitrary.Context) {
+function resetContext(ctx: Context) {
   return { ...ctx, constraint: undefined }
 }
 
-function objectEntriesConstraints(
-  ast: SchemaAST.Objects,
-  constraint: Schema.Annotations.ToArbitrary.Constraint | undefined,
-  requiredKeys: number
-) {
+function objectEntriesConstraints(ast: SchemaAST.Objects, constraint: Constraint | undefined, requiredKeys: number) {
   if (constraint === undefined || (constraint.minLength === undefined && constraint.maxLength === undefined)) {
     return undefined
   }
@@ -270,7 +262,7 @@ function objectWithOptionalCount(
   orderedNames: ReadonlyArray<PropertyKey>,
   requiredKeys: ReadonlyArray<PropertyKey>,
   optionalNames: ReadonlyArray<PropertyKey>,
-  constraint: Schema.Annotations.ToArbitrary.Constraint
+  constraint: Constraint
 ) {
   const requiredCount = requiredKeys.length
   if (constraint.maxLength !== undefined && constraint.maxLength < requiredCount) {
@@ -298,7 +290,7 @@ function objectWithOptionalCount(
 }
 
 function toRangeConstraints<T extends number | bigint>(
-  ordered: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined,
+  ordered: OrderedConstraint | undefined,
   min: (value: T, excluded: boolean) => T,
   max: (value: T, excluded: boolean) => T,
   error: string
@@ -316,9 +308,7 @@ function toRangeConstraints<T extends number | bigint>(
   return out
 }
 
-function toIntegerConstraints(
-  ordered: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined
-) {
+function toIntegerConstraints(ordered: OrderedConstraint | undefined) {
   return toRangeConstraints<number>(
     ordered,
     (minimum, excluded) => excluded ? Math.floor(minimum) + 1 : Math.ceil(minimum),
@@ -327,10 +317,7 @@ function toIntegerConstraints(
   )
 }
 
-function toFloatConstraints(
-  constraint: Schema.Annotations.ToArbitrary.Constraint | undefined,
-  ordered: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined
-) {
+function toFloatConstraints(constraint: Constraint | undefined, ordered: OrderedConstraint | undefined) {
   const out: FastCheck.FloatConstraints = {
     ...(constraint?.noInfinity ? { noDefaultInfinity: true } : {}),
     ...(constraint?.noNaN ? { noNaN: true } : {}),
@@ -349,9 +336,7 @@ function toFloatConstraints(
   return out
 }
 
-function toBigIntConstraints(
-  ordered: Schema.Annotations.ToArbitrary.OrderedConstraint<any> | undefined
-) {
+function toBigIntConstraints(ordered: OrderedConstraint | undefined) {
   return toRangeConstraints<bigint>(
     ordered,
     (minimum, excluded) => excluded ? minimum + BigInt(1) : minimum,
@@ -361,70 +346,39 @@ function toBigIntConstraints(
 }
 
 interface LazyArbitraryWithContext<T> {
-  (
-    fc: typeof FastCheck,
-    ctx: Schema.Annotations.ToArbitrary.Context,
-    recursionStack?: RecursionStack
-  ): FastCheck.Arbitrary<T>
+  (fc: typeof FastCheck, ctx: Context, recursionStack?: RecursionStack): FastCheck.Arbitrary<T>
   readonly terminal: (
     fc: typeof FastCheck,
-    ctx: Schema.Annotations.ToArbitrary.Context,
+    ctx: Context,
     recursionStack?: RecursionStack
   ) => FastCheck.Arbitrary<T> | undefined
 }
 
-function makeLazy<T>(
-  normal: (
-    fc: typeof FastCheck,
-    ctx: Schema.Annotations.ToArbitrary.Context,
-    recursionStack: RecursionStack
-  ) => FastCheck.Arbitrary<T>,
-  terminal: (
-    fc: typeof FastCheck,
-    ctx: Schema.Annotations.ToArbitrary.Context,
-    recursionStack: RecursionStack
-  ) => FastCheck.Arbitrary<T> | undefined
-): LazyArbitraryWithContext<T> {
+function makeLazy<T>(normal: Lazy<T>, terminal: LazyOption<T>): LazyArbitraryWithContext<T> {
   const out =
     ((fc, ctx, recursionStack = emptyRecursionStack) => normal(fc, ctx, recursionStack)) as LazyArbitraryWithContext<T>
   Object.defineProperty(out, "terminal", {
-    value: (fc: typeof FastCheck, ctx: Schema.Annotations.ToArbitrary.Context, recursionStack = emptyRecursionStack) =>
+    value: (fc: typeof FastCheck, ctx: Context, recursionStack = emptyRecursionStack) =>
       terminal(fc, ctx, recursionStack)
   })
   return out
 }
 
-function same<T>(
-  f: (
-    fc: typeof FastCheck,
-    ctx: Schema.Annotations.ToArbitrary.Context,
-    recursionStack: RecursionStack
-  ) => FastCheck.Arbitrary<T>
-) {
+function same<T>(f: Lazy<T>) {
   return makeLazy(f, f)
 }
 
-function getSuspendRecursion(
-  fc: typeof FastCheck,
-  ast: SchemaAST.Suspend
-) {
+function getSuspendRecursion(fc: typeof FastCheck, ast: SchemaAST.Suspend) {
   const depthIdentifier = suspendDepthIdentifierMap.get(ast) ?? fc.createDepthIdentifier()
   suspendDepthIdentifierMap.set(ast, depthIdentifier)
   return { maxDepth: 2, depthIdentifier }
 }
 
-function oneOf<T>(
-  fc: typeof FastCheck,
-  arbitraries: ReadonlyArray<FastCheck.Arbitrary<T>>
-) {
+function oneOf<T>(fc: typeof FastCheck, arbitraries: ReadonlyArray<FastCheck.Arbitrary<T>>) {
   return arbitraries.length === 0 ? undefined : arbitraries.length === 1 ? arbitraries[0] : fc.oneof(...arbitraries)
 }
 
-function reportChecks(
-  report: MutableReport,
-  checks: SchemaAST.Checks | undefined,
-  path: ReadonlyArray<PropertyKey>
-) {
+function reportChecks(report: MutableReport, checks: SchemaAST.Checks | undefined, path: ReadonlyArray<PropertyKey>) {
   function visit(check: SchemaAST.Check<any>, covered: boolean) {
     const arbitrary = check.annotations?.arbitrary
     const nextCovered = covered || arbitrary?.constraint !== undefined || arbitrary?.candidate !== undefined
@@ -483,8 +437,8 @@ export function collectReport(ast: SchemaAST.AST, report: MutableReport) {
 
 function applyCandidates(
   fc: typeof FastCheck,
-  ctx: Schema.Annotations.ToArbitrary.Context,
-  arbitraries: Array<Schema.Annotations.ToArbitrary.Filter>,
+  ctx: Context,
+  arbitraries: Array<ArbitraryFilter>,
   base: FastCheck.Arbitrary<any> | undefined
 ) {
   const weighted: Array<FastCheck.WeightedArbitrary<any>> = base === undefined
@@ -511,7 +465,7 @@ function applyFilterLayer(
   ast: SchemaAST.AST,
   checks: ReturnType<typeof collectChecks>,
   fc: typeof FastCheck,
-  ctx: Schema.Annotations.ToArbitrary.Context,
+  ctx: Context,
   base: FastCheck.Arbitrary<any> | undefined
 ) {
   const out = applyCandidates(fc, ctx, checks.arbitraries, base)
@@ -535,7 +489,7 @@ function normalizeDerivation<T>(
 function makeTypeParameters(
   typeParameters: ReadonlyArray<LazyArbitraryWithContext<any>>,
   fc: typeof FastCheck,
-  ctx: Schema.Annotations.ToArbitrary.Context,
+  ctx: Context,
   recursionStack: RecursionStack,
   lazyNormal: boolean
 ) {
@@ -543,6 +497,29 @@ function makeTypeParameters(
     arbitrary: lazyNormal ? fc.constant(null).chain(() => tp(fc, ctx, recursionStack)) : tp(fc, ctx, recursionStack),
     terminal: tp.terminal(fc, ctx, recursionStack)
   }))
+}
+
+type BaseBuilder = (
+  fc: typeof FastCheck,
+  ctx: Context,
+  nextCtx: Context,
+  recursionStack: RecursionStack
+) => FastCheck.Arbitrary<any> | undefined
+
+function filterLayer(
+  ast: SchemaAST.AST,
+  checks: ReturnType<typeof collectChecks>,
+  normalBase: BaseBuilder,
+  terminalBase: BaseBuilder
+): LazyArbitraryWithContext<any> {
+  const f = constraintContext(checks.arbitraries)
+  return makeLazy((fc, ctx, recursionStack) => {
+    const nextCtx = f(ctx)
+    return applyFilterLayer(ast, checks, fc, nextCtx, normalBase(fc, ctx, nextCtx, recursionStack))!
+  }, (fc, ctx, recursionStack) => {
+    const nextCtx = f(ctx)
+    return applyFilterLayer(ast, checks, fc, nextCtx, terminalBase(fc, ctx, nextCtx, recursionStack))
+  })
 }
 
 /** @internal */
@@ -558,36 +535,22 @@ function recur(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitr
   if (annotation) {
     const typeParameters = SchemaAST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []
     const checks = collectChecks(ast.checks)
-    const f = constraintContext(checks.arbitraries)
-    return makeLazy((fc, ctx, recursionStack) => {
-      const nextCtx = f(ctx)
-      const base = normalizeDerivation(
-        annotation(makeTypeParameters(typeParameters, fc, resetContext(ctx), recursionStack, false))(fc, nextCtx),
+    const derive = (lazyNormal: boolean): BaseBuilder => (fc, ctx, nextCtx, recursionStack) =>
+      normalizeDerivation(
+        annotation(makeTypeParameters(typeParameters, fc, resetContext(ctx), recursionStack, lazyNormal))(fc, nextCtx),
         typeParameters.length > 0
-      ).arbitrary
-      return applyFilterLayer(ast, checks, fc, nextCtx, base)!
-    }, (fc, ctx, recursionStack) => {
-      const nextCtx = f(ctx)
-      const reset = resetContext(ctx)
-      const base = normalizeDerivation(
-        annotation(makeTypeParameters(typeParameters, fc, reset, recursionStack, true))(fc, nextCtx),
-        typeParameters.length > 0
-      ).terminal
-      return applyFilterLayer(ast, checks, fc, nextCtx, base)
-    })
+      )[lazyNormal ? "terminal" : "arbitrary"]
+    return filterLayer(ast, checks, derive(false), derive(true))
   }
   if (ast.checks) {
     const checks = collectChecks(ast.checks)
-    const f = constraintContext(checks.arbitraries)
     const lawc = recur(SchemaAST.replaceChecks(ast, undefined), path)
-    return makeLazy((fc, ctx, recursionStack) => {
-      const nextCtx = f(ctx)
-      return applyFilterLayer(ast, checks, fc, nextCtx, lawc(fc, nextCtx, recursionStack))!
-    }, (fc, ctx, recursionStack) => {
-      const nextCtx = f(ctx)
-      const base = lawc.terminal(fc, nextCtx, recursionStack)
-      return applyFilterLayer(ast, checks, fc, nextCtx, base)
-    })
+    return filterLayer(
+      ast,
+      checks,
+      (fc, _ctx, nextCtx, recursionStack) => lawc(fc, nextCtx, recursionStack),
+      (fc, _ctx, nextCtx, recursionStack) => lawc.terminal(fc, nextCtx, recursionStack)
+    )
   }
   return base(ast, path)
 }
@@ -650,11 +613,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         ast,
         arbitrary: recur(ast, [...path, len + i])
       }))
-      const terminal = (
-        fc: typeof FastCheck,
-        ctx: Schema.Annotations.ToArbitrary.Context,
-        recursionStack: RecursionStack
-      ): FastCheck.Arbitrary<any> | undefined => {
+      const terminal: LazyOption<any> = (fc, ctx, recursionStack) => {
         const reset = resetContext(ctx)
         const elementArbitraries: Array<FastCheck.Arbitrary<Option.Option<any>>> = []
         const optionals: Array<FastCheck.Arbitrary<any> | undefined> = []
@@ -775,11 +734,7 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
         parameter: recur(is.parameter, path),
         type: recur(is.type, path)
       }))
-      const terminal = (
-        fc: typeof FastCheck,
-        ctx: Schema.Annotations.ToArbitrary.Context,
-        recursionStack: RecursionStack
-      ): FastCheck.Arbitrary<any> | undefined => {
+      const terminal: LazyOption<any> = (fc, ctx, recursionStack) => {
         const reset = resetContext(ctx)
         const pss: any = {}
         const requiredKeys: Array<PropertyKey> = []
@@ -889,11 +844,8 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
     }
     case "Union": {
       const types = ast.types.map((ast) => recur(ast, path))
-      const terminal = (
-        fc: typeof FastCheck,
-        ctx: Schema.Annotations.ToArbitrary.Context,
-        recursionStack: RecursionStack
-      ) => oneOf(fc, types.map((type) => type.terminal(fc, ctx, recursionStack)).filter(Predicate.isNotUndefined))
+      const terminal: LazyOption<any> = (fc, ctx, recursionStack) =>
+        oneOf(fc, types.map((type) => type.terminal(fc, ctx, recursionStack)).filter(Predicate.isNotUndefined))
       return makeLazy((fc, ctx, recursionStack) => {
         const arbitraries = types.map((type) => type(fc, ctx, recursionStack))
         if (ctx.recursion) {
