@@ -782,6 +782,9 @@ importers:
       '@effect/platform-node':
         specifier: workspace:^
         version: link:../../platform-node
+      swagger2openapi:
+        specifier: ^7.0.8
+        version: 7.0.8
     devDependencies:
       '@types/swagger2openapi':
         specifier: ^7.0.4
@@ -795,9 +798,6 @@ importers:
       openapi-typescript:
         specifier: ^7.13.0
         version: 7.13.0(typescript@6.0.3)
-      swagger2openapi:
-        specifier: ^7.0.8
-        version: 7.0.8
       yaml:
         specifier: ^2.9.0
         version: 2.9.0
