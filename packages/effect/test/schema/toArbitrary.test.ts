@@ -1,7 +1,7 @@
-import { BigDecimal, DateTime, Order, Schema } from "effect"
-import { TestSchema } from "effect/testing"
+import { BigDecimal, Chunk, DateTime, Effect, HashMap, HashSet, Option, Order, Schema, SchemaIssue } from "effect"
+import { FastCheck, TestSchema } from "effect/testing"
 import { describe, it } from "vitest"
-import { deepStrictEqual, throws } from "../utils/assert.ts"
+import { assertInclude, assertInstanceOf, deepStrictEqual, strictEqual, throws } from "../utils/assert.ts"
 
 function assertUnsupportedSchema(schema: Schema.Top, message: string) {
   throws(() => Schema.toArbitrary(schema), message)
@@ -14,6 +14,44 @@ function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknow
   } else {
     asserts.arbitrary().verifyGeneration({ params: { numRuns } })
   }
+}
+
+function assertRecursiveNoFiniteGenerationPath(schema: Schema.Top) {
+  throws(
+    () => Schema.toArbitrary(schema),
+    (e) => {
+      assertInstanceOf(e, Error)
+      assertInclude(
+        e.message,
+        "Unable to derive an arbitrary for a recursive schema without a finite generation path"
+      )
+    }
+  )
+}
+
+function minSizeOne<A>(size: (a: A) => number) {
+  return Schema.makeFilter((a: A) => size(a) >= 1, {
+    expected: "a value with a size of at least 1",
+    arbitrary: {
+      constraint: {
+        minLength: 1
+      }
+    }
+  })
+}
+
+function CustomArray<A extends Schema.Top>(
+  value: A,
+  toArbitrary: Schema.Annotations.ToArbitrary.Declaration<ReadonlyArray<A["Type"]>, readonly [A]>
+) {
+  return Schema.declareConstructor<ReadonlyArray<A["Type"]>>()(
+    [value],
+    () => (input, ast) =>
+      globalThis.Array.isArray(input)
+        ? Effect.succeed(input as ReadonlyArray<A["Type"]>)
+        : Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input))),
+    { toArbitrary }
+  )
 }
 
 describe("Arbitrary generation", () => {
@@ -33,26 +71,231 @@ describe("Arbitrary generation", () => {
   at ["a"]`
       )
     })
+
+    it("impossible object property constraints", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ a: Schema.Number }).check(Schema.isMinProperties(2)),
+        "Unable to derive an arbitrary for object property constraints"
+      )
+    })
+
+    it("impossible object max property constraints", () => {
+      assertUnsupportedSchema(
+        Schema.Struct({ a: Schema.Number }).check(Schema.isMaxProperties(0)),
+        "Unable to derive an arbitrary for object property constraints"
+      )
+    })
+
+    it("impossible number constraints", () => {
+      assertUnsupportedSchema(
+        Schema.Number.check(Schema.isGreaterThan(1), Schema.isLessThan(1)),
+        "Unable to derive an arbitrary for number constraints"
+      )
+    })
+
+    it("impossible integer constraints", () => {
+      assertUnsupportedSchema(
+        Schema.Int.check(Schema.isGreaterThan(1), Schema.isLessThan(2)),
+        "Unable to derive an arbitrary for integer constraints"
+      )
+    })
+
+    it("impossible ordered bigint constraints", () => {
+      assertUnsupportedSchema(
+        Schema.BigInt.check(Schema.isGreaterThanBigInt(1n), Schema.isLessThanBigInt(2n)),
+        "Unable to derive an arbitrary for the ordered bigint constraints"
+      )
+    })
+
+    it("impossible array constraints", () => {
+      assertUnsupportedSchema(
+        Schema.Array(Schema.String).check(Schema.isMinLength(2), Schema.isMaxLength(1)),
+        "Unable to derive an arbitrary for array constraints"
+      )
+    })
+
+    it("impossible size constraints", () => {
+      assertUnsupportedSchema(
+        Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(2), Schema.isMaxSize(1)),
+        "Unable to derive an arbitrary for size constraints"
+      )
+    })
   })
 
-  it("should pass constraints to the override annotation", () => {
-    let constraints: Schema.Annotations.ToArbitrary.Constraint | undefined
+  it("should pass the constraint to the override annotation", () => {
+    let constraint: Schema.Annotations.ToArbitrary.Constraint | undefined
     const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
       toArbitrary: () => (fc, ctx) => {
-        constraints = ctx.constraints
+        constraint = ctx.constraint
         return fc.constant(1)
       }
     })
     verifyGeneration(schema)
-    deepStrictEqual(constraints, {
-      number: {
-        isInteger: true
-      },
+    deepStrictEqual(constraint, {
+      integer: true,
       ordered: {
         order: Order.Number,
-        min: 1,
-        max: 100
+        minimum: 1,
+        maximum: 100
       }
+    })
+  })
+
+  it("should keep noNaN and noInfinity as separate number constraints", () => {
+    const constraints: Array<unknown> = []
+    const fc = {
+      ...FastCheck,
+      float: (constraint?: Parameters<typeof FastCheck.float>[0]) => {
+        constraints.push(constraint)
+        return FastCheck.constant(0)
+      }
+    } as typeof FastCheck
+    const noNaN = Schema.makeFilter((n: number) => !globalThis.Number.isNaN(n), {
+      arbitrary: {
+        constraint: {
+          noNaN: true
+        }
+      }
+    })
+    const noInfinity = Schema.makeFilter(
+      (n: number) => n !== globalThis.Number.POSITIVE_INFINITY && n !== globalThis.Number.NEGATIVE_INFINITY,
+      {
+        arbitrary: {
+          constraint: {
+            noInfinity: true
+          }
+        }
+      }
+    )
+
+    Schema.toArbitraryLazy(Schema.Number.check(noNaN))(fc)
+    Schema.toArbitraryLazy(Schema.Number.check(noInfinity))(fc)
+    Schema.toArbitraryLazy(Schema.Finite)(fc)
+
+    deepStrictEqual(constraints, [
+      { noNaN: true },
+      { noDefaultInfinity: true },
+      { noDefaultInfinity: true, noNaN: true }
+    ])
+  })
+
+  describe("report and candidates", () => {
+    it("should use filter candidates with the merged constraint context", () => {
+      let constraint: Schema.Annotations.ToArbitrary.Constraint | undefined
+      const schema = Schema.String.check(
+        Schema.isMinLength(9),
+        Schema.makeFilter((s: string) => s === "candidate", {
+          expected: "candidate",
+          arbitrary: {
+            candidate: {
+              make: (fc, ctx) => {
+                constraint = ctx.constraint
+                return fc.constant("candidate")
+              }
+            }
+          }
+        })
+      )
+      const result = Schema.toArbitrary(schema, { report: true })
+
+      deepStrictEqual(result.report.warnings, [])
+      deepStrictEqual(constraint, { minLength: 9 })
+      FastCheck.assert(FastCheck.property(result.value, (s) => s === "candidate"), { numRuns: 20 })
+    })
+
+    it("should allow candidates to be disabled for a context", () => {
+      let calls = 0
+      const schema = Schema.String.check(
+        Schema.makeFilter(() => true, {
+          arbitrary: {
+            candidate: {
+              make: () => {
+                calls++
+                return undefined
+              }
+            }
+          }
+        })
+      )
+      const result = Schema.toArbitrary(schema, { report: true })
+
+      strictEqual(calls, 1)
+      deepStrictEqual(result.report.warnings, [])
+    })
+
+    it("should fail fast for invalid candidate weights", () => {
+      const schema = Schema.String.check(
+        Schema.makeFilter(() => true, {
+          arbitrary: {
+            candidate: {
+              weight: 0,
+              make: (fc) => fc.constant("candidate")
+            }
+          }
+        })
+      )
+
+      throws(
+        () => Schema.toArbitrary(schema),
+        "Unable to derive an arbitrary for a candidate with an invalid weight"
+      )
+    })
+
+    it("should report opaque filters", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.check(Schema.makeFilter((s: string) => s.length > 0, { expected: "a custom string" }))
+      })
+      const result = Schema.toArbitrary(schema, { report: true })
+
+      deepStrictEqual(result.report.warnings, [
+        { _tag: "OpaqueFilter", path: ["a"], description: "a custom string" }
+      ])
+    })
+
+    it("should report opaque filters through toArbitraryLazy", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.check(Schema.makeFilter((s: string) => s.length > 0, { expected: "a custom string" }))
+      })
+      const eager = Schema.toArbitrary(schema, { report: true })
+      const lazy = Schema.toArbitraryLazy(schema, { report: true })(FastCheck)
+
+      deepStrictEqual(lazy.report, eager.report)
+      FastCheck.assert(FastCheck.property(lazy.value, (a) => a.a.length > 0), { numRuns: 5 })
+    })
+
+    it("should not report child filters when a filter group provides arbitrary metadata", () => {
+      const schema = Schema.String.check(
+        Schema.makeFilterGroup(
+          [
+            Schema.makeFilter((s: string) => s.startsWith("a"), { expected: "starts with a" }),
+            Schema.makeFilter((s: string) => s.endsWith("a"), { expected: "ends with a" })
+          ],
+          {
+            arbitrary: {
+              candidate: {
+                make: (fc) => fc.constant("a")
+              }
+            }
+          }
+        )
+      )
+      const result = Schema.toArbitrary(schema, { report: true })
+
+      deepStrictEqual(result.report.warnings, [])
+      FastCheck.assert(FastCheck.property(result.value, (s) => s === "a"), { numRuns: 20 })
+    })
+
+    it("should not report warnings for constructive built-in filters", () => {
+      const schema = Schema.Struct({
+        string: Schema.String.check(Schema.isMinLength(1), Schema.isStartsWith("a")),
+        number: Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 10 })),
+        array: Schema.Array(Schema.String).check(Schema.isMinLength(1), Schema.isUnique()),
+        object: Schema.Record(Schema.String, Schema.Number).check(Schema.isMinProperties(1), Schema.isMaxProperties(3)),
+        set: Schema.ReadonlySet(Schema.String).check(Schema.isMinSize(1), Schema.isMaxSize(3))
+      })
+      const result = Schema.toArbitrary(schema, { report: true })
+
+      deepStrictEqual(result.report.warnings, [])
     })
   })
 
@@ -386,7 +629,142 @@ describe("Arbitrary generation", () => {
       verifyGeneration(schema)
     })
 
-    it.skip("mutually suspended schemas", { retry: 5 }, () => {
+    it("required recursive field without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Struct({
+        a: Rec
+      })
+      throws(
+        () => Schema.toArbitrary(schema),
+        (e) => {
+          assertInstanceOf(e, Error)
+          assertInclude(
+            e.message,
+            "Unable to derive an arbitrary for a recursive schema without a finite generation path"
+          )
+          assertInclude(e.message, `at ["a"]`)
+        }
+      )
+    })
+
+    it("non-empty recursive array without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Array(Rec).check(Schema.isMinLength(1))
+      throws(
+        () => Schema.toArbitrary(schema),
+        (e) => {
+          assertInstanceOf(e, Error)
+          assertInclude(
+            e.message,
+            "Unable to derive an arbitrary for a recursive schema without a finite generation path"
+          )
+          assertInclude(e.message, "at [0]")
+        }
+      )
+    })
+
+    it("should use filter candidates in recursive terminal paths", () => {
+      const Leaf = Schema.String.check(
+        Schema.makeFilter((s: string) => s === "leaf", {
+          expected: "leaf",
+          arbitrary: {
+            candidate: {
+              make: (fc) => fc.constant("leaf")
+            }
+          }
+        })
+      )
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Union([
+        Leaf,
+        Schema.Array(Rec).check(Schema.isMinLength(1))
+      ])
+
+      verifyGeneration(schema, 20)
+    })
+
+    it("non-empty recursive ReadonlySet without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.ReadonlySet(Rec).check(Schema.isMinSize(1))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("non-empty recursive HashSet without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.HashSet(Rec).check(minSizeOne(HashSet.size))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("non-empty recursive Chunk without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Chunk(Rec).check(minSizeOne(Chunk.size))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("non-empty recursive ReadonlyMap without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.ReadonlyMap(Schema.String, Rec).check(Schema.isMinSize(1))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("non-empty recursive HashMap without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.HashMap(Schema.String, Rec).check(minSizeOne(HashMap.size))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("non-empty recursive collections with finite union branches", () => {
+      const SetRec = Schema.suspend((): Schema.Codec<unknown> => setSchema)
+      const setSchema: any = Schema.ReadonlySet(Schema.Union([Schema.String, SetRec])).check(Schema.isMinSize(1))
+      verifyGeneration(setSchema, 20)
+
+      const HashSetRec = Schema.suspend((): Schema.Codec<unknown> => hashSetSchema)
+      const hashSetSchema: any = Schema.HashSet(Schema.Union([Schema.String, HashSetRec])).check(
+        minSizeOne(HashSet.size)
+      )
+      verifyGeneration(hashSetSchema, 20)
+
+      const ChunkRec = Schema.suspend((): Schema.Codec<unknown> => chunkSchema)
+      const chunkSchema: any = Schema.Chunk(Schema.Union([Schema.String, ChunkRec])).check(minSizeOne(Chunk.size))
+      verifyGeneration(chunkSchema, 20)
+
+      const MapRec = Schema.suspend((): Schema.Codec<unknown> => mapSchema)
+      const mapSchema: any = Schema.ReadonlyMap(Schema.String, Schema.Union([Schema.Number, MapRec])).check(
+        Schema.isMinSize(1)
+      )
+      verifyGeneration(mapSchema, 20)
+
+      const HashMapRec = Schema.suspend((): Schema.Codec<unknown> => hashMapSchema)
+      const hashMapSchema: any = Schema.HashMap(Schema.String, Schema.Union([Schema.Number, HashMapRec])).check(
+        minSizeOne(HashMap.size)
+      )
+      verifyGeneration(hashMapSchema, 20)
+    })
+
+    it("custom generic declaration with an explicit terminal branch", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = CustomArray(Rec, ([value]) => (fc, ctx) => {
+        const terminal = fc.constant([])
+        const arbitrary = fc.array(value.arbitrary, { maxLength: 2 })
+        return {
+          arbitrary: ctx.recursion === undefined ? arbitrary : fc.oneof(ctx.recursion, terminal, arbitrary),
+          terminal
+        }
+      })
+
+      verifyGeneration(schema, 20)
+    })
+
+    it("custom generic declaration without a terminal branch", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = CustomArray(Rec, ([value]) => (fc) => {
+        return fc.array(value.arbitrary, { minLength: 1, maxLength: 1 })
+      })
+
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("mutually suspended schemas", () => {
       interface Expression {
         readonly type: "expression"
         readonly value: number | Operation
