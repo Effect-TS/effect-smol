@@ -531,7 +531,7 @@ export const memoized = memoize((ast: SchemaAST.AST) => recur(ast, []))
 
 function recur(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
   // ---------------------------------------------
-  // handle Override annotation
+  // handle annotations
   // ---------------------------------------------
   const annotation = InternalAnnotations.resolve(ast)?.toArbitrary as
     | Schema.Annotations.ToArbitrary.Declaration<any, ReadonlyArray<Schema.Top>>
