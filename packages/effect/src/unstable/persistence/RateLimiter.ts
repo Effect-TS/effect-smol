@@ -693,28 +693,26 @@ local overflow = ARGV[5] == "1"
 local current = tonumber(redis.call("GET", key))
 local last_refill = tonumber(redis.call("GET", last_refill_key))
 
-if not current then
-  current = limit
-  last_refill = now
-  redis.call("SET", key, current)
-  redis.call("SET", last_refill_key, last_refill)
-end
+if not current then current = limit end
+if not last_refill then last_refill = now end
 
 local elapsed = now - last_refill
 local refill_amount = math.floor(elapsed / refill_ms)
 if refill_amount > 0 then
   current = math.min(current + refill_amount, limit)
   last_refill = last_refill + (refill_amount * refill_ms)
-  redis.call("SET", last_refill_key, last_refill)
 end
 
 local next = current - tokens
-if next < 0 and not overflow then
-  redis.call("SET", key, current)
-  return next
+local stored = current
+if next >= 0 or overflow then
+  stored = next
 end
 
-redis.call("SET", key, next)
+local ttl = math.floor((limit - stored) * refill_ms)
+if ttl < 1 then ttl = 1 end
+redis.call("SET", key, stored, "PX", ttl)
+redis.call("SET", last_refill_key, last_refill, "PX", ttl)
 return next
 `
   }
