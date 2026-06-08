@@ -331,6 +331,21 @@ describe("Arbitrary generation", () => {
       verifyGeneration(schema)
     })
 
+    it("enforces minProperties with symbol optional keys", () => {
+      const key = Symbol.for("toArbitrary/optional")
+      const schema = Schema.Struct({
+        [key]: Schema.optionalKey(Schema.String),
+        b: Schema.optionalKey(Schema.String)
+      }).check(Schema.isMinProperties(2))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (o) =>
+          globalThis.Reflect.ownKeys(o).length >= 2 &&
+          globalThis.Object.prototype.hasOwnProperty.call(o, key)),
+        { numRuns: 100 }
+      )
+      verifyGeneration(schema)
+    })
+
     it("enforces a property-count range with required and optional keys", () => {
       const schema = Schema.Struct({
         r: Schema.String,
@@ -756,6 +771,28 @@ describe("Arbitrary generation", () => {
         a: Schema.optionalKey(Rec)
       }).check(Schema.isMinProperties(1))
       assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    it("purely recursive tuple rest made non-empty without finite generation path", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.TupleWithRest(Schema.Tuple([Schema.String]), [Rec]).check(Schema.isMinLength(2))
+      assertRecursiveNoFiniteGenerationPath(schema)
+    })
+
+    // Regression guard: the terminal rest branch must honor the remaining
+    // minLength after fixed elements. Otherwise it generates an empty rest,
+    // the value fails the minLength filter, and sampling hangs. The timeout
+    // fails (times out) if the rest minimum is ever lost.
+    it("non-empty recursive tuple rest with a finite union branch", { timeout: 1000 }, () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.TupleWithRest(
+        Schema.Tuple([Schema.String]),
+        [Schema.Union([Schema.Number, Rec])]
+      ).check(Schema.isMinLength(2))
+      FastCheck.assert(
+        FastCheck.property(Schema.toArbitrary(schema), (a) => (a as Array<unknown>).length >= 2),
+        { numRuns: 100 }
+      )
     })
 
     it("should use filter candidates in recursive terminal paths", () => {

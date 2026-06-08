@@ -702,7 +702,14 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
           if (minRestLength > 0 && headArbitrary === undefined) {
             return undefined
           }
-          const restArbitrary = minRestLength === 0 ? fc.constant([]) : array(fc, restCtx, headArbitrary!, true)
+          const restArbitrary = minRestLength === 0
+            ? fc.constant([])
+            : array(
+              fc,
+              { ...restCtx, constraint: { ...restCtx.constraint, minLength: minRestLength } },
+              headArbitrary!,
+              true
+            )
           out = appendArray(fc, out, len, restArbitrary)
           if (tail.length > 0) {
             const tailArbitraries: Array<FastCheck.Arbitrary<any>> = []
