@@ -19,4 +19,4 @@ Migration from the previous v4 API:
   - `ordered.min` / `minExcluded` / `max` / `maxExcluded` -> `ordered.minimum` / `exclusiveMinimum` / `maximum` / `exclusiveMaximum`
 - In arbitrary hooks, read `context.constraint` instead of `context.constraints`. Replace `context.isSuspend` with `context.recursion`; when combining finite and recursive branches, pass `context.recursion` to `fc.oneof` with the finite branch first.
 - Generic declaration hooks now receive type parameters as `{ arbitrary, terminal }`. Atomic declarations may still return a bare `FastCheck.Arbitrary<T>`, but generic declarations should return `{ arbitrary, terminal }` when they can preserve a finite terminal branch.
-- `Schema.toArbitrary(schema, { report: true })` and `Schema.toArbitraryLazy(schema, { report: true })` now return `{ value, report }`; without `{ report: true }`, they keep returning the arbitrary directly.
+- `Schema.toArbitrary(schema, { report: true })` now returns `{ value, report }`; without `{ report: true }`, it keeps returning the arbitrary directly. `Schema.toArbitraryLazy` always returns a lazy arbitrary.

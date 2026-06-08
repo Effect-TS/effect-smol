@@ -261,17 +261,7 @@ describe("Arbitrary generation", () => {
       deepStrictEqual(result.report.warnings, [
         { _tag: "OpaqueFilter", path: ["a"], description: "a custom string" }
       ])
-    })
-
-    it("should report opaque filters through toArbitraryLazy", () => {
-      const schema = Schema.Struct({
-        a: Schema.String.check(Schema.makeFilter((s: string) => s.length > 0, { expected: "a custom string" }))
-      })
-      const eager = Schema.toArbitrary(schema, { report: true })
-      const lazy = Schema.toArbitraryLazy(schema, { report: true })(FastCheck)
-
-      deepStrictEqual(lazy.report, eager.report)
-      FastCheck.assert(FastCheck.property(lazy.value, (a) => a.a.length > 0), { numRuns: 5 })
+      FastCheck.assert(FastCheck.property(result.value, (a) => a.a.length > 0), { numRuns: 5 })
     })
 
     it("should not report child filters when a filter group provides arbitrary metadata", () => {

@@ -35,21 +35,6 @@ describe("toArbitrary", () => {
     >()
   })
 
-  it("returns a lazy report when requested", () => {
-    const schema = Schema.Struct({
-      name: Schema.String,
-      age: Schema.Number
-    })
-    const result = Schema.toArbitraryLazy(schema, { report: true })
-
-    expect(result).type.toBe<
-      Schema.LazyArbitraryWithReport<{
-        readonly name: string
-        readonly age: number
-      }>
-    >()
-  })
-
   it("passes recursion metadata in the arbitrary context", () => {
     Schema.String.annotate({
       toArbitrary: () => (fc, context) => {

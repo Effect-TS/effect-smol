@@ -12452,55 +12452,21 @@ export const TaggedErrorClass: {
 export type LazyArbitrary<T> = (fc: typeof FastCheck) => FastCheck.Arbitrary<T>
 
 /**
- * A thunk that, given the `fast-check` module, returns an arbitrary together
- * with derivation diagnostics.
- *
- * **Details**
- *
- * The `value` field contains the derived arbitrary. The `report` field
- * contains non-fatal warnings collected while inspecting the schema.
- *
- * @category Arbitrary
- * @since 4.0.0
- */
-export type LazyArbitraryWithReport<T> = (
-  fc: typeof FastCheck
-) => Annotations.ToArbitrary.WithReport<FastCheck.Arbitrary<T>>
-
-/**
  * Derives a {@link LazyArbitrary} from a schema. The result is memoized so
  * repeated calls with the same schema are cheap.
  *
  * **Details**
  *
- * Prefer {@link toArbitrary} when you need the arbitrary directly. Pass
- * `{ report: true }` to receive non-fatal warnings. Unsupported schema nodes,
- * impossible constraints, invalid candidates, and recursive schemas without a
- * finite terminal path fail immediately.
+ * Prefer {@link toArbitrary} when you need the arbitrary directly, or when you
+ * want derivation diagnostics via `{ report: true }`. Unsupported schema
+ * nodes, impossible constraints, invalid candidates, and recursive schemas
+ * without a finite terminal path fail immediately.
  *
  * @category Arbitrary
  * @since 4.0.0
  */
-export function toArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]>
-export function toArbitraryLazy<S extends Top>(
-  schema: S,
-  options: { readonly report: true }
-): LazyArbitraryWithReport<S["Type"]>
-export function toArbitraryLazy<S extends Top>(
-  schema: S,
-  options?: { readonly report?: boolean }
-): LazyArbitrary<S["Type"]> | LazyArbitraryWithReport<S["Type"]> {
+export function toArbitraryLazy<S extends Top>(schema: S): LazyArbitrary<S["Type"]> {
   const lawc = InternalArbitrary.memoized(schema.ast)
-  if (options?.report === true) {
-    return (fc) => {
-      const report = InternalArbitrary.makeReport()
-      InternalArbitrary.collectReport(schema.ast, report)
-      return {
-        value: lawc(fc, {}),
-        report: InternalArbitrary.toReport(report)
-      }
-    }
-  }
   return (fc) => lawc(fc, {})
 }
 
@@ -12542,9 +12508,16 @@ export function toArbitrary<S extends Top>(
   schema: S,
   options?: { readonly report?: boolean }
 ): FastCheck.Arbitrary<S["Type"]> | Annotations.ToArbitrary.WithReport<FastCheck.Arbitrary<S["Type"]>> {
-  return options?.report === true
-    ? toArbitraryLazy(schema, { report: true })(FastCheck)
-    : toArbitraryLazy(schema)(FastCheck)
+  if (options?.report === true) {
+    const lawc = InternalArbitrary.memoized(schema.ast)
+    const report = InternalArbitrary.makeReport()
+    InternalArbitrary.collectReport(schema.ast, report)
+    return {
+      value: lawc(FastCheck, {}),
+      report: InternalArbitrary.toReport(report)
+    }
+  }
+  return toArbitraryLazy(schema)(FastCheck)
 }
 
 // -----------------------------------------------------------------------------
