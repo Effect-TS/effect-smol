@@ -16,6 +16,12 @@ function verifyGeneration<S extends Schema.Codec<unknown, unknown, never, unknow
   }
 }
 
+// Guard for "fast but wrong" regressions: samples the derived arbitrary and
+// asserts an output invariant (length/size/property-count bounds) over many runs.
+function assertInvariant(schema: Schema.Top, predicate: (value: any) => boolean, numRuns = 200) {
+  FastCheck.assert(FastCheck.property(Schema.toArbitrary(schema), predicate), { numRuns })
+}
+
 function assertRecursiveNoFiniteGenerationPath(schema: Schema.Top) {
   throws(
     () => Schema.toArbitrary(schema),
@@ -378,11 +384,10 @@ describe("Arbitrary generation", () => {
     })
 
     // Regression guard: with the previous discard-based generation, requiring
-    // every optional key to be present is astronomically unlikely
-    // (~0.75 ** 64), so sampling would effectively hang. The count-controlled
-    // subset generates these instantly. The tight timeout fails (times out) if
-    // the optimization is ever lost.
-    it("generates dense optional-key structs without excessive filtering", { timeout: 1000 }, () => {
+    // every optional key to be present is astronomically unlikely (~0.75 ** 64),
+    // so sampling would effectively hang. The count-controlled subset generates
+    // these instantly.
+    it("generates dense optional-key structs without excessive filtering", () => {
       const fields: Record<string, Schema.optionalKey<typeof Schema.String>> = {}
       for (let i = 0; i < 64; i++) {
         fields[`k${i}`] = Schema.optionalKey(Schema.String)
@@ -780,10 +785,9 @@ describe("Arbitrary generation", () => {
     })
 
     // Regression guard: the terminal rest branch must honor the remaining
-    // minLength after fixed elements. Otherwise it generates an empty rest,
-    // the value fails the minLength filter, and sampling hangs. The timeout
-    // fails (times out) if the rest minimum is ever lost.
-    it("non-empty recursive tuple rest with a finite union branch", { timeout: 1000 }, () => {
+    // minLength after fixed elements. Otherwise it generates an empty rest, the
+    // value fails the minLength filter, and sampling hangs.
+    it("non-empty recursive tuple rest with a finite union branch", () => {
       const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema: any = Schema.TupleWithRest(
         Schema.Tuple([Schema.String]),
@@ -948,6 +952,77 @@ describe("Arbitrary generation", () => {
       const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
       const schema = Schema.HashMap(Schema.String, Rec)
       verifyGeneration(schema)
+    })
+  })
+
+  // Extended safety net for the recursion × constraint code paths (terminal
+  // length minimization, optional inclusion, rest minLength, constraint
+  // merging). Each test asserts an output invariant over many runs: a refactor
+  // that makes generation "fast but wrong" (a value that violates the
+  // constraint) fails here cleanly.
+  describe("recursion × constraint guards", () => {
+    it("recursive array with a finite branch honors minLength", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Array(Schema.Union([Schema.String, Rec])).check(Schema.isMinLength(2))
+      assertInvariant(schema, (a) => globalThis.Array.isArray(a) && a.length >= 2)
+    })
+
+    it("recursive tuple rest with a post-rest element honors minLength", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.TupleWithRest(
+        Schema.Tuple([Schema.String]),
+        [Schema.Union([Schema.Number, Rec]), Schema.Boolean]
+      ).check(Schema.isMinLength(3))
+      assertInvariant(schema, (a) => (a as Array<unknown>).length >= 3)
+    })
+
+    it("recursive struct with required + optional self-ref honors minProperties", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Struct({
+        a: Schema.String,
+        self: Schema.optionalKey(Rec)
+      }).check(Schema.isMinProperties(1))
+      assertInvariant(
+        schema,
+        (o) => globalThis.Object.keys(o).length >= 1 && globalThis.Object.prototype.hasOwnProperty.call(o, "a")
+      )
+    })
+
+    it("recursive record value with a finite branch honors minProperties", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.Record(Schema.String, Schema.Union([Schema.Number, Rec])).check(
+        Schema.isMinProperties(1)
+      )
+      assertInvariant(schema, (o) => globalThis.Object.keys(o).length >= 1)
+    })
+
+    it("recursive ReadonlySet with a finite branch honors minSize", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.ReadonlySet(Schema.Union([Schema.String, Rec])).check(Schema.isMinSize(1))
+      assertInvariant(schema, (s: any) => s.size >= 1)
+    })
+
+    it("recursive ReadonlyMap with a finite branch honors minSize", () => {
+      const Rec = Schema.suspend((): Schema.Codec<unknown> => schema)
+      const schema: any = Schema.ReadonlyMap(Schema.String, Schema.Union([Schema.Number, Rec])).check(
+        Schema.isMinSize(1)
+      )
+      assertInvariant(schema, (m: any) => m.size >= 1)
+    })
+
+    it("merges multiple minLength filters (takes the maximum)", () => {
+      const schema = Schema.Array(Schema.String).check(Schema.isMinLength(2), Schema.isMinLength(4))
+      assertInvariant(schema, (a: any) => a.length >= 4)
+    })
+
+    it("merges minLength and maxLength filters into a range", () => {
+      const schema = Schema.Array(Schema.String).check(Schema.isMinLength(2), Schema.isMaxLength(5))
+      assertInvariant(schema, (a: any) => a.length >= 2 && a.length <= 5)
+    })
+
+    it("merges ordered numeric bounds from multiple filters", () => {
+      const schema = Schema.Number.check(Schema.isGreaterThan(3), Schema.isLessThan(10))
+      assertInvariant(schema, (n: any) => n > 3 && n < 10, 300)
     })
   })
 
