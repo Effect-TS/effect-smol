@@ -1790,16 +1790,6 @@ const normalizeTargetConfiguration = <const States extends Machine.StateSchemas>
   return configurationFromTargetPath(machine, current, node.path, target as { readonly _tag: PropertyKey }, undefined)
 }
 
-const getStateIdentifier = (
-  machine: Machine.Any,
-  state: Machine.StateLike<any>
-): string => getRootPath(machine, normalizeConfiguration(machine, state))
-
-const getStateConfig = (
-  machine: Machine.Any,
-  state: Machine.StateLike<any>
-): Machine.AnyStateConfig | undefined => machine.handlers[getStateIdentifier(machine, state)]
-
 const getStateConfigByPath = (
   machine: Machine.Any,
   path: string
@@ -2086,6 +2076,8 @@ type MicrostepPlan<State, Event, E, R> = {
   readonly next: State
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
   readonly raisedEvents: ReadonlyArray<Event>
+  readonly exitPaths: ReadonlyArray<string>
+  readonly entryPaths: ReadonlyArray<string>
   readonly changed: boolean
 }
 
@@ -2117,6 +2109,7 @@ type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, a
 interface InvokeSession {
   readonly token: symbol
   readonly scope: Scope.Closeable
+  readonly childId: string
 }
 
 const normalizeEventTransition = <States extends Machine.StateSchemas, E, R, Context>(
@@ -2956,21 +2949,25 @@ const microstep: <
       next: stateAfterTransition,
       actions: transitionActions,
       raisedEvents: transitionRaisedEvents,
+      exitPaths: [],
+      entryPaths: [],
       changed: false
     }
   }
 
+  const exitPaths = sortExitPaths(machine, transitions.flatMap((transition) => transition.exitPaths))
+  const entryPaths = sortEntryPaths(machine, transitions.flatMap((transition) => transition.entryPaths))
   const exit = yield* collectStateActions<States, Events, Emits, E, R>(
     machine,
     state,
-    sortExitPaths(machine, transitions.flatMap((transition) => transition.exitPaths)),
+    exitPaths,
     event,
     "exit"
   )
   const entry = yield* collectStateActions<States, Events, Emits, E, R>(
     machine,
     stateAfterTransition,
-    sortEntryPaths(machine, transitions.flatMap((transition) => transition.entryPaths)),
+    entryPaths,
     event,
     "entry"
   )
@@ -2983,6 +2980,8 @@ const microstep: <
     raisedEvents: [...exit.raisedEvents, ...transitionRaisedEvents, ...entry.raisedEvents] as ReadonlyArray<
       Machine.EventOf<Events>
     >,
+    exitPaths,
+    entryPaths,
     changed: true
   }
 })
@@ -3173,6 +3172,8 @@ const macrostep: <
       next: snapshotFromConfiguration<States>(machine, step.next),
       actions: step.actions,
       raisedEvents: step.raisedEvents,
+      exitPaths: step.exitPaths,
+      entryPaths: step.entryPaths,
       changed: step.changed
     })),
     output: settled.output
@@ -3426,33 +3427,36 @@ export const toActorLogic: <
           }
 
           const invokeSessions = yield* Ref.make<HashMap.HashMap<string, InvokeSession>>(HashMap.empty())
-          const isCurrentInvoke = (id: string, token: symbol): Effect.Effect<boolean> =>
+          const makeInvokeSessionKey = (path: string, id: string): string => `${path.length}:${path}${id}`
+          const makeInvokeChildId = (path: string, id: string): string =>
+            `StateMachine.invoke:${makeInvokeSessionKey(path, id)}`
+          const isCurrentInvoke = (key: string, token: symbol): Effect.Effect<boolean> =>
             Ref.get(invokeSessions).pipe(
               Effect.map((sessions) => {
-                const current = HashMap.get(sessions, id)
+                const current = HashMap.get(sessions, key)
                 return Option.isSome(current) && current.value.token === token
               })
             )
-          const stopInvoke = (id: string, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+          const stopInvoke = (key: string, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
             Ref.modify(invokeSessions, (sessions) => {
-              const current = HashMap.get(sessions, id)
+              const current = HashMap.get(sessions, key)
               return Option.isSome(current)
-                ? [current.value, HashMap.remove(sessions, id)] as const
+                ? [current.value, HashMap.remove(sessions, key)] as const
                 : [undefined, sessions] as const
             }).pipe(
               Effect.flatMap((session) =>
                 session === undefined
                   ? Effect.void
                   : Scope.close(session.scope, exit).pipe(
-                    Effect.andThen(context.stopChild(id))
+                    Effect.andThen(context.stopChild(session.childId))
                   )
               )
             )
-          const clearInvoke = (id: string, token: symbol, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
+          const clearInvoke = (key: string, token: symbol, exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
             Ref.modify(invokeSessions, (sessions) => {
-              const current = HashMap.get(sessions, id)
+              const current = HashMap.get(sessions, key)
               return Option.isSome(current) && current.value.token === token
-                ? [current.value, HashMap.remove(sessions, id)] as const
+                ? [current.value, HashMap.remove(sessions, key)] as const
                 : [undefined, sessions] as const
             }).pipe(
               Effect.flatMap((session) => session === undefined ? Effect.void : Scope.close(session.scope, exit))
@@ -3461,18 +3465,19 @@ export const toActorLogic: <
             Ref.modify(invokeSessions, (sessions) => [HashMap.toEntries(sessions), HashMap.empty()] as const).pipe(
               Effect.flatMap((sessions) =>
                 Effect.all(
-                  sessions.map(([id, session]) =>
+                  sessions.map(([, session]) =>
                     Scope.close(session.scope, exit).pipe(
-                      Effect.andThen(context.stopChild(id))
+                      Effect.andThen(context.stopChild(session.childId))
                     )
                   ),
-                  { discard: true }
+                  { discard: true, concurrency: "unbounded" }
                 )
               )
             )
           const startInvokeWatchers = (
             config: AnyInvokeConfig,
             child: ActorModule.Actor<any, any, any, any>,
+            key: string,
             token: symbol,
             scope: Scope.Closeable
           ): Effect.Effect<void> =>
@@ -3482,7 +3487,7 @@ export const toActorLogic: <
                 yield* child.changes.pipe(
                   Stream.filter((snapshot) => snapshot.status === "active"),
                   Stream.runForEach((snapshot) =>
-                    isCurrentInvoke(config.id, token).pipe(
+                    isCurrentInvoke(key, token).pipe(
                       Effect.flatMap((isCurrent) => {
                         if (!isCurrent) {
                           return Effect.void
@@ -3502,7 +3507,7 @@ export const toActorLogic: <
                 const mapEvent = config.event
                 yield* ActorModule.watch(child).pipe(
                   Stream.runForEach((outcome) =>
-                    isCurrentInvoke(config.id, token).pipe(
+                    isCurrentInvoke(key, token).pipe(
                       Effect.flatMap((isCurrent) => {
                         if (!isCurrent) {
                           return Effect.void
@@ -3520,50 +3525,73 @@ export const toActorLogic: <
               }
             })
           const startInvoke = <StateId extends Machine.StateIdentifier<States>>(
+            path: StateId,
             config: AnyInvokeConfig,
             state: Machine.StateByIdentifier<States, StateId>,
             event: Machine.EventOf<Events>
           ) =>
             Effect.gen(function*() {
               const token = Symbol()
+              const invokeId = String(config.id)
+              const key = makeInvokeSessionKey(path, invokeId)
+              const childId = makeInvokeChildId(path, invokeId)
               const child = yield* context.spawn(
                 config.src({
                   state,
                   event,
                   runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
                 }),
-                { id: config.id }
+                { id: childId }
               ).pipe(
                 Effect.onExit((exit) =>
-                  Exit.isFailure(exit) ? clearInvoke(config.id, token, Exit.failCause(exit.cause)) : Effect.void
+                  Exit.isFailure(exit) ? clearInvoke(key, token, Exit.failCause(exit.cause)) : Effect.void
                 )
               )
               const scope = yield* Scope.make("parallel")
-              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, config.id, { token, scope }))
-              yield* startInvokeWatchers(config, child, token, scope)
+              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, key, { token, scope, childId }))
+              yield* startInvokeWatchers(config, child, key, token, scope)
             })
           const startInvokes = (
             state: Machine.Snapshot<States>,
+            paths: ReadonlyArray<string>,
             event: Machine.EventOf<Events>
-          ): Effect.Effect<void, E, R> =>
-            Effect.all(
-              getInvokes(getStateConfig(machine, state)).map((config) =>
-                startInvoke(
-                  config,
-                  state.value as Machine.StateByIdentifier<States, Machine.StateIdentifier<States>>,
-                  event
-                ) as Effect.Effect<void, E, R>
-              ),
+          ): Effect.Effect<void, E, R> => {
+            const configuration = normalizeConfiguration(machine, state)
+            return Effect.all(
+              sortEntryPaths(machine, paths)
+                .filter((path) => configuration.active.has(path))
+                .flatMap((path) =>
+                  getInvokes(getStateConfigByPath(machine, path)).map((config) =>
+                    startInvoke(
+                      path as Machine.StateIdentifier<States>,
+                      config,
+                      getActiveValue(configuration, path) as Machine.StateByIdentifier<
+                        States,
+                        Machine.StateIdentifier<States>
+                      >,
+                      event
+                    ) as Effect.Effect<void, E, R>
+                  )
+                ),
               { discard: true }
             )
-          const stopInvokes = (state: Machine.Snapshot<States>): Effect.Effect<void> =>
+          }
+          const stopInvokes = (paths: ReadonlyArray<string>): Effect.Effect<void> =>
             Effect.all(
-              getInvokes(getStateConfig(machine, state)).map((config) => stopInvoke(config.id, Exit.void)),
-              { discard: true }
+              sortExitPaths(machine, paths).flatMap((path) =>
+                getInvokes(getStateConfigByPath(machine, path)).map((config) =>
+                  stopInvoke(makeInvokeSessionKey(path, String(config.id)), Exit.void)
+                )
+              ),
+              { discard: true, concurrency: "unbounded" }
             )
 
           return yield* Effect.gen(function*() {
-            yield* startInvokes(initialState, InitialEvent as Machine.EventOf<Events>)
+            yield* startInvokes(
+              initialState,
+              getInitialEntryPaths(machine, normalizeConfiguration(machine, initialState)),
+              InitialEvent as Machine.EventOf<Events>
+            )
 
             yield* Effect.whileLoop({
               while: () => !done,
@@ -3573,9 +3601,11 @@ export const toActorLogic: <
                   const current = yield* state
                   const planned = yield* macrostep(machine, current, event)
                   const changed = planned.microsteps.some((step) => step.changed)
+                  const exitPaths = planned.microsteps.flatMap((step) => step.exitPaths)
+                  const entryPaths = planned.microsteps.flatMap((step) => step.entryPaths)
 
                   if (changed) {
-                    yield* stopInvokes(current)
+                    yield* stopInvokes(exitPaths)
                   }
                   yield* setState(planned.next)
                   yield* runActions(
@@ -3589,7 +3619,7 @@ export const toActorLogic: <
                     yield* stopAllInvokes(Exit.succeed(output))
                   } else {
                     if (changed) {
-                      yield* startInvokes(planned.next, event)
+                      yield* startInvokes(planned.next, entryPaths, event)
                     }
                     yield* Effect.yieldNow
                   }

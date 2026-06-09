@@ -4077,6 +4077,262 @@ describe("StateMachine", () => {
       yield* actor.stop
     }))
 
+  it.effect("toActorLogic scopes invokes to entered and exited compound state nodes", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const entering = new EnteringPayment({ amount: 100 })
+      const parentStarted = yield* Deferred.make<void>()
+      const enteringStarted = yield* Deferred.make<void>()
+      const authorizedStarted = yield* Deferred.make<void>()
+      const stopped = yield* Ref.make<ReadonlyArray<string>>([])
+      const makeInvokeLogic = (label: string, started: Deferred.Deferred<void>) =>
+        Actor.fromEffect("pending", () =>
+          Deferred.succeed(started, void 0).pipe(
+            Effect.andThen(Effect.never),
+            Effect.onInterrupt(() => Ref.update(stopped, (labels) => [...labels, label]))
+          ))
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
+          }
+        },
+        events: [Authorize],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: entering
+          }
+        })
+      })
+        .handle("payment", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic("parent", parentStarted)
+          })
+        })
+        .handle("payment.entering", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic("entering", enteringStarted)
+          }),
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+        .handle("payment.authorized", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic("authorized", authorizedStarted)
+          })
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine))
+      yield* Deferred.await(parentStarted)
+      yield* Deferred.await(enteringStarted)
+
+      yield* sendAndWaitForSnapshot(
+        actor,
+        new Authorize({ code: "auth-1" }),
+        (snapshot) =>
+          snapshot.status === "active" &&
+          snapshot.state.path === "payment" &&
+          (snapshot.state as any).state.path === "payment.authorized"
+      )
+      yield* Deferred.await(authorizedStarted)
+
+      assert.deepStrictEqual(yield* Ref.get(stopped), ["entering"])
+
+      yield* actor.stop
+
+      const stoppedLabels = yield* Ref.get(stopped)
+      assert.deepStrictEqual([...stoppedLabels].sort(), ["authorized", "entering", "parent"])
+    }))
+
+  it.effect("toActorLogic stops parent and parallel region invokes before final completion", () =>
+    Effect.gen(function*() {
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const releaseStops = yield* Deferred.make<void>()
+      const parentStarted = yield* Deferred.make<void>()
+      const inventoryStarted = yield* Deferred.make<void>()
+      const shippingStarted = yield* Deferred.make<void>()
+      const parentStopping = yield* Deferred.make<void>()
+      const inventoryStopping = yield* Deferred.make<void>()
+      const shippingStopping = yield* Deferred.make<void>()
+      const joinDone = yield* Ref.make(false)
+      const makeInvokeLogic = (started: Deferred.Deferred<void>, stopping: Deferred.Deferred<void>) =>
+        Actor.fromEffect("pending", () =>
+          Deferred.succeed(started, void 0).pipe(
+            Effect.andThen(Effect.never),
+            Effect.onInterrupt(() =>
+              Deferred.succeed(stopping, void 0).pipe(
+                Effect.andThen(Deferred.await(releaseStops))
+              )
+            )
+          ))
+      const machine = StateMachine.make({
+        states: {
+          fulfillment: {
+            schema: Fulfillment,
+            type: "parallel",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory
+                }
+              },
+              shipping: {
+                schema: Shipping,
+                initial: "quoting",
+                states: {
+                  quoting: QuotingShipping
+                }
+              }
+            }
+          },
+          success: {
+            schema: Success,
+            type: "final"
+          }
+        },
+        events: [ReserveInventory],
+        initial: () => ({
+          path: "fulfillment",
+          value: fulfillment,
+          states: {
+            inventory: {
+              path: "fulfillment.inventory" as const,
+              value: inventory,
+              state: {
+                path: "fulfillment.inventory.checking" as const,
+                value: new CheckingInventory({ sku: "sku-1" })
+              }
+            },
+            shipping: {
+              path: "fulfillment.shipping" as const,
+              value: shipping,
+              state: {
+                path: "fulfillment.shipping.quoting" as const,
+                value: new QuotingShipping({ postalCode: "12345" })
+              }
+            }
+          }
+        })
+      })
+        .handle("fulfillment", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic(parentStarted, parentStopping)
+          })
+        })
+        .handle("fulfillment.inventory", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic(inventoryStarted, inventoryStopping)
+          })
+        })
+        .handle("fulfillment.shipping", {
+          invoke: StateMachine.invoke({
+            id: "request",
+            src: () => makeInvokeLogic(shippingStarted, shippingStopping)
+          })
+        })
+        .handle("fulfillment.inventory.checking", {
+          on: {
+            ReserveInventory: () => new Success({ requestId: "done" })
+          }
+        })
+        .handle("success", {
+          type: "final",
+          output: ({ state }) => state.requestId
+        })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine))
+      const joinFiber = yield* actor.join.pipe(
+        Effect.tap(() => Ref.set(joinDone, true)),
+        Effect.forkChild
+      )
+      yield* Deferred.await(parentStarted)
+      yield* Deferred.await(inventoryStarted)
+      yield* Deferred.await(shippingStarted)
+
+      const sendFiber = yield* actor.send(new ReserveInventory({ reservationId: "res-1" })).pipe(
+        Effect.forkChild
+      )
+      yield* Deferred.await(parentStopping)
+      yield* Deferred.await(inventoryStopping)
+      yield* Deferred.await(shippingStopping)
+
+      assert.strictEqual(yield* Ref.get(joinDone), false)
+
+      yield* Deferred.succeed(releaseStops, void 0)
+      yield* Fiber.join(sendFiber)
+
+      assert.strictEqual(yield* Fiber.join(joinFiber), "done")
+    }))
+
+  it.effect("toActorLogic keeps state-scoped invokes separate from spawned children", () =>
+    Effect.gen(function*() {
+      const spawnedStarted = yield* Deferred.make<void>()
+      const spawnedStopped = yield* Deferred.make<void>()
+      const invokeStarted = yield* Deferred.make<void>()
+      const invokeStops = yield* Ref.make(0)
+      const spawnedLogic = Actor.fromEffect("pending", () =>
+        Deferred.succeed(spawnedStarted, void 0).pipe(
+          Effect.andThen(Effect.never),
+          Effect.onInterrupt(() => Deferred.succeed(spawnedStopped, void 0))
+        ))
+      const invokeLogic = Actor.fromEffect("pending", () =>
+        Deferred.succeed(invokeStarted, void 0).pipe(
+          Effect.andThen(Effect.never),
+          Effect.onInterrupt(() => Ref.update(invokeStops, (count) => count + 1))
+        ))
+      const machine = StateMachine.make({
+        states: { Idle },
+        events: [Resolve],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("Idle", {
+        entry: () =>
+          StateMachine.action(
+            StateMachine.spawn(spawnedLogic, { id: "worker" }).pipe(
+              Effect.asVoid
+            )
+          ),
+        invoke: StateMachine.invoke({
+          id: "worker",
+          src: () => invokeLogic
+        }),
+        on: {
+          Resolve: () => StateMachine.action(StateMachine.stopChild("worker"))
+        }
+      })
+
+      const actor = yield* Actor.start(StateMachine.toActorLogic(machine, { userId: "user-1" }))
+      yield* Deferred.await(spawnedStarted)
+      yield* Deferred.await(invokeStarted)
+
+      yield* actor.send(new Resolve({}))
+      yield* Deferred.await(spawnedStopped)
+
+      assert.strictEqual(yield* Ref.get(invokeStops), 0)
+
+      yield* actor.stop
+
+      assert.strictEqual(yield* Ref.get(invokeStops), 1)
+    }))
+
   it.effect("toActorLogic propagates startup failures through Actor.start", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
