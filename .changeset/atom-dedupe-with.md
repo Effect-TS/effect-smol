@@ -4,8 +4,6 @@
 
 Add `Atom.dedupe` and `Atom.dedupeWith` to opt into value-equality emission for atoms.
 
-By default an `Atom` only suppresses an emission when the new value is reference-identical (`Object.is`) to the current one. The standalone v3 `@effect-atom/atom` package deduped on `Equal.equals` (value equality) instead, and the sibling `AtomRef` in this package still does; the `Object.is` guard in `AtomRegistry`'s node `setValue` appears to be a regression from that v3 behavior.
-
 The pair mirrors `Array.dedupe` / `Array.dedupeWith`:
 
 - `Atom.dedupe(self)` returns a copy of the atom whose emission guard uses the default `Equal.equals` (value equality).
