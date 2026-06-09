@@ -299,18 +299,39 @@ export declare namespace Machine {
   export type TaggedSchema = Schema.Top & { readonly Type: { readonly _tag: PropertyKey } }
 
   /**
-   * Configuration accepted for a flat object state node.
+   * Configuration accepted for an atomic object state node.
    *
    * @category models
    * @since 4.0.0
    */
-  export interface StateNodeConfig {
+  export interface AtomicStateNodeConfig {
     readonly schema: TaggedSchema
     readonly type?: "active" | "final"
   }
 
   /**
-   * Flat object state tree keyed by state path.
+   * Configuration accepted for a compound object state node.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface CompoundStateNodeConfig {
+    readonly schema: TaggedSchema
+    readonly type?: "active"
+    readonly initial: string
+    readonly states: StateTree
+  }
+
+  /**
+   * Configuration accepted for an object state node.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export type StateNodeConfig = AtomicStateNodeConfig | CompoundStateNodeConfig
+
+  /**
+   * Object state tree keyed by state path.
    *
    * @category models
    * @since 4.0.0
@@ -332,10 +353,14 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export interface StateNode {
-    readonly path: PropertyKey
+    readonly path: string
+    readonly key: string
     readonly tag: PropertyKey
     readonly schema: TaggedSchema
-    readonly type: "active" | "final"
+    readonly type: "atomic" | "compound" | "final"
+    readonly parent: string | undefined
+    readonly children: ReadonlyArray<string>
+    readonly initial: string | undefined
     readonly order: number
   }
 
@@ -346,7 +371,8 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export interface StateNodes {
-    readonly byPath: ReadonlyMap<PropertyKey, StateNode>
+    readonly byPath: ReadonlyMap<string, StateNode>
+    readonly roots: ReadonlyArray<string>
   }
 
   /**
@@ -377,12 +403,56 @@ export declare namespace Machine {
     : never
 
   /**
+   * Prefixes a state path with its parent path.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type JoinPath<Parent extends string, Child extends string> = Parent extends "" ? Child : `${Parent}.${Child}`
+
+  /**
    * Extracts the state path values represented by a state definition.
    *
    * @category utility types
    * @since 4.0.0
    */
-  export type StateIdentifier<States extends StateSchemas> = Extract<keyof States, string>
+  export type StateIdentifier<States extends StateSchemas> = StateIdentifierWithPrefix<States>
+
+  /**
+   * Extracts the state path values represented by a state definition under a
+   * parent path prefix.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type StateIdentifierWithPrefix<
+    States extends StateSchemas,
+    Prefix extends string = ""
+  > = {
+    readonly [Key in Extract<keyof States, string>]: States[Key] extends { readonly states: infer Children }
+      ? Children extends StateSchemas ?
+        JoinPath<Prefix, Key> | StateIdentifierWithPrefix<Children, JoinPath<Prefix, Key>>
+      : JoinPath<Prefix, Key>
+      : JoinPath<Prefix, Key>
+  }[Extract<keyof States, string>]
+
+  /**
+   * Extracts a state-tree node by state path.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type NodeByIdentifier<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = StateId extends `${infer Head}.${infer Rest}`
+    ? Head extends keyof States
+      ? States[Head] extends { readonly states: infer Children extends StateSchemas }
+        ? Rest extends StateIdentifier<Children> ? NodeByIdentifier<Children, Rest> : never
+      : never
+    : never
+    : StateId extends keyof States ? States[StateId]
+    : never
 
   /**
    * Extracts a schema from a state definition by state identifier.
@@ -393,8 +463,7 @@ export declare namespace Machine {
   export type SchemaByIdentifier<
     States extends StateSchemas,
     StateId extends StateIdentifier<States>
-  > = StateId extends keyof States ? NodeSchema<States[StateId]>
-    : never
+  > = NodeSchema<NodeByIdentifier<States, StateId>>
 
   /**
    * Extracts the union of state values represented by a state definition.
@@ -463,6 +532,19 @@ export declare namespace Machine {
   }
 
   /**
+   * Compound statechart snapshot carrying parent value plus the active child
+   * snapshot.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface CompoundSnapshot<Path extends string, Value, Child> {
+    readonly path: Path
+    readonly value: Value
+    readonly state: Child
+  }
+
+  /**
    * Extracts the snapshot value represented by a state definition by
    * identifier.
    *
@@ -472,7 +554,45 @@ export declare namespace Machine {
   export type SnapshotByIdentifier<
     States extends StateSchemas,
     StateId extends StateIdentifier<States>
-  > = AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
+  > = NodeByIdentifier<States, StateId> extends { readonly states: infer Children }
+    ? Children extends StateSchemas ? CompoundSnapshot<
+        StateId,
+        StateByIdentifier<States, StateId>,
+        SnapshotWithPrefix<Children, StateId>
+      >
+    : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
+    : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
+
+  /**
+   * Extracts child snapshots under a parent path prefix.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotWithPrefix<
+    States extends StateSchemas,
+    Prefix extends string
+  > = {
+    readonly [Key in Extract<keyof States, string>]: SnapshotByIdentifierWithPath<States, Key, JoinPath<Prefix, Key>>
+  }[Extract<keyof States, string>]
+
+  /**
+   * Extracts a snapshot for a state node while preserving its full path.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotByIdentifierWithPath<
+    States extends StateSchemas,
+    StateId extends Extract<keyof States, string>,
+    Path extends string
+  > = States[StateId] extends { readonly states: infer Children } ? Children extends StateSchemas ? CompoundSnapshot<
+        Path,
+        NodeSchema<States[StateId]>["Type"],
+        SnapshotWithPrefix<Children, Path>
+      >
+    : AtomicSnapshot<Path, NodeSchema<States[StateId]>["Type"]>
+    : AtomicSnapshot<Path, NodeSchema<States[StateId]>["Type"]>
 
   /**
    * Extracts the union of statechart snapshots represented by a state
@@ -481,10 +601,9 @@ export declare namespace Machine {
    * @category models
    * @since 4.0.0
    */
-  export type Snapshot<States extends StateSchemas> = StateIdentifier<States> extends infer StateId
-    ? StateId extends StateIdentifier<States> ? SnapshotByIdentifier<States, StateId>
-    : never
-    : never
+  export type Snapshot<States extends StateSchemas> = {
+    readonly [StateId in Extract<keyof States, string>]: SnapshotByIdentifier<States, StateId & StateIdentifier<States>>
+  }[Extract<keyof States, string>]
 
   /**
    * State input accepted at runtime while raw decoded states remain supported at
@@ -503,8 +622,10 @@ export declare namespace Machine {
    */
   export type FinalStateFromDefinition<States extends StateSchemas> =
     & {
-      readonly [StateId in keyof States]: States[StateId] extends { readonly type: "final" } ? StateId : never
-    }[keyof States]
+      readonly [StateId in StateIdentifier<States>]: NodeByIdentifier<States, StateId> extends
+        { readonly type: "final" } ? StateId
+        : never
+    }[StateIdentifier<States>]
     & StateIdentifier<States>
 
   /**
@@ -531,6 +652,11 @@ export declare namespace Machine {
     readonly [TargetTypeId]: typeof TargetTypeId
     readonly path: StateId
     readonly value: StateByIdentifier<States, StateId>
+    readonly values?: Partial<
+      {
+        readonly [AncestorStateId in StateIdentifier<States>]: StateByIdentifier<States, AncestorStateId>
+      }
+    >
   }
 
   /**
@@ -542,7 +668,14 @@ export declare namespace Machine {
   export interface TargetFunction<States extends StateSchemas> {
     <const StateId extends StateIdentifier<States>>(
       path: StateId,
-      value: StateByIdentifier<States, StateId>
+      value: StateByIdentifier<States, StateId>,
+      options?: {
+        readonly values?: Partial<
+          {
+            readonly [AncestorStateId in StateIdentifier<States>]: StateByIdentifier<States, AncestorStateId>
+          }
+        >
+      }
     ): Target<States, StateId>
   }
 
@@ -672,7 +805,8 @@ export declare namespace Machine {
    */
   export type InitialResult<States extends StateSchemas, E, R> =
     | StateOf<States>
-    | Effect.Effect<StateOf<States>, E, R>
+    | Snapshot<States>
+    | Effect.Effect<StateOf<States> | Snapshot<States>, E, R>
 
   /**
    * Return value accepted from transition handlers.
@@ -682,9 +816,10 @@ export declare namespace Machine {
    */
   export type HandlerResult<States extends StateSchemas, E, R> =
     | StateOf<States>
+    | Snapshot<States>
     | Target<States, StateIdentifier<States>>
     | void
-    | Effect.Effect<StateOf<States> | Target<States, StateIdentifier<States>> | void, E, R>
+    | Effect.Effect<StateOf<States> | Snapshot<States> | Target<States, StateIdentifier<States>> | void, E, R>
 
   /**
    * Extracts the union of handler return values from a handler map.
@@ -1085,75 +1220,99 @@ const getStateNodeDefinition = (
   definition: Machine.TaggedSchema | Machine.StateNodeConfig
 ): {
   readonly schema: Machine.TaggedSchema
-  readonly type: "active" | "final"
+  readonly type: "atomic" | "compound" | "final"
+  readonly initial: string | undefined
+  readonly states: Machine.StateTree | undefined
 } => {
   if (Schema.isSchema(definition)) {
-    return { schema: definition as Machine.TaggedSchema, type: "active" }
+    return { schema: definition as Machine.TaggedSchema, type: "atomic", initial: undefined, states: undefined }
   }
-  if (
-    hasProperty(definition, "states") || (hasProperty(definition, "type") && (definition as any).type === "parallel")
-  ) {
-    throw new Error(
-      `StateMachine.make currently supports only flat object state trees; nested state "${path}" is not supported yet`
-    )
+  if (hasProperty(definition, "type") && (definition as any).type === "parallel") {
+    throw new Error(`StateMachine.make does not support parallel state "${path}" yet`)
   }
   if (!hasProperty(definition, "schema") || !Schema.isSchema(definition.schema)) {
     throw new Error(`StateMachine.make expected state "${path}" to be a tagged schema or state node config`)
   }
+  if (hasProperty(definition, "states")) {
+    if ((definition as any).type === "final") {
+      throw new Error(`StateMachine.make expected compound state "${path}" to be active`)
+    }
+    if (typeof (definition as any).initial !== "string") {
+      throw new Error(`StateMachine.make expected compound state "${path}" to declare an initial child`)
+    }
+    return {
+      schema: definition.schema as Machine.TaggedSchema,
+      type: "compound",
+      initial: (definition as any).initial,
+      states: (definition as any).states as Machine.StateTree
+    }
+  }
   return {
     schema: definition.schema as Machine.TaggedSchema,
-    type: definition.type === "final" ? "final" : "active"
+    type: definition.type === "final" ? "final" : "atomic",
+    initial: undefined,
+    states: undefined
   }
 }
 
 const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNodes => {
-  const byPath = new Map<PropertyKey, Machine.StateNode>()
+  const byPath = new Map<string, Machine.StateNode>()
   let order = 0
 
-  for (const path of Object.keys(states)) {
-    const definition = getStateNodeDefinition(path, states[path])
-    const tag = getSchemaTag(definition.schema) ?? path
-    const node = {
-      path,
-      tag,
-      schema: definition.schema,
-      type: definition.type,
-      order
+  const compile = (tree: Machine.StateTree, parent: string | undefined): ReadonlyArray<string> => {
+    const paths: Array<string> = []
+    for (const key of Object.keys(tree)) {
+      const path = parent === undefined ? key : `${parent}.${key}`
+      const definition = getStateNodeDefinition(path, tree[key])
+      const node = {
+        path,
+        key,
+        tag: getSchemaTag(definition.schema) ?? key,
+        schema: definition.schema,
+        type: definition.type,
+        parent,
+        children: [] as ReadonlyArray<string>,
+        initial: definition.initial === undefined ? undefined : `${path}.${definition.initial}`,
+        order
+      }
+      byPath.set(path, node)
+      paths.push(path)
+      order += 1
+      if (definition.states !== undefined) {
+        const children = compile(definition.states, path)
+        if (node.initial === undefined || !children.includes(node.initial)) {
+          throw new Error(`StateMachine.make expected compound state "${path}" initial child to exist`)
+        }
+        ;(node as { children: ReadonlyArray<string> }).children = children
+      }
     }
-    byPath.set(path, node)
-    order += 1
+    return paths
   }
 
   return {
-    byPath
+    byPath,
+    roots: compile(states, undefined)
   }
 }
 
 const makeTarget: Machine.TargetFunction<any> = (
-  path: PropertyKey,
-  value: { readonly _tag: PropertyKey }
+  path: string,
+  value: { readonly _tag: PropertyKey },
+  options?: {
+    readonly values?: Readonly<Record<string, unknown>>
+  }
 ) =>
   ({
     [TargetTypeId]: TargetTypeId,
     path,
-    value
+    value,
+    values: options?.values
   }) as any
 
 const isTarget = (u: unknown): u is Machine.Target<any, any> => hasProperty(u, TargetTypeId)
 
 const isSnapshot = (u: unknown): u is Machine.AtomicSnapshot<string, unknown> =>
   hasProperty(u, "path") && hasProperty(u, "value")
-
-const isSnapshotFor = (
-  machine: Machine.Any,
-  u: unknown
-): u is Machine.AtomicSnapshot<string, { readonly _tag: PropertyKey }> => {
-  if (!isSnapshot(u)) {
-    return false
-  }
-  const node = machine.stateNodes.byPath.get(u.path)
-  return node !== undefined && Schema.is(node.schema)(u.value)
-}
 
 const findStateNode = (
   machine: Machine.Any,
@@ -1164,43 +1323,221 @@ const findStateNode = (
       return node
     }
   }
-  return machine.stateNodes.byPath.get(value._tag)
+  return typeof value._tag === "string" ? machine.stateNodes.byPath.get(value._tag) : undefined
 }
 
-const makeSnapshot = <const States extends Machine.StateSchemas>(
+interface ActiveConfiguration {
+  readonly active: ReadonlySet<string>
+  readonly values: ReadonlyMap<string, unknown>
+}
+
+const getNode = (machine: Machine.Any, path: string): Machine.StateNode => {
+  const node = machine.stateNodes.byPath.get(path)
+  if (node === undefined) {
+    throw new Error(`StateMachine expected state path "${path}" to exist`)
+  }
+  return node
+}
+
+const hasOwn = (u: object, key: string): boolean => Object.prototype.hasOwnProperty.call(u, key)
+
+const isDescendantOf = (path: string, ancestor: string): boolean => path.startsWith(`${ancestor}.`)
+
+const getPathToRoot = (machine: Machine.Any, path: string): ReadonlyArray<string> => {
+  const paths: Array<string> = []
+  let current: string | undefined = path
+  while (current !== undefined) {
+    paths.unshift(current)
+    current = getNode(machine, current).parent
+  }
+  return paths
+}
+
+const getLeafPath = (machine: Machine.Any, configuration: ActiveConfiguration): string => {
+  let leaf: string | undefined
+  for (const path of configuration.active) {
+    const hasActiveChild = getNode(machine, path).children.some((child) => configuration.active.has(child))
+    if (!hasActiveChild && (leaf === undefined || getNode(machine, path).order > getNode(machine, leaf).order)) {
+      leaf = path
+    }
+  }
+  if (leaf === undefined) {
+    throw new Error("StateMachine expected an active leaf state")
+  }
+  return leaf
+}
+
+const getRootPath = (machine: Machine.Any, configuration: ActiveConfiguration): string => {
+  for (const path of configuration.active) {
+    if (getNode(machine, path).parent === undefined) {
+      return path
+    }
+  }
+  throw new Error("StateMachine expected an active root state")
+}
+
+const getActiveValue = (configuration: ActiveConfiguration, path: string): unknown => {
+  if (!configuration.values.has(path)) {
+    throw new Error(`StateMachine expected active state "${path}" to have a value`)
+  }
+  return configuration.values.get(path)
+}
+
+const snapshotFromPath = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
-  value: Machine.StateOf<States>,
-  path?: PropertyKey
-): Machine.Snapshot<States> => {
-  const node = path === undefined ? findStateNode(machine, value) : machine.stateNodes.byPath.get(path)
-  return {
-    path: (node?.path ?? path ?? value._tag) as Machine.StateIdentifier<States>,
-    value
-  } as Machine.Snapshot<States>
+  configuration: ActiveConfiguration,
+  path: string
+): Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>> => {
+  const node = getNode(machine, path)
+  const snapshot: Record<string, unknown> = {
+    path,
+    value: getActiveValue(configuration, path)
+  }
+  if (node.type === "compound") {
+    const child = node.children.find((child) => configuration.active.has(child))
+    if (child === undefined) {
+      throw new Error(`StateMachine expected compound state "${path}" to have an active child`)
+    }
+    snapshot.state = snapshotFromPath(machine, configuration, child)
+  }
+  return snapshot as unknown as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>
 }
 
-const normalizeState = <const States extends Machine.StateSchemas>(
+const snapshotFromConfiguration = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration
+): Machine.Snapshot<States> =>
+  snapshotFromPath<States>(machine, configuration, getRootPath(machine, configuration)) as Machine.Snapshot<States>
+
+const configurationFromSnapshot = (
+  machine: Machine.Any,
+  snapshot: Machine.AtomicSnapshot<string, unknown>
+): ActiveConfiguration => {
+  const active = new Set<string>()
+  const values = new Map<string, unknown>()
+
+  const visit = (current: Machine.AtomicSnapshot<string, unknown>): void => {
+    const node = getNode(machine, String(current.path))
+    if (!Schema.is(node.schema)(current.value)) {
+      throw new Error(`StateMachine expected snapshot for "${node.path}" to match its schema`)
+    }
+    active.add(node.path)
+    values.set(node.path, current.value)
+    if (node.type === "compound") {
+      if (!hasProperty(current, "state") || !isSnapshot(current.state)) {
+        throw new Error(`StateMachine expected compound snapshot "${node.path}" to include an active child state`)
+      }
+      const child = getNode(machine, String(current.state.path))
+      if (child.parent !== node.path) {
+        throw new Error(`StateMachine expected snapshot "${child.path}" to be a child of "${node.path}"`)
+      }
+      visit(current.state)
+    }
+  }
+
+  visit(snapshot)
+  return { active, values }
+}
+
+const configurationFromValue = (
+  machine: Machine.Any,
+  value: { readonly _tag: PropertyKey }
+): ActiveConfiguration => {
+  const node = findStateNode(machine, value)
+  if (node === undefined) {
+    throw new Error(`StateMachine expected state "${String(value._tag)}" to match a state node`)
+  }
+  if (node.parent !== undefined || node.type === "compound") {
+    throw new Error(`StateMachine expected state "${node.path}" to be provided as a snapshot with ancestor values`)
+  }
+  return {
+    active: new Set([node.path]),
+    values: new Map([[node.path, value]])
+  }
+}
+
+const normalizeConfiguration = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   state: Machine.StateLike<States>
-): Machine.Snapshot<States> =>
-  isSnapshotFor(machine, state)
-    ? state as Machine.Snapshot<States>
-    : makeSnapshot<States>(machine, state)
-
-const normalizeTarget = <const States extends Machine.StateSchemas>(
-  machine: Machine.Any,
-  target: Machine.StateOf<States> | Machine.Target<States, Machine.StateIdentifier<States>>
-): Machine.Snapshot<States> => {
-  if (isTarget(target)) {
-    return makeSnapshot<States>(machine, target.value as Machine.StateOf<States>, target.path)
+): ActiveConfiguration => {
+  if (isSnapshot(state)) {
+    return configurationFromSnapshot(machine, state)
   }
-  return makeSnapshot<States>(machine, target as Machine.StateOf<States>)
+  return configurationFromValue(machine, state)
+}
+
+const validateInitialConfiguration = (machine: Machine.Any, configuration: ActiveConfiguration): void => {
+  for (const path of configuration.active) {
+    const node = getNode(machine, path)
+    if (node.type === "compound") {
+      const child = node.children.find((child) => configuration.active.has(child))
+      if (child !== node.initial) {
+        throw new Error(`StateMachine initial state "${node.path}" must enter initial child "${node.initial}"`)
+      }
+    }
+  }
+}
+
+const configurationFromTargetPath = (
+  machine: Machine.Any,
+  current: ActiveConfiguration,
+  path: string,
+  value: { readonly _tag: PropertyKey },
+  providedValues: Readonly<Record<string, unknown>> | undefined
+): ActiveConfiguration => {
+  const node = getNode(machine, path)
+  const active = new Set<string>()
+  const values = new Map<string, unknown>()
+  const paths = getPathToRoot(machine, node.path)
+
+  for (const currentPath of paths) {
+    active.add(currentPath)
+    if (currentPath === node.path) {
+      values.set(currentPath, value)
+    } else if (providedValues !== undefined && hasOwn(providedValues, currentPath)) {
+      values.set(currentPath, providedValues[currentPath])
+    } else if (current.values.has(currentPath)) {
+      values.set(currentPath, current.values.get(currentPath))
+    } else {
+      throw new Error(`StateMachine target "${node.path}" requires a value for ancestor state "${currentPath}"`)
+    }
+  }
+
+  if (node.type === "compound") {
+    throw new Error(`StateMachine target "${node.path}" must include an active child state`)
+  }
+
+  return { active, values }
+}
+
+const normalizeTargetConfiguration = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  current: ActiveConfiguration,
+  target: Machine.StateOf<States> | Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+): ActiveConfiguration => {
+  if (isTarget(target)) {
+    return configurationFromTargetPath(
+      machine,
+      current,
+      target.path,
+      target.value as { readonly _tag: PropertyKey },
+      target.values as Readonly<Record<string, unknown>> | undefined
+    )
+  }
+  if (isSnapshot(target)) {
+    return configurationFromSnapshot(machine, target)
+  }
+  const node = findStateNode(machine, target as { readonly _tag: PropertyKey })
+  if (node === undefined) {
+    throw new Error(`StateMachine expected target state "${String((target as any)._tag)}" to match a state node`)
+  }
+  return configurationFromTargetPath(machine, current, node.path, target as { readonly _tag: PropertyKey }, undefined)
 }
 
 const getStateIdentifier = (
   machine: Machine.Any,
   state: Machine.StateLike<any>
-): PropertyKey => isSnapshotFor(machine, state) ? state.path : findStateNode(machine, state)?.path ?? state._tag
+): string => getRootPath(machine, normalizeConfiguration(machine, state))
 
 const getStateConfig = (
   machine: Machine.Any,
@@ -1435,6 +1772,206 @@ const collectTransition = Effect.fnUntraced(function*<
   }
 })
 
+type SelectedTransition<States extends Machine.StateSchemas, E, R, Context> = {
+  readonly sourcePath: string
+  readonly transition: MicrostepTransition<States, E, R, Context>
+  readonly context: Context
+}
+
+const getCandidatePaths = (machine: Machine.Any, configuration: ActiveConfiguration): ReadonlyArray<string> =>
+  getPathToRoot(machine, getLeafPath(machine, configuration)).slice().reverse()
+
+const getLeastCommonAncestor = (
+  machine: Machine.Any,
+  left: string,
+  right: string
+): string | undefined => {
+  const leftPath = getPathToRoot(machine, left)
+  const rightPath = getPathToRoot(machine, right)
+  let ancestor: string | undefined = undefined
+  const length = Math.min(leftPath.length, rightPath.length)
+  for (let index = 0; index < length; index++) {
+    if (leftPath[index] !== rightPath[index]) {
+      break
+    }
+    ancestor = leftPath[index]
+  }
+  return ancestor
+}
+
+const getExitPaths = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  boundary: string | undefined
+): ReadonlyArray<string> =>
+  Array.from(configuration.active)
+    .filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+    .sort((left, right) => {
+      const depth = getPathToRoot(machine, right).length - getPathToRoot(machine, left).length
+      return depth === 0 ? getNode(machine, right).order - getNode(machine, left).order : depth
+    })
+
+const getEntryPaths = (
+  machine: Machine.Any,
+  targetLeaf: string,
+  boundary: string | undefined
+): ReadonlyArray<string> =>
+  getPathToRoot(machine, targetLeaf).filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+
+const makeStateActionContext = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  StateId extends Machine.StateIdentifier<States>
+>(
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.EventOf<Events>
+): Machine.StateActionContext<States, Events, Emits, StateId> => ({
+  state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
+  event,
+  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
+})
+
+const makeTransitionContext = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  StateId extends Machine.StateIdentifier<States>,
+  EventTag extends Machine.TagOf<Events[number]>
+>(
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.EventByTag<Events, EventTag>
+): Machine.HandlerContext<States, Events, Emits, StateId, EventTag, any, any> => ({
+  state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
+  event,
+  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+  target: makeTarget
+})
+
+const collectStateActions = Effect.fnUntraced(function*<
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  E,
+  R
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  paths: ReadonlyArray<string>,
+  event: Machine.EventOf<Events>,
+  key: "entry" | "exit"
+) {
+  const actions: Array<DeferredAction<E, R>> = []
+  const raisedEvents: Array<Machine.EventOf<Events>> = []
+  for (const path of paths) {
+    const collected = yield* collectStateAction<
+      Machine.StateActionContext<States, Events, Emits, Machine.StateIdentifier<States>>,
+      Machine.EventOf<Events>,
+      E,
+      R
+    >(
+      machine.handlers[path]?.[key],
+      makeStateActionContext<States, Events, Emits, Machine.StateIdentifier<States>>(configuration, path, event)
+    )
+    actions.push(...collected.actions)
+    raisedEvents.push(...collected.raisedEvents)
+  }
+  return { actions, raisedEvents }
+})
+
+const selectAlwaysTransition = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  E,
+  R
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.EventOf<Events>
+):
+  | SelectedTransition<
+    States,
+    E,
+    R,
+    Machine.AlwaysContext<States, Events, Emits, Machine.StateIdentifier<States>>
+  >
+  | undefined =>
+{
+  for (const path of getCandidatePaths(machine, configuration)) {
+    const always = machine.handlers[path]?.always
+    if (always !== undefined) {
+      return {
+        sourcePath: path,
+        transition: { reenter: false, transition: always },
+        context: {
+          state: getActiveValue(configuration, path) as Machine.StateByIdentifier<
+            States,
+            Machine.StateIdentifier<States>
+          >,
+          event,
+          runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+          target: makeTarget
+        }
+      }
+    }
+  }
+  return undefined
+}
+
+const selectEventTransition = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  E,
+  R
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+):
+  | SelectedTransition<
+    States,
+    E,
+    R,
+    Machine.HandlerContext<States, Events, Emits, Machine.StateIdentifier<States>, Machine.TagOf<Events[number]>, E, R>
+  >
+  | undefined =>
+{
+  for (const path of getCandidatePaths(machine, configuration)) {
+    const transition = normalizeEventTransition(machine.handlers[path]?.on?.[event._tag])
+    if (transition !== undefined) {
+      return {
+        sourcePath: path,
+        transition: transition as unknown as MicrostepTransition<
+          States,
+          E,
+          R,
+          Machine.HandlerContext<
+            States,
+            Events,
+            Emits,
+            Machine.StateIdentifier<States>,
+            Machine.TagOf<Events[number]>,
+            E,
+            R
+          >
+        >,
+        context: makeTransitionContext<
+          States,
+          Events,
+          Emits,
+          Machine.StateIdentifier<States>,
+          Machine.TagOf<Events[number]>
+        >(configuration, path, event)
+      }
+    }
+  }
+  return undefined
+}
+
 const MaxMacrostepIterations = 1000
 const InitialEventTypeId: unique symbol = Symbol("effect/StateMachine/InitialEvent")
 const InitialEvent = { _tag: InitialEventTypeId }
@@ -1458,9 +1995,9 @@ const isFinalState = (
   machine: Machine.Any,
   state: Machine.StateLike<any>
 ): boolean => {
-  const stateIdentifier = getStateIdentifier(machine, state)
-  return machine.stateNodes.byPath.get(stateIdentifier)?.type === "final" ||
-    machine.handlers[stateIdentifier]?.type === "final"
+  const configuration = normalizeConfiguration(machine, state)
+  const stateIdentifier = getRootPath(machine, configuration)
+  return getNode(machine, stateIdentifier).type === "final" || machine.handlers[stateIdentifier]?.type === "final"
 }
 
 const getFinalOutput = <
@@ -1647,32 +2184,32 @@ export const planInitial: <
   const result = machine.initial(...args)
   const state = Effect.isEffect(result)
     ? yield* (result.pipe(Effect.provideService(DeferredActions, deferredActions)) as Effect.Effect<
-      Machine.StateOf<States>
+      Machine.StateOf<States> | Machine.Snapshot<States>
     >)
     : result
-  const snapshot = normalizeState<States>(machine, state)
+  const configuration = normalizeConfiguration<States>(machine, state)
+  validateInitialConfiguration(machine, configuration)
   const actions = yield* deferredActions.read
   const settled = yield* catchStartup(Effect.gen(function*() {
-    const entry = yield* collectStateAction(
-      getStateConfig(machine, snapshot)?.entry,
-      {
-        state: snapshot.value as Machine.StateByIdentifier<States, UnhandledStates>,
-        event: InitialEvent as Machine.EventOf<Events>,
-        runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
-      }
+    const entry = yield* collectStateActions<States, Events, Emits, never, never>(
+      machine,
+      configuration,
+      getPathToRoot(machine, getLeafPath(machine, configuration)),
+      InitialEvent as Machine.EventOf<Events>,
+      "entry"
     )
     return yield* (settle(
       machine,
-      snapshot,
+      configuration,
       InitialEvent as Machine.EventOf<Events>,
       [...entry.actions] as Array<Effect.Effect<void, never, never>>,
       [...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
       []
-    ) as Effect.Effect<MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, never, never, Output>>)
+    ) as Effect.Effect<MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, never, never, Output>>)
   }))
 
   return {
-    state: settled.next,
+    state: snapshotFromConfiguration<States>(machine, settled.next),
     actions: [
       ...actions,
       ...settled.actions.map((action) => catchStartup(action))
@@ -1697,10 +2234,23 @@ export const enabled = <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
   state: Machine.StateLike<States>
-): ReadonlyArray<Machine.TagOf<Events[number]>> =>
-  isFinalState(machine, state)
-    ? []
-    : Reflect.ownKeys(getStateConfig(machine, state)?.on ?? {}) as Array<Machine.TagOf<Events[number]>>
+): ReadonlyArray<Machine.TagOf<Events[number]>> => {
+  if (isFinalState(machine, state)) {
+    return []
+  }
+  const configuration = normalizeConfiguration(machine, state)
+  const tags: Array<Machine.TagOf<Events[number]>> = []
+  const seen = new Set<PropertyKey>()
+  for (const path of getCandidatePaths(machine, configuration)) {
+    for (const tag of Reflect.ownKeys(machine.handlers[path]?.on ?? {})) {
+      if (!seen.has(tag)) {
+        seen.add(tag)
+        tags.push(tag as Machine.TagOf<Events[number]>)
+      }
+    }
+  }
+  return tags
+}
 
 const microstep: <
   const States extends Machine.StateSchemas,
@@ -1717,12 +2267,11 @@ const microstep: <
   Context = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.Snapshot<States>,
+  state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
-  transition: MicrostepTransition<States, E, R, Context> | undefined,
-  context: Context
+  selection: SelectedTransition<States, E, R, Context> | undefined
 ) => Effect.Effect<
-  MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>,
+  MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError,
   R
 > = Effect.fnUntraced(function*<
@@ -1740,15 +2289,13 @@ const microstep: <
   Context = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.Snapshot<States>,
+  state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
-  transition: MicrostepTransition<States, E, R, Context> | undefined,
-  context: Context
+  selection: SelectedTransition<States, E, R, Context> | undefined
 ) {
-  const stateIdentifier = state.path
-  const stateConfig = machine.handlers[stateIdentifier]
+  const stateIdentifier = getLeafPath(machine, state)
 
-  if (transition === undefined) {
+  if (selection === undefined) {
     return yield* new UnhandledEventError({
       machineId: machine.id,
       state: String(stateIdentifier),
@@ -1757,13 +2304,15 @@ const microstep: <
   }
 
   const transitionResult = yield* collectTransition<States, Machine.EventOf<Events>, E, R, Context>(
-    transition.transition,
-    context
+    selection.transition.transition,
+    selection.context
   )
   const target = transitionResult.state === undefined ? undefined : transitionResult.state
-  const stateAfterTransition = target === undefined ? state : normalizeTarget<States>(machine, target)
-  const targetIdentifier = stateAfterTransition.path
-  if (targetIdentifier === stateIdentifier && !transition.reenter) {
+  const stateAfterTransition = target === undefined
+    ? state
+    : normalizeTargetConfiguration<States>(machine, state, target)
+  const targetIdentifier = getLeafPath(machine, stateAfterTransition)
+  if (targetIdentifier === stateIdentifier && !selection.transition.reenter) {
     return {
       next: stateAfterTransition,
       actions: transitionResult.actions,
@@ -1772,36 +2321,22 @@ const microstep: <
     }
   }
 
-  const exit = yield* collectStateAction<
-    Machine.StateActionContext<States, Events, Emits, UnhandledStates>,
-    Machine.EventOf<
-      Events
-    >,
-    E,
-    R
-  >(
-    stateConfig?.exit,
-    {
-      state: state.value as Machine.StateByIdentifier<States, UnhandledStates>,
-      event,
-      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
-    }
+  const boundary = selection.transition.reenter
+    ? getNode(machine, selection.sourcePath).parent
+    : getLeastCommonAncestor(machine, stateIdentifier, targetIdentifier)
+  const exit = yield* collectStateActions<States, Events, Emits, E, R>(
+    machine,
+    state,
+    getExitPaths(machine, state, boundary),
+    event,
+    "exit"
   )
-
-  const entry = yield* collectStateAction<
-    Machine.StateActionContext<States, Events, Emits, UnhandledStates>,
-    Machine.EventOf<
-      Events
-    >,
-    E,
-    R
-  >(
-    machine.handlers[targetIdentifier]?.entry,
-    {
-      state: stateAfterTransition.value as Machine.StateByIdentifier<States, UnhandledStates>,
-      event,
-      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
-    }
+  const entry = yield* collectStateActions<States, Events, Emits, E, R>(
+    machine,
+    stateAfterTransition,
+    getEntryPaths(machine, targetIdentifier, boundary),
+    event,
+    "entry"
   )
 
   return {
@@ -1830,13 +2365,13 @@ const settle: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.Snapshot<States>,
+  state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
-  microsteps: Array<MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>>
+  microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R, Output>,
+  MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R, Output>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -1853,11 +2388,11 @@ const settle: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.Snapshot<States>,
+  state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
-  microsteps: Array<MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>>
+  microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>
 ) {
   let currentState = state
   let currentEvent = event
@@ -1867,10 +2402,11 @@ const settle: <
   let finalOutput: Output | undefined = undefined
 
   while (true) {
-    if (isFinalState(machine, currentState)) {
+    const currentSnapshot = snapshotFromConfiguration<States>(machine, currentState)
+    if (isFinalState(machine, currentSnapshot)) {
       finalOutput = getFinalOutput<States, Events, Machine.StateIdentifier<States>, Output>(
         machine,
-        currentState as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
+        currentSnapshot as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
         currentEvent
       )
       break
@@ -1880,26 +2416,20 @@ const settle: <
     if (iterations > MaxMacrostepIterations) {
       return yield* new InfiniteTransitionError({
         machineId: machine.id,
-        state: String(currentState.path),
+        state: String(getLeafPath(machine, currentState)),
         maxIterations: MaxMacrostepIterations
       })
     }
 
     const always = shouldRunAlways
-      ? machine.handlers[currentState.path]?.always
+      ? selectAlwaysTransition<States, Events, Emits, E, R>(machine, currentState, currentEvent)
       : undefined
     if (always !== undefined) {
-      const alwaysStep: MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R> = yield* microstep(
+      const alwaysStep: MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R> = yield* microstep(
         machine,
         currentState,
         currentEvent,
-        { reenter: false, transition: always },
-        {
-          state: currentState.value as Machine.StateByIdentifier<States, UnhandledStates>,
-          event: currentEvent,
-          runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-          target: makeTarget
-        }
+        always
       )
       actions.push(...alwaysStep.actions)
       raisedEvents.push(...alwaysStep.raisedEvents)
@@ -1916,18 +2446,15 @@ const settle: <
     raisedEventIndex += 1
 
     currentEvent = raisedEvent
-    const raisedStateConfig = machine.handlers[currentState.path]
     const raisedStep = yield* microstep(
       machine,
       currentState,
       raisedEvent,
-      normalizeEventTransition(raisedStateConfig?.on?.[raisedEvent._tag]),
-      {
-        state: currentState.value as Machine.StateByIdentifier<States, UnhandledStates>,
-        event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
-        runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-        target: makeTarget
-      }
+      selectEventTransition<States, Events, Emits, E, R>(
+        machine,
+        currentState,
+        raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+      )
     )
     actions.push(...raisedStep.actions)
     raisedEvents.push(...raisedStep.raisedEvents)
@@ -1981,7 +2508,8 @@ const macrostep: <
   state: Machine.StateLike<States>,
   event: Machine.EventOf<Events>
 ) {
-  const snapshot = normalizeState<States>(machine, state)
+  const configuration = normalizeConfiguration<States>(machine, state)
+  const snapshot = snapshotFromConfiguration<States>(machine, configuration)
   if (isFinalState(machine, snapshot)) {
     return {
       next: snapshot,
@@ -1991,23 +2519,31 @@ const macrostep: <
     }
   }
 
-  const stateConfig = getStateConfig(machine, snapshot)
   const step = yield* microstep(
     machine,
-    snapshot,
+    configuration,
     event,
-    normalizeEventTransition(stateConfig?.on?.[event._tag]),
-    {
-      state: snapshot.value as Machine.StateByIdentifier<States, UnhandledStates>,
-      event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
-      runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-      target: makeTarget
-    }
+    selectEventTransition<States, Events, Emits, E, R>(
+      machine,
+      configuration,
+      event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
+    )
   )
   const actions = [...step.actions]
   const raisedEvents = [...step.raisedEvents]
   const microsteps = [step]
-  return yield* settle(machine, step.next, event, actions, raisedEvents, microsteps)
+  const settled = yield* settle(machine, step.next, event, actions, raisedEvents, microsteps)
+  return {
+    next: snapshotFromConfiguration<States>(machine, settled.next),
+    actions: settled.actions,
+    microsteps: settled.microsteps.map((step) => ({
+      next: snapshotFromConfiguration<States>(machine, step.next),
+      actions: step.actions,
+      raisedEvents: step.raisedEvents,
+      changed: step.changed
+    })),
+    output: settled.output
+  }
 })
 
 /**

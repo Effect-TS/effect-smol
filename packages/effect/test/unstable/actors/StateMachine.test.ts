@@ -74,6 +74,17 @@ const assertStateSnapshot = <Path extends string, Value>(
   assert.deepStrictEqual(actual.value, value)
 }
 
+const assertCompoundStateSnapshot = <Path extends string, Value, Child>(
+  actual: StateMachine.Machine.CompoundSnapshot<Path, Value, Child>,
+  path: Path,
+  value: Value,
+  state: Child
+) => {
+  assert.strictEqual(actual.path, path)
+  assert.deepStrictEqual(actual.value, value)
+  assert.deepStrictEqual(actual.state, state)
+}
+
 describe("StateMachine", () => {
   const Input = Schema.Struct({
     userId: Schema.String
@@ -96,6 +107,18 @@ describe("StateMachine", () => {
 
   class Duplicate extends Schema.TaggedClass<Duplicate>("Duplicate")("Duplicate", {
     value: Schema.String
+  }) {}
+
+  class Payment extends Schema.TaggedClass<Payment>("Payment")("Payment", {
+    id: Schema.String
+  }) {}
+
+  class EnteringPayment extends Schema.TaggedClass<EnteringPayment>("EnteringPayment")("EnteringPayment", {
+    amount: Schema.Number
+  }) {}
+
+  class AuthorizedPayment extends Schema.TaggedClass<AuthorizedPayment>("AuthorizedPayment")("AuthorizedPayment", {
+    code: Schema.String
   }) {}
 
   class Submit extends Schema.TaggedClass<Submit>("Submit")("Submit", {
@@ -126,6 +149,9 @@ describe("StateMachine", () => {
 
   class Reset extends Schema.TaggedClass<Reset>("Reset")("Reset", {}) {}
   class Resolve extends Schema.TaggedClass<Resolve>("Resolve")("Resolve", {}) {}
+  class Authorize extends Schema.TaggedClass<Authorize>("Authorize")("Authorize", {
+    code: Schema.String
+  }) {}
   class ChildPing extends Data.TaggedClass("ChildPing")<{
     readonly reply: Deferred.Deferred<void>
   }> {}
@@ -287,25 +313,345 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(StateMachine.enabled(machine, planned.next), [])
     }))
 
-  it("rejects nested object state configs until compound state support lands", () => {
-    assert.throws(
-      () =>
-        StateMachine.make({
-          states: {
-            parent: {
-              schema: Idle,
-              initial: "child",
-              states: {
-                child: Loading
+  it.effect("expands compound initial states and enters parent before child", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const initialPayment = new Payment({ id: "payment-1" })
+      const initialEntering = new EnteringPayment({ amount: 100 })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: {
+                schema: AuthorizedPayment,
+                type: "final"
               }
-            } as any
+            }
+          }
+        },
+        events: [Authorize],
+        initial: () => ({
+          path: "payment",
+          value: initialPayment,
+          state: {
+            path: "payment.entering" as const,
+            value: initialEntering
+          }
+        })
+      })
+        .handle("payment", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:payment"))
+          })
+        })
+        .handle("payment.entering", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:entering"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assertCompoundStateSnapshot(yield* actor.state, "payment", initialPayment, {
+        path: "payment.entering" as const,
+        value: initialEntering
+      })
+      assert.deepStrictEqual(yield* deferredLog.read, ["entry:payment", "entry:entering"])
+    }))
+
+  it.effect("selects child handlers before ancestor handlers", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const entering = new EnteringPayment({ amount: 100 })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
           },
-          events: [Submit],
-          initial: () => new Idle({ userId: "user-1" })
-        }),
-      /flat object state trees/
-    )
-  })
+          failed: Failed
+        },
+        events: [Authorize],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: entering
+          }
+        })
+      })
+        .handle("payment", {
+          on: {
+            Authorize: ({ target }) => target("failed", new Failed({ message: "parent" }))
+          }
+        })
+        .handle("payment.entering", {
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
+
+      assertCompoundStateSnapshot(planned.next as any, "payment", payment, {
+        path: "payment.authorized" as const,
+        value: new AuthorizedPayment({ code: "auth-1" })
+      })
+    }))
+
+  it.effect("lets ancestor handlers catch events from active descendants", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const entering = new EnteringPayment({ amount: 100 })
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
+          }
+        },
+        events: [Reset],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: entering
+          }
+        })
+      }).handle("payment", {
+        on: {
+          Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      assert.deepStrictEqual(StateMachine.enabled(machine, initial.state), ["Reset"])
+
+      const planned = yield* StateMachine.plan(machine, initial.state, new Reset({}))
+
+      assertStateSnapshot(planned.next as any, "idle", new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("runs compound exits deepest-first and entries parent-first", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
+          }
+        },
+        events: [Reset],
+        initial: () => ({
+          path: "payment",
+          value: new Payment({ id: "payment-1" }),
+          state: {
+            path: "payment.entering" as const,
+            value: new EnteringPayment({ amount: 100 })
+          }
+        })
+      })
+        .handle("idle", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:idle"))
+          })
+        })
+        .handle("payment", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:payment"))
+          }),
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit:payment"))
+          }),
+          on: {
+            Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+          }
+        })
+        .handle("payment.entering", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:entering"))
+          }),
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit:entering"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      yield* sendAndWaitForSnapshot(
+        actor,
+        new Reset({}),
+        (snapshot) => snapshot.status === "active" && snapshot.state.path === "idle"
+      )
+      yield* Effect.yieldNow
+
+      assert.deepStrictEqual(yield* deferredLog.read, [
+        "entry:payment",
+        "entry:entering",
+        "exit:entering",
+        "exit:payment",
+        "entry:idle"
+      ])
+    }))
+
+  it.effect("preserves parent values for same-parent child transitions", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const payment = new Payment({ id: "payment-1" })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
+          }
+        },
+        events: [Authorize],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: new EnteringPayment({ amount: 100 })
+          }
+        })
+      })
+        .handle("payment", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:payment"))
+          }),
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit:payment"))
+          })
+        })
+        .handle("payment.entering", {
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("exit:entering"))
+          }),
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+        .handle("payment.authorized", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:authorized"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Authorize({ code: "auth-1" }),
+        (snapshot) => {
+          const state = snapshot.state as any
+          return snapshot.status === "active" && state.path === "payment" && state.state.path === "payment.authorized"
+        }
+      )
+      yield* Effect.yieldNow
+
+      assert.strictEqual(snapshot.status, "active")
+      assertCompoundStateSnapshot(snapshot.state as any, "payment", payment, {
+        path: "payment.authorized" as const,
+        value: new AuthorizedPayment({ code: "auth-1" })
+      })
+      assert.deepStrictEqual(yield* deferredLog.read, [
+        "entry:payment",
+        "exit:entering",
+        "entry:authorized"
+      ])
+    }))
+
+  it.effect("uses explicit ancestor values when targeting a nested state from outside", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: AuthorizedPayment
+            }
+          }
+        },
+        events: [Submit],
+        initial: () => new Idle({ userId: "user-1" })
+      })
+        .handle("idle", {
+          on: {
+            Submit: ({ event, target }) =>
+              target("payment.entering", new EnteringPayment({ amount: event.value.length }), {
+                values: {
+                  payment: new Payment({ id: event.value })
+                }
+              })
+          }
+        })
+        .handle("payment", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:payment"))
+          })
+        })
+        .handle("payment.entering", {
+          entry: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* StateMachine.action(deferredLog.push("entry:entering"))
+          })
+        })
+
+      const actor = yield* StateMachine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
+      const snapshot = yield* sendAndWaitForSnapshot(
+        actor,
+        new Submit({ value: "payment-1" }),
+        (snapshot) => snapshot.status === "active" && snapshot.state.path === "payment"
+      )
+      yield* Effect.yieldNow
+
+      assert.strictEqual(snapshot.status, "active")
+      assertCompoundStateSnapshot(snapshot.state as any, "payment", new Payment({ id: "payment-1" }), {
+        path: "payment.entering" as const,
+        value: new EnteringPayment({ amount: "payment-1".length })
+      })
+      assert.deepStrictEqual(yield* deferredLog.read, ["entry:payment", "entry:entering"])
+    }))
 
   it.effect("starts a machine without input", () =>
     Effect.gen(function*() {
