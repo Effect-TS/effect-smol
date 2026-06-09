@@ -323,12 +323,24 @@ export declare namespace Machine {
   }
 
   /**
+   * Configuration accepted for a parallel object state node.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface ParallelStateNodeConfig {
+    readonly schema: TaggedSchema
+    readonly type: "parallel"
+    readonly states: StateTree
+  }
+
+  /**
    * Configuration accepted for an object state node.
    *
    * @category models
    * @since 4.0.0
    */
-  export type StateNodeConfig = AtomicStateNodeConfig | CompoundStateNodeConfig
+  export type StateNodeConfig = AtomicStateNodeConfig | CompoundStateNodeConfig | ParallelStateNodeConfig
 
   /**
    * Object state tree keyed by state path.
@@ -357,7 +369,7 @@ export declare namespace Machine {
     readonly key: string
     readonly tag: PropertyKey
     readonly schema: TaggedSchema
-    readonly type: "atomic" | "compound" | "final"
+    readonly type: "atomic" | "compound" | "parallel" | "final"
     readonly parent: string | undefined
     readonly children: ReadonlyArray<string>
     readonly initial: string | undefined
@@ -545,6 +557,19 @@ export declare namespace Machine {
   }
 
   /**
+   * Parallel statechart snapshot carrying parent value plus one active snapshot
+   * per child region.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface ParallelSnapshot<Path extends string, Value, Regions> {
+    readonly path: Path
+    readonly value: Value
+    readonly states: Regions
+  }
+
+  /**
    * Extracts the snapshot value represented by a state definition by
    * identifier.
    *
@@ -554,12 +579,20 @@ export declare namespace Machine {
   export type SnapshotByIdentifier<
     States extends StateSchemas,
     StateId extends StateIdentifier<States>
-  > = NodeByIdentifier<States, StateId> extends { readonly states: infer Children }
-    ? Children extends StateSchemas ? CompoundSnapshot<
-        StateId,
-        StateByIdentifier<States, StateId>,
-        SnapshotWithPrefix<Children, StateId>
-      >
+  > = NodeByIdentifier<States, StateId> extends infer Node
+    ? Node extends { readonly type: "parallel"; readonly states: infer Children }
+      ? Children extends StateSchemas ? ParallelSnapshot<
+          StateId,
+          StateByIdentifier<States, StateId>,
+          SnapshotRegionsWithPrefix<Children, StateId>
+        >
+      : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
+    : Node extends { readonly states: infer Children } ? Children extends StateSchemas ? CompoundSnapshot<
+          StateId,
+          StateByIdentifier<States, StateId>,
+          SnapshotWithPrefix<Children, StateId>
+        >
+      : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
     : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
     : AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
 
@@ -577,6 +610,20 @@ export declare namespace Machine {
   }[Extract<keyof States, string>]
 
   /**
+   * Extracts child snapshots under a parallel parent path prefix, keyed by
+   * child region.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotRegionsWithPrefix<
+    States extends StateSchemas,
+    Prefix extends string
+  > = {
+    readonly [Key in Extract<keyof States, string>]: SnapshotByIdentifierWithPath<States, Key, JoinPath<Prefix, Key>>
+  }
+
+  /**
    * Extracts a snapshot for a state node while preserving its full path.
    *
    * @category utility types
@@ -586,12 +633,19 @@ export declare namespace Machine {
     States extends StateSchemas,
     StateId extends Extract<keyof States, string>,
     Path extends string
-  > = States[StateId] extends { readonly states: infer Children } ? Children extends StateSchemas ? CompoundSnapshot<
+  > = States[StateId] extends { readonly type: "parallel"; readonly states: infer Children }
+    ? Children extends StateSchemas ? ParallelSnapshot<
         Path,
         NodeSchema<States[StateId]>["Type"],
-        SnapshotWithPrefix<Children, Path>
+        SnapshotRegionsWithPrefix<Children, Path>
       >
     : AtomicSnapshot<Path, NodeSchema<States[StateId]>["Type"]>
+    : States[StateId] extends { readonly states: infer Children } ? Children extends StateSchemas ? CompoundSnapshot<
+          Path,
+          NodeSchema<States[StateId]>["Type"],
+          SnapshotWithPrefix<Children, Path>
+        >
+      : AtomicSnapshot<Path, NodeSchema<States[StateId]>["Type"]>
     : AtomicSnapshot<Path, NodeSchema<States[StateId]>["Type"]>
 
   /**
@@ -1245,22 +1299,30 @@ const getStateNodeDefinition = (
   definition: Machine.TaggedSchema | Machine.StateNodeConfig
 ): {
   readonly schema: Machine.TaggedSchema
-  readonly type: "atomic" | "compound" | "final"
+  readonly type: "atomic" | "compound" | "parallel" | "final"
   readonly initial: string | undefined
   readonly states: Machine.StateTree | undefined
 } => {
   if (Schema.isSchema(definition)) {
     return { schema: definition as Machine.TaggedSchema, type: "atomic", initial: undefined, states: undefined }
   }
-  if (hasProperty(definition, "type") && (definition as any).type === "parallel") {
-    throw new Error(`StateMachine.make does not support parallel state "${path}" yet`)
-  }
   if (!hasProperty(definition, "schema") || !Schema.isSchema(definition.schema)) {
     throw new Error(`StateMachine.make expected state "${path}" to be a tagged schema or state node config`)
+  }
+  if ((definition as any).type === "parallel" && !hasProperty(definition, "states")) {
+    throw new Error(`StateMachine.make expected parallel state "${path}" to declare child regions`)
   }
   if (hasProperty(definition, "states")) {
     if ((definition as any).type === "final") {
       throw new Error(`StateMachine.make expected compound state "${path}" to be active`)
+    }
+    if ((definition as any).type === "parallel") {
+      return {
+        schema: definition.schema as Machine.TaggedSchema,
+        type: "parallel",
+        initial: undefined,
+        states: (definition as any).states as Machine.StateTree
+      }
     }
     if (typeof (definition as any).initial !== "string") {
       throw new Error(`StateMachine.make expected compound state "${path}" to declare an initial child`)
@@ -1305,7 +1367,7 @@ const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNodes => 
       order += 1
       if (definition.states !== undefined) {
         const children = compile(definition.states, path)
-        if (node.initial === undefined || !children.includes(node.initial)) {
+        if (node.type === "compound" && (node.initial === undefined || !children.includes(node.initial))) {
           throw new Error(`StateMachine.make expected compound state "${path}" initial child to exist`)
         }
         ;(node as { children: ReadonlyArray<string> }).children = children
@@ -1368,6 +1430,8 @@ const hasOwn = (u: object, key: string): boolean => Object.prototype.hasOwnPrope
 
 const isDescendantOf = (path: string, ancestor: string): boolean => path.startsWith(`${ancestor}.`)
 
+const isPathInSubtree = (path: string, ancestor: string): boolean => path === ancestor || isDescendantOf(path, ancestor)
+
 const getPathToRoot = (machine: Machine.Any, path: string): ReadonlyArray<string> => {
   const paths: Array<string> = []
   let current: string | undefined = path
@@ -1378,18 +1442,41 @@ const getPathToRoot = (machine: Machine.Any, path: string): ReadonlyArray<string
   return paths
 }
 
-const getLeafPath = (machine: Machine.Any, configuration: ActiveConfiguration): string => {
-  let leaf: string | undefined
-  for (const path of configuration.active) {
-    const hasActiveChild = getNode(machine, path).children.some((child) => configuration.active.has(child))
-    if (!hasActiveChild && (leaf === undefined || getNode(machine, path).order > getNode(machine, leaf).order)) {
-      leaf = path
-    }
-  }
-  if (leaf === undefined) {
+const pathDepth = (machine: Machine.Any, path: string): number => getPathToRoot(machine, path).length
+
+const compareDocumentOrder = (machine: Machine.Any, left: string, right: string): number =>
+  getNode(machine, left).order - getNode(machine, right).order
+
+const hasActiveChild = (machine: Machine.Any, configuration: ActiveConfiguration, path: string): boolean =>
+  getNode(machine, path).children.some((child) => configuration.active.has(child))
+
+const getActiveLeafPaths = (machine: Machine.Any, configuration: ActiveConfiguration): ReadonlyArray<string> => {
+  const leaves = Array.from(configuration.active)
+    .filter((path) => !hasActiveChild(machine, configuration, path))
+    .sort((left, right) => compareDocumentOrder(machine, left, right))
+  if (leaves.length === 0) {
     throw new Error("StateMachine expected an active leaf state")
   }
-  return leaf
+  return leaves
+}
+
+const getLeafPath = (machine: Machine.Any, configuration: ActiveConfiguration): string =>
+  getActiveLeafPaths(
+    machine,
+    configuration
+  )[0]
+
+const getActiveLeafPathFrom = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string
+): string => {
+  const leaves = getActiveLeafPaths(machine, configuration)
+    .filter((leaf) => isPathInSubtree(leaf, path))
+  if (leaves.length === 0) {
+    throw new Error(`StateMachine expected state "${path}" to have an active leaf state`)
+  }
+  return leaves[0]
 }
 
 const getRootPath = (machine: Machine.Any, configuration: ActiveConfiguration): string => {
@@ -1408,6 +1495,23 @@ const getActiveValue = (configuration: ActiveConfiguration, path: string): unkno
   return configuration.values.get(path)
 }
 
+const getInitialEntryPaths = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration
+): ReadonlyArray<string> => {
+  const visit = (path: string): ReadonlyArray<string> => {
+    if (!configuration.active.has(path)) {
+      return []
+    }
+    const node = getNode(machine, path)
+    return [
+      path,
+      ...node.children.flatMap(visit)
+    ]
+  }
+  return machine.stateNodes.roots.flatMap(visit)
+}
+
 const snapshotFromPath = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   configuration: ActiveConfiguration,
@@ -1424,6 +1528,17 @@ const snapshotFromPath = <const States extends Machine.StateSchemas>(
       throw new Error(`StateMachine expected compound state "${path}" to have an active child`)
     }
     snapshot.state = snapshotFromPath(machine, configuration, child)
+  }
+  if (node.type === "parallel") {
+    const states: Record<string, unknown> = {}
+    for (const child of node.children) {
+      if (!configuration.active.has(child)) {
+        throw new Error(`StateMachine expected parallel state "${path}" to have active child region "${child}"`)
+      }
+      const childNode = getNode(machine, child)
+      states[childNode.key] = snapshotFromPath(machine, configuration, child)
+    }
+    snapshot.states = states
   }
   return snapshot as unknown as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>
 }
@@ -1458,6 +1573,24 @@ const configurationFromSnapshot = (
       }
       visit(current.state)
     }
+    if (node.type === "parallel") {
+      if (!hasProperty(current, "states") || typeof current.states !== "object" || current.states === null) {
+        throw new Error(`StateMachine expected parallel snapshot "${node.path}" to include active child regions`)
+      }
+      const states = current.states as Readonly<Record<string, unknown>>
+      for (const childPath of node.children) {
+        const child = getNode(machine, childPath)
+        const childSnapshot = states[child.key]
+        if (!hasOwn(states, child.key) || !isSnapshot(childSnapshot)) {
+          throw new Error(`StateMachine expected parallel snapshot "${node.path}" to include region "${child.key}"`)
+        }
+        const snapshotChild = getNode(machine, String(childSnapshot.path))
+        if (snapshotChild.path !== child.path) {
+          throw new Error(`StateMachine expected snapshot "${snapshotChild.path}" to be region "${child.path}"`)
+        }
+        visit(childSnapshot)
+      }
+    }
   }
 
   visit(snapshot)
@@ -1472,7 +1605,7 @@ const configurationFromValue = (
   if (node === undefined) {
     throw new Error(`StateMachine expected state "${String(value._tag)}" to match a state node`)
   }
-  if (node.parent !== undefined || node.type === "compound") {
+  if (node.parent !== undefined || node.type === "compound" || node.type === "parallel") {
     throw new Error(`StateMachine expected state "${node.path}" to be provided as a snapshot with ancestor values`)
   }
   return {
@@ -1500,6 +1633,13 @@ const validateInitialConfiguration = (machine: Machine.Any, configuration: Activ
         throw new Error(`StateMachine initial state "${node.path}" must enter initial child "${node.initial}"`)
       }
     }
+    if (node.type === "parallel") {
+      for (const child of node.children) {
+        if (!configuration.active.has(child)) {
+          throw new Error(`StateMachine initial state "${node.path}" must enter child region "${child}"`)
+        }
+      }
+    }
   }
 }
 
@@ -1514,6 +1654,7 @@ const configurationFromTargetPath = (
   const active = new Set<string>()
   const values = new Map<string, unknown>()
   const paths = getPathToRoot(machine, node.path)
+  const pathSet = new Set(paths)
 
   for (const currentPath of paths) {
     active.add(currentPath)
@@ -1528,7 +1669,26 @@ const configurationFromTargetPath = (
     }
   }
 
-  if (node.type === "compound") {
+  for (const ancestor of paths) {
+    const ancestorNode = getNode(machine, ancestor)
+    if (ancestorNode.type === "parallel") {
+      for (const child of ancestorNode.children) {
+        if (pathSet.has(child) || !current.active.has(child)) {
+          continue
+        }
+        for (const activePath of current.active) {
+          if (isPathInSubtree(activePath, child)) {
+            active.add(activePath)
+            if (current.values.has(activePath)) {
+              values.set(activePath, current.values.get(activePath))
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (node.type === "compound" || node.type === "parallel") {
     throw new Error(`StateMachine target "${node.path}" must include an active child state`)
   }
 
@@ -1843,7 +2003,11 @@ type SelectedTransition<States extends Machine.StateSchemas, E, R, Context> = {
 }
 
 const getCandidatePaths = (machine: Machine.Any, configuration: ActiveConfiguration): ReadonlyArray<string> =>
-  getPathToRoot(machine, getLeafPath(machine, configuration)).slice().reverse()
+  Array.from(configuration.active)
+    .sort((left, right) => {
+      const depth = pathDepth(machine, right) - pathDepth(machine, left)
+      return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
+    })
 
 const getLeastCommonAncestor = (
   machine: Machine.Any,
@@ -2034,6 +2198,23 @@ const selectEventTransition = <
     }
   }
   return undefined
+}
+
+const getTargetNodePath = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  target: Machine.StateOf<States> | Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+): string => {
+  if (isTarget(target)) {
+    return String(target.path)
+  }
+  if (isSnapshot(target)) {
+    return String(target.path)
+  }
+  const node = findStateNode(machine, target as { readonly _tag: PropertyKey })
+  if (node === undefined) {
+    throw new Error(`StateMachine expected target state "${String((target as any)._tag)}" to match a state node`)
+  }
+  return node.path
 }
 
 const MaxMacrostepIterations = 1000
@@ -2276,7 +2457,7 @@ export const planInitial: <
     const entry = yield* collectStateActions<States, Events, Emits, never, never>(
       machine,
       configuration,
-      getPathToRoot(machine, getLeafPath(machine, configuration)),
+      getInitialEntryPaths(machine, configuration),
       InitialEvent as Machine.EventOf<Events>,
       "entry"
     )
@@ -2375,7 +2556,9 @@ const microstep: <
   event: Machine.EventOf<Events>,
   selection: SelectedTransition<States, E, R, Context> | undefined
 ) {
-  const stateIdentifier = getLeafPath(machine, state)
+  const stateIdentifier = selection === undefined
+    ? getLeafPath(machine, state)
+    : getActiveLeafPathFrom(machine, state, selection.sourcePath)
 
   if (selection === undefined) {
     return yield* new UnhandledEventError({
@@ -2390,10 +2573,13 @@ const microstep: <
     selection.context
   )
   const target = transitionResult.state === undefined ? undefined : transitionResult.state
+  const targetPath = target === undefined ? undefined : getTargetNodePath(machine, target)
   const stateAfterTransition = target === undefined
     ? state
     : normalizeTargetConfiguration<States>(machine, state, target)
-  const targetIdentifier = getLeafPath(machine, stateAfterTransition)
+  const targetIdentifier = targetPath === undefined
+    ? stateIdentifier
+    : getActiveLeafPathFrom(machine, stateAfterTransition, targetPath)
   if (targetIdentifier === stateIdentifier && !selection.transition.reenter) {
     return {
       next: stateAfterTransition,
