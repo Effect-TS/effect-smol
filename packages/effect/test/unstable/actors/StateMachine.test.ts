@@ -1121,6 +1121,358 @@ describe("StateMachine", () => {
       assert.strictEqual(StateMachine.isFinal(machine, planned.next), false)
     }))
 
+  it.effect("completes a parallel parent when every region is final and aggregates region outputs", () =>
+    Effect.gen(function*() {
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const checking = new CheckingInventory({ sku: "sku-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: {
+          fulfillment: {
+            schema: Fulfillment,
+            type: "parallel",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory,
+                  reserved: {
+                    schema: InventoryReserved,
+                    type: "final"
+                  }
+                }
+              },
+              shipping: {
+                schema: Shipping,
+                initial: "quoting",
+                states: {
+                  quoting: QuotingShipping,
+                  quoted: {
+                    schema: ShippingQuoted,
+                    type: "final"
+                  }
+                }
+              }
+            }
+          }
+        },
+        events: [ReserveInventory],
+        initial: () => ({
+          path: "fulfillment",
+          value: fulfillment,
+          states: {
+            inventory: {
+              path: "fulfillment.inventory" as const,
+              value: inventory,
+              state: {
+                path: "fulfillment.inventory.checking" as const,
+                value: checking
+              }
+            },
+            shipping: {
+              path: "fulfillment.shipping" as const,
+              value: shipping,
+              state: {
+                path: "fulfillment.shipping.quoting" as const,
+                value: quoting
+              }
+            }
+          }
+        })
+      })
+        .handle("fulfillment", {
+          output: ({ outputs }) => ({
+            inventory: outputs.inventory,
+            shipping: outputs.shipping
+          })
+        })
+        .handle("fulfillment.inventory.checking", {
+          on: {
+            ReserveInventory: ({ event, target }) =>
+              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+          }
+        })
+        .handle("fulfillment.inventory.reserved", {
+          type: "final",
+          output: ({ state }) => state.reservationId
+        })
+        .handle("fulfillment.shipping.quoting", {
+          on: {
+            ReserveInventory: ({ event, target }) =>
+              target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+          }
+        })
+        .handle("fulfillment.shipping.quoted", {
+          type: "final",
+          output: ({ state }) => state.quoteId
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: inventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoted",
+            value: new ShippingQuoted({ quoteId: "res-1" })
+          }
+        }
+      })
+      assert.strictEqual(StateMachine.isFinal(machine, planned.next), true)
+      assert.deepStrictEqual(StateMachine.enabled(machine, planned.next), [])
+      assert.deepStrictEqual(planned.output, {
+        inventory: "res-1",
+        shipping: "res-1"
+      })
+
+      const actor = yield* StateMachine.start(machine)
+      yield* actor.send(new ReserveInventory({ reservationId: "res-2" }))
+
+      assert.deepStrictEqual(yield* actor.join, {
+        inventory: "res-2",
+        shipping: "res-2"
+      })
+    }))
+
+  it.effect("preserves completed parallel region outputs across separate events", () =>
+    Effect.gen(function*() {
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: {
+          fulfillment: {
+            schema: Fulfillment,
+            type: "parallel",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory,
+                  reserved: {
+                    schema: InventoryReserved,
+                    type: "final"
+                  }
+                }
+              },
+              shipping: {
+                schema: Shipping,
+                initial: "quoting",
+                states: {
+                  quoting: QuotingShipping,
+                  quoted: {
+                    schema: ShippingQuoted,
+                    type: "final"
+                  }
+                }
+              }
+            }
+          }
+        },
+        events: [ReserveInventory, Resolve],
+        initial: () => ({
+          path: "fulfillment",
+          value: fulfillment,
+          states: {
+            inventory: {
+              path: "fulfillment.inventory" as const,
+              value: inventory,
+              state: {
+                path: "fulfillment.inventory.checking" as const,
+                value: new CheckingInventory({ sku: "sku-1" })
+              }
+            },
+            shipping: {
+              path: "fulfillment.shipping" as const,
+              value: shipping,
+              state: {
+                path: "fulfillment.shipping.quoting" as const,
+                value: quoting
+              }
+            }
+          }
+        })
+      })
+        .handle("fulfillment", {
+          output: ({ outputs }) => outputs
+        })
+        .handle("fulfillment.inventory.checking", {
+          on: {
+            ReserveInventory: ({ event, target }) =>
+              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+          }
+        })
+        .handle("fulfillment.inventory.reserved", {
+          type: "final",
+          output: ({ event, state }) => `${state.reservationId}:${String(event._tag)}`
+        })
+        .handle("fulfillment.shipping.quoting", {
+          on: {
+            Resolve: ({ target }) => target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: "quote-1" }))
+          }
+        })
+        .handle("fulfillment.shipping.quoted", {
+          type: "final",
+          output: ({ event, state }) => `${state.quoteId}:${String(event._tag)}`
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const reserved = yield* StateMachine.plan(
+        machine,
+        initial.state,
+        new ReserveInventory({ reservationId: "res-1" })
+      )
+      const quoted = yield* StateMachine.plan(machine, reserved.next, new Resolve({}))
+
+      assert.strictEqual(StateMachine.isFinal(machine, reserved.next), false)
+      assert.strictEqual(reserved.output, undefined)
+      assert.strictEqual(StateMachine.isFinal(machine, quoted.next), true)
+      assert.deepStrictEqual(quoted.output, {
+        inventory: "res-1:ReserveInventory",
+        shipping: "quote-1:Resolve"
+      })
+
+      const actor = yield* StateMachine.start(machine)
+      yield* sendAndWaitForSnapshot(
+        actor,
+        new ReserveInventory({ reservationId: "res-2" }),
+        (snapshot) =>
+          snapshot.status === "active" &&
+          snapshot.state.path === "fulfillment" &&
+          snapshot.state.states.inventory.state.path === "fulfillment.inventory.reserved"
+      )
+      yield* actor.send(new Resolve({}))
+
+      assert.deepStrictEqual(yield* actor.join, {
+        inventory: "res-2:ReserveInventory",
+        shipping: "quote-1:Resolve"
+      })
+    }))
+
+  it.effect("does not process raised events after parallel final completion", () =>
+    Effect.gen(function*() {
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const checking = new CheckingInventory({ sku: "sku-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: {
+          fulfillment: {
+            schema: Fulfillment,
+            type: "parallel",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory,
+                  reserved: {
+                    schema: InventoryReserved,
+                    type: "final"
+                  }
+                }
+              },
+              shipping: {
+                schema: Shipping,
+                initial: "quoting",
+                states: {
+                  quoting: QuotingShipping,
+                  quoted: {
+                    schema: ShippingQuoted,
+                    type: "final"
+                  }
+                }
+              }
+            }
+          },
+          failed: Failed
+        },
+        events: [ReserveInventory, Reset],
+        initial: () => ({
+          path: "fulfillment",
+          value: fulfillment,
+          states: {
+            inventory: {
+              path: "fulfillment.inventory" as const,
+              value: inventory,
+              state: {
+                path: "fulfillment.inventory.checking" as const,
+                value: checking
+              }
+            },
+            shipping: {
+              path: "fulfillment.shipping" as const,
+              value: shipping,
+              state: {
+                path: "fulfillment.shipping.quoting" as const,
+                value: quoting
+              }
+            }
+          }
+        })
+      })
+        .handle("fulfillment", {
+          on: {
+            Reset: ({ target }) => target("failed", new Failed({ message: "raised" }))
+          }
+        })
+        .handle("fulfillment.inventory.checking", {
+          on: {
+            ReserveInventory: ({ event, target }) =>
+              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+          }
+        })
+        .handle("fulfillment.shipping.quoting", {
+          on: {
+            ReserveInventory: ({ event, target }) =>
+              target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+          }
+        })
+        .handle("fulfillment.shipping.quoted", {
+          type: "final",
+          entry: ({ runtime }) => Effect.flatMap(runtime, (stateMachine) => stateMachine.raise(new Reset({})))
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assert.strictEqual(StateMachine.isFinal(machine, planned.next), true)
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: inventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoted",
+            value: new ShippingQuoted({ quoteId: "res-1" })
+          }
+        }
+      })
+    }))
+
   it.effect("transitions all matching parallel regions for the same event", () =>
     Effect.gen(function*() {
       const fulfillment = new Fulfillment({ id: "fulfillment-1" })

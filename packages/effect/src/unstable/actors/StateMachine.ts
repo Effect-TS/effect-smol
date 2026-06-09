@@ -38,6 +38,7 @@ export type TypeId = "~effect/StateMachine"
 export const TypeId: TypeId = "~effect/StateMachine"
 
 const TargetTypeId = "~effect/StateMachine/Target"
+const CompletedOutputsTypeId: unique symbol = Symbol("effect/StateMachine/CompletedOutputs")
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
 
@@ -869,6 +870,37 @@ export declare namespace Machine {
   }
 
   /**
+   * Extracts region outputs for a completed parallel state.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ParallelOutputRegions<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends
+    { readonly type: "parallel"; readonly states: infer Children extends StateSchemas } ? {
+      readonly [Key in Extract<keyof Children, string>]: unknown
+    }
+    : never
+
+  /**
+   * Context passed to a parallel state output function.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface ParallelOutputContext<
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateId extends StateIdentifier<States>
+  > {
+    readonly state: StateByIdentifier<States, StateId>
+    readonly event: EventOf<Events>
+    readonly outputs: ParallelOutputRegions<States, StateId>
+  }
+
+  /**
    * Return value accepted from entry and exit state actions.
    *
    * @category utility types
@@ -1101,7 +1133,10 @@ export declare namespace Machine {
       | InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>
       | ReadonlyArray<InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, Emits, StateId>) => HandlerResult<States, any, any>
-    readonly output?: never
+    readonly output?: NodeByIdentifier<States, StateId> extends { readonly type: "parallel" } ? (
+        context: ParallelOutputContext<States, Events, StateId>
+      ) => any
+      : never
     readonly on?: {
       readonly [EventTag in TagOf<Events[number]>]?:
         | ((
@@ -1255,7 +1290,9 @@ export declare namespace Machine {
       | InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>
       | ReadonlyArray<InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, Emits, StateId>) => HandlerResult<States, E, R>
-    readonly output?: (context: FinalOutputContext<States, Events, StateId>) => any
+    readonly output?:
+      | ((context: FinalOutputContext<States, Events, StateId>) => any)
+      | ((context: ParallelOutputContext<States, Events, StateId>) => any)
     readonly on?: EventHandlerMap<States, Events, Emits, StateId, EventTag, E, R>
   }
 
@@ -1416,6 +1453,16 @@ const findStateNode = (
 interface ActiveConfiguration {
   readonly active: ReadonlySet<string>
   readonly values: ReadonlyMap<string, unknown>
+  readonly outputs: ReadonlyMap<string, unknown>
+}
+
+type SnapshotWithCompletedOutputs = Machine.AtomicSnapshot<string, unknown> & {
+  readonly [CompletedOutputsTypeId]?: ReadonlyMap<string, unknown>
+}
+
+interface FinalCompletion {
+  readonly path: string
+  readonly output: unknown
 }
 
 const getNode = (machine: Machine.Any, path: string): Machine.StateNode => {
@@ -1546,8 +1593,18 @@ const snapshotFromPath = <const States extends Machine.StateSchemas>(
 const snapshotFromConfiguration = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   configuration: ActiveConfiguration
-): Machine.Snapshot<States> =>
-  snapshotFromPath<States>(machine, configuration, getRootPath(machine, configuration)) as Machine.Snapshot<States>
+): Machine.Snapshot<States> => {
+  const snapshot = snapshotFromPath<States>(
+    machine,
+    configuration,
+    getRootPath(machine, configuration)
+  ) as Machine.Snapshot<States>
+  Object.defineProperty(snapshot, CompletedOutputsTypeId, {
+    value: new Map(configuration.outputs),
+    enumerable: false
+  })
+  return snapshot
+}
 
 const configurationFromSnapshot = (
   machine: Machine.Any,
@@ -1555,6 +1612,7 @@ const configurationFromSnapshot = (
 ): ActiveConfiguration => {
   const active = new Set<string>()
   const values = new Map<string, unknown>()
+  const snapshotOutputs = (snapshot as SnapshotWithCompletedOutputs)[CompletedOutputsTypeId]
 
   const visit = (current: Machine.AtomicSnapshot<string, unknown>): void => {
     const node = getNode(machine, String(current.path))
@@ -1594,7 +1652,15 @@ const configurationFromSnapshot = (
   }
 
   visit(snapshot)
-  return { active, values }
+  const outputs = new Map<string, unknown>()
+  if (snapshotOutputs !== undefined) {
+    for (const [path, output] of snapshotOutputs) {
+      if (active.has(path)) {
+        outputs.set(path, output)
+      }
+    }
+  }
+  return { active, values, outputs }
 }
 
 const configurationFromValue = (
@@ -1610,7 +1676,8 @@ const configurationFromValue = (
   }
   return {
     active: new Set([node.path]),
-    values: new Map([[node.path, value]])
+    values: new Map([[node.path, value]]),
+    outputs: new Map()
   }
 }
 
@@ -1653,6 +1720,7 @@ const configurationFromTargetPath = (
   const node = getNode(machine, path)
   const active = new Set<string>()
   const values = new Map<string, unknown>()
+  const outputs = new Map<string, unknown>()
   const paths = getPathToRoot(machine, node.path)
   const pathSet = new Set(paths)
 
@@ -1682,6 +1750,9 @@ const configurationFromTargetPath = (
             if (current.values.has(activePath)) {
               values.set(activePath, current.values.get(activePath))
             }
+            if (current.outputs.has(activePath)) {
+              outputs.set(activePath, current.outputs.get(activePath))
+            }
           }
         }
       }
@@ -1692,7 +1763,7 @@ const configurationFromTargetPath = (
     throw new Error(`StateMachine target "${node.path}" must include an active child state`)
   }
 
-  return { active, values }
+  return { active, values, outputs }
 }
 
 const normalizeTargetConfiguration = <const States extends Machine.StateSchemas>(
@@ -1745,28 +1816,139 @@ const isDirectFinalPath = (
   path: string
 ): boolean => getNode(machine, path).type === "final" || getStateConfigByPath(machine, path)?.type === "final"
 
-const getDeepestActiveFinalPathFrom = (
+const isActiveFinalNode = (
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   path: string
-): string | undefined => {
+): boolean => {
+  if (!configuration.active.has(path)) {
+    return false
+  }
   const node = getNode(machine, path)
   if (node.type === "compound") {
     const child = getActiveChildPath(machine, configuration, path)
-    if (child !== undefined) {
-      const finalChild = getDeepestActiveFinalPathFrom(machine, configuration, child)
-      if (finalChild !== undefined) {
-        return finalChild
+    return child !== undefined && isActiveFinalNode(machine, configuration, child)
+  }
+  if (node.type === "parallel") {
+    for (const child of node.children) {
+      if (!isActiveFinalNode(machine, configuration, child)) {
+        return false
       }
     }
+    return true
   }
-  return isDirectFinalPath(machine, path) ? path : undefined
+  return isDirectFinalPath(machine, path)
 }
 
-const getDeepestActiveFinalPath = (
+const isActiveFinalConfiguration = (
   machine: Machine.Any,
   configuration: ActiveConfiguration
-): string | undefined => getDeepestActiveFinalPathFrom(machine, configuration, getRootPath(machine, configuration))
+): boolean => isActiveFinalNode(machine, configuration, getRootPath(machine, configuration))
+
+const setCompletedOutput = (
+  outputs: Map<string, unknown>,
+  path: string,
+  output: unknown
+): unknown => {
+  if (!outputs.has(path)) {
+    outputs.set(path, output)
+  }
+  return outputs.get(path)
+}
+
+const resolveFinalOutput = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.EventOf<Events>,
+  outputs?: Readonly<Record<string, unknown>>
+): unknown =>
+  getStateConfigByPath(machine, path)?.output?.({
+    state: getActiveValue(configuration, path),
+    event,
+    outputs
+  } as any)
+
+const completeActiveFinalNode = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.EventOf<Events>,
+  outputs: Map<string, unknown>
+): FinalCompletion | undefined => {
+  if (!configuration.active.has(path)) {
+    return undefined
+  }
+  const node = getNode(machine, path)
+  if (node.type === "compound") {
+    const child = getActiveChildPath(machine, configuration, path)
+    if (child === undefined) {
+      return undefined
+    }
+    const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs)
+    if (childCompletion === undefined) {
+      return undefined
+    }
+    return {
+      path,
+      output: setCompletedOutput(outputs, path, childCompletion.output)
+    }
+  }
+  if (node.type === "parallel") {
+    const regionOutputs: Record<string, unknown> = {}
+    let completed = true
+    for (const child of node.children) {
+      const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs)
+      if (childCompletion === undefined) {
+        completed = false
+      } else {
+        regionOutputs[getNode(machine, child).key] = childCompletion.output
+      }
+    }
+    if (!completed) {
+      return undefined
+    }
+    return {
+      path,
+      output: setCompletedOutput(
+        outputs,
+        path,
+        resolveFinalOutput(machine, configuration, path, event, regionOutputs)
+      )
+    }
+  }
+  if (!isDirectFinalPath(machine, path)) {
+    return undefined
+  }
+  return {
+    path,
+    output: setCompletedOutput(outputs, path, resolveFinalOutput(machine, configuration, path, event))
+  }
+}
+
+const completeConfiguration = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.EventOf<Events>
+): {
+  readonly configuration: ActiveConfiguration
+  readonly completion: FinalCompletion | undefined
+} => {
+  const outputs = new Map(configuration.outputs)
+  const completed = {
+    active: configuration.active,
+    values: configuration.values,
+    outputs
+  }
+  const completion = completeActiveFinalNode(
+    machine,
+    completed,
+    getRootPath(machine, completed),
+    event,
+    outputs
+  )
+  return { configuration: completed, completion }
+}
 
 const handleUnsafe = (
   self: Machine.Any,
@@ -2425,7 +2607,7 @@ export const isMachine = (
 const isFinalState = (
   machine: Machine.Any,
   state: Machine.StateLike<any>
-): boolean => getDeepestActiveFinalPath(machine, normalizeConfiguration(machine, state)) !== undefined
+): boolean => isActiveFinalConfiguration(machine, normalizeConfiguration(machine, state))
 
 const getFinalOutputFromConfiguration = <
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -2435,14 +2617,8 @@ const getFinalOutputFromConfiguration = <
   configuration: ActiveConfiguration,
   event: Machine.EventOf<Events>
 ): Output | undefined => {
-  const finalPath = getDeepestActiveFinalPath(machine, configuration)
-  if (finalPath === undefined) {
-    return undefined
-  }
-  return getStateConfigByPath(machine, finalPath)?.output?.({
-    state: getActiveValue(configuration, finalPath),
-    event
-  }) as Output | undefined
+  const completed = completeConfiguration(machine, configuration, event)
+  return completed.completion?.output as Output | undefined
 }
 
 const getFinalOutput = <
@@ -2862,12 +3038,10 @@ const settle: <
   let finalOutput: Output | undefined = undefined
 
   while (true) {
-    if (getDeepestActiveFinalPath(machine, currentState) !== undefined) {
-      finalOutput = getFinalOutputFromConfiguration<Events, Output>(
-        machine,
-        currentState,
-        currentEvent
-      )
+    const completed = completeConfiguration(machine, currentState, currentEvent)
+    currentState = completed.configuration
+    if (completed.completion !== undefined) {
+      finalOutput = completed.completion.output as Output | undefined
       break
     }
 
