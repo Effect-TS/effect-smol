@@ -2966,7 +2966,11 @@ const getModelCapabilities = (modelId: string): ModelCapabilities => {
   if (
     modelId.includes("claude-sonnet-4-5") ||
     modelId.includes("claude-opus-4-5") ||
-    modelId.includes("claude-haiku-4-5")
+    modelId.includes("claude-haiku-4-5") ||
+    modelId.includes("claude-opus-4-6") ||
+    modelId.includes("claude-sonnet-4-6") ||
+    modelId.includes("claude-opus-4-7") ||
+    modelId.includes("claude-opus-4-8")
   ) {
     return {
       maxOutputTokens: 64000,

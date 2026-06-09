@@ -238,9 +238,11 @@ describe("AnthropicLanguageModel", () => {
         assert.strictEqual(body.output_config?.format?.type, "json_schema")
       })
 
-    it.effect("uses native json_schema output for claude-opus-4-6", () => assertNativeStructuredOutput("claude-opus-4-6"))
+    it.effect("uses native json_schema output for claude-opus-4-6", () =>
+      assertNativeStructuredOutput("claude-opus-4-6"))
 
-    it.effect("uses native json_schema output for claude-sonnet-4-6", () => assertNativeStructuredOutput("claude-sonnet-4-6"))
+    it.effect("uses native json_schema output for claude-sonnet-4-6", () =>
+      assertNativeStructuredOutput("claude-sonnet-4-6"))
   })
 })
 
