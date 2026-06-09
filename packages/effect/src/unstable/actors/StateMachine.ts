@@ -347,7 +347,6 @@ export declare namespace Machine {
    */
   export interface StateNodes {
     readonly byPath: ReadonlyMap<PropertyKey, StateNode>
-    readonly pathByTag: ReadonlyMap<PropertyKey, PropertyKey>
   }
 
   /**
@@ -450,6 +449,51 @@ export declare namespace Machine {
     States extends StateSchemas,
     StateId extends StateIdentifier<States>
   > = Extract<StateOf<States>, SchemaByIdentifier<States, StateId>["Type"]>
+
+  /**
+   * Atomic statechart snapshot carrying path identity separately from the
+   * decoded state value.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface AtomicSnapshot<Path extends string, Value> {
+    readonly path: Path
+    readonly value: Value
+  }
+
+  /**
+   * Extracts the snapshot value represented by a state definition by
+   * identifier.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotByIdentifier<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = AtomicSnapshot<StateId, StateByIdentifier<States, StateId>>
+
+  /**
+   * Extracts the union of statechart snapshots represented by a state
+   * definition.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export type Snapshot<States extends StateSchemas> = StateIdentifier<States> extends infer StateId
+    ? StateId extends StateIdentifier<States> ? SnapshotByIdentifier<States, StateId>
+    : never
+    : never
+
+  /**
+   * State input accepted at runtime while raw decoded states remain supported at
+   * machine boundaries.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type StateLike<States extends StateSchemas> = StateOf<States> | Snapshot<States>
 
   /**
    * Extracts state identifiers whose state-tree definition marks them final.
@@ -1064,20 +1108,11 @@ const getStateNodeDefinition = (
 
 const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNodes => {
   const byPath = new Map<PropertyKey, Machine.StateNode>()
-  const pathByTag = new Map<PropertyKey, PropertyKey>()
   let order = 0
 
   for (const path of Object.keys(states)) {
     const definition = getStateNodeDefinition(path, states[path])
     const tag = getSchemaTag(definition.schema) ?? path
-    const existingPath = pathByTag.get(tag)
-    if (existingPath !== undefined && existingPath !== path) {
-      throw new Error(
-        `StateMachine.make cannot use duplicate state tag "${String(tag)}" for paths "${
-          String(existingPath)
-        }" and "${path}"`
-      )
-    }
     const node = {
       path,
       tag,
@@ -1086,13 +1121,11 @@ const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNodes => 
       order
     }
     byPath.set(path, node)
-    pathByTag.set(tag, path)
     order += 1
   }
 
   return {
-    byPath,
-    pathByTag
+    byPath
   }
 }
 
@@ -1108,24 +1141,71 @@ const makeTarget: Machine.TargetFunction<any> = (
 
 const isTarget = (u: unknown): u is Machine.Target<any, any> => hasProperty(u, TargetTypeId)
 
+const isSnapshot = (u: unknown): u is Machine.AtomicSnapshot<string, unknown> =>
+  hasProperty(u, "path") && hasProperty(u, "value")
+
+const isSnapshotFor = (
+  machine: Machine.Any,
+  u: unknown
+): u is Machine.AtomicSnapshot<string, { readonly _tag: PropertyKey }> => {
+  if (!isSnapshot(u)) {
+    return false
+  }
+  const node = machine.stateNodes.byPath.get(u.path)
+  return node !== undefined && Schema.is(node.schema)(u.value)
+}
+
+const findStateNode = (
+  machine: Machine.Any,
+  value: { readonly _tag: PropertyKey }
+): Machine.StateNode | undefined => {
+  for (const node of machine.stateNodes.byPath.values()) {
+    if (Schema.is(node.schema)(value)) {
+      return node
+    }
+  }
+  return machine.stateNodes.byPath.get(value._tag)
+}
+
+const makeSnapshot = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  value: Machine.StateOf<States>,
+  path?: PropertyKey
+): Machine.Snapshot<States> => {
+  const node = path === undefined ? findStateNode(machine, value) : machine.stateNodes.byPath.get(path)
+  return {
+    path: (node?.path ?? path ?? value._tag) as Machine.StateIdentifier<States>,
+    value
+  } as Machine.Snapshot<States>
+}
+
+const normalizeState = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  state: Machine.StateLike<States>
+): Machine.Snapshot<States> =>
+  isSnapshotFor(machine, state)
+    ? state as Machine.Snapshot<States>
+    : makeSnapshot<States>(machine, state)
+
+const normalizeTarget = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  target: Machine.StateOf<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+): Machine.Snapshot<States> => {
+  if (isTarget(target)) {
+    return makeSnapshot<States>(machine, target.value as Machine.StateOf<States>, target.path)
+  }
+  return makeSnapshot<States>(machine, target as Machine.StateOf<States>)
+}
+
 const getStateIdentifier = (
   machine: Machine.Any,
-  state: { readonly _tag: PropertyKey }
-): PropertyKey => machine.stateNodes.pathByTag.get(state._tag) ?? state._tag
+  state: Machine.StateLike<any>
+): PropertyKey => isSnapshotFor(machine, state) ? state.path : findStateNode(machine, state)?.path ?? state._tag
 
 const getStateConfig = (
   machine: Machine.Any,
-  state: { readonly _tag: PropertyKey }
+  state: Machine.StateLike<any>
 ): Machine.AnyStateConfig | undefined => machine.handlers[getStateIdentifier(machine, state)]
-
-const getTargetIdentifier = (
-  machine: Machine.Any,
-  target: Machine.StateOf<any> | Machine.Target<any, any>
-): PropertyKey => isTarget(target) ? target.path : getStateIdentifier(machine, target)
-
-const getTargetState = <State>(
-  target: State | Machine.Target<any, any>
-): State => isTarget(target) ? target.value as State : target
 
 const handleUnsafe = (
   self: Machine.Any,
@@ -1376,7 +1456,7 @@ export const isMachine = (
 
 const isFinalState = (
   machine: Machine.Any,
-  state: { readonly _tag: PropertyKey }
+  state: Machine.StateLike<any>
 ): boolean => {
   const stateIdentifier = getStateIdentifier(machine, state)
   return machine.stateNodes.byPath.get(stateIdentifier)?.type === "final" ||
@@ -1390,9 +1470,9 @@ const getFinalOutput = <
   Output
 >(
   machine: Machine.Any,
-  state: Machine.StateByIdentifier<States, StateId>,
+  state: Machine.SnapshotByIdentifier<States, StateId>,
   event: Machine.EventOf<Events>
-): Output | undefined => getStateConfig(machine, state)?.output?.({ state, event }) as Output | undefined
+): Output | undefined => getStateConfig(machine, state)?.output?.({ state: state.value, event }) as Output | undefined
 
 /**
  * Returns `true` if a state is final for a state machine.
@@ -1412,8 +1492,11 @@ export const isFinal = <
   FinalStates extends Machine.StateIdentifier<States> = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates>,
-  state: Machine.StateOf<States>
-): state is Machine.StateByIdentifier<States, FinalStates> => isFinalState(machine, state)
+  state: Machine.StateLike<States>
+): state is Extract<
+  Machine.StateLike<States>,
+  Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotByIdentifier<States, FinalStates>
+> => isFinalState(machine, state)
 
 /**
  * Creates a schema-first state machine definition.
@@ -1538,7 +1621,7 @@ export const planInitial: <
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
   {
-    readonly state: Machine.StateOf<States>
+    readonly state: Machine.Snapshot<States>
     readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
     readonly output: Output | undefined
   },
@@ -1567,24 +1650,25 @@ export const planInitial: <
       Machine.StateOf<States>
     >)
     : result
+  const snapshot = normalizeState<States>(machine, state)
   const actions = yield* deferredActions.read
   const settled = yield* catchStartup(Effect.gen(function*() {
     const entry = yield* collectStateAction(
-      getStateConfig(machine, state)?.entry,
+      getStateConfig(machine, snapshot)?.entry,
       {
-        state: state as Machine.StateByIdentifier<States, UnhandledStates>,
+        state: snapshot.value as Machine.StateByIdentifier<States, UnhandledStates>,
         event: InitialEvent as Machine.EventOf<Events>,
         runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
       }
     )
     return yield* (settle(
       machine,
-      state,
+      snapshot,
       InitialEvent as Machine.EventOf<Events>,
       [...entry.actions] as Array<Effect.Effect<void, never, never>>,
       [...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
       []
-    ) as Effect.Effect<MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, never, never, Output>>)
+    ) as Effect.Effect<MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, never, never, Output>>)
   }))
 
   return {
@@ -1612,7 +1696,7 @@ export const enabled = <
   R = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
-  state: Machine.StateOf<States>
+  state: Machine.StateLike<States>
 ): ReadonlyArray<Machine.TagOf<Events[number]>> =>
   isFinalState(machine, state)
     ? []
@@ -1633,12 +1717,12 @@ const microstep: <
   Context = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>,
   transition: MicrostepTransition<States, E, R, Context> | undefined,
   context: Context
 ) => Effect.Effect<
-  MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>,
+  MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError,
   R
 > = Effect.fnUntraced(function*<
@@ -1656,12 +1740,12 @@ const microstep: <
   Context = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>,
   transition: MicrostepTransition<States, E, R, Context> | undefined,
   context: Context
 ) {
-  const stateIdentifier = getStateIdentifier(machine, state)
+  const stateIdentifier = state.path
   const stateConfig = machine.handlers[stateIdentifier]
 
   if (transition === undefined) {
@@ -1677,8 +1761,8 @@ const microstep: <
     context
   )
   const target = transitionResult.state === undefined ? undefined : transitionResult.state
-  const stateAfterTransition = target === undefined ? state : getTargetState<Machine.StateOf<States>>(target)
-  const targetIdentifier = target === undefined ? stateIdentifier : getTargetIdentifier(machine, target)
+  const stateAfterTransition = target === undefined ? state : normalizeTarget<States>(machine, target)
+  const targetIdentifier = stateAfterTransition.path
   if (targetIdentifier === stateIdentifier && !transition.reenter) {
     return {
       next: stateAfterTransition,
@@ -1698,7 +1782,7 @@ const microstep: <
   >(
     stateConfig?.exit,
     {
-      state: state as Machine.StateByIdentifier<States, UnhandledStates>,
+      state: state.value as Machine.StateByIdentifier<States, UnhandledStates>,
       event,
       runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
     }
@@ -1714,7 +1798,7 @@ const microstep: <
   >(
     machine.handlers[targetIdentifier]?.entry,
     {
-      state: stateAfterTransition as Machine.StateByIdentifier<States, UnhandledStates>,
+      state: stateAfterTransition.value as Machine.StateByIdentifier<States, UnhandledStates>,
       event,
       runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
     }
@@ -1746,13 +1830,13 @@ const settle: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
-  microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
+  microsteps: Array<MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
+  MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R, Output>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -1769,11 +1853,11 @@ const settle: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
-  microsteps: Array<MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R>>
+  microsteps: Array<MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R>>
 ) {
   let currentState = state
   let currentEvent = event
@@ -1786,7 +1870,7 @@ const settle: <
     if (isFinalState(machine, currentState)) {
       finalOutput = getFinalOutput<States, Events, Machine.StateIdentifier<States>, Output>(
         machine,
-        currentState as Machine.StateByIdentifier<States, Machine.StateIdentifier<States>>,
+        currentState as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
         currentEvent
       )
       break
@@ -1796,22 +1880,22 @@ const settle: <
     if (iterations > MaxMacrostepIterations) {
       return yield* new InfiniteTransitionError({
         machineId: machine.id,
-        state: String(getStateIdentifier(machine, currentState)),
+        state: String(currentState.path),
         maxIterations: MaxMacrostepIterations
       })
     }
 
     const always = shouldRunAlways
-      ? getStateConfig(machine, currentState)?.always
+      ? machine.handlers[currentState.path]?.always
       : undefined
     if (always !== undefined) {
-      const alwaysStep: MicrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R> = yield* microstep(
+      const alwaysStep: MicrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R> = yield* microstep(
         machine,
         currentState,
         currentEvent,
         { reenter: false, transition: always },
         {
-          state: currentState as Machine.StateByIdentifier<States, UnhandledStates>,
+          state: currentState.value as Machine.StateByIdentifier<States, UnhandledStates>,
           event: currentEvent,
           runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
           target: makeTarget
@@ -1832,14 +1916,14 @@ const settle: <
     raisedEventIndex += 1
 
     currentEvent = raisedEvent
-    const raisedStateConfig = getStateConfig(machine, currentState)
+    const raisedStateConfig = machine.handlers[currentState.path]
     const raisedStep = yield* microstep(
       machine,
       currentState,
       raisedEvent,
       normalizeEventTransition(raisedStateConfig?.on?.[raisedEvent._tag]),
       {
-        state: currentState as Machine.StateByIdentifier<States, UnhandledStates>,
+        state: currentState.value as Machine.StateByIdentifier<States, UnhandledStates>,
         event: raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
         runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
         target: makeTarget
@@ -1874,10 +1958,10 @@ const macrostep: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.StateLike<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
-  MacrostepPlan<Machine.StateOf<States>, Machine.EventOf<Events>, E, R, Output>,
+  MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R, Output>,
   E | UnhandledEventError | InfiniteTransitionError,
   R
 > = Effect.fnUntraced(function*<
@@ -1894,26 +1978,27 @@ const macrostep: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateOf<States>,
+  state: Machine.StateLike<States>,
   event: Machine.EventOf<Events>
 ) {
-  if (isFinalState(machine, state)) {
+  const snapshot = normalizeState<States>(machine, state)
+  if (isFinalState(machine, snapshot)) {
     return {
-      next: state,
+      next: snapshot,
       actions: [],
       microsteps: [],
       output: undefined
     }
   }
 
-  const stateConfig = getStateConfig(machine, state)
+  const stateConfig = getStateConfig(machine, snapshot)
   const step = yield* microstep(
     machine,
-    state,
+    snapshot,
     event,
     normalizeEventTransition(stateConfig?.on?.[event._tag]),
     {
-      state: state as Machine.StateByIdentifier<States, UnhandledStates>,
+      state: snapshot.value as Machine.StateByIdentifier<States, UnhandledStates>,
       event: event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>,
       runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
       target: makeTarget
@@ -2123,7 +2208,7 @@ export const toActorLogic: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => ActorModule.ActorLogic<
-  Machine.StateOf<States>,
+  Machine.Snapshot<States>,
   Machine.EventOf<Events>,
   E | UnhandledEventError | InfiniteTransitionError,
   ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
@@ -2166,7 +2251,7 @@ export const toActorLogic: <
           if (isFinalState(machine, initialState)) {
             return getFinalOutput<States, Events, Machine.StateIdentifier<States>, Output>(
               machine,
-              initialState as Machine.StateByIdentifier<States, Machine.StateIdentifier<States>>,
+              initialState as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
               InitialEvent as Machine.EventOf<Events>
             )
           }
@@ -2289,20 +2374,20 @@ export const toActorLogic: <
               yield* startInvokeWatchers(config, child, token, scope)
             })
           const startInvokes = (
-            state: Machine.StateOf<States>,
+            state: Machine.Snapshot<States>,
             event: Machine.EventOf<Events>
           ): Effect.Effect<void, E, R> =>
             Effect.all(
               getInvokes(getStateConfig(machine, state)).map((config) =>
                 startInvoke(
                   config,
-                  state as Machine.StateByIdentifier<States, Machine.StateIdentifier<States>>,
+                  state.value as Machine.StateByIdentifier<States, Machine.StateIdentifier<States>>,
                   event
                 ) as Effect.Effect<void, E, R>
               ),
               { discard: true }
             )
-          const stopInvokes = (state: Machine.StateOf<States>): Effect.Effect<void> =>
+          const stopInvokes = (state: Machine.Snapshot<States>): Effect.Effect<void> =>
             Effect.all(
               getInvokes(getStateConfig(machine, state)).map((config) => stopInvoke(config.id, Exit.void)),
               { discard: true }
@@ -2351,7 +2436,7 @@ export const toActorLogic: <
         context
       )
   }) as ActorModule.ActorLogic<
-    Machine.StateOf<States>,
+    Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | UnhandledEventError | InfiniteTransitionError,
     ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
@@ -2396,7 +2481,7 @@ export const start: <
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
   ActorModule.Actor<
-    Machine.StateOf<States>,
+    Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
     Output | undefined

@@ -310,7 +310,7 @@ export const fromStateMachine: {
       >,
     ...args: [...StateMachine.Machine.InputArgs<Input>]
   ): ActorAtom<
-    StateMachine.Machine.StateOf<States>,
+    StateMachine.Machine.Snapshot<States>,
     StateMachine.Machine.EventOf<Events>,
     E | StateMachine.UnhandledEventError | StateMachine.InfiniteTransitionError | InitialE | StateMachine.StartupError,
     Output | undefined,
@@ -356,7 +356,7 @@ export const fromStateMachine: {
     >,
     ...args: [...StateMachine.Machine.InputArgs<Input>]
   ): ActorAtom<
-    StateMachine.Machine.StateOf<States>,
+    StateMachine.Machine.Snapshot<States>,
     StateMachine.Machine.EventOf<Events>,
     | E
     | StateMachine.UnhandledEventError

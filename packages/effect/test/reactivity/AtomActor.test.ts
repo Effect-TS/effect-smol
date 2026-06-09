@@ -175,7 +175,10 @@ describe("AtomActor", () => {
       const snapshot = yield* waitForResult(registry, bridge.snapshot, (snapshot) => snapshot.status === "done")
       assert.deepStrictEqual(snapshot, {
         status: "done",
-        state: new Done({ value: 4 }),
+        state: {
+          path: "Done",
+          value: new Done({ value: 4 })
+        },
         output: 4
       })
     })))
@@ -205,8 +208,11 @@ describe("AtomActor", () => {
 
       yield* Effect.sync(() => registry.set(bridge.send, new ReadValue({})))
 
-      const state = yield* waitForResult(registry, bridge.state, (state) => state._tag === "ValueRead")
-      assert.deepStrictEqual(state, new ValueRead({ value: "from-atom" }))
+      const state = yield* waitForResult(registry, bridge.state, (state) => state.value._tag === "ValueRead")
+      assert.deepStrictEqual(state, {
+        path: "ValueRead",
+        value: new ValueRead({ value: "from-atom" })
+      })
     })))
 
   it.effect("uses AtomRuntime services when starting a state machine", () =>
@@ -235,7 +241,10 @@ describe("AtomActor", () => {
 
       yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 3 })))
 
-      const state = yield* waitForResult(registry, bridge.state, (state) => state.value === 6)
-      assert.deepStrictEqual(state, new Count({ value: 6 }))
+      const state = yield* waitForResult(registry, bridge.state, (state) => state.value.value === 6)
+      assert.deepStrictEqual(state, {
+        path: "Count",
+        value: new Count({ value: 6 })
+      })
     })))
 })
