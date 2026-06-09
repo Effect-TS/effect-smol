@@ -1998,8 +1998,23 @@ const collectTransition = Effect.fnUntraced(function*<
 
 type SelectedTransition<States extends Machine.StateSchemas, E, R, Context> = {
   readonly sourcePath: string
+  readonly leafPath: string
   readonly transition: MicrostepTransition<States, E, R, Context>
   readonly context: Context
+}
+
+type EvaluatedTransition<States extends Machine.StateSchemas, Event, E, R, Context> = {
+  readonly selection: SelectedTransition<States, E, R, Context>
+  readonly target:
+    | Machine.StateOf<States>
+    | Machine.Snapshot<States>
+    | Machine.Target<States, Machine.StateIdentifier<States>>
+    | undefined
+  readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
+  readonly raisedEvents: ReadonlyArray<Event>
+  readonly changed: boolean
+  readonly exitPaths: ReadonlyArray<string>
+  readonly entryPaths: ReadonlyArray<string>
 }
 
 const getCandidatePaths = (machine: Machine.Any, configuration: ActiveConfiguration): ReadonlyArray<string> =>
@@ -2008,6 +2023,9 @@ const getCandidatePaths = (machine: Machine.Any, configuration: ActiveConfigurat
       const depth = pathDepth(machine, right) - pathDepth(machine, left)
       return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
     })
+
+const getLeafCandidatePaths = (machine: Machine.Any, leaf: string): ReadonlyArray<string> =>
+  [...getPathToRoot(machine, leaf)].reverse()
 
 const getLeastCommonAncestor = (
   machine: Machine.Any,
@@ -2032,12 +2050,11 @@ const getExitPaths = (
   configuration: ActiveConfiguration,
   boundary: string | undefined
 ): ReadonlyArray<string> =>
-  Array.from(configuration.active)
-    .filter((path) => boundary === undefined || isDescendantOf(path, boundary))
-    .sort((left, right) => {
-      const depth = getPathToRoot(machine, right).length - getPathToRoot(machine, left).length
-      return depth === 0 ? getNode(machine, right).order - getNode(machine, left).order : depth
-    })
+  sortExitPaths(
+    machine,
+    Array.from(configuration.active)
+      .filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+  )
 
 const getEntryPaths = (
   machine: Machine.Any,
@@ -2045,6 +2062,20 @@ const getEntryPaths = (
   boundary: string | undefined
 ): ReadonlyArray<string> =>
   getPathToRoot(machine, targetLeaf).filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+
+const sortExitPaths = (machine: Machine.Any, paths: Iterable<string>): ReadonlyArray<string> =>
+  Array.from(new Set(paths))
+    .sort((left, right) => {
+      const depth = getPathToRoot(machine, right).length - getPathToRoot(machine, left).length
+      return depth === 0 ? getNode(machine, right).order - getNode(machine, left).order : depth
+    })
+
+const sortEntryPaths = (machine: Machine.Any, paths: Iterable<string>): ReadonlyArray<string> =>
+  Array.from(new Set(paths))
+    .sort((left, right) => {
+      const depth = getPathToRoot(machine, left).length - getPathToRoot(machine, right).length
+      return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
+    })
 
 const makeStateActionContext = <
   const States extends Machine.StateSchemas,
@@ -2109,7 +2140,7 @@ const collectStateActions = Effect.fnUntraced(function*<
   return { actions, raisedEvents }
 })
 
-const selectAlwaysTransition = <
+const selectAlwaysTransitions = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Emits extends ReadonlyArray<Machine.TaggedSchema>,
@@ -2119,37 +2150,52 @@ const selectAlwaysTransition = <
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   event: Machine.EventOf<Events>
-):
-  | SelectedTransition<
+): ReadonlyArray<
+  SelectedTransition<
     States,
     E,
     R,
     Machine.AlwaysContext<States, Events, Emits, Machine.StateIdentifier<States>>
   >
-  | undefined =>
-{
-  for (const path of getCandidatePaths(machine, configuration)) {
-    const always = machine.handlers[path]?.always
-    if (always !== undefined) {
-      return {
-        sourcePath: path,
-        transition: { reenter: false, transition: always },
-        context: {
-          state: getActiveValue(configuration, path) as Machine.StateByIdentifier<
-            States,
-            Machine.StateIdentifier<States>
-          >,
-          event,
-          runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-          target: makeTarget
+> => {
+  const selected: Array<
+    SelectedTransition<
+      States,
+      E,
+      R,
+      Machine.AlwaysContext<States, Events, Emits, Machine.StateIdentifier<States>>
+    >
+  > = []
+  const selectedSources = new Set<string>()
+  for (const leaf of getActiveLeafPaths(machine, configuration)) {
+    for (const path of getLeafCandidatePaths(machine, leaf)) {
+      const always = machine.handlers[path]?.always
+      if (always !== undefined) {
+        if (!selectedSources.has(path)) {
+          selectedSources.add(path)
+          selected.push({
+            sourcePath: path,
+            leafPath: leaf,
+            transition: { reenter: false, transition: always },
+            context: {
+              state: getActiveValue(configuration, path) as Machine.StateByIdentifier<
+                States,
+                Machine.StateIdentifier<States>
+              >,
+              event,
+              runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+              target: makeTarget
+            }
+          })
         }
+        break
       }
     }
   }
-  return undefined
+  return selected
 }
 
-const selectEventTransition = <
+const selectEventTransitions = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Emits extends ReadonlyArray<Machine.TaggedSchema>,
@@ -2159,45 +2205,68 @@ const selectEventTransition = <
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   event: Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
-):
-  | SelectedTransition<
+): ReadonlyArray<
+  SelectedTransition<
     States,
     E,
     R,
     Machine.HandlerContext<States, Events, Emits, Machine.StateIdentifier<States>, Machine.TagOf<Events[number]>, E, R>
   >
-  | undefined =>
-{
-  for (const path of getCandidatePaths(machine, configuration)) {
-    const transition = normalizeEventTransition(machine.handlers[path]?.on?.[event._tag])
-    if (transition !== undefined) {
-      return {
-        sourcePath: path,
-        transition: transition as unknown as MicrostepTransition<
-          States,
-          E,
-          R,
-          Machine.HandlerContext<
-            States,
-            Events,
-            Emits,
-            Machine.StateIdentifier<States>,
-            Machine.TagOf<Events[number]>,
-            E,
-            R
-          >
-        >,
-        context: makeTransitionContext<
-          States,
-          Events,
-          Emits,
-          Machine.StateIdentifier<States>,
-          Machine.TagOf<Events[number]>
-        >(configuration, path, event)
+> => {
+  const selected: Array<
+    SelectedTransition<
+      States,
+      E,
+      R,
+      Machine.HandlerContext<
+        States,
+        Events,
+        Emits,
+        Machine.StateIdentifier<States>,
+        Machine.TagOf<Events[number]>,
+        E,
+        R
+      >
+    >
+  > = []
+  const selectedSources = new Set<string>()
+  for (const leaf of getActiveLeafPaths(machine, configuration)) {
+    for (const path of getLeafCandidatePaths(machine, leaf)) {
+      const transition = normalizeEventTransition(machine.handlers[path]?.on?.[event._tag])
+      if (transition !== undefined) {
+        if (!selectedSources.has(path)) {
+          selectedSources.add(path)
+          selected.push({
+            sourcePath: path,
+            leafPath: leaf,
+            transition: transition as unknown as MicrostepTransition<
+              States,
+              E,
+              R,
+              Machine.HandlerContext<
+                States,
+                Events,
+                Emits,
+                Machine.StateIdentifier<States>,
+                Machine.TagOf<Events[number]>,
+                E,
+                R
+              >
+            >,
+            context: makeTransitionContext<
+              States,
+              Events,
+              Emits,
+              Machine.StateIdentifier<States>,
+              Machine.TagOf<Events[number]>
+            >(configuration, path, event)
+          })
+        }
+        break
       }
     }
   }
-  return undefined
+  return selected
 }
 
 const getTargetNodePath = <const States extends Machine.StateSchemas>(
@@ -2216,6 +2285,123 @@ const getTargetNodePath = <const States extends Machine.StateSchemas>(
   }
   return node.path
 }
+
+const hasPathIntersection = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean => {
+  for (const path of left) {
+    if (right.includes(path)) {
+      return true
+    }
+  }
+  return false
+}
+
+const sortEvaluatedTransitions = <
+  const States extends Machine.StateSchemas,
+  Event,
+  E,
+  R,
+  Context
+>(
+  machine: Machine.Any,
+  transitions: Iterable<EvaluatedTransition<States, Event, E, R, Context>>
+): ReadonlyArray<EvaluatedTransition<States, Event, E, R, Context>> =>
+  Array.from(transitions)
+    .sort((left, right) => compareDocumentOrder(machine, left.selection.sourcePath, right.selection.sourcePath))
+
+const removeConflictingTransitions = <
+  const States extends Machine.StateSchemas,
+  Event,
+  E,
+  R,
+  Context
+>(
+  machine: Machine.Any,
+  transitions: ReadonlyArray<EvaluatedTransition<States, Event, E, R, Context>>
+): ReadonlyArray<EvaluatedTransition<States, Event, E, R, Context>> => {
+  const filtered: Array<EvaluatedTransition<States, Event, E, R, Context>> = []
+  for (const transition of sortEvaluatedTransitions(machine, transitions)) {
+    let preempted = false
+    const transitionsToRemove = new Set<EvaluatedTransition<States, Event, E, R, Context>>()
+    for (const selected of filtered) {
+      if (hasPathIntersection(transition.exitPaths, selected.exitPaths)) {
+        if (isDescendantOf(transition.selection.sourcePath, selected.selection.sourcePath)) {
+          transitionsToRemove.add(selected)
+        } else {
+          preempted = true
+          break
+        }
+      }
+    }
+    if (!preempted) {
+      for (const removed of transitionsToRemove) {
+        const index = filtered.indexOf(removed)
+        if (index >= 0) {
+          filtered.splice(index, 1)
+        }
+      }
+      filtered.push(transition)
+    }
+  }
+  return filtered
+}
+
+const collectEvaluatedTransition = Effect.fnUntraced(function*<
+  const States extends Machine.StateSchemas,
+  Event,
+  E,
+  R,
+  Context
+>(
+  machine: Machine.Any,
+  state: ActiveConfiguration,
+  selection: SelectedTransition<States, E, R, Context>
+) {
+  const stateIdentifier = selection.leafPath
+  const transitionResult = yield* collectTransition<States, Event, E, R, Context>(
+    selection.transition.transition,
+    selection.context
+  )
+  const target = transitionResult.state === undefined
+    ? undefined
+    : transitionResult.state as
+      | Machine.StateOf<States>
+      | Machine.Snapshot<States>
+      | Machine.Target<States, Machine.StateIdentifier<States>>
+  const targetPath = target === undefined ? undefined : getTargetNodePath(machine, target)
+  const stateAfterTransition = target === undefined
+    ? state
+    : normalizeTargetConfiguration<States>(machine, state, target)
+  const targetIdentifier = targetPath === undefined
+    ? stateIdentifier
+    : getActiveLeafPathFrom(machine, stateAfterTransition, targetPath)
+  const changed = targetIdentifier !== stateIdentifier || selection.transition.reenter
+
+  if (!changed) {
+    return {
+      selection,
+      target,
+      actions: transitionResult.actions,
+      raisedEvents: transitionResult.raisedEvents,
+      changed,
+      exitPaths: [],
+      entryPaths: []
+    } as EvaluatedTransition<States, Event, E, R, Context>
+  }
+
+  const boundary = selection.transition.reenter
+    ? getNode(machine, selection.sourcePath).parent
+    : getLeastCommonAncestor(machine, stateIdentifier, targetIdentifier)
+
+  return {
+    selection,
+    target,
+    actions: transitionResult.actions,
+    raisedEvents: transitionResult.raisedEvents,
+    changed,
+    exitPaths: getExitPaths(machine, state, boundary),
+    entryPaths: getEntryPaths(machine, targetIdentifier, boundary)
+  } as EvaluatedTransition<States, Event, E, R, Context>
+})
 
 const MaxMacrostepIterations = 1000
 const InitialEventTypeId: unique symbol = Symbol("effect/StateMachine/InitialEvent")
@@ -2532,7 +2718,7 @@ const microstep: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
-  selection: SelectedTransition<States, E, R, Context> | undefined
+  selections: ReadonlyArray<SelectedTransition<States, E, R, Context>>
 ) => Effect.Effect<
   MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>,
   E | UnhandledEventError,
@@ -2554,65 +2740,71 @@ const microstep: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
   event: Machine.EventOf<Events>,
-  selection: SelectedTransition<States, E, R, Context> | undefined
+  selections: ReadonlyArray<SelectedTransition<States, E, R, Context>>
 ) {
-  const stateIdentifier = selection === undefined
-    ? getLeafPath(machine, state)
-    : getActiveLeafPathFrom(machine, state, selection.sourcePath)
-
-  if (selection === undefined) {
+  if (selections.length === 0) {
     return yield* new UnhandledEventError({
       machineId: machine.id,
-      state: String(stateIdentifier),
+      state: String(getLeafPath(machine, state)),
       event: String(event._tag)
     })
   }
 
-  const transitionResult = yield* collectTransition<States, Machine.EventOf<Events>, E, R, Context>(
-    selection.transition.transition,
-    selection.context
-  )
-  const target = transitionResult.state === undefined ? undefined : transitionResult.state
-  const targetPath = target === undefined ? undefined : getTargetNodePath(machine, target)
-  const stateAfterTransition = target === undefined
-    ? state
-    : normalizeTargetConfiguration<States>(machine, state, target)
-  const targetIdentifier = targetPath === undefined
-    ? stateIdentifier
-    : getActiveLeafPathFrom(machine, stateAfterTransition, targetPath)
-  if (targetIdentifier === stateIdentifier && !selection.transition.reenter) {
+  const evaluatedTransitions: Array<EvaluatedTransition<States, Machine.EventOf<Events>, E, R, Context>> = []
+  for (const selection of selections) {
+    evaluatedTransitions.push(
+      yield* collectEvaluatedTransition<States, Machine.EventOf<Events>, E, R, Context>(
+        machine,
+        state,
+        selection
+      )
+    )
+  }
+
+  const transitions = removeConflictingTransitions(machine, evaluatedTransitions)
+  let stateAfterTransition = state
+  for (const transition of sortEvaluatedTransitions(machine, transitions)) {
+    if (transition.target !== undefined) {
+      stateAfterTransition = normalizeTargetConfiguration<States>(machine, stateAfterTransition, transition.target)
+    }
+  }
+
+  const changed = transitions.some((transition) => transition.changed)
+  const transitionActions = sortEvaluatedTransitions(machine, transitions)
+    .flatMap((transition) => transition.actions)
+  const transitionRaisedEvents = sortEvaluatedTransitions(machine, transitions)
+    .flatMap((transition) => transition.raisedEvents)
+
+  if (!changed) {
     return {
       next: stateAfterTransition,
-      actions: transitionResult.actions,
-      raisedEvents: transitionResult.raisedEvents,
+      actions: transitionActions,
+      raisedEvents: transitionRaisedEvents,
       changed: false
     }
   }
 
-  const boundary = selection.transition.reenter
-    ? getNode(machine, selection.sourcePath).parent
-    : getLeastCommonAncestor(machine, stateIdentifier, targetIdentifier)
   const exit = yield* collectStateActions<States, Events, Emits, E, R>(
     machine,
     state,
-    getExitPaths(machine, state, boundary),
+    sortExitPaths(machine, transitions.flatMap((transition) => transition.exitPaths)),
     event,
     "exit"
   )
   const entry = yield* collectStateActions<States, Events, Emits, E, R>(
     machine,
     stateAfterTransition,
-    getEntryPaths(machine, targetIdentifier, boundary),
+    sortEntryPaths(machine, transitions.flatMap((transition) => transition.entryPaths)),
     event,
     "entry"
   )
 
   return {
     next: stateAfterTransition,
-    actions: [...exit.actions, ...transitionResult.actions, ...entry.actions] as ReadonlyArray<
+    actions: [...exit.actions, ...transitionActions, ...entry.actions] as ReadonlyArray<
       Effect.Effect<void, E, R>
     >,
-    raisedEvents: [...exit.raisedEvents, ...transitionResult.raisedEvents, ...entry.raisedEvents] as ReadonlyArray<
+    raisedEvents: [...exit.raisedEvents, ...transitionRaisedEvents, ...entry.raisedEvents] as ReadonlyArray<
       Machine.EventOf<Events>
     >,
     changed: true
@@ -2689,9 +2881,9 @@ const settle: <
     }
 
     const always = shouldRunAlways
-      ? selectAlwaysTransition<States, Events, Emits, E, R>(machine, currentState, currentEvent)
-      : undefined
-    if (always !== undefined) {
+      ? selectAlwaysTransitions<States, Events, Emits, E, R>(machine, currentState, currentEvent)
+      : []
+    if (always.length > 0) {
       const alwaysStep: MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R> = yield* microstep(
         machine,
         currentState,
@@ -2717,7 +2909,7 @@ const settle: <
       machine,
       currentState,
       raisedEvent,
-      selectEventTransition<States, Events, Emits, E, R>(
+      selectEventTransitions<States, Events, Emits, E, R>(
         machine,
         currentState,
         raisedEvent as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
@@ -2790,7 +2982,7 @@ const macrostep: <
     machine,
     configuration,
     event,
-    selectEventTransition<States, Events, Emits, E, R>(
+    selectEventTransitions<States, Events, Emits, E, R>(
       machine,
       configuration,
       event as Machine.EventByTag<Events, Machine.TagOf<Events[number]>>
