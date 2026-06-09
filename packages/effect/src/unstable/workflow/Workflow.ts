@@ -92,7 +92,7 @@ export interface Workflow<
   >
 
   /**
-   * Execute the workflow with the given payload.
+   * Poll the current status of a workflow execution.
    */
   readonly poll: (
     executionId: string

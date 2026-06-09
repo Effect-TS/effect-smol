@@ -99,7 +99,7 @@ export class WorkflowEngine extends Context.Service<
     >
 
     /**
-     * Execute a registered workflow.
+     * Poll the current status of a registered workflow execution.
      */
     readonly poll: <
       Name extends string,
