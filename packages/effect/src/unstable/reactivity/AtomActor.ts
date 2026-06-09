@@ -274,16 +274,16 @@ export const make: {
  */
 export const fromStateMachine: {
   <
-    const States extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
+    const States extends StateMachine.Machine.StateSchemas,
     const Events extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
     const Emits extends ReadonlyArray<StateMachine.Machine.TaggedSchema> = any,
     const Input extends Schema.Top = typeof Schema.Void,
-    UnhandledStates extends StateMachine.Machine.TagOf<States[number]> = StateMachine.Machine.TagOf<States[number]>,
+    UnhandledStates extends StateMachine.Machine.StateIdentifier<States> = StateMachine.Machine.StateIdentifier<States>,
     E = never,
     R = never,
     InitialE = never,
     InitialR = never,
-    FinalStates extends StateMachine.Machine.TagOf<States[number]> = never,
+    FinalStates extends StateMachine.Machine.StateIdentifier<States> = never,
     Output = never
   >(
     machine:
@@ -318,16 +318,16 @@ export const fromStateMachine: {
   >
   <
     RuntimeError,
-    const States extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
+    const States extends StateMachine.Machine.StateSchemas,
     const Events extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
     const Emits extends ReadonlyArray<StateMachine.Machine.TaggedSchema> = any,
     const Input extends Schema.Top = typeof Schema.Void,
-    UnhandledStates extends StateMachine.Machine.TagOf<States[number]> = StateMachine.Machine.TagOf<States[number]>,
+    UnhandledStates extends StateMachine.Machine.StateIdentifier<States> = StateMachine.Machine.StateIdentifier<States>,
     E = never,
     R = never,
     InitialE = never,
     InitialR = never,
-    FinalStates extends StateMachine.Machine.TagOf<States[number]> = never,
+    FinalStates extends StateMachine.Machine.StateIdentifier<States> = never,
     Output = never
   >(
     runtime: Atom.AtomRuntime<

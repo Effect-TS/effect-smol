@@ -154,7 +154,7 @@ describe("AtomActor", () => {
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
       const machine = StateMachine.make({
-        states: [Count, Done],
+        states: { Count, Done },
         events: [Finish],
         initial: () => new Count({ value: 1 })
       })
@@ -185,7 +185,7 @@ describe("AtomActor", () => {
       const registry = yield* makeRegistry
       const valueAtom = Atom.make("from-atom")
       const machine = StateMachine.make({
-        states: [Count, ValueRead],
+        states: { Count, ValueRead },
         events: [ReadValue],
         initial: () => new Count({ value: 0 })
       })
@@ -219,7 +219,7 @@ describe("AtomActor", () => {
         })
       ))
       const machine = StateMachine.make({
-        states: [Count],
+        states: { Count },
         events: [Finish],
         initial: () => new Count({ value: 0 })
       }).handle("Count", {

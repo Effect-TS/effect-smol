@@ -120,7 +120,7 @@ describe("StateMachine", () => {
   it.effect("make constructs the initial state from input", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -135,7 +135,7 @@ describe("StateMachine", () => {
   it("make stores the machine id", () => {
     const machine = StateMachine.make({
       id: "UserMachine",
-      states: [Idle, Loading],
+      states: { Idle, Loading },
       events: [Submit],
       input: Input,
       initial: (input) => new Idle({ userId: input.userId })
@@ -150,10 +150,86 @@ describe("StateMachine", () => {
     assert.strictEqual(machine.id, "UserMachine")
   })
 
+  it.effect("supports flat object states with path-aware handlers", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          loading: Loading
+        },
+        events: [Submit],
+        input: Input,
+        initial: (input) => new Idle({ userId: input.userId })
+      }).handle("idle", {
+        on: {
+          Submit: ({ event, state, target }) =>
+            target("loading", new Loading({ requestId: `${state.userId}:${event.value}` }))
+        }
+      })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "request-1" })
+      )
+
+      assert.deepStrictEqual(planned.next, new Loading({ requestId: "user-1:request-1" }))
+      assert.deepStrictEqual(StateMachine.enabled(machine, new Idle({ userId: "user-1" })), ["Submit"])
+    }))
+
+  it.effect("honors final flat object state node configs", () =>
+    Effect.gen(function*() {
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          success: {
+            schema: Success,
+            type: "final"
+          }
+        },
+        events: [Submit],
+        initial: () => new Idle({ userId: "user-1" })
+      }).handle("idle", {
+        on: {
+          Submit: ({ event, target }) => target("success", new Success({ requestId: event.value }))
+        }
+      })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        new Idle({ userId: "user-1" }),
+        new Submit({ value: "request-1" })
+      )
+
+      assert.deepStrictEqual(planned.next, new Success({ requestId: "request-1" }))
+      assert.strictEqual(StateMachine.isFinal(machine, planned.next), true)
+      assert.deepStrictEqual(StateMachine.enabled(machine, planned.next), [])
+    }))
+
+  it("rejects nested object state configs until compound state support lands", () => {
+    assert.throws(
+      () =>
+        StateMachine.make({
+          states: {
+            parent: {
+              schema: Idle,
+              initial: "child",
+              states: {
+                child: Loading
+              }
+            } as any
+          },
+          events: [Submit],
+          initial: () => new Idle({ userId: "user-1" })
+        }),
+      /flat object state trees/
+    )
+  })
+
   it.effect("starts a machine without input", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         initial: () => new Idle({ userId: "user-1" })
       })
@@ -167,7 +243,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -192,7 +268,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -218,7 +294,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -242,7 +318,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -269,7 +345,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -304,7 +380,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -343,7 +419,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -370,7 +446,7 @@ describe("StateMachine", () => {
   it.effect("propagates initial action failures", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -390,7 +466,7 @@ describe("StateMachine", () => {
   it.effect("propagates initial state entry action failures", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -414,7 +490,7 @@ describe("StateMachine", () => {
   it("handle stores handlers and sync transitions enqueue actions", () => {
     const effect = Effect.succeed("submitted")
     const machine = StateMachine.make({
-      states: [Idle, Loading],
+      states: { Idle, Loading },
       events: [Submit],
       input: Input,
       initial: (input) => Idle.make({ userId: input.userId })
@@ -434,7 +510,7 @@ describe("StateMachine", () => {
   it.effect("handlers can return states directly", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -460,7 +536,7 @@ describe("StateMachine", () => {
 
   it("enabled returns the event tags handled by the current state", () => {
     const machine = StateMachine.make({
-      states: [Idle, Loading],
+      states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
       initial: (input) => new Idle({ userId: input.userId })
@@ -482,7 +558,7 @@ describe("StateMachine", () => {
 
   it("enabled returns no event tags for final states", () => {
     const machine = StateMachine.make({
-      states: [Idle, Success],
+      states: { Idle, Success },
       events: [Submit],
       input: Input,
       initial: (input) => new Idle({ userId: input.userId })
@@ -503,7 +579,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -539,7 +615,7 @@ describe("StateMachine", () => {
   it.effect("exposes final state output from an actor", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -569,7 +645,7 @@ describe("StateMachine", () => {
   it.effect("plans final state output without running deferred actions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -596,7 +672,7 @@ describe("StateMachine", () => {
   it.effect("exposes output when the initial state is final", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Success],
+        states: { Success },
         events: [Submit],
         initial: () => new Success({ requestId: "request-1" })
       }).handle("Success", {
@@ -619,7 +695,7 @@ describe("StateMachine", () => {
   it.effect("defaults final state output to undefined", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -647,7 +723,7 @@ describe("StateMachine", () => {
   it.effect("does not process events after reaching a final state", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -677,7 +753,7 @@ describe("StateMachine", () => {
   it.effect("start ignores events sent after stop", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -700,7 +776,7 @@ describe("StateMachine", () => {
   it.effect("plans no-op transitions from final states", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -719,7 +795,7 @@ describe("StateMachine", () => {
   it.effect("does not process raised events from final state entry actions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -750,7 +826,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -777,7 +853,7 @@ describe("StateMachine", () => {
   it.effect("handlers can omit returning a state for self-transitions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -799,7 +875,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -830,7 +906,7 @@ describe("StateMachine", () => {
   it("can reuse the same machine with multiple different handlers", () => {
     const effect = Effect.succeed("submitted")
     const machine = StateMachine.make({
-      states: [Idle, Loading],
+      states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
       initial: (input) => new Idle({ userId: input.userId })
@@ -861,7 +937,7 @@ describe("StateMachine", () => {
   it.effect("start creates a runtime that sends events and stops", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -899,7 +975,7 @@ describe("StateMachine", () => {
   it.effect("start returns an actor-backed runtime with lifecycle snapshots", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -941,7 +1017,7 @@ describe("StateMachine", () => {
   it.effect("start completes actor output from a final state", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -972,7 +1048,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const machine = StateMachine.make({
         id: "UserMachine",
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1010,7 +1086,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const observed = yield* Ref.make(false)
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1032,7 +1108,7 @@ describe("StateMachine", () => {
   it.effect("start runs invoke configs", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1073,7 +1149,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic runs with actor identity and active snapshots", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1119,7 +1195,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic completes actor output from a final state", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1149,7 +1225,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic can be spawned and addressed by actor system id", () =>
     Effect.scoped(Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1181,7 +1257,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const observed = yield* Ref.make<string | undefined>(undefined)
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1203,7 +1279,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic provides actor identity to transition actions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1245,7 +1321,7 @@ describe("StateMachine", () => {
       const observedSystem = yield* Ref.make(false)
       const ready = yield* Deferred.make<void>()
       const childMachine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1286,7 +1362,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic sends events from child actions to the parent", () =>
     Effect.gen(function*() {
       const childMachine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         emits: [ParentRequestProgress],
         input: Input,
@@ -1301,7 +1377,7 @@ describe("StateMachine", () => {
           )
       })
       const parentMachine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1343,7 +1419,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic ignores sendParent when the hosting actor has no parent", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [ParentRequestProgress],
         emits: [ParentRequestProgress],
         input: Input,
@@ -1380,7 +1456,7 @@ describe("StateMachine", () => {
   it.effect("runtime raises events from local deferred actions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Resolve],
         initial: () => new Idle({ userId: "user-1" })
       })
@@ -1423,7 +1499,7 @@ describe("StateMachine", () => {
       })
 
       const childMachine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Resolve],
         emits: [ParentRequestProgress],
         initial: () => new Idle({ userId: "child-user" })
@@ -1440,7 +1516,7 @@ describe("StateMachine", () => {
         })
 
       const parentMachine = StateMachine.make({
-        states: [Idle, Success],
+        states: { Idle, Success },
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1486,7 +1562,7 @@ describe("StateMachine", () => {
         () => Effect.fail(new InitialError({ state: "child" }))
       )
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1526,7 +1602,7 @@ describe("StateMachine", () => {
           )
       )
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1584,7 +1660,7 @@ describe("StateMachine", () => {
           )
       )
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1641,7 +1717,7 @@ describe("StateMachine", () => {
           )
       )
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1690,7 +1766,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const childLogic = Actor.fromEffect<number, never>(0, () => Effect.never)
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1726,7 +1802,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic invokes a child actor and handles its output event", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1772,7 +1848,7 @@ describe("StateMachine", () => {
         () => Effect.succeed("done:request-1")
       )
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1814,7 +1890,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const error = new InvokeError({ message: "boom" })
       const machine = StateMachine.make({
-        states: [Idle, Loading, Failed],
+        states: { Idle, Loading, Failed },
         events: [Submit, RequestFailed],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1857,7 +1933,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic maps invoked child active snapshots to machine events", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1899,7 +1975,7 @@ describe("StateMachine", () => {
       const started = yield* Deferred.make<void>()
       const release = yield* Deferred.make<void>()
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1955,7 +2031,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic allows invoked children without snapshot or event mappers", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -1991,7 +2067,7 @@ describe("StateMachine", () => {
       const release = yield* Deferred.make<void>()
       const resetHandled = yield* Deferred.make<void>()
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestProgress],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2049,7 +2125,7 @@ describe("StateMachine", () => {
       const release = yield* Deferred.make<void>()
       const resetHandled = yield* Deferred.make<void>()
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2117,7 +2193,7 @@ describe("StateMachine", () => {
           )
         ))
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2193,7 +2269,7 @@ describe("StateMachine", () => {
           )
         ))
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2271,7 +2347,7 @@ describe("StateMachine", () => {
           return yield* Effect.never
         }))
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset, Resolve, RequestSucceeded],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2328,7 +2404,7 @@ describe("StateMachine", () => {
   it.effect("toActorLogic propagates startup failures through Actor.start", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: Effect.fn(function*({ userId }) {
@@ -2349,7 +2425,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const machine = StateMachine.make({
         id: "UserMachine",
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2386,7 +2462,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2428,7 +2504,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2471,7 +2547,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2518,7 +2594,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2558,7 +2634,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2596,7 +2672,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2639,7 +2715,7 @@ describe("StateMachine", () => {
   it.effect("plan processes raised events before settling", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2672,7 +2748,7 @@ describe("StateMachine", () => {
   it.effect("send processes raised events from entry actions", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2706,7 +2782,7 @@ describe("StateMachine", () => {
   it.effect("processes raised events in FIFO order", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Reset, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2746,7 +2822,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit, Reset, Resolve],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2802,7 +2878,7 @@ describe("StateMachine", () => {
   it.effect("selects always transitions before raised events", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading, Success],
+        states: { Idle, Loading, Success },
         events: [Submit, Reset],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2842,7 +2918,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2874,7 +2950,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const machine = StateMachine.make({
         id: "LoopMachine",
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2903,7 +2979,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2939,7 +3015,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -2991,7 +3067,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle],
+        states: { Idle },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -3035,7 +3111,7 @@ describe("StateMachine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -3087,7 +3163,7 @@ describe("StateMachine", () => {
   it.effect("propagates entry action failures", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
@@ -3113,7 +3189,7 @@ describe("StateMachine", () => {
   it.effect("propagates exit action failures", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
-        states: [Idle, Loading],
+        states: { Idle, Loading },
         events: [Submit],
         input: Input,
         initial: (input) => new Idle({ userId: input.userId })
