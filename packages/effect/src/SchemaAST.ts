@@ -2895,8 +2895,8 @@ export function isPattern(regExp: globalThis.RegExp, annotations?: Schema.Annota
         _tag: "isPattern",
         regExp
       },
-      toArbitraryConstraint: {
-        string: {
+      arbitrary: {
+        constraint: {
           patterns: [regExp.source]
         }
       },
