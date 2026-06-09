@@ -653,6 +653,218 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* deferredLog.read, ["entry:payment", "entry:entering"])
     }))
 
+  it.effect("treats compound states as final when their active child is final", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: {
+                schema: AuthorizedPayment,
+                type: "final"
+              }
+            }
+          }
+        },
+        events: [Authorize, Reset],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: new EnteringPayment({ amount: 100 })
+          }
+        })
+      })
+        .handle("payment", {
+          on: {
+            Reset: ({ target }) => target("payment.entering", new EnteringPayment({ amount: 0 }))
+          }
+        })
+        .handle("payment.entering", {
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+        .handle("payment.authorized", {
+          type: "final",
+          output: ({ state }) => state.code
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
+
+      assertCompoundStateSnapshot(planned.next as any, "payment", payment, {
+        path: "payment.authorized" as const,
+        value: new AuthorizedPayment({ code: "auth-1" })
+      })
+      assert.strictEqual(StateMachine.isFinal(machine, planned.next), true)
+      assert.deepStrictEqual(StateMachine.enabled(machine, planned.next), [])
+      assert.strictEqual(planned.output, "auth-1")
+    }))
+
+  it.effect("produces output from an initially active nested final state", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const authorized = new AuthorizedPayment({ code: "auth-1" })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "authorized",
+            states: {
+              authorized: {
+                schema: AuthorizedPayment,
+                type: "final"
+              }
+            }
+          }
+        },
+        events: [Reset],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.authorized" as const,
+            value: authorized
+          }
+        })
+      }).handle("payment.authorized", {
+        type: "final",
+        output: ({ state }) => state.code
+      })
+
+      const planned = yield* StateMachine.planInitial(machine)
+
+      assertCompoundStateSnapshot(planned.state as any, "payment", payment, {
+        path: "payment.authorized" as const,
+        value: authorized
+      })
+      assert.strictEqual(StateMachine.isFinal(machine, planned.state), true)
+      assert.deepStrictEqual(StateMachine.enabled(machine, planned.state), [])
+      assert.strictEqual(planned.output, "auth-1")
+    }))
+
+  it.effect("joins with output from nested final completion and ignores later events", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const machine = StateMachine.make({
+        states: {
+          idle: Idle,
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: {
+                schema: AuthorizedPayment,
+                type: "final"
+              }
+            }
+          }
+        },
+        events: [Authorize, Reset],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: new EnteringPayment({ amount: 100 })
+          }
+        })
+      })
+        .handle("payment", {
+          on: {
+            Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+          }
+        })
+        .handle("payment.entering", {
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+        .handle("payment.authorized", {
+          type: "final",
+          output: ({ state }) => state.code
+        })
+
+      const actor = yield* StateMachine.start(machine)
+
+      yield* actor.send(new Authorize({ code: "auth-1" }))
+      assert.strictEqual(yield* actor.join, "auth-1")
+      yield* actor.send(new Reset({}))
+
+      assert.deepStrictEqual(yield* actor.snapshot, {
+        status: "done",
+        state: {
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.authorized",
+            value: new AuthorizedPayment({ code: "auth-1" })
+          }
+        },
+        output: "auth-1"
+      })
+    }))
+
+  it.effect("does not process raised events from nested final state entry actions", () =>
+    Effect.gen(function*() {
+      const payment = new Payment({ id: "payment-1" })
+      const machine = StateMachine.make({
+        states: {
+          payment: {
+            schema: Payment,
+            initial: "entering",
+            states: {
+              entering: EnteringPayment,
+              authorized: {
+                schema: AuthorizedPayment,
+                type: "final"
+              }
+            }
+          },
+          failed: Failed
+        },
+        events: [Authorize, Reset],
+        initial: () => ({
+          path: "payment",
+          value: payment,
+          state: {
+            path: "payment.entering" as const,
+            value: new EnteringPayment({ amount: 100 })
+          }
+        })
+      })
+        .handle("payment", {
+          on: {
+            Reset: ({ target }) => target("failed", new Failed({ message: "raised" }))
+          }
+        })
+        .handle("payment.entering", {
+          on: {
+            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+          }
+        })
+        .handle("payment.authorized", {
+          type: "final",
+          entry: ({ runtime }) => Effect.flatMap(runtime, (stateMachine) => stateMachine.raise(new Reset({})))
+        })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
+
+      assertCompoundStateSnapshot(planned.next as any, "payment", payment, {
+        path: "payment.authorized" as const,
+        value: new AuthorizedPayment({ code: "auth-1" })
+      })
+      assert.strictEqual(StateMachine.isFinal(machine, planned.next), true)
+    }))
+
   it.effect("starts a machine without input", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({

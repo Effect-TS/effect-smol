@@ -615,6 +615,31 @@ export declare namespace Machine {
   export type StateLike<States extends StateSchemas> = StateOf<States> | Snapshot<States>
 
   /**
+   * Extracts the root state identifier from a state path.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type RootStateIdentifier<StateId extends string> = StateId extends `${infer Root}.${string}` ? Root : StateId
+
+  /**
+   * Extracts the public snapshot shape that contains a final state path.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotContainingFinal<
+    States extends StateSchemas,
+    FinalStates extends StateIdentifier<States>
+  > = FinalStates extends StateIdentifier<States>
+    ? RootStateIdentifier<FinalStates> extends infer Root extends StateIdentifier<States> ? SnapshotByIdentifier<
+        States,
+        Root
+      >
+    : never
+    : never
+
+  /**
    * Extracts state identifiers whose state-tree definition marks them final.
    *
    * @category utility types
@@ -1544,6 +1569,45 @@ const getStateConfig = (
   state: Machine.StateLike<any>
 ): Machine.AnyStateConfig | undefined => machine.handlers[getStateIdentifier(machine, state)]
 
+const getStateConfigByPath = (
+  machine: Machine.Any,
+  path: string
+): Machine.AnyStateConfig | undefined => machine.handlers[path]
+
+const getActiveChildPath = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string
+): string | undefined => getNode(machine, path).children.find((child) => configuration.active.has(child))
+
+const isDirectFinalPath = (
+  machine: Machine.Any,
+  path: string
+): boolean => getNode(machine, path).type === "final" || getStateConfigByPath(machine, path)?.type === "final"
+
+const getDeepestActiveFinalPathFrom = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string
+): string | undefined => {
+  const node = getNode(machine, path)
+  if (node.type === "compound") {
+    const child = getActiveChildPath(machine, configuration, path)
+    if (child !== undefined) {
+      const finalChild = getDeepestActiveFinalPathFrom(machine, configuration, child)
+      if (finalChild !== undefined) {
+        return finalChild
+      }
+    }
+  }
+  return isDirectFinalPath(machine, path) ? path : undefined
+}
+
+const getDeepestActiveFinalPath = (
+  machine: Machine.Any,
+  configuration: ActiveConfiguration
+): string | undefined => getDeepestActiveFinalPathFrom(machine, configuration, getRootPath(machine, configuration))
+
 const handleUnsafe = (
   self: Machine.Any,
   stateTag: PropertyKey,
@@ -1994,22 +2058,40 @@ export const isMachine = (
 const isFinalState = (
   machine: Machine.Any,
   state: Machine.StateLike<any>
-): boolean => {
-  const configuration = normalizeConfiguration(machine, state)
-  const stateIdentifier = getRootPath(machine, configuration)
-  return getNode(machine, stateIdentifier).type === "final" || machine.handlers[stateIdentifier]?.type === "final"
+): boolean => getDeepestActiveFinalPath(machine, normalizeConfiguration(machine, state)) !== undefined
+
+const getFinalOutputFromConfiguration = <
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  Output
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.EventOf<Events>
+): Output | undefined => {
+  const finalPath = getDeepestActiveFinalPath(machine, configuration)
+  if (finalPath === undefined) {
+    return undefined
+  }
+  return getStateConfigByPath(machine, finalPath)?.output?.({
+    state: getActiveValue(configuration, finalPath),
+    event
+  }) as Output | undefined
 }
 
 const getFinalOutput = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  StateId extends Machine.StateIdentifier<States>,
   Output
 >(
   machine: Machine.Any,
-  state: Machine.SnapshotByIdentifier<States, StateId>,
+  state: Machine.StateLike<States>,
   event: Machine.EventOf<Events>
-): Output | undefined => getStateConfig(machine, state)?.output?.({ state: state.value, event }) as Output | undefined
+): Output | undefined =>
+  getFinalOutputFromConfiguration<Events, Output>(
+    machine,
+    normalizeConfiguration(machine, state),
+    event
+  )
 
 /**
  * Returns `true` if a state is final for a state machine.
@@ -2032,7 +2114,7 @@ export const isFinal = <
   state: Machine.StateLike<States>
 ): state is Extract<
   Machine.StateLike<States>,
-  Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotByIdentifier<States, FinalStates>
+  Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotContainingFinal<States, FinalStates>
 > => isFinalState(machine, state)
 
 /**
@@ -2402,11 +2484,10 @@ const settle: <
   let finalOutput: Output | undefined = undefined
 
   while (true) {
-    const currentSnapshot = snapshotFromConfiguration<States>(machine, currentState)
-    if (isFinalState(machine, currentSnapshot)) {
-      finalOutput = getFinalOutput<States, Events, Machine.StateIdentifier<States>, Output>(
+    if (getDeepestActiveFinalPath(machine, currentState) !== undefined) {
+      finalOutput = getFinalOutputFromConfiguration<Events, Output>(
         machine,
-        currentSnapshot as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
+        currentState,
         currentEvent
       )
       break
@@ -2785,9 +2866,9 @@ export const toActorLogic: <
 
           const initialState = yield* state
           if (isFinalState(machine, initialState)) {
-            return getFinalOutput<States, Events, Machine.StateIdentifier<States>, Output>(
+            return getFinalOutput<States, Events, Output>(
               machine,
-              initialState as Machine.SnapshotByIdentifier<States, Machine.StateIdentifier<States>>,
+              initialState,
               InitialEvent as Machine.EventOf<Events>
             )
           }
