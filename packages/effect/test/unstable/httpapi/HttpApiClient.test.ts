@@ -153,4 +153,42 @@ describe("HttpApiClient", () => {
         responseMode: "response-only"
       })
     }))
+
+  it.effect("omits optional path parameters when executing requests", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("files")
+            .add(
+              HttpApiEndpoint.get("download", "/files/:path?", {
+                params: {
+                  path: Schema.optional(Schema.String)
+                }
+              })
+            )
+        )
+      const urls: Array<string> = []
+      const httpClient = HttpClient.make((request, url) =>
+        Effect.sync(() => {
+          urls.push(url.toString())
+          return HttpClientResponse.fromWeb(request, new Response(null, { status: 204 }))
+        })
+      )
+      const client = yield* HttpApiClient.makeWith(Api, {
+        httpClient,
+        baseUrl: "https://api.example.com"
+      })
+
+      yield* client.files.download({
+        params: {},
+        responseMode: "response-only"
+      })
+      yield* client.files.download({
+        params: { path: "a/b" },
+        responseMode: "response-only"
+      })
+
+      strictEqual(urls[0], "https://api.example.com/files")
+      strictEqual(urls[1], "https://api.example.com/files/a%2Fb")
+    }))
 })
