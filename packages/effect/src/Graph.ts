@@ -2568,6 +2568,37 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
     return graph.acyclic.value
   }
 
+  if (graph.type === "undirected") {
+    const visited = new Set<NodeIndex>()
+
+    for (const startNode of graph.nodes.keys()) {
+      if (visited.has(startNode)) {
+        continue
+      }
+
+      visited.add(startNode)
+      const stack: Array<{ node: NodeIndex; parent: NodeIndex | null }> = [{ node: startNode, parent: null }]
+
+      while (stack.length > 0) {
+        const { node, parent } = stack.pop()!
+        const nodeNeighbors = getUndirectedNeighbors(graph as any, node)
+
+        for (const neighbor of nodeNeighbors) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor)
+            stack.push({ node: neighbor, parent: node })
+          } else if (neighbor !== parent) {
+            graph.acyclic = Option.some(false)
+            return false
+          }
+        }
+      }
+    }
+
+    graph.acyclic = Option.some(true)
+    return true
+  }
+
   // Stack-safe DFS cycle detection using iterative approach
   const visited = new Set<NodeIndex>()
   const recursionStack = new Set<NodeIndex>()
@@ -2750,6 +2781,21 @@ const getUndirectedNeighbors = <N, E>(
 
   return Array.from(neighbors)
 }
+
+const getTraversalNeighbors = <N, E, T extends Kind>(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex,
+  direction: Direction
+): Array<NodeIndex> =>
+  graph.type === "undirected"
+    ? getUndirectedNeighbors(graph as any, nodeIndex)
+    : neighborsDirected(graph, nodeIndex, direction)
+
+const getTraversableNeighbor = <E, T extends Kind>(
+  graph: Graph<unknown, E, T> | MutableGraph<unknown, E, T>,
+  current: NodeIndex,
+  edge: Edge<E>
+): NodeIndex => graph.type === "undirected" && edge.target === current ? edge.source : edge.target
 
 /**
  * Finds connected components in an undirected graph.
@@ -3114,7 +3160,7 @@ export const dijkstra: {
       for (const edgeIndex of adjacencyList) {
         const edge = graph.edges.get(edgeIndex)
         if (edge !== undefined) {
-          const neighbor = edge.target
+          const neighbor = getTraversableNeighbor(graph, currentNode, edge)
           const cost = config.cost(edge.data)
 
           // Validate non-negative weights
@@ -3272,6 +3318,15 @@ export const floydWarshall: {
       distances.get(i)!.set(j, weight)
       next.get(i)!.set(j, j)
       edgeMatrix.get(i)!.set(j, edgeData.data)
+    }
+
+    if (graph.type === "undirected") {
+      const reverseWeight = distances.get(j)!.get(i)!
+      if (weight < reverseWeight) {
+        distances.get(j)!.set(i, weight)
+        next.get(j)!.set(i, i)
+        edgeMatrix.get(j)!.set(i, edgeData.data)
+      }
     }
   }
 
@@ -3513,7 +3568,7 @@ export const astar: {
       for (const edgeIndex of adjacencyList) {
         const edge = graph.edges.get(edgeIndex)
         if (edge !== undefined) {
-          const neighbor = edge.target
+          const neighbor = getTraversableNeighbor(graph, currentNode, edge)
           const weight = config.cost(edge.data)
 
           // Validate non-negative weights
@@ -3691,6 +3746,14 @@ export const bellmanFord: {
       weight,
       edgeData: edgeData.data
     })
+    if (graph.type === "undirected" && edgeData.source !== edgeData.target) {
+      edges.push({
+        source: edgeData.target,
+        target: edgeData.source,
+        weight,
+        edgeData: edgeData.data
+      })
+    }
   }
 
   // Relax edges up to V-1 times
@@ -3732,14 +3795,8 @@ export const bellmanFord: {
         affectedNodes.add(node)
 
         // Add all nodes reachable from this node
-        const adjacencyList = graph.adjacency.get(node)
-        if (adjacencyList !== undefined) {
-          for (const edgeIndex of adjacencyList) {
-            const edge = graph.edges.get(edgeIndex)
-            if (edge !== undefined) {
-              queue.push(edge.target)
-            }
-          }
+        for (const neighbor of getTraversalNeighbors(graph, node, "outgoing")) {
+          queue.push(neighbor)
         }
       }
 
@@ -4118,7 +4175,7 @@ export const dfs: {
             continue
           }
 
-          const neighbors = neighborsDirected(graph, current, direction)
+          const neighbors = getTraversalNeighbors(graph, current, direction)
           for (let i = neighbors.length - 1; i >= 0; i--) {
             const neighbor = neighbors[i]
             if (!discovered.has(neighbor)) {
@@ -4208,7 +4265,7 @@ export const bfs: {
           if (!discovered.has(current)) {
             discovered.add(current)
 
-            const neighbors = neighborsDirected(graph, current, direction)
+            const neighbors = getTraversalNeighbors(graph, current, direction)
             for (const neighbor of neighbors) {
               if (!discovered.has(neighbor)) {
                 queue.push(neighbor)
@@ -4309,6 +4366,10 @@ export const topo: {
   graph: Graph<N, E, T> | MutableGraph<N, E, T>,
   config: TopoConfig = {}
 ): NodeWalker<N> => {
+  if (graph.type === "undirected") {
+    throw new GraphError({ message: "Cannot perform topological sort on undirected graph" })
+  }
+
   // Check if graph is acyclic first
   if (!isAcyclic(graph)) {
     throw new GraphError({ message: "Cannot perform topological sort on cyclic graph" })
@@ -4465,7 +4526,7 @@ export const dfsPostOrder: {
 
           if (!current.visitedChildren) {
             current.visitedChildren = true
-            const neighbors = neighborsDirected(graph, current.node, direction)
+            const neighbors = getTraversalNeighbors(graph, current.node, direction)
 
             for (let i = neighbors.length - 1; i >= 0; i--) {
               const neighbor = neighbors[i]

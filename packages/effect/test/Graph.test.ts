@@ -9,6 +9,15 @@ const assertSomeEdge = <E>(edge: Option.Option<Graph.Edge<E>>): Graph.Edge<E> =>
   return edge.value
 }
 
+const makeReversedUndirectedPath = () =>
+  Graph.undirected<string, number>((mutable) => {
+    const a = Graph.addNode(mutable, "A")
+    const b = Graph.addNode(mutable, "B")
+    const c = Graph.addNode(mutable, "C")
+    Graph.addEdge(mutable, a, b, 1)
+    Graph.addEdge(mutable, c, b, 1)
+  })
+
 describe("Graph", () => {
   describe("constructors", () => {
     it("should create empty directed graph", () => {
@@ -2028,6 +2037,25 @@ describe("Graph", () => {
 
       expect(Graph.isAcyclic(mixedComponents)).toBe(false)
     })
+
+    it("should treat a reversed-storage undirected chain as acyclic", () => {
+      const graph = makeReversedUndirectedPath()
+
+      expect(Graph.isAcyclic(graph)).toBe(true)
+    })
+
+    it("should detect cycles in undirected graphs", () => {
+      const graph = Graph.undirected<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        Graph.addEdge(mutable, a, b, 1)
+        Graph.addEdge(mutable, b, c, 1)
+        Graph.addEdge(mutable, c, a, 1)
+      })
+
+      expect(Graph.isAcyclic(graph)).toBe(false)
+    })
   })
 
   describe("isBipartite", () => {
@@ -2320,6 +2348,18 @@ describe("Graph", () => {
         })
       ).toThrow("Node 0 does not exist")
     })
+
+    it("should traverse undirected edges in reverse storage direction", () => {
+      const graph = makeReversedUndirectedPath()
+
+      const result = Graph.dijkstra(graph, {
+        source: 0,
+        target: 2,
+        cost: (edge) => edge
+      })
+
+      assertSome(result, { path: [0, 1, 2], distance: 2, costs: [1, 1] })
+    })
   })
 
   describe("astar", () => {
@@ -2407,6 +2447,19 @@ describe("Graph", () => {
         })
       ).toThrow("A* algorithm requires non-negative edge weights")
     })
+
+    it("should traverse undirected edges in reverse storage direction", () => {
+      const graph = makeReversedUndirectedPath()
+
+      const result = Graph.astar(graph, {
+        source: 0,
+        target: 2,
+        cost: (edge) => edge,
+        heuristic: () => 0
+      })
+
+      assertSome(result, { path: [0, 1, 2], distance: 2, costs: [1, 1] })
+    })
   })
 
   describe("Bellman-Ford", () => {
@@ -2479,6 +2532,34 @@ describe("Graph", () => {
 
       expect(result).toEqual(Option.none())
     })
+
+    it("should traverse undirected edges in reverse storage direction", () => {
+      const graph = makeReversedUndirectedPath()
+
+      const result = Graph.bellmanFord(graph, {
+        source: 0,
+        target: 2,
+        cost: (edge) => edge
+      })
+
+      assertSome(result, { path: [0, 1, 2], distance: 2, costs: [1, 1] })
+    })
+
+    it("should treat a reachable negative undirected edge as a negative cycle", () => {
+      const graph = Graph.undirected<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, -1)
+      })
+
+      const result = Graph.bellmanFord(graph, {
+        source: 0,
+        target: 1,
+        cost: (edge) => edge
+      })
+
+      assertNone(result)
+    })
   })
 
   describe("Floyd-Warshall", () => {
@@ -2543,6 +2624,26 @@ describe("Graph", () => {
         Graph.addEdge(mutable, a, b, 1)
         Graph.addEdge(mutable, b, c, -3)
         Graph.addEdge(mutable, c, a, 1)
+      })
+
+      expect(() => Graph.floydWarshall(graph, (edge) => edge)).toThrow("Negative cycle detected")
+    })
+
+    it("should traverse undirected edges in reverse storage direction", () => {
+      const graph = makeReversedUndirectedPath()
+
+      const result = Graph.floydWarshall(graph, (edge) => edge)
+
+      expect(result.distances.get(0)?.get(2)).toBe(2)
+      expect(result.paths.get(0)?.get(2)).toEqual([0, 1, 2])
+      expect(result.costs.get(0)?.get(2)).toEqual([1, 1])
+    })
+
+    it("should treat negative undirected edges as negative cycles", () => {
+      const graph = Graph.undirected<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, -1)
       })
 
       expect(() => Graph.floydWarshall(graph, (edge) => edge)).toThrow("Negative cycle detected")
@@ -2651,6 +2752,12 @@ describe("Graph", () => {
       expect(() => Graph.topo(cyclicGraph)).toThrow("Cannot perform topological sort on cyclic graph")
     })
 
+    it("should throw for undirected graphs", () => {
+      const graph = makeReversedUndirectedPath()
+
+      expect(() => Graph.topo(graph)).toThrow("Cannot perform topological sort on undirected graph")
+    })
+
     it("should handle corrupted graph state during topological sort", () => {
       const graph = Graph.directed<string, number>((mutable) => {
         const a = Graph.addNode(mutable, "A")
@@ -2711,6 +2818,15 @@ describe("Graph", () => {
       const entries = Array.from(Graph.entries(dfsPostIterator))
 
       expect(entries).toEqual([[2, "C"], [1, "B"], [0, "A"]]) // Postorder: children before parents
+    })
+
+    it("should traverse undirected edges in reverse storage direction", () => {
+      const graph = makeReversedUndirectedPath()
+
+      expect(Array.from(Graph.indices(Graph.dfs(graph, { start: [0] })))).toEqual([0, 1, 2])
+      expect(Array.from(Graph.indices(Graph.dfs(graph, { start: [0], direction: "incoming" })))).toEqual([0, 1, 2])
+      expect(Array.from(Graph.indices(Graph.bfs(graph, { start: [0] })))).toEqual([0, 1, 2])
+      expect(Array.from(Graph.indices(Graph.dfsPostOrder(graph, { start: [0] })))).toEqual([2, 1, 0])
     })
   })
 
