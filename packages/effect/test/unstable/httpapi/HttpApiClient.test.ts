@@ -1,6 +1,7 @@
 import { describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
+import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 
 describe("HttpApiClient", () => {
@@ -41,6 +42,34 @@ describe("HttpApiClient", () => {
       )
     })
 
+    it("encodes path parameters", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("stacks")
+            .add(
+              HttpApiEndpoint.get("listResources", "/state/stacks/:stack/stages/:stage/resources", {
+                params: {
+                  stack: Schema.String,
+                  stage: Schema.String
+                }
+              })
+            )
+        )
+      const builder = HttpApiClient.urlBuilder(Api, {
+        baseUrl: "https://api.example.com"
+      })
+
+      strictEqual(
+        builder.stacks.listResources({
+          params: {
+            stack: "a/b",
+            stage: "prod/blue"
+          }
+        }),
+        "https://api.example.com/state/stacks/a%2Fb/stages/prod%2Fblue/resources"
+      )
+    })
+
     it("returns relative urls when baseUrl is omitted", () => {
       const builder = HttpApiClient.urlBuilder(Api)
 
@@ -64,4 +93,38 @@ describe("HttpApiClient", () => {
       strictEqual(builder.health(), "https://api.example.com/v1/health")
     })
   })
+
+  it.effect("encodes path parameters when executing requests", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("stacks")
+            .add(
+              HttpApiEndpoint.get("listResources", "/state/stacks/:stack/stages/:stage/resources", {
+                params: {
+                  stack: Schema.String,
+                  stage: Schema.String
+                }
+              })
+            )
+        )
+      const httpClient = HttpClient.make((request, url) =>
+        Effect.sync(() => {
+          strictEqual(url.toString(), "https://api.example.com/state/stacks/a%2Fb/stages/prod%2Fblue/resources")
+          return HttpClientResponse.fromWeb(request, new Response(null, { status: 204 }))
+        })
+      )
+      const client = yield* HttpApiClient.makeWith(Api, {
+        httpClient,
+        baseUrl: "https://api.example.com"
+      })
+
+      yield* client.stacks.listResources({
+        params: {
+          stack: "a/b",
+          stage: "prod/blue"
+        },
+        responseMode: "response-only"
+      })
+    }))
 })

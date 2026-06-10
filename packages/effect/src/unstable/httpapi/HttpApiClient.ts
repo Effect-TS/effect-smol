@@ -634,7 +634,8 @@ const compilePath = (path: string) => {
       if (i % 2 === 0) {
         url += segments[i]
       } else {
-        url += params[segments[i]]
+        const value = params[segments[i]]
+        url += value === undefined ? value : encodeURIComponent(value)
       }
     }
     return url
