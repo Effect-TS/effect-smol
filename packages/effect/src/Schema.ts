@@ -12924,7 +12924,8 @@ function toCodecJsonBase(ast: SchemaAST.AST, recur: (ast: SchemaAST.AST) => Sche
           ast.annotations,
           ast.checks,
           ast.encoding,
-          ast.context
+          ast.context,
+          ast.encodingChecks
         ).recur(recur)
       }
       return ast.recur(recur)
@@ -13203,7 +13204,8 @@ function serializerTree(
           ast.annotations,
           ast.checks,
           ast.encoding,
-          ast.context
+          ast.context,
+          ast.encodingChecks
         ).recur(recur)
       }
       return ast.recur(recur)

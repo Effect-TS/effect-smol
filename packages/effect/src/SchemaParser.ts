@@ -15,7 +15,6 @@ import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import { identity, memoize } from "./Function.ts"
-import * as InternalAnnotations from "./internal/schema/annotations.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
@@ -869,8 +868,11 @@ export interface Parser {
 const recur = memoize(
   (ast: SchemaAST.AST): Parser => {
     let parser: Parser
-    const astOptions = InternalAnnotations.resolve(ast)?.["parseOptions"]
-    if (!ast.context && !ast.encoding && !ast.checks) {
+    const encodingChecks = SchemaAST.getEncodingChecks(ast)
+    const resolvedChecks = ast.checks ?? encodingChecks
+    const astOptions = (resolvedChecks ? resolvedChecks[resolvedChecks.length - 1].annotations : ast.annotations)
+      ?.["parseOptions"]
+    if (!ast.context && !ast.encoding && !ast.checks && !encodingChecks) {
       return (ou, options) => {
         parser ??= ast.getParser(recur)
         if (astOptions) {
@@ -907,6 +909,21 @@ const recur = memoize(
 
       parser ??= ast.getParser(recur)
       let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
+
+      if (encodingChecks && !options?.disableChecks) {
+        sroa = Effect.flatMapEager(sroa, (oa) => {
+          if (Option.isSome(ou) && Option.isSome(oa)) {
+            const issues: Array<SchemaIssue.Issue> = []
+
+            SchemaAST.collectIssues(encodingChecks, ou.value, issues, ast, options)
+
+            if (Arr.isArrayNonEmpty(issues)) {
+              return Effect.fail(new SchemaIssue.Composite(ast, ou, issues))
+            }
+          }
+          return Effect.succeed(oa)
+        })
+      }
 
       if (ast.checks && !options?.disableChecks) {
         const checks = ast.checks
