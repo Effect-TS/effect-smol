@@ -246,6 +246,97 @@ type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.Ta
     : StateDefinitionError<"State node type must be active, final, or parallel">
   : unknown
 
+const SnapshotBuilderStateTypeId: unique symbol = Symbol("effect/StateMachine/SnapshotBuilderState")
+
+type SnapshotBuilderComplete<Regions> = {
+  readonly [SnapshotBuilderStateTypeId]: Regions
+}
+
+type InitialSnapshotBuilderWithPrefix<
+  States extends Machine.StateSchemas,
+  Prefix extends string = ""
+> = {
+  readonly [Key in Extract<keyof States, string>]: InitialSnapshotMethod<States, Key, Prefix>
+}
+
+type InitialSnapshotMethod<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string
+> = (
+  ...args: InitialSnapshotArguments<States, StateId, Prefix>
+) => InitialSnapshotResult<States, StateId, Prefix>
+
+type InitialSnapshotArguments<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends infer Node ?
+  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
+      value: Machine.NodeSchema<Node>["Type"],
+      states: (
+        builder: InitialParallelBuilder<Children, Path>
+      ) => SnapshotBuilderComplete<InitialSnapshotRegionsWithPrefix<Children, Path>>
+    ]
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ?
+    Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> } ? [
+        value: Machine.NodeSchema<Node>["Type"],
+        state: (
+          builder: Pick<InitialSnapshotBuilderWithPrefix<Children, Path>, Initial>
+        ) => InitialSnapshotResult<Children, Initial, Path>
+      ]
+    : never
+  : [value: Machine.NodeSchema<Node>["Type"]]
+  : never
+
+type InitialSnapshotResult<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends infer Node ?
+  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ?
+    Machine.ParallelSnapshot<
+      Path,
+      Machine.NodeSchema<Node>["Type"],
+      InitialSnapshotRegionsWithPrefix<Children, Path>
+    >
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ?
+    Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> } ? Machine.CompoundSnapshot<
+        Path,
+        Machine.NodeSchema<Node>["Type"],
+        InitialSnapshotResult<Children, Initial, Path>
+      >
+    : never
+  : Machine.AtomicSnapshot<Path, Machine.NodeSchema<Node>["Type"]>
+  : never
+
+type InitialSnapshotRegionsWithPrefix<
+  States extends Machine.StateSchemas,
+  Prefix extends string
+> = {
+  readonly [Key in Extract<keyof States, string>]: InitialSnapshotResult<States, Key, Prefix>
+}
+
+type InitialParallelBuilder<
+  States extends Machine.StateSchemas,
+  Prefix extends string,
+  Remaining extends Extract<keyof States, string> = Extract<keyof States, string>,
+  Regions = {}
+> =
+  & SnapshotBuilderComplete<Regions>
+  & {
+    readonly [Key in Remaining]: (
+      ...args: InitialSnapshotArguments<States, Key, Prefix>
+    ) => InitialParallelBuilder<
+      States,
+      Prefix,
+      Exclude<Remaining, Key>,
+      Regions & { readonly [Region in Key]: InitialSnapshotResult<States, Key, Prefix> }
+    >
+  }
+
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption
 } ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
@@ -370,7 +461,7 @@ export declare namespace Machine {
    * @category utility types
    * @since 4.0.0
    */
-  export type InitialBuilder<States extends StateSchemas> = any
+  export type InitialBuilder<States extends StateSchemas> = InitialSnapshotBuilderWithPrefix<States>
 
   /**
    * State definitions returned by {@link defineStates}.
@@ -1412,6 +1503,99 @@ export const isFinal = <
   Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotContainingFinal<States, FinalStates>
 > => internalRuntime.isFinal(machine, state)
 
+type SnapshotBuilderOptions = {
+  readonly mode: "initial"
+  readonly prefix: string
+}
+
+const makeSnapshotBuilder = (
+  states: Machine.StateTree,
+  options: SnapshotBuilderOptions
+): unknown => {
+  const builder: Record<string, unknown> = {}
+  for (const key of Object.keys(states)) {
+    builder[key] = (value: unknown, selector?: (builder: unknown) => unknown) =>
+      makeSnapshotForNode(states[key], key, value, selector, options)
+  }
+  return builder
+}
+
+const makeParallelSnapshotBuilder = (
+  states: Machine.StateTree,
+  options: SnapshotBuilderOptions,
+  regions: Readonly<Record<string, unknown>>
+): unknown => {
+  const builder: Record<string, unknown> = {}
+  Object.defineProperty(builder, SnapshotBuilderStateTypeId, {
+    value: regions,
+    enumerable: false
+  })
+  for (const key of Object.keys(states)) {
+    if (hasProperty(regions, key)) {
+      continue
+    }
+    builder[key] = (value: unknown, selector?: (builder: unknown) => unknown) => {
+      const nextRegions: Record<string, unknown> = {}
+      for (const regionKey of Object.keys(regions)) {
+        nextRegions[regionKey] = regions[regionKey]
+      }
+      nextRegions[key] = makeSnapshotForNode(states[key], key, value, selector, options)
+      return makeParallelSnapshotBuilder(states, options, nextRegions)
+    }
+  }
+  return builder
+}
+
+const getParallelSnapshotBuilderRegions = (
+  path: string,
+  states: Machine.StateTree,
+  builder: unknown
+): Readonly<Record<string, unknown>> => {
+  if (typeof builder !== "object" || builder === null || !hasProperty(builder, SnapshotBuilderStateTypeId)) {
+    throw new Error(`StateMachine expected parallel state "${path}" builder callback to return a builder`)
+  }
+  const regions = (builder as { readonly [SnapshotBuilderStateTypeId]: Readonly<Record<string, unknown>> })[
+    SnapshotBuilderStateTypeId
+  ]
+  for (const key of Object.keys(states)) {
+    if (!hasProperty(regions, key)) {
+      throw new Error(`StateMachine expected parallel state "${path}" builder callback to provide region "${key}"`)
+    }
+  }
+  return regions
+}
+
+const makeSnapshotForNode = (
+  definition: Machine.TaggedSchema | Machine.StateNodeConfig,
+  key: string,
+  value: unknown,
+  selector: ((builder: unknown) => unknown) | undefined,
+  options: SnapshotBuilderOptions
+): Record<string, unknown> => {
+  const path = options.prefix === "" ? key : `${options.prefix}.${key}`
+  const node = Model.getStateNodeDefinition(path, definition)
+  const snapshot: Record<string, unknown> = {
+    path,
+    value
+  }
+  if (node.states === undefined) {
+    return snapshot
+  }
+  if (selector === undefined) {
+    throw new Error(`StateMachine expected state "${path}" builder to provide active child states`)
+  }
+  if (node.type === "parallel") {
+    const builder = makeParallelSnapshotBuilder(node.states, { ...options, prefix: path }, {})
+    snapshot.states = getParallelSnapshotBuilderRegions(path, node.states, selector(builder))
+    return snapshot
+  }
+  const childStates = options.mode === "initial" && node.initial !== undefined
+    ? { [node.initial]: node.states[node.initial] }
+    : node.states
+  snapshot.state = selector(makeSnapshotBuilder(childStates, { ...options, prefix: path }))
+  return snapshot
+}
+
 /**
  * Defines state schema definitions while preserving literal state keys.
  *
@@ -1424,7 +1608,7 @@ export const defineStates = <
   states: States & Machine.ValidateStateSchemas<States>
 ): Machine.DefinedStates<States> => ({
   states,
-  initial: {} as Machine.InitialBuilder<States>
+  initial: makeSnapshotBuilder(states, { mode: "initial", prefix: "" }) as Machine.InitialBuilder<States>
 })
 
 /**

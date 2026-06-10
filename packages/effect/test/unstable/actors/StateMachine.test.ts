@@ -248,6 +248,110 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(planned.state.value, new Idle({ userId: "user-1" }))
     }))
 
+  it.effect("initial builder constructs compound initial snapshots", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        payment: {
+          schema: Payment,
+          initial: "entering",
+          states: {
+            entering: EnteringPayment,
+            authorized: AuthorizedPayment
+          }
+        }
+      })
+      const payment = new Payment({ id: "payment-1" })
+      const entering = new EnteringPayment({ amount: 100 })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [Authorize],
+        initial: () =>
+          states.initial.payment(
+            payment,
+            (payment) => payment.entering(entering)
+          )
+      })
+
+      const planned = yield* StateMachine.planInitial(machine)
+
+      assertCompoundStateSnapshot(planned.state, "payment", payment, {
+        path: "payment.entering",
+        value: entering
+      })
+    }))
+
+  it.effect("initial builder constructs parallel initial snapshots", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const checking = new CheckingInventory({ sku: "sku-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.fulfillment(
+            fulfillment,
+            (fulfillment) =>
+              fulfillment
+                .inventory(
+                  inventory,
+                  (inventory) => inventory.checking(checking)
+                )
+                .shipping(
+                  shipping,
+                  (shipping) => shipping.quoting(quoting)
+                )
+          )
+      })
+
+      const planned = yield* StateMachine.planInitial(machine)
+
+      assertParallelStateSnapshot(planned.state, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: inventory,
+          state: {
+            path: "fulfillment.inventory.checking",
+            value: checking
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoting",
+            value: quoting
+          }
+        }
+      })
+    }))
+
   it.effect("supports flat object states with path-aware handlers", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
