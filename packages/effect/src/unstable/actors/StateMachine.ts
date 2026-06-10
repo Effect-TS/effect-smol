@@ -65,6 +65,11 @@ export interface Machine<
   /** @internal */
   readonly stateNodes: Machine.StateNodes
 
+  /** @internal */
+  readonly makeTargetBuilder: <Source extends Machine.StateIdentifier<States>>(
+    source: Source
+  ) => Machine.TargetBuilder<States, Source>
+
   readonly handlers: Machine.StateConfigs<States, Events, Emits, UnhandledStates, Machine.TagOf<Events[number]>, E, R>
   readonly handle: Machine.Handler<
     States,
@@ -334,6 +339,67 @@ type InitialParallelBuilder<
       Prefix,
       Exclude<Remaining, Key>,
       Regions & { readonly [Region in Key]: InitialSnapshotResult<States, Key, Prefix> }
+    >
+  }
+
+type FullSnapshotBuilderWithPrefix<
+  States extends Machine.StateSchemas,
+  Prefix extends string = ""
+> = {
+  readonly [Key in Extract<keyof States, string>]: FullSnapshotMethod<States, Key, Prefix>
+}
+
+type FullSnapshotMethod<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string
+> = (
+  ...args: FullSnapshotArguments<States, StateId, Prefix>
+) => FullSnapshotResult<States, StateId, Prefix>
+
+type FullSnapshotArguments<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends infer Node ?
+  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
+      value: Machine.NodeSchema<Node>["Type"],
+      states: (
+        builder: FullParallelBuilder<Children, Path>
+      ) => SnapshotBuilderComplete<Machine.SnapshotRegionsWithPrefix<Children, Path>>
+    ]
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ? [
+      value: Machine.NodeSchema<Node>["Type"],
+      state: (
+        builder: FullSnapshotBuilderWithPrefix<Children, Path>
+      ) => Machine.SnapshotWithPrefix<Children, Path>
+    ]
+  : [value: Machine.NodeSchema<Node>["Type"]]
+  : never
+
+type FullSnapshotResult<
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = Machine.SnapshotByIdentifierWithPath<States, StateId, Path>
+
+type FullParallelBuilder<
+  States extends Machine.StateSchemas,
+  Prefix extends string,
+  Remaining extends Extract<keyof States, string> = Extract<keyof States, string>,
+  Regions = {}
+> =
+  & SnapshotBuilderComplete<Regions>
+  & {
+    readonly [Key in Remaining]: (
+      ...args: FullSnapshotArguments<States, Key, Prefix>
+    ) => FullParallelBuilder<
+      States,
+      Prefix,
+      Exclude<Remaining, Key>,
+      Regions & { readonly [Region in Key]: FullSnapshotResult<States, Key, Prefix> }
     >
   }
 
@@ -863,23 +929,48 @@ export declare namespace Machine {
   }
 
   /**
-   * Machine-bound target helper available in transition contexts.
+   * Builder for full state targets.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type FullTargetBuilder<States extends StateSchemas> = FullSnapshotBuilderWithPrefix<States>
+
+  /**
+   * Builder for source-local state targets.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type LocalTargetBuilder<
+    States extends StateSchemas,
+    Source extends StateIdentifier<States>
+  > = {}
+
+  /**
+   * Builder for targets within the active source branch.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type BranchTargetBuilder<
+    States extends StateSchemas,
+    Source extends StateIdentifier<States>
+  > = {}
+
+  /**
+   * Machine-bound target builders available in transition contexts.
    *
    * @category models
    * @since 4.0.0
    */
-  export interface TargetFunction<States extends StateSchemas> {
-    <const StateId extends StateIdentifier<States>>(
-      path: StateId,
-      value: StateByIdentifier<States, StateId>,
-      options?: {
-        readonly values?: Partial<
-          {
-            readonly [AncestorStateId in StateIdentifier<States>]: StateByIdentifier<States, AncestorStateId>
-          }
-        >
-      }
-    ): Target<States, StateId>
+  export interface TargetBuilder<
+    States extends StateSchemas,
+    Source extends StateIdentifier<States>
+  > {
+    readonly local: LocalTargetBuilder<States, Source>
+    readonly branch: BranchTargetBuilder<States, Source>
+    readonly full: FullTargetBuilder<States>
   }
 
   /**
@@ -900,7 +991,7 @@ export declare namespace Machine {
     readonly state: StateByIdentifier<States, StateId>
     readonly event: EventByTag<Events, EventTag>
     readonly runtime: RuntimeEffect<Events, Emits>
-    readonly target: TargetFunction<States>
+    readonly target: TargetBuilder<States, StateId>
   }
 
   /**
@@ -974,7 +1065,7 @@ export declare namespace Machine {
     readonly state: StateByIdentifier<States, StateId>
     readonly event: EventOf<Events>
     readonly runtime: RuntimeEffect<Events, Emits>
-    readonly target: TargetFunction<States>
+    readonly target: TargetBuilder<States, StateId>
   }
 
   /**
@@ -1461,6 +1552,7 @@ const handleUnsafe = (
   machine.id = self.id
   machine.initial = self.initial
   machine.stateNodes = self.stateNodes
+  machine.makeTargetBuilder = self.makeTargetBuilder
   machine.handlers = {
     ...self.handlers,
     [stateTag]: config
@@ -1503,7 +1595,7 @@ export const isFinal = <
 > => internalRuntime.isFinal(machine, state)
 
 type SnapshotBuilderOptions = {
-  readonly mode: "initial"
+  readonly mode: "initial" | "full"
   readonly prefix: string
 }
 
@@ -1595,6 +1687,18 @@ const makeSnapshotForNode = (
   return snapshot
 }
 
+const makeTargetBuilder = <const States extends Machine.StateSchemas>(
+  states: States
+) => {
+  const full = makeSnapshotBuilder(states, { mode: "full", prefix: "" }) as Machine.FullTargetBuilder<States>
+  return <Source extends Machine.StateIdentifier<States>>(_source: Source): Machine.TargetBuilder<States, Source> =>
+    ({
+      local: {},
+      branch: {},
+      full
+    }) as Machine.TargetBuilder<States, Source>
+}
+
 /**
  * Defines state schema definitions while preserving literal state keys.
  *
@@ -1653,6 +1757,7 @@ export const make = <
   self.id = config.id
   self.initial = config.initial
   self.stateNodes = Model.compileStateNodes(config.states)
+  self.makeTargetBuilder = makeTargetBuilder(config.states)
   self.handlers = {}
   return self
 }

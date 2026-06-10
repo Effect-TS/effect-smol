@@ -387,8 +387,7 @@ describe("StateMachine", () => {
         initial: (input) => LowercaseInitial.idle(new Idle({ userId: input.userId }))
       }).handle("idle", {
         on: {
-          Submit: ({ event, state, target }) =>
-            target("loading", new Loading({ requestId: `${state.userId}:${event.value}` }))
+          Submit: ({ event, state }) => new Loading({ requestId: `${state.userId}:${event.value}` })
         }
       })
 
@@ -415,12 +414,12 @@ describe("StateMachine", () => {
       })
         .handle("a", {
           on: {
-            Submit: ({ event, target }) => target("b", new Duplicate({ value: event.value }))
+            Submit: ({ event, target }) => target.full.b(new Duplicate({ value: event.value }))
           }
         })
         .handle("b", {
           on: {
-            Reset: ({ target }) => target("a", new Duplicate({ value: "reset" }))
+            Reset: ({ target }) => target.full.a(new Duplicate({ value: "reset" }))
           }
         })
 
@@ -453,7 +452,7 @@ describe("StateMachine", () => {
         initial: () => DuplicateInitial.a(new Duplicate({ value: "a" }))
       }).handle("a", {
         on: {
-          Submit: ({ event, target }) => target("b", new Duplicate({ value: event.value }))
+          Submit: ({ event, target }) => target.full.b(new Duplicate({ value: event.value }))
         }
       })
 
@@ -483,7 +482,7 @@ describe("StateMachine", () => {
         initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
       }).handle("idle", {
         on: {
-          Submit: ({ event, target }) => target("success", new Success({ requestId: event.value }))
+          Submit: ({ event }) => new Success({ requestId: event.value })
         }
       })
 
@@ -578,12 +577,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Authorize: ({ target }) => target("failed", new Failed({ message: "parent" }))
+            Authorize: () => new Failed({ message: "parent" })
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
 
@@ -623,7 +622,7 @@ describe("StateMachine", () => {
         })
       }).handle("payment", {
         on: {
-          Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+          Reset: () => new Idle({ userId: "user-1" })
         }
       })
 
@@ -676,7 +675,7 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:payment"))
           }),
           on: {
-            Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+            Reset: () => new Idle({ userId: "user-1" })
           }
         })
         .handle("payment.entering", {
@@ -749,7 +748,7 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:entering"))
           }),
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
         .handle("payment.authorized", {
@@ -782,7 +781,7 @@ describe("StateMachine", () => {
       ])
     }))
 
-  it.effect("uses explicit ancestor values when targeting a nested state from outside", () =>
+  it.effect("uses target.full when targeting a nested state from outside", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const machine = StateMachine.make({
@@ -803,11 +802,10 @@ describe("StateMachine", () => {
         .handle("idle", {
           on: {
             Submit: ({ event, target }) =>
-              target("payment.entering", new EnteringPayment({ amount: event.value.length }), {
-                values: {
-                  payment: new Payment({ id: event.value })
-                }
-              })
+              target.full.payment(
+                new Payment({ id: event.value }),
+                (payment) => payment.entering(new EnteringPayment({ amount: event.value.length }))
+              )
           }
         })
         .handle("payment", {
@@ -839,6 +837,88 @@ describe("StateMachine", () => {
       assert.deepStrictEqual(yield* deferredLog.read, ["entry:payment", "entry:entering"])
     }))
 
+  it.effect("uses target.full to enter an inactive parallel root", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        idle: Idle,
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: {
+                  schema: InventoryReserved,
+                  type: "final"
+                }
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: {
+                  schema: ShippingQuoted,
+                  type: "final"
+                }
+              }
+            }
+          }
+        }
+      })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [Submit],
+        initial: () => states.initial.idle(new Idle({ userId: "user-1" }))
+      }).handle("idle", {
+        on: {
+          Submit: ({ event, target }) =>
+            target.full.fulfillment(
+              new Fulfillment({ id: event.value }),
+              (fulfillment) =>
+                fulfillment
+                  .inventory(
+                    new Inventory({ warehouse: "warehouse-1" }),
+                    (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.value }))
+                  )
+                  .shipping(
+                    new Shipping({ address: "Main Street" }),
+                    (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.value }))
+                  )
+            )
+        }
+      })
+
+      const planned = yield* StateMachine.plan(
+        machine,
+        states.initial.idle(new Idle({ userId: "user-1" })),
+        new Submit({ value: "order-1" })
+      )
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", new Fulfillment({ id: "order-1" }), {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: new Inventory({ warehouse: "warehouse-1" }),
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "order-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: new Shipping({ address: "Main Street" }),
+          state: {
+            path: "fulfillment.shipping.quoted",
+            value: new ShippingQuoted({ quoteId: "order-1" })
+          }
+        }
+      })
+    }))
+
   it.effect("treats compound states as final when their active child is final", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
@@ -868,12 +948,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: ({ target }) => target("payment.entering", new EnteringPayment({ amount: 0 }))
+            Reset: () => new EnteringPayment({ amount: 0 })
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
         .handle("payment.authorized", {
@@ -965,12 +1045,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: ({ target }) => target("idle", new Idle({ userId: "user-1" }))
+            Reset: () => new Idle({ userId: "user-1" })
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
         .handle("payment.authorized", {
@@ -1028,12 +1108,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: ({ target }) => target("failed", new Failed({ message: "raised" }))
+            Reset: () => new Failed({ message: "raised" })
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
         .handle("payment.authorized", {
@@ -1236,8 +1316,7 @@ describe("StateMachine", () => {
         })
       }).handle("fulfillment.inventory.checking", {
         on: {
-          ReserveInventory: ({ event, target }) =>
-            target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+          ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
         }
       })
 
@@ -1335,8 +1414,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
           }
         })
         .handle("fulfillment.inventory.reserved", {
@@ -1345,8 +1423,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -1457,8 +1534,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
           }
         })
         .handle("fulfillment.inventory.reserved", {
@@ -1467,7 +1543,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            Resolve: ({ target }) => target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: "quote-1" }))
+            Resolve: () => new ShippingQuoted({ quoteId: "quote-1" })
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -1573,19 +1649,17 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment", {
           on: {
-            Reset: ({ target }) => target("failed", new Failed({ message: "raised" }))
+            Reset: () => new Failed({ message: "raised" })
           }
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -1675,14 +1749,12 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.inventory.reserved", new InventoryReserved({ reservationId: event.reservationId }))
+            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event, target }) =>
-              target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
           }
         })
 
@@ -1769,24 +1841,21 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment", {
           on: {
-            ReserveInventory: Effect.fn(function*({ target }) {
+            ReserveInventory: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:parent"))
-              return target("failed", new Failed({ message: "parent" }))
+              return new Failed({ message: "parent" })
             })
           }
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
+            ReserveInventory: Effect.fn(function*({ event }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:child"))
-              return target(
-                "fulfillment.inventory.reserved",
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
+              return new InventoryReserved({
+                reservationId: event.reservationId
+              })
             })
           }
         })
@@ -1886,15 +1955,12 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:inventory.checking"))
           }),
           on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
+            ReserveInventory: Effect.fn(function*({ event }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:inventory"))
-              return target(
-                "fulfillment.inventory.reserved",
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
+              return new InventoryReserved({
+                reservationId: event.reservationId
+              })
             })
           }
         })
@@ -1910,10 +1976,10 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:shipping.quoting"))
           }),
           on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
+            ReserveInventory: Effect.fn(function*({ event }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:shipping"))
-              return target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: event.reservationId }))
+              return new ShippingQuoted({ quoteId: event.reservationId })
             })
           }
         })
@@ -2004,21 +2070,18 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: Effect.fn(function*({ event, runtime, target }) {
+            ReserveInventory: Effect.fn(function*({ event, runtime }) {
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Resolve({}))
-              return target(
-                "fulfillment.inventory.reserved",
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
+              return new InventoryReserved({
+                reservationId: event.reservationId
+              })
             })
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            Resolve: ({ target }) => target("fulfillment.shipping.quoted", new ShippingQuoted({ quoteId: "raised" }))
+            Resolve: () => new ShippingQuoted({ quoteId: "raised" })
           }
         })
 
@@ -4268,7 +4331,7 @@ describe("StateMachine", () => {
             src: () => makeInvokeLogic("entering", enteringStarted)
           }),
           on: {
-            Authorize: ({ event, target }) => target("payment.authorized", new AuthorizedPayment({ code: event.code }))
+            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
           }
         })
         .handle("payment.authorized", {

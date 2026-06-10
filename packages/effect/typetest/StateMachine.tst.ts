@@ -61,6 +61,17 @@ describe("StateMachine", () => {
 
   type ChildBuilder<Method> = Method extends (value: any, build: (builder: infer Builder) => any) => any ? Builder
     : never
+  type IsCallable<A> = A extends (...args: ReadonlyArray<any>) => any ? true : false
+
+  type SignInContext = StateMachine.Machine.HandlerContext<
+    typeof UpStates.states,
+    readonly [typeof SignIn],
+    [],
+    "down",
+    "SignIn",
+    never,
+    never
+  >
 
   it("defineStates preserves literal state paths", () => {
     expect<StateMachine.Machine.StateIdentifier<typeof UpStates.states>>().type.toBe<
@@ -188,6 +199,58 @@ describe("StateMachine", () => {
     expect(afterAuth).type.toHaveProperty("sync")
     expect(complete).type.not.toHaveProperty("sync")
     expect(complete).type.not.toHaveProperty("done")
+  })
+
+  it("target.full constructs typed full snapshots", () => {
+    const context = null as unknown as SignInContext
+    const snapshot = context.target.full.up(
+      new Up({ id: "up-1" }),
+      (up) =>
+        up
+          .auth(
+            new Auth({ userId: "guest" }),
+            (auth) => auth.signedIn(new SignedIn({ userId: "user-1" }))
+          )
+          .sync(
+            new Sync({ enabled: true }),
+            (sync) => sync.syncing(new Syncing({ requestId: "sync-1" }))
+          )
+    )
+
+    expect(snapshot).type.toBeAssignableTo<
+      StateMachine.Machine.SnapshotByIdentifier<typeof UpStates.states, "up">
+    >()
+    expect(snapshot.path).type.toBe<"up">()
+    expect(snapshot.states.auth.state.path).type.toBe<"up.auth.signedOut" | "up.auth.signedIn">()
+    expect(snapshot.states.sync.state.path).type.toBe<"up.sync.idle" | "up.sync.syncing">()
+  })
+
+  it("target.full requires every parallel region", () => {
+    const context = null as unknown as SignInContext
+
+    expect(context.target.full.up).type.not.toBeCallableWith(
+      new Up({ id: "up-1" }),
+      (up: ChildBuilder<typeof context.target.full.up>) =>
+        up.auth(
+          new Auth({ userId: "guest" }),
+          (auth) => auth.signedIn(new SignedIn({ userId: "user-1" }))
+        )
+    )
+  })
+
+  it("target.full exposes every compound child", () => {
+    const context = null as unknown as SignInContext
+    const up = null as unknown as ChildBuilder<typeof context.target.full.up>
+    const auth = null as unknown as ChildBuilder<typeof up.auth>
+
+    expect(auth.signedOut).type.toBeCallableWith(new SignedOut({}))
+    expect(auth.signedIn).type.toBeCallableWith(new SignedIn({ userId: "user-1" }))
+  })
+
+  it("target is not callable", () => {
+    const context = null as unknown as SignInContext
+
+    expect<IsCallable<typeof context.target>>().type.toBe<false>()
   })
 
   it("rejects invalid compound initial keys", () => {

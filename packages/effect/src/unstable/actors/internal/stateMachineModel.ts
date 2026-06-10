@@ -105,19 +105,29 @@ export const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNo
   }
 }
 
-export const makeTarget: Machine.TargetFunction<any> = (
-  path: string,
-  value: { readonly _tag: PropertyKey },
+export const makeTarget = <
+  const States extends Machine.StateSchemas,
+  const StateId extends Machine.StateIdentifier<States>
+>(
+  path: StateId,
+  value: Machine.StateByIdentifier<States, StateId>,
   options?: {
-    readonly values?: Readonly<Record<string, unknown>>
+    readonly values?: Partial<
+      {
+        readonly [AncestorStateId in Machine.StateIdentifier<States>]: Machine.StateByIdentifier<
+          States,
+          AncestorStateId
+        >
+      }
+    >
   }
-) =>
+): Machine.Target<States, StateId> =>
   ({
     [TargetTypeId]: TargetTypeId,
     path,
     value,
     values: options?.values
-  }) as any
+  }) as Machine.Target<States, StateId>
 
 export const isTarget = (u: unknown): u is Machine.Target<any, any> => hasProperty(u, TargetTypeId)
 

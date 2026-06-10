@@ -28,7 +28,6 @@ import {
   isDescendantOf,
   isSnapshot,
   isTarget,
-  makeTarget,
   normalizeConfiguration,
   normalizeTargetConfiguration,
   pathDepth,
@@ -382,6 +381,7 @@ export const makeTransitionContext = <
   StateId extends Machine.StateIdentifier<States>,
   EventTag extends Machine.TagOf<Events[number]>
 >(
+  machine: Machine<States, Events, any, any, any, any, any, any, any, any, Emits>,
   configuration: ActiveConfiguration,
   path: string,
   event: Machine.EventByTag<Events, EventTag>
@@ -389,7 +389,7 @@ export const makeTransitionContext = <
   state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
   event,
   runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-  target: makeTarget
+  target: machine.makeTargetBuilder(path as StateId)
 })
 
 export const collectStateActions = Effect.fnUntraced(function*<
@@ -467,7 +467,7 @@ export const selectAlwaysTransitions = <
               >,
               event,
               runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
-              target: makeTarget
+              target: machine.makeTargetBuilder(path as Machine.StateIdentifier<States>)
             }
           })
         }
@@ -542,7 +542,7 @@ export const selectEventTransitions = <
               Emits,
               Machine.StateIdentifier<States>,
               Machine.TagOf<Events[number]>
-            >(configuration, path, event)
+            >(machine, configuration, path, event)
           })
         }
         break
