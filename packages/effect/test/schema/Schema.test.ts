@@ -1125,6 +1125,51 @@ Expected a string including "c", got "ab"`
           `Expected a value with a length of at least 3, got ""`
         )
       })
+
+      it("object-level checks are validated against the decoded value when encoding", async () => {
+        const schema = Schema.Struct({ a: Schema.FiniteFromString }).check(
+          Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: "1" }, { a: 1 })
+
+        const encoding = asserts.encoding()
+        await encoding.succeed({ a: 1 }, { a: "1" })
+      })
+
+      it("suspended checks are validated against the decoded value when encoding", async () => {
+        const schema = Schema.suspend(() => Schema.Struct({ a: Schema.FiniteFromString })).check(
+          Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
+        )
+        const asserts = new TestSchema.Asserts(schema)
+
+        const decoding = asserts.decoding()
+        await decoding.succeed({ a: "1" }, { a: 1 })
+
+        const encoding = asserts.encoding()
+        await encoding.succeed({ a: 1 }, { a: "1" })
+      })
+
+      it("toEncoded drops suspended type-side checks only when the encoded side differs", async () => {
+        const transformed = Schema.toEncoded(
+          Schema.suspend(() => Schema.Struct({ a: Schema.FiniteFromString })).check(
+            Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
+          )
+        )
+        const transformedAsserts = new TestSchema.Asserts(transformed)
+        await transformedAsserts.decoding().succeed({ a: "1" })
+
+        const unchanged = Schema.toEncoded(
+          Schema.suspend(() => Schema.String).check(Schema.isMinLength(2))
+        )
+        const unchangedAsserts = new TestSchema.Asserts(unchanged)
+        await unchangedAsserts.decoding().fail(
+          "a",
+          `Expected a value with a length of at least 2, got "a"`
+        )
+      })
     })
 
     it("refine", async () => {
@@ -4049,6 +4094,33 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         { a: 1, b: 1 },
         `Expected bgt(1), got {"a":1,"b":1}`
       )
+    })
+
+    it("index signatures should not re-parse fixed properties", async () => {
+      const Trimmed = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.trim()))
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ a: Trimmed }),
+        [Schema.Record(Schema.String, Schema.String)]
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "  x  ", b: "y" }, { a: "x", b: "y" })
+
+      const encoding = asserts.encoding()
+      await encoding.succeed({ a: "x", b: "y" })
+    })
+
+    it("index signatures should not overwrite fixed properties after key decoding", async () => {
+      const UppercaseKey = Schema.String.pipe(Schema.decodeTo(Schema.String, SchemaTransformation.toUpperCase()))
+      const schema = Schema.StructWithRest(
+        Schema.Struct({ A: Schema.String }),
+        [Schema.Record(UppercaseKey, Schema.String)]
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ A: "fixed", a: "rest" }, { A: "fixed" })
     })
   })
 

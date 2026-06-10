@@ -2007,6 +2007,9 @@ export class Objects extends Base {
             return
           } else if (exitKey.value._tag === "Some" && exitValue.value._tag === "Some") {
             const k2 = exitKey.value.value
+            if (expectedKeysSet.has(key) || expectedKeysSet.has(k2)) {
+              return
+            }
             const v2 = exitValue.value.value
             if (is.merge && is.merge.decode && Object.hasOwn(s.out, k2)) {
               const [k, v] = is.merge.decode.combine([k2, s.out[k2]], [k2, v2])
