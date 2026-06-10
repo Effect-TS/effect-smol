@@ -6,15 +6,19 @@
 
 import * as Effect from "../../Effect.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import type { InfiniteTransitionError, StartupError, UnhandledEventError } from "../../internal/stateMachineErrors.ts"
+import type {
+  ChildAlreadyExistsError,
+  InfiniteTransitionError,
+  StartupError,
+  UnhandledEventError
+} from "../../internal/stateMachineErrors.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
-import * as ActorModule from "./Actor.ts"
-import * as internalActor from "./internal/stateMachineActor.ts"
+import type * as Types from "../../Types.ts"
 import * as Model from "./internal/stateMachineModel.ts"
-import { ActorRuntime } from "./internal/stateMachineRuntime.ts"
+import * as internalProcess from "./internal/stateMachineProcess.ts"
 import * as internalRuntime from "./internal/stateMachineRuntime.ts"
 
 /**
@@ -91,6 +95,14 @@ export interface Machine<
 
 export {
   /**
+   * Error returned by `spawn` when a child process with the same id already
+   * exists for the current state machine.
+   *
+   * @category errors
+   * @since 4.0.0
+   */
+  ChildAlreadyExistsError,
+  /**
    * Error returned when a state machine does not stabilize within the maximum
    * number of macrostep iterations.
    *
@@ -107,6 +119,14 @@ export {
    */
   StartupError,
   /**
+   * Error returned by `join` when a running state machine is stopped before
+   * producing an output.
+   *
+   * @category errors
+   * @since 4.0.0
+   */
+  StoppedError,
+  /**
    * Error returned when an event has no handler for the current state.
    *
    * @category errors
@@ -114,17 +134,6 @@ export {
    */
   UnhandledEventError
 } from "../../internal/stateMachineErrors.ts"
-
-export {
-  /**
-   * Actor runtime scope available to state machine actions when a machine runs
-   * through `toActorLogic`.
-   *
-   * @category services
-   * @since 4.0.0
-   */
-  ActorRuntime
-} from "./internal/stateMachineRuntime.ts"
 
 const RuntimeRequirementTypeId = "~effect/StateMachine/RuntimeRequirement"
 
@@ -545,37 +554,149 @@ type BranchTargetBuilderForRoot<
   readonly [Key in Root]: BranchTargetMethod<States, States, Key, "">
 }
 
-type SupervisionRequirements<Options> = Options extends {
-  readonly supervision?: infer SupervisionOption
-} ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
-  : never
-  : never
-
-type SpawnRequirements<Requirements, Options = never> = Exclude<
-  Requirements | SupervisionRequirements<Options>,
+type SpawnRequirements<Requirements> = Exclude<
+  Requirements,
   Scope.Scope
 >
 
-type SpawnIdError<Options extends ActorModule.SpawnOptions> = "id" extends keyof Options ? Options extends {
+type SpawnIdError<Options extends SpawnOptions> = "id" extends keyof Options ? Options extends {
     readonly id?: infer Id
-  } ? [Id] extends [undefined] ? never : ActorModule.ActorChildAlreadyExistsError
-  : ActorModule.ActorChildAlreadyExistsError
+  } ? [Id] extends [undefined] ? never : ChildAlreadyExistsError
+  : ChildAlreadyExistsError
   : never
 
-type SpawnSystemIdError<Options extends ActorModule.SpawnOptions> = "systemId" extends keyof Options ? Options extends {
-    readonly systemId?: infer SystemId
-  } ? [SystemId] extends [undefined] ? never : ActorModule.ActorSystemIdAlreadyExistsError
-  : ActorModule.ActorSystemIdAlreadyExistsError
-  : never
+type SpawnError<Options extends SpawnOptions> = SpawnIdError<Options>
 
-type SpawnError<Options extends ActorModule.SpawnOptions> = SpawnIdError<Options> | SpawnSystemIdError<Options>
+type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, InitialError = never> = Effect.Effect<
+  StateMachineRef<State, Event, Error | InitialError, Output>,
+  SpawnError | InitialError,
+  internalRuntime.StateMachineRuntime | SpawnRequirements<Requirements>
+>
 
-type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, Options = never, InitialError = never> =
-  Effect.Effect<
-    ActorModule.Actor<State, Event, Error | InitialError, Output>,
-    SpawnError | InitialError,
-    ActorRuntime | SpawnRequirements<Requirements, Options>
-  >
+/**
+ * Lifecycle-aware snapshot of a running state machine.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type RuntimeSnapshot<State, Error = never, Output = never> = internalRuntime.RuntimeSnapshot<
+  State,
+  Error,
+  Output
+>
+
+/**
+ * Terminal lifecycle outcome derived from a runtime snapshot.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type RuntimeOutcome<State, Error = never, Output = never> = internalRuntime.RuntimeOutcome<
+  State,
+  Error,
+  Output
+>
+
+/**
+ * Running state machine handle with current state, lifecycle snapshots, and a
+ * stop action.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type StateMachineRef<State, Event, Error = never, Output = never> = internalRuntime.StateMachineRef<
+  State,
+  Event,
+  Error,
+  Output
+>
+
+const ChildAddressTypeId = "~effect/StateMachine/ChildAddress"
+const ChildAddressCompatibilityErrorTypeId = "~effect/StateMachine/ChildAddressCompatibilityError"
+
+/**
+ * Parent-local address for a child process that can receive events.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type ChildAddress<Event> = string & ChildAddress.Variance<Event>
+
+/**
+ * Namespace containing type-level members associated with `ChildAddress`.
+ *
+ * @since 4.0.0
+ */
+export declare namespace ChildAddress {
+  /**
+   * Variance marker carried by a typed child process address.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Variance<in Event> {
+    readonly [ChildAddressTypeId]: {
+      readonly _Event: Types.Contravariant<Event>
+    }
+  }
+
+  /**
+   * Extracts the event protocol accepted by a child address.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Event<Address> = Address extends ChildAddress<infer Event> ? Event : unknown
+
+  /**
+   * Ensures a child address protocol is compatible with a child process event
+   * protocol.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type Compatibility<Address, Event> = [Address] extends [ChildAddress<infer AddressEvent>] ?
+    [AddressEvent] extends [Event] ? unknown : {
+      readonly [ChildAddressCompatibilityErrorTypeId]: {
+        readonly address: AddressEvent
+        readonly child: Event
+      }
+    }
+    : unknown
+
+  /**
+   * Ensures spawn options with a typed child address are compatible with a
+   * child process event protocol.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type OptionsCompatibility<Options, Event> = "id" extends keyof Options ? Options extends {
+      readonly id?: infer Address
+    } ? Compatibility<Exclude<Address, undefined>, Event>
+    : unknown
+    : unknown
+}
+
+/**
+ * Options for spawning child processes.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SpawnOptions {
+  readonly id?: string
+}
+
+/**
+ * Options for spawning child processes with a parent-local id.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface SpawnIdOptions extends SpawnOptions {
+  readonly id: string
+}
 
 /**
  * Namespace containing type-level members associated with `Machine`.
@@ -1185,7 +1306,7 @@ export declare namespace Machine {
   }
 
   /**
-   * Context passed to an invoked child actor source.
+   * Context passed to an invoked child process source.
    *
    * @category models
    * @since 4.0.0
@@ -1202,25 +1323,25 @@ export declare namespace Machine {
   }
 
   /**
-   * Context passed to an invoked child actor outcome mapper.
+   * Context passed to an invoked child process outcome mapper.
    *
    * @category models
    * @since 4.0.0
    */
   export interface InvokeEventContext<State, Error, Output> {
     readonly id: string
-    readonly outcome: ActorModule.WatchEvent<State, Error, Output>
+    readonly outcome: RuntimeOutcome<State, Error, Output>
   }
 
   /**
-   * Context passed to an invoked child actor active snapshot mapper.
+   * Context passed to an invoked child process active snapshot mapper.
    *
    * @category models
    * @since 4.0.0
    */
   export interface InvokeSnapshotContext<State, Error, Output> {
     readonly id: string
-    readonly snapshot: Extract<ActorModule.Snapshot<State, Error, Output>, { readonly status: "active" }>
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "active" }>
   }
 
   /**
@@ -1392,28 +1513,28 @@ export declare namespace Machine {
     : never
     : never
   /**
-   * Extracts the actor logic returned by an invoke source.
+   * Extracts the child process logic returned by an invoke source.
    *
    * @category utility types
    * @since 4.0.0
    */
   export type InvokeLogic<Invoke> = Invoke extends { readonly src: (...args: any) => infer Logic } ? Logic : never
   /**
-   * Extracts the startup error from an invoke source actor logic.
+   * Extracts the startup error from an invoke source child process logic.
    *
    * @category utility types
    * @since 4.0.0
    */
   export type InvokeInitialError<Invoke> = InvokeLogic<Invoke> extends
-    ActorModule.ActorLogic<any, any, any, any, any, infer InitialError> ? InitialError : never
+    internalRuntime.ProcessLogic<any, any, any, any, any, infer InitialError> ? InitialError : never
   /**
-   * Extracts the service requirements from an invoke source actor logic.
+   * Extracts the service requirements from an invoke source child process logic.
    *
    * @category utility types
    * @since 4.0.0
    */
   export type InvokeServices<Invoke> = InvokeLogic<Invoke> extends
-    ActorModule.ActorLogic<any, any, any, infer Requirements, any, any> ? Requirements : never
+    internalRuntime.ProcessLogic<any, any, any, infer Requirements, any, any> ? Requirements : never
   /**
    * Extracts the parent transition error contribution from invoked children.
    *
@@ -1421,7 +1542,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeError<Config> = [InvokeReturn<Config>] extends [never] ? never
-    : ActorModule.ActorChildAlreadyExistsError | InvokeInitialError<InvokeReturn<Config>>
+    : ChildAlreadyExistsError | InvokeInitialError<InvokeReturn<Config>>
   /**
    * Extracts the parent service requirement contribution from invoked children.
    *
@@ -1429,7 +1550,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeRequirements<Config> = [InvokeReturn<Config>] extends [never] ? never
-    : ActorRuntime | InvokeServices<InvokeReturn<Config>>
+    : internalRuntime.StateMachineRuntime | InvokeServices<InvokeReturn<Config>>
   /**
    * Extracts the return value from an eventless transition.
    *
@@ -1473,7 +1594,7 @@ export declare namespace Machine {
     : never
 
   /**
-   * Configuration for invoking a child actor while a state is active.
+   * Configuration for invoking a child process while a state is active.
    *
    * @category models
    * @since 4.0.0
@@ -1494,7 +1615,14 @@ export declare namespace Machine {
     readonly id: string
     src(
       context: InvokeContext<States, Events, Emits, StateId>
-    ): ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    ): internalRuntime.ProcessLogic<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ChildInitialError
+    >
     event?(
       context: InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
     ): Event | undefined
@@ -2039,7 +2167,7 @@ const makeTargetBuilder = <const States extends Machine.StateSchemas>(
  *
  * ```ts
  * import { Schema } from "effect"
- * import { StateMachine } from "effect/unstable/actors"
+ * import { StateMachine } from "effect/unstable/machine"
  *
  * class Idle extends Schema.TaggedClass<Idle>("Idle")("Idle", {}) {}
  *
@@ -2113,18 +2241,18 @@ export const make = <
 }
 
 /**
- * Creates an invoked child actor configuration for an active state.
+ * Creates an invoked child process configuration for an active state.
  *
  * **When to use**
  *
- * Use to run a child actor while a state machine remains in a state and map the
+ * Use to run a child process while a state machine remains in a state and map the
  * child's active snapshots or terminal lifecycle outcome back into state
  * machine events.
  *
  * **Gotchas**
  *
- * Invoked child actors run when the state machine runs through the actor
- * runtime with `start` or `toActorLogic`.
+ * Invoked child processes run while their owning state is active and are
+ * stopped before the state exits.
  *
  * @category constructors
  * @since 4.0.0
@@ -2143,14 +2271,21 @@ export const invoke = <
     readonly id: Id
     readonly src: (
       context: Machine.InvokeContext<any, any, any, any>
-    ) => ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    ) => internalRuntime.ProcessLogic<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ChildInitialError
+    >
     readonly event?: (
       context: Machine.InvokeEventContext<ChildState, ChildError | ChildInitialError, ChildOutput>
     ) => Event | undefined
     readonly snapshot?: (
       context: Machine.InvokeSnapshotContext<ChildState, ChildError | ChildInitialError, ChildOutput>
     ) => Event | undefined
-  } & ActorModule.ChildAddress.Compatibility<Id, ChildEvent>
+  } & ChildAddress.Compatibility<Id, ChildEvent>
 ): Machine.InvokeConfig<
   any,
   any,
@@ -2245,91 +2380,116 @@ export const runtime = <const Protocol extends Runtime.Protocol = {}>(): Effect.
 > => internalRuntime.runtime<Protocol>()
 
 /**
- * Returns the current actor runtime scope when a state machine is running as
- * actor logic.
+ * Creates child process logic from low-level initialization and execution
+ * methods.
  *
- * @category actor runtime
+ * @category constructors
  * @since 4.0.0
  */
-export const actorRuntime = <Event = unknown>(): Effect.Effect<
-  ActorModule.ActorScope<Event>,
-  never,
-  ActorRuntime
-> => internalRuntime.actorRuntime<Event>()
+export const effect = <
+  State,
+  Event = any,
+  Output = void,
+  Error = never,
+  Requirements = never,
+  InitialError = never,
+  InitialRequirements = never
+>(
+  options: {
+    readonly initial:
+      | State
+      | ((
+        scope: internalRuntime.ProcessScope<Event>
+      ) => Effect.Effect<State, InitialError, InitialRequirements>)
+    readonly run: (
+      context: internalRuntime.ProcessContext<State, Event>
+    ) => Effect.Effect<Output, Error, Requirements>
+  }
+): internalRuntime.ProcessLogic<
+  State,
+  Event,
+  Error,
+  Requirements | InitialRequirements,
+  Output,
+  InitialError
+> => ({
+  initial: (scope) =>
+    typeof options.initial === "function"
+      ? (options.initial as (
+        scope: internalRuntime.ProcessScope<Event>
+      ) => Effect.Effect<State, InitialError, InitialRequirements>)(scope)
+      : Effect.succeed(options.initial),
+  run: options.run
+})
 
 /**
- * Creates a typed parent-local address for a child actor.
+ * Creates child process logic from an initial state and a transition function.
  *
- * @category actor runtime
+ * @category constructors
  * @since 4.0.0
  */
-export const child = <Event>(id: string): ActorModule.ChildAddress<Event> => ActorModule.child<Event>(id)
+export const transition = <State, Event, Error = never, Requirements = never>(
+  initial: State,
+  transition: (state: State, event: Event) => Effect.Effect<State, Error, Requirements>
+): internalRuntime.ProcessLogic<State, Event, Error, Requirements, never> =>
+  effect<State, Event, never, Error, Requirements>({
+    initial,
+    run: ({ receive, updateState }) =>
+      receive.pipe(
+        Effect.flatMap((event) => updateState((state) => transition(state, event))),
+        Effect.forever
+      )
+  })
 
 /**
- * Returns a reference to the actor currently hosting this state machine.
+ * Creates a typed parent-local address for a child process.
  *
- * @category actor runtime
+ * @category constructors
  * @since 4.0.0
  */
-export const self = <Event = unknown>(): Effect.Effect<ActorModule.ActorRef<Event>, never, ActorRuntime> =>
-  Effect.map(actorRuntime<Event>(), (runtime) => runtime.self)
+export const child = <Event>(id: string): ChildAddress<Event> => id as ChildAddress<Event>
 
 /**
- * Returns a reference to the parent actor when the hosting actor has one.
- *
- * @category actor runtime
- * @since 4.0.0
- */
-export const parent: Effect.Effect<ActorModule.ActorRef<unknown> | undefined, never, ActorRuntime> = Effect.map(
-  ActorRuntime,
-  (runtime) => runtime.parent
-)
-
-/**
- * Returns the actor system that owns the hosting actor.
- *
- * @category actor runtime
- * @since 4.0.0
- */
-export const system: Effect.Effect<ActorModule.ActorSystem, never, ActorRuntime> = Effect.map(
-  ActorRuntime,
-  (runtime) => runtime.system
-)
-
-/**
- * Spawns a child actor owned by the actor currently hosting this state machine.
+ * Spawns a child process owned by the currently running state machine.
  *
  * **When to use**
  *
- * Use to create child actors from state machine actions when the child should
- * be addressed or stopped by the hosting actor instead of being tied to a
+ * Use to create child processes from state machine actions when the child
+ * should be addressed or stopped by the owning state machine instead of tied to a
  * single state's `invoke` lifecycle.
  *
  * **Gotchas**
  *
- * This effect requires `ActorRuntime`, so it only runs when the state machine
- * is running as actor logic. A named child id must be unique for the current
- * parent actor until that child stops.
+ * This effect requires the state machine runtime, so it only runs from state
+ * machine actions. A named child id must be unique for the current parent state
+ * machine until that child stops.
  *
  * @see {@link invoke} for children that start and stop with a state.
  * @see {@link sendTo} for sending events to named children.
- * @category actor runtime
+ * @category runtime
  * @since 4.0.0
  */
 export const spawn: {
   <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
-    logic: ActorModule.ActorLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
-  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, never, ChildInitialError>
+    logic: internalRuntime.ProcessLogic<
+      ChildState,
+      ChildEvent,
+      ChildError,
+      ChildRequirements,
+      ChildOutput,
+      ChildInitialError
+    >
+  ): SpawnResult<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, never, ChildInitialError>
   <
     ChildState,
     ChildEvent,
     ChildError,
     ChildRequirements,
     ChildOutput,
-    Options extends ActorModule.SpawnOptions,
+    Options extends SpawnOptions,
     ChildInitialError = never
   >(
-    logic: ActorModule.ActorLogic<
+    logic: internalRuntime.ProcessLogic<
       ChildState,
       ChildEvent,
       ChildError,
@@ -2337,7 +2497,7 @@ export const spawn: {
       ChildOutput,
       ChildInitialError
     >,
-    options: Options & ActorModule.ChildAddress.OptionsCompatibility<Options, ChildEvent>
+    options: Options & ChildAddress.OptionsCompatibility<Options, ChildEvent>
   ): SpawnResult<
     ChildState,
     ChildEvent,
@@ -2345,85 +2505,59 @@ export const spawn: {
     ChildRequirements,
     ChildOutput,
     SpawnError<Options>,
-    Options,
     ChildInitialError
   >
 } = ((
-  logic: ActorModule.ActorLogic<any, any, any, any, any, any>,
-  options?: ActorModule.SpawnOptions<any>
+  logic: internalRuntime.ProcessLogic<any, any, any, any, any, any>,
+  options?: SpawnOptions
 ) =>
   Effect.flatMap(
-    ActorRuntime,
+    internalRuntime.StateMachineRuntime,
     (runtime) => options === undefined ? runtime.spawn(logic) : (runtime.spawn as any)(logic, options)
   )) as any
 
 /**
- * Sends an event to a named child actor of the hosting actor.
+ * Sends an event to a named child process of the running state machine.
  *
- * @category actor runtime
+ * @category runtime
  * @since 4.0.0
  */
 export const sendTo = <Address extends string>(
   id: Address,
-  event: ActorModule.ChildAddress.Event<Address>
-): Effect.Effect<void, never, ActorRuntime> => Effect.flatMap(ActorRuntime, (runtime) => runtime.sendTo(id, event))
+  event: ChildAddress.Event<Address>
+): Effect.Effect<void, never, internalRuntime.StateMachineRuntime> =>
+  Effect.flatMap(internalRuntime.StateMachineRuntime, (runtime) => runtime.sendTo(id, event))
 
 /**
- * Stops a named child actor of the hosting actor.
+ * Stops a named child process of the running state machine.
  *
- * @category actor runtime
+ * @category runtime
  * @since 4.0.0
  */
-export const stopChild = (id: string): Effect.Effect<void, never, ActorRuntime> =>
-  Effect.flatMap(ActorRuntime, (runtime) => runtime.stopChild(id))
+export const stopChild = (id: string): Effect.Effect<void, never, internalRuntime.StateMachineRuntime> =>
+  Effect.flatMap(internalRuntime.StateMachineRuntime, (runtime) => runtime.stopChild(id))
 
 /**
- * Converts a state machine definition into actor logic that can be started by
- * the actor runtime.
+ * Returns a stream of terminal lifecycle outcomes for a running state machine.
  *
- * @category constructors
+ * @category combinators
  * @since 4.0.0
  */
-export const toActorLogic: <
-  const States extends Machine.StateSchemas,
-  const Events extends ReadonlyArray<Machine.TaggedSchema>,
-  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
-  const Input extends Schema.Top = typeof Schema.Void,
-  UnhandledStates extends Machine.StateIdentifier<States> = Machine.StateIdentifier<States>,
-  E = never,
-  R = never,
-  InitialE = never,
-  InitialR = never,
-  FinalStates extends Machine.StateIdentifier<States> = never,
-  Output = never
->(
-  machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  ...args: [...Machine.InputArgs<Input>]
-) => ActorModule.ActorLogic<
-  Machine.Snapshot<States>,
-  Machine.EventOf<Events>,
-  E | UnhandledEventError | InfiniteTransitionError,
-  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
-  Output | undefined,
-  InitialE | StartupError
-> = internalActor.toActorLogic as any
+export const watch = internalRuntime.watch
 
 /**
- * Starts a state machine as an actor.
+ * Starts a state machine.
  *
  * **When to use**
  *
- * Use when you want actor runtime semantics for a state machine, including
- * asynchronous event delivery, lifecycle snapshots, `join`, actor-system
- * registration, and invoked child actors.
+ * Use when you want asynchronous event delivery, lifecycle snapshots, `join`,
+ * and state machine-owned spawned or invoked children.
  *
  * **Gotchas**
  *
- * The returned actor's `send` operation only enqueues events. Transition
- * failures are reported through the actor snapshot, `changes`, and `join`
+ * The returned handle's `send` operation only enqueues events. Transition
+ * failures are reported through the runtime snapshot, `changes`, and `join`
  * rather than being returned by `send`.
- *
- * @see {@link toActorLogic} for creating reusable actor logic from a state machine
  *
  * @category constructors
  * @since 4.0.0
@@ -2444,12 +2578,16 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  ActorModule.Actor<
+  StateMachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
     Output | undefined
   >,
   InitialE | StartupError,
-  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-> = internalActor.start as any
+  ExcludeCompatibleRuntime<
+    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Machine.EventOf<Events>,
+    Machine.EmitOf<Emits>
+  >
+> = internalProcess.start as any

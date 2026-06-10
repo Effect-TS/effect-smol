@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect"
-import { StateMachine } from "effect/unstable/actors"
+import { StateMachine } from "effect/unstable/machine"
 import { describe, expect, it } from "tstyche"
 
 describe("StateMachine", () => {

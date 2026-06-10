@@ -17,11 +17,6 @@ export * as Atom from "./Atom.ts"
 /**
  * @since 4.0.0
  */
-export * as AtomActor from "./AtomActor.ts"
-
-/**
- * @since 4.0.0
- */
 export * as AtomHttpApi from "./AtomHttpApi.ts"
 
 /**
@@ -38,6 +33,11 @@ export * as AtomRegistry from "./AtomRegistry.ts"
  * @since 4.0.0
  */
 export * as AtomRpc from "./AtomRpc.ts"
+
+/**
+ * @since 4.0.0
+ */
+export * as AtomStateMachine from "./AtomStateMachine.ts"
 
 /**
  * @since 4.0.0

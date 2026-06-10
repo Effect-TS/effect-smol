@@ -36,3 +36,23 @@ export class InfiniteTransitionError extends Data.TaggedError("InfiniteTransitio
 export class StartupError extends Data.TaggedError("StartupError")<{
   readonly cause: Cause.Cause<unknown>
 }> {}
+
+/**
+ * Error returned by `spawn` when a child process with the same id already
+ * exists for the current state machine.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class ChildAlreadyExistsError extends Data.TaggedError("ChildAlreadyExistsError")<{
+  readonly id: string
+}> {}
+
+/**
+ * Error returned by `join` when a running state machine is stopped before
+ * producing an output.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class StoppedError extends Data.TaggedError("StoppedError") {}

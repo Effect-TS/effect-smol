@@ -1,5 +1,5 @@
 /**
- * Internal state machine actor integration.
+ * Internal state machine process integration.
  *
  * @since 4.0.0
  */
@@ -17,10 +17,8 @@ import * as Ref from "../../../Ref.ts"
 import type * as Schema from "../../../Schema.ts"
 import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
-import * as ActorModule from "../Actor.ts"
 import type { Machine, Runtime } from "../StateMachine.ts"
 import * as Model from "./stateMachineModel.ts"
-import type { ActorRuntime } from "./stateMachineRuntime.ts"
 import * as internalRuntime from "./stateMachineRuntime.ts"
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
@@ -33,7 +31,7 @@ type ExcludeCompatibleRuntime<Requirements, Events, Emits> = Requirements extend
   : Requirements
   : Requirements
 
-export const toActorLogic: <
+export const toProcessLogic: <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
@@ -48,11 +46,15 @@ export const toActorLogic: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
-) => ActorModule.ActorLogic<
+) => internalRuntime.ProcessLogic<
   Machine.Snapshot<States>,
   Machine.EventOf<Events>,
   E | UnhandledEventError | InfiniteTransitionError,
-  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
+  ExcludeCompatibleRuntime<
+    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Machine.EventOf<Events>,
+    Machine.EmitOf<Emits>
+  >,
   Output | undefined,
   InitialE | StartupError
 > = <
@@ -71,21 +73,21 @@ export const toActorLogic: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) =>
-  ActorModule.make({
+  ({
     initial: (scope) =>
-      internalRuntime.provideActorRuntime(
+      internalRuntime.provideStateMachineRuntime(
         Effect.gen(function*() {
           const planned = yield* internalRuntime.planInitial(machine, ...args)
           yield* internalRuntime.runActions(
             planned.actions,
-            internalRuntime.makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(scope)
+            internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(scope)
           )
           return planned.state
         }),
         scope
       ),
     run: (context) =>
-      internalRuntime.provideActorRuntime(
+      internalRuntime.provideStateMachineRuntime(
         Effect.gen(function*() {
           const { receive, state, setState } = context
           let done = false
@@ -152,7 +154,7 @@ export const toActorLogic: <
             )
           const startInvokeWatchers = (
             config: internalRuntime.AnyInvokeConfig,
-            child: ActorModule.Actor<any, any, any, any>,
+            child: internalRuntime.StateMachineRef<any, any, any, any>,
             key: string,
             token: symbol,
             scope: Scope.Closeable
@@ -181,7 +183,7 @@ export const toActorLogic: <
               }
               if (config.event !== undefined) {
                 const mapEvent = config.event
-                yield* ActorModule.watch(child).pipe(
+                yield* internalRuntime.watch(child).pipe(
                   Stream.runForEach((outcome) =>
                     isCurrentInvoke(key, token).pipe(
                       Effect.flatMap((isCurrent) => {
@@ -286,7 +288,7 @@ export const toActorLogic: <
                   yield* setState(planned.next)
                   yield* internalRuntime.runActions(
                     planned.actions,
-                    internalRuntime.makeActorRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
+                    internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
                   )
 
                   if (internalRuntime.isFinalState(machine, planned.next)) {
@@ -310,35 +312,19 @@ export const toActorLogic: <
         }),
         context
       )
-  }) as ActorModule.ActorLogic<
+  }) as internalRuntime.ProcessLogic<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | UnhandledEventError | InfiniteTransitionError,
-    ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>,
+    ExcludeCompatibleRuntime<
+      Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+      Machine.EventOf<Events>,
+      Machine.EmitOf<Emits>
+    >,
     Output | undefined,
     InitialE | StartupError
   >
 
-/**
- * Starts a state machine as an actor.
- *
- * **When to use**
- *
- * Use when you want actor runtime semantics for a state machine, including
- * asynchronous event delivery, lifecycle snapshots, `join`, actor-system
- * registration, and invoked child actors.
- *
- * **Gotchas**
- *
- * The returned actor's `send` operation only enqueues events. Transition
- * failures are reported through the actor snapshot, `changes`, and `join`
- * rather than being returned by `send`.
- *
- * @see {@link toActorLogic} for creating reusable actor logic from a state machine
- *
- * @category constructors
- * @since 4.0.0
- */
 export const start: <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -355,15 +341,20 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  ActorModule.Actor<
+  internalRuntime.StateMachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
     Output | undefined
   >,
   InitialE | StartupError,
-  ExcludeCompatibleRuntime<Exclude<InitialR | R, ActorRuntime>, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-> = (
-  machine,
-  ...args
-) => ActorModule.start(toActorLogic(machine, ...args))
+  ExcludeCompatibleRuntime<
+    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Machine.EventOf<Events>,
+    Machine.EmitOf<Emits>
+  >
+> = (machine, ...args) =>
+  internalRuntime.startProcess(
+    toProcessLogic(machine, ...args),
+    machine.id === undefined ? undefined : { id: machine.id }
+  ) as any
