@@ -176,6 +176,51 @@ describe("Random", () => {
         assert.notDeepEqual(result1, result2)
       }))
 
+    it.effect("distinguishes one-character string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+
+        const empty = yield* program.pipe(Random.withSeed(""))
+        const result1 = yield* program.pipe(Random.withSeed("a"))
+        const result2 = yield* program.pipe(Random.withSeed("b"))
+
+        assert.notDeepEqual(result1, empty)
+        assert.notDeepEqual(result2, empty)
+        assert.notDeepEqual(result1, result2)
+      }))
+
+    it.effect("distinguishes trailing partial UTF-8 words in string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+        const pairs = [
+          ["1234a", "1234b"],
+          ["1234ab", "1234ac"],
+          ["1234abc", "1234abd"]
+        ] as const
+
+        for (const [seed1, seed2] of pairs) {
+          const result1 = yield* program.pipe(Random.withSeed(seed1))
+          const result2 = yield* program.pipe(Random.withSeed(seed2))
+
+          assert.notDeepEqual(result1, result2)
+        }
+      }))
+
+    it.effect("distinguishes astral character string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+
+        const empty = yield* program.pipe(Random.withSeed(""))
+        const result1 = yield* program.pipe(Random.withSeed("😀"))
+        const result2 = yield* program.pipe(Random.withSeed("😁"))
+        const result3 = yield* program.pipe(Random.withSeed("🐀"))
+
+        assert.notDeepEqual(result1, empty)
+        assert.notDeepEqual(result2, empty)
+        assert.notDeepEqual(result1, result2)
+        assert.notDeepEqual(result1, result3)
+      }))
+
     it.effect("works with numeric seeds", () =>
       Effect.gen(function*() {
         const program = Effect.gen(function*() {
