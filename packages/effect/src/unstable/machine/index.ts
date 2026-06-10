@@ -7,4 +7,4 @@
 /**
  * @since 4.0.0
  */
-export * as StateMachine from "./StateMachine.ts"
+export * as Machine from "./Machine.ts"

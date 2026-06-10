@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { Context, Data, Effect, Fiber, Layer, Option, Schema, Stream } from "effect"
-import { StateMachine } from "effect/unstable/machine"
-import { AsyncResult, Atom, AtomRegistry, AtomStateMachine } from "effect/unstable/reactivity"
+import { Machine } from "effect/unstable/machine"
+import { AsyncResult, Atom, AtomMachine, AtomRegistry } from "effect/unstable/reactivity"
 
 class Count extends Schema.TaggedClass<Count>("Count")("Count", {
   value: Schema.Number
@@ -27,9 +27,9 @@ class StartError extends Data.TaggedError("StartError")<{
 
 class Multiplier extends Context.Service<Multiplier, {
   readonly multiply: (value: number) => number
-}>()("test/AtomStateMachine/Multiplier") {}
+}>()("test/AtomMachine/Multiplier") {}
 
-const StateMachineInitial = StateMachine.defineStates({ Count, Done, ValueRead }).initial
+const MachineInitial = Machine.defineStates({ Count, Done, ValueRead }).initial
 
 const makeRegistry = Effect.acquireRelease(
   Effect.sync(() => AtomRegistry.make()),
@@ -55,25 +55,25 @@ const waitForResult = <A, E>(
   )
 
 const makeCounterMachine = () =>
-  StateMachine.make({
+  Machine.make({
     states: { Count, Done },
     events: [Finish],
-    initial: () => StateMachineInitial.Count(new Count({ value: 0 }))
+    initial: () => MachineInitial.Count(new Count({ value: 0 }))
   })
     .handle("Count", {
       on: {
-        Finish: ({ state, event }) => StateMachineInitial.Count(new Count({ value: state.value + event.by }))
+        Finish: ({ state, event }) => MachineInitial.Count(new Count({ value: state.value + event.by }))
       }
     })
     .handle("Done", {
       type: "final"
     })
 
-describe("AtomStateMachine", () => {
+describe("AtomMachine", () => {
   it.effect("exposes snapshots and sends events", () =>
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
-      const bridge = AtomStateMachine.make(makeCounterMachine())
+      const bridge = AtomMachine.make(makeCounterMachine())
       yield* mount(registry, bridge.snapshot)
 
       const initial = yield* AtomRegistry.getResult(registry, bridge.snapshot)
@@ -94,12 +94,12 @@ describe("AtomStateMachine", () => {
       })
     })))
 
-  it.effect("stops the state machine when the registry is disposed", () =>
+  it.effect("stops the machine when the registry is disposed", () =>
     Effect.gen(function*() {
       const registry = AtomRegistry.make()
-      const bridge = AtomStateMachine.make(makeCounterMachine())
+      const bridge = AtomMachine.make(makeCounterMachine())
       const ref = yield* AtomRegistry.getResult(registry, bridge.ref)
-      const watcher = yield* StateMachine.watch(ref).pipe(
+      const watcher = yield* Machine.watch(ref).pipe(
         Stream.runCollect,
         Effect.forkScoped
       )
@@ -111,10 +111,10 @@ describe("AtomStateMachine", () => {
       assert.strictEqual(events[0]?._tag, "Stopped")
     }))
 
-  it.effect("stops the state machine through the writable stop atom", () =>
+  it.effect("stops the machine through the writable stop atom", () =>
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
-      const bridge = AtomStateMachine.make(makeCounterMachine())
+      const bridge = AtomMachine.make(makeCounterMachine())
       yield* mount(registry, bridge.snapshot)
 
       yield* AtomRegistry.getResult(registry, bridge.snapshot)
@@ -134,7 +134,7 @@ describe("AtomStateMachine", () => {
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
       const failOnStart = Atom.make(false)
-      const machine = StateMachine.make({
+      const machine = Machine.make({
         states: { Count },
         events: [Finish],
         initial: Effect.fn(function*() {
@@ -142,10 +142,10 @@ describe("AtomStateMachine", () => {
           if (fail) {
             return yield* Effect.fail(new StartError({ reason: "refresh" }))
           }
-          return StateMachineInitial.Count(new Count({ value: 0 }))
+          return MachineInitial.Count(new Count({ value: 0 }))
         })
       }).handle("Count", {})
-      const bridge = AtomStateMachine.make(machine)
+      const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
       const initial = yield* AtomRegistry.getResult(registry, bridge.snapshot)
@@ -175,24 +175,24 @@ describe("AtomStateMachine", () => {
       })
     })))
 
-  it.effect("runs a state machine and exposes the final snapshot", () =>
+  it.effect("runs a machine and exposes the final snapshot", () =>
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
-      const machine = StateMachine.make({
+      const machine = Machine.make({
         states: { Count, Done },
         events: [Finish],
-        initial: () => StateMachineInitial.Count(new Count({ value: 1 }))
+        initial: () => MachineInitial.Count(new Count({ value: 1 }))
       })
         .handle("Count", {
           on: {
-            Finish: ({ state, event }) => StateMachineInitial.Done(new Done({ value: state.value + event.by }))
+            Finish: ({ state, event }) => MachineInitial.Done(new Done({ value: state.value + event.by }))
           }
         })
         .handle("Done", {
           type: "final",
           output: ({ state }) => state.value
         })
-      const bridge = AtomStateMachine.make(machine)
+      const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
       yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 3 })))
@@ -208,27 +208,27 @@ describe("AtomStateMachine", () => {
       })
     })))
 
-  it.effect("provides AtomRegistry to state machine effects", () =>
+  it.effect("provides AtomRegistry to machine effects", () =>
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
       const valueAtom = Atom.make("from-atom")
-      const machine = StateMachine.make({
+      const machine = Machine.make({
         states: { Count, ValueRead },
         events: [ReadValue],
-        initial: () => StateMachineInitial.Count(new Count({ value: 0 }))
+        initial: () => MachineInitial.Count(new Count({ value: 0 }))
       })
         .handle("Count", {
           on: {
             ReadValue: Effect.fn(function*() {
               const value = yield* Atom.get(valueAtom)
-              return StateMachineInitial.ValueRead(new ValueRead({ value }))
+              return MachineInitial.ValueRead(new ValueRead({ value }))
             })
           }
         })
         .handle("ValueRead", {
           type: "final"
         })
-      const bridge = AtomStateMachine.make(machine)
+      const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
       yield* Effect.sync(() => registry.set(bridge.send, new ReadValue({})))
@@ -240,7 +240,7 @@ describe("AtomStateMachine", () => {
       })
     })))
 
-  it.effect("uses AtomRuntime services when starting a state machine", () =>
+  it.effect("uses AtomRuntime services when starting a machine", () =>
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
       const runtime = Atom.runtime(Layer.succeed(
@@ -249,19 +249,19 @@ describe("AtomStateMachine", () => {
           multiply: (value) => value * 2
         })
       ))
-      const machine = StateMachine.make({
+      const machine = Machine.make({
         states: { Count },
         events: [Finish],
-        initial: () => StateMachineInitial.Count(new Count({ value: 0 }))
+        initial: () => MachineInitial.Count(new Count({ value: 0 }))
       }).handle("Count", {
         on: {
           Finish: Effect.fn(function*({ event }) {
             const multiplier = yield* Multiplier
-            return StateMachineInitial.Count(new Count({ value: multiplier.multiply(event.by) }))
+            return MachineInitial.Count(new Count({ value: multiplier.multiply(event.by) }))
           })
         }
       })
-      const bridge = AtomStateMachine.make(runtime, machine)
+      const bridge = AtomMachine.make(runtime, machine)
       yield* mount(registry, bridge.state)
 
       yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 3 })))

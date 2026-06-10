@@ -1,5 +1,5 @@
 /**
- * Atom bridge for running state machines.
+ * Atom bridge for running machines.
  *
  * @since 4.0.0
  */
@@ -8,8 +8,8 @@ import * as Effect from "../../Effect.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import type * as internalRuntime from "../machine/internal/stateMachineRuntime.ts"
-import * as StateMachine from "../machine/StateMachine.ts"
+import type * as internalRuntime from "../machine/internal/machineRuntime.ts"
+import * as Machine from "../machine/Machine.ts"
 import * as AsyncResult from "./AsyncResult.ts"
 import * as Atom from "./Atom.ts"
 import type * as AtomRegistry from "./AtomRegistry.ts"
@@ -18,7 +18,7 @@ type AtomSupportedRequirements = Scope.Scope | AtomRegistry.AtomRegistry
 
 type ExternalRequirements<Requirements> = Exclude<Requirements, AtomSupportedRequirements>
 
-const ExternalRequirementsTypeId = "~effect/reactivity/AtomStateMachine/ExternalRequirements"
+const ExternalRequirementsTypeId = "~effect/reactivity/AtomMachine/ExternalRequirements"
 
 type EnsureNoExternalRequirements<Requirements> = [ExternalRequirements<Requirements>] extends [never] ? unknown : {
   readonly [ExternalRequirementsTypeId]: ExternalRequirements<Requirements>
@@ -27,33 +27,33 @@ type EnsureNoExternalRequirements<Requirements> = [ExternalRequirements<Requirem
 type IsAny<A> = 0 extends (1 & A) ? true : false
 
 type ExcludeCompatibleMachineRuntime<Requirements, Events, Emits> = Requirements extends
-  StateMachine.Runtime.Requirement<infer RequiredEvents, infer RequiredEmits> ?
+  Machine.Runtime.Requirement<infer RequiredEvents, infer RequiredEmits> ?
   IsAny<Requirements> extends true ? Requirements
   : [RequiredEvents] extends [Events] ? [RequiredEmits] extends [Emits] ? never : Requirements
   : Requirements
   : Requirements
 
 type MachineRequirements<InitialR, R, Events, Emits> = ExcludeCompatibleMachineRuntime<
-  Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+  Exclude<InitialR | R, internalRuntime.MachineRuntime>,
   Events,
   Emits
 >
 
 const startMachineAtomEffect = <
-  const States extends StateMachine.Machine.StateSchemas,
-  const Events extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
-  const Emits extends ReadonlyArray<StateMachine.Machine.TaggedSchema> = any,
+  const States extends Machine.Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.Machine.TaggedSchema> = any,
   const Input extends Schema.Top = typeof Schema.Void,
-  UnhandledStates extends StateMachine.Machine.StateIdentifier<States> = StateMachine.Machine.StateIdentifier<States>,
+  UnhandledStates extends Machine.Machine.StateIdentifier<States> = Machine.Machine.StateIdentifier<States>,
   E = never,
   R = never,
   InitialE = never,
   InitialR = never,
-  FinalStates extends StateMachine.Machine.StateIdentifier<States> = never,
+  FinalStates extends Machine.Machine.StateIdentifier<States> = never,
   Output = never
 >(
   get: Atom.AtomContext,
-  machine: StateMachine.Machine<
+  machine: Machine.Machine<
     States,
     Events,
     Input,
@@ -66,20 +66,20 @@ const startMachineAtomEffect = <
     Output,
     Emits
   >,
-  args: [...StateMachine.Machine.InputArgs<Input>]
+  args: [...Machine.Machine.InputArgs<Input>]
 ): Effect.Effect<
-  StateMachine.StateMachineRef<
-    StateMachine.Machine.Snapshot<States>,
-    StateMachine.Machine.EventOf<Events>,
-    E | StateMachine.UnhandledEventError | StateMachine.InfiniteTransitionError | InitialE | StateMachine.StartupError,
+  Machine.MachineRef<
+    Machine.Machine.Snapshot<States>,
+    Machine.Machine.EventOf<Events>,
+    E | Machine.UnhandledEventError | Machine.InfiniteTransitionError | InitialE | Machine.StartupError,
     Output | undefined
   >,
-  InitialE | StateMachine.StartupError,
-  MachineRequirements<InitialR, R, StateMachine.Machine.EventOf<Events>, StateMachine.Machine.EmitOf<Emits>>
+  InitialE | Machine.StartupError,
+  MachineRequirements<InitialR, R, Machine.Machine.EventOf<Events>, Machine.Machine.EmitOf<Emits>>
 > =>
   Effect.scoped(
     Effect.acquireRelease(
-      StateMachine.start(machine, ...args),
+      Machine.start(machine, ...args),
       (ref) => ref.stop
     ).pipe(
       Effect.tap((ref) => Effect.sync(() => get.setSelf(AsyncResult.success(ref)))),
@@ -88,34 +88,34 @@ const startMachineAtomEffect = <
   )
 
 /**
- * Atoms backed by one running state machine instance in an `AtomRegistry`.
+ * Atoms backed by one running machine instance in an `AtomRegistry`.
  *
  * **Details**
  *
- * The state machine starts when one of the returned atoms is mounted or read in
+ * The machine starts when one of the returned atoms is mounted or read in
  * a registry, and it is stopped when the registry disposes the ref atom. The
- * same atom values share one running state machine per registry.
+ * same atom values share one running machine per registry.
  *
  * @category models
  * @since 4.0.0
  */
-export interface StateMachineAtom<State, Event, Error = never, Output = never, StartError = never> {
+export interface MachineAtom<State, Event, Error = never, Output = never, StartError = never> {
   /**
-   * Atom containing the running state machine handle once startup succeeds.
+   * Atom containing the running machine handle once startup succeeds.
    *
    * @since 4.0.0
    */
   readonly ref: Atom.Atom<
-    AsyncResult.AsyncResult<StateMachine.StateMachineRef<State, Event, Error, Output>, StartError>
+    AsyncResult.AsyncResult<Machine.MachineRef<State, Event, Error, Output>, StartError>
   >
 
   /**
-   * Atom containing the latest state machine lifecycle snapshot.
+   * Atom containing the latest machine lifecycle snapshot.
    *
    * @since 4.0.0
    */
   readonly snapshot: Atom.Atom<
-    AsyncResult.AsyncResult<StateMachine.RuntimeSnapshot<State, Error, Output>, StartError>
+    AsyncResult.AsyncResult<Machine.RuntimeSnapshot<State, Error, Output>, StartError>
   >
 
   /**
@@ -126,14 +126,14 @@ export interface StateMachineAtom<State, Event, Error = never, Output = never, S
   readonly state: Atom.Atom<AsyncResult.AsyncResult<State, StartError>>
 
   /**
-   * Writable atom that sends events to the state machine.
+   * Writable atom that sends events to the machine.
    *
    * @since 4.0.0
    */
   readonly send: Atom.Writable<AsyncResult.AsyncResult<void, StartError>, Event>
 
   /**
-   * Writable atom that stops the state machine.
+   * Writable atom that stops the machine.
    *
    * @since 4.0.0
    */
@@ -141,17 +141,17 @@ export interface StateMachineAtom<State, Event, Error = never, Output = never, S
 }
 
 const makeFromRefAtom = <State, Event, Error, Output, StartError>(
-  ref: Atom.Atom<AsyncResult.AsyncResult<StateMachine.StateMachineRef<State, Event, Error, Output>, StartError>>
-): StateMachineAtom<State, Event, Error, Output, StartError> => {
+  ref: Atom.Atom<AsyncResult.AsyncResult<Machine.MachineRef<State, Event, Error, Output>, StartError>>
+): MachineAtom<State, Event, Error, Output, StartError> => {
   const snapshot = Atom.readable((
     get
-  ): AsyncResult.AsyncResult<StateMachine.RuntimeSnapshot<State, Error, Output>, StartError> => {
+  ): AsyncResult.AsyncResult<Machine.RuntimeSnapshot<State, Error, Output>, StartError> => {
     const result = get(ref)
     if (AsyncResult.isInitial(result)) {
       return AsyncResult.initial(result.waiting)
     } else if (AsyncResult.isFailure(result)) {
       return AsyncResult.failureWithPrevious(result.cause, {
-        previous: get.self<AsyncResult.AsyncResult<StateMachine.RuntimeSnapshot<State, Error, Output>, StartError>>(),
+        previous: get.self<AsyncResult.AsyncResult<Machine.RuntimeSnapshot<State, Error, Output>, StartError>>(),
         waiting: result.waiting
       })
     }
@@ -208,27 +208,27 @@ const makeFromRefAtom = <State, Event, Error, Output, StartError>(
 }
 
 /**
- * Creates atoms backed by a running state machine.
+ * Creates atoms backed by a running machine.
  *
  * @category constructors
  * @since 4.0.0
  */
 export const make: {
   <
-    const States extends StateMachine.Machine.StateSchemas,
-    const Events extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
-    const Emits extends ReadonlyArray<StateMachine.Machine.TaggedSchema> = any,
+    const States extends Machine.Machine.StateSchemas,
+    const Events extends ReadonlyArray<Machine.Machine.TaggedSchema>,
+    const Emits extends ReadonlyArray<Machine.Machine.TaggedSchema> = any,
     const Input extends Schema.Top = typeof Schema.Void,
-    UnhandledStates extends StateMachine.Machine.StateIdentifier<States> = StateMachine.Machine.StateIdentifier<States>,
+    UnhandledStates extends Machine.Machine.StateIdentifier<States> = Machine.Machine.StateIdentifier<States>,
     E = never,
     R = never,
     InitialE = never,
     InitialR = never,
-    FinalStates extends StateMachine.Machine.StateIdentifier<States> = never,
+    FinalStates extends Machine.Machine.StateIdentifier<States> = never,
     Output = never
   >(
     machine:
-      & StateMachine.Machine<
+      & Machine.Machine<
         States,
         Events,
         Input,
@@ -245,30 +245,30 @@ export const make: {
         MachineRequirements<
           InitialR,
           R,
-          StateMachine.Machine.EventOf<Events>,
-          StateMachine.Machine.EmitOf<Emits>
+          Machine.Machine.EventOf<Events>,
+          Machine.Machine.EmitOf<Emits>
         >
       >,
-    ...args: [...StateMachine.Machine.InputArgs<Input>]
-  ): StateMachineAtom<
-    StateMachine.Machine.Snapshot<States>,
-    StateMachine.Machine.EventOf<Events>,
-    E | StateMachine.UnhandledEventError | StateMachine.InfiniteTransitionError | InitialE | StateMachine.StartupError,
+    ...args: [...Machine.Machine.InputArgs<Input>]
+  ): MachineAtom<
+    Machine.Machine.Snapshot<States>,
+    Machine.Machine.EventOf<Events>,
+    E | Machine.UnhandledEventError | Machine.InfiniteTransitionError | InitialE | Machine.StartupError,
     Output | undefined,
-    InitialE | StateMachine.StartupError
+    InitialE | Machine.StartupError
   >
   <
     RuntimeError,
-    const States extends StateMachine.Machine.StateSchemas,
-    const Events extends ReadonlyArray<StateMachine.Machine.TaggedSchema>,
-    const Emits extends ReadonlyArray<StateMachine.Machine.TaggedSchema> = any,
+    const States extends Machine.Machine.StateSchemas,
+    const Events extends ReadonlyArray<Machine.Machine.TaggedSchema>,
+    const Emits extends ReadonlyArray<Machine.Machine.TaggedSchema> = any,
     const Input extends Schema.Top = typeof Schema.Void,
-    UnhandledStates extends StateMachine.Machine.StateIdentifier<States> = StateMachine.Machine.StateIdentifier<States>,
+    UnhandledStates extends Machine.Machine.StateIdentifier<States> = Machine.Machine.StateIdentifier<States>,
     E = never,
     R = never,
     InitialE = never,
     InitialR = never,
-    FinalStates extends StateMachine.Machine.StateIdentifier<States> = never,
+    FinalStates extends Machine.Machine.StateIdentifier<States> = never,
     Output = never
   >(
     runtime: Atom.AtomRuntime<
@@ -276,13 +276,13 @@ export const make: {
         MachineRequirements<
           InitialR,
           R,
-          StateMachine.Machine.EventOf<Events>,
-          StateMachine.Machine.EmitOf<Emits>
+          Machine.Machine.EventOf<Events>,
+          Machine.Machine.EmitOf<Emits>
         >
       >,
       RuntimeError
     >,
-    machine: StateMachine.Machine<
+    machine: Machine.Machine<
       States,
       Events,
       Input,
@@ -295,21 +295,21 @@ export const make: {
       Output,
       Emits
     >,
-    ...args: [...StateMachine.Machine.InputArgs<Input>]
-  ): StateMachineAtom<
-    StateMachine.Machine.Snapshot<States>,
-    StateMachine.Machine.EventOf<Events>,
+    ...args: [...Machine.Machine.InputArgs<Input>]
+  ): MachineAtom<
+    Machine.Machine.Snapshot<States>,
+    Machine.Machine.EventOf<Events>,
     | E
-    | StateMachine.UnhandledEventError
-    | StateMachine.InfiniteTransitionError
+    | Machine.UnhandledEventError
+    | Machine.InfiniteTransitionError
     | InitialE
-    | StateMachine.StartupError,
+    | Machine.StartupError,
     Output | undefined,
-    InitialE | StateMachine.StartupError | RuntimeError
+    InitialE | Machine.StartupError | RuntimeError
   >
 } = ((...args: ReadonlyArray<any>) => {
-  const runtimeOrMachine = args[0] as Atom.AtomRuntime<any, any> | StateMachine.Machine.Any
-  if (StateMachine.isMachine(runtimeOrMachine)) {
+  const runtimeOrMachine = args[0] as Atom.AtomRuntime<any, any> | Machine.Machine.Any
+  if (Machine.isMachine(runtimeOrMachine)) {
     const machine = runtimeOrMachine
     const input = args.slice(1) as []
     const ref = Atom.make((get) => startMachineAtomEffect(get, machine, input))
@@ -317,7 +317,7 @@ export const make: {
   }
 
   const runtime = runtimeOrMachine
-  const machine = args[1] as StateMachine.Machine.Any
+  const machine = args[1] as Machine.Machine.Any
   const input = args.slice(2) as []
   const ref = runtime.atom((get) => startMachineAtomEffect(get, machine, input))
   return makeFromRefAtom(ref as any)

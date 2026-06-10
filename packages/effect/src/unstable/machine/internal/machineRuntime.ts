@@ -1,5 +1,5 @@
 /**
- * Internal state machine runtime planning helpers.
+ * Internal machine runtime planning helpers.
  *
  * @since 4.0.0
  */
@@ -18,7 +18,7 @@ import {
   StartupError,
   StoppedError,
   UnhandledEventError
-} from "../../../internal/stateMachineErrors.ts"
+} from "../../../internal/machineErrors.ts"
 import * as Option from "../../../Option.ts"
 import * as PubSub from "../../../PubSub.ts"
 import * as Queue from "../../../Queue.ts"
@@ -28,7 +28,7 @@ import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
 import * as SynchronizedRef from "../../../SynchronizedRef.ts"
 import type * as Take from "../../../Take.ts"
-import type { Machine, Runtime } from "../StateMachine.ts"
+import type { Machine, Runtime } from "../Machine.ts"
 import {
   type ActiveConfiguration,
   compareDocumentOrder,
@@ -49,7 +49,7 @@ import {
   pathDepth,
   snapshotFromConfiguration,
   validateInitialConfiguration
-} from "./stateMachineModel.ts"
+} from "./machineModel.ts"
 
 export type DeferredAction<E = any, R = any> = Effect.Effect<void, E, R>
 
@@ -61,12 +61,12 @@ export interface DeferredQueue<A> {
 export class DeferredActions extends Context.Service<DeferredActions, {
   readonly add: <E, R>(effect: DeferredAction<E, R>) => Effect.Effect<void>
   readonly read: Effect.Effect<ReadonlyArray<DeferredAction>>
-}>()("effect/StateMachine/DeferredActions") {}
+}>()("effect/Machine/DeferredActions") {}
 
 export class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
   readonly add: <Event>(event: Event) => Effect.Effect<void>
   readonly read: Effect.Effect<ReadonlyArray<any>>
-}>()("effect/StateMachine/DeferredRaisedEvents") {}
+}>()("effect/Machine/DeferredRaisedEvents") {}
 
 type ChildEntry =
   | {
@@ -132,7 +132,7 @@ export type RuntimeOutcome<State, Error = never, Output = never> =
     readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "stopped" }>
   }
 
-export interface StateMachineRef<out State, in Event, out Error = never, out Output = never> {
+export interface MachineRef<out State, in Event, out Error = never, out Output = never> {
   readonly id: string
   readonly sessionId: string
   readonly state: Effect.Effect<State>
@@ -144,8 +144,8 @@ export interface StateMachineRef<out State, in Event, out Error = never, out Out
 }
 
 export interface ProcessScope<Event> {
-  readonly self: StateMachineRef<unknown, Event, unknown, unknown>
-  readonly parent: StateMachineRef<unknown, unknown, unknown, unknown> | undefined
+  readonly self: MachineRef<unknown, Event, unknown, unknown>
+  readonly parent: MachineRef<unknown, unknown, unknown, unknown> | undefined
   readonly spawn: ProcessSpawn
   readonly sendParent: (event: unknown) => Effect.Effect<void>
   readonly sendTo: <Address extends string>(id: Address, event: unknown) => Effect.Effect<void>
@@ -177,7 +177,7 @@ export interface ProcessSpawn {
   <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
     logic: ProcessLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
   ): Effect.Effect<
-    StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+    MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
     ChildInitialError,
     Exclude<ChildRequirements, Scope.Scope>
   >
@@ -187,18 +187,18 @@ export interface ProcessSpawn {
       readonly id: string
     }
   ): Effect.Effect<
-    StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+    MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
     ChildAlreadyExistsError | ChildInitialError,
     Exclude<ChildRequirements, Scope.Scope>
   >
 }
 
-export class StateMachineRuntime extends Context.Service<StateMachineRuntime, ProcessScope<any>>()(
-  "effect/StateMachine/StateMachineRuntime"
+export class MachineRuntime extends Context.Service<MachineRuntime, ProcessScope<any>>()(
+  "effect/Machine/MachineRuntime"
 ) {}
 
 export class RuntimeContext extends Context.Service<RuntimeContext, Runtime<any, any>>()(
-  "effect/StateMachine/Runtime"
+  "effect/Machine/Runtime"
 ) {}
 
 export const makeDeferredQueue = <A>(): Effect.Effect<DeferredQueue<A>> =>
@@ -242,11 +242,11 @@ export const provideDeferredServices = <A, E, R>(
     Effect.provideService(RuntimeContext, makePlanningRuntime(deferredRaisedEvents))
   )
 
-export const provideStateMachineRuntime = <A, E, R, Event>(
+export const provideMachineRuntime = <A, E, R, Event>(
   effect: Effect.Effect<A, E, R>,
   scope: ProcessScope<Event>
-): Effect.Effect<A, E, Exclude<R, StateMachineRuntime>> =>
-  Effect.provideService(effect, StateMachineRuntime, scope as ProcessScope<any>)
+): Effect.Effect<A, E, Exclude<R, MachineRuntime>> =>
+  Effect.provideService(effect, MachineRuntime, scope as ProcessScope<any>)
 
 export const provideRuntimeContext = <A, E, R, Events, Emits>(
   effect: Effect.Effect<A, E, R>,
@@ -260,7 +260,7 @@ export const provideRuntimeContext = <A, E, R, Events, Emits>(
 
 export const sendParentOptional = <Event>(event: Event): Effect.Effect<void> =>
   Effect.contextWith((context: Context.Context<never>) => {
-    const runtime = Context.getOption(context as Context.Context<StateMachineRuntime>, StateMachineRuntime)
+    const runtime = Context.getOption(context as Context.Context<MachineRuntime>, MachineRuntime)
     return Option.isSome(runtime)
       ? runtime.value.sendParent(event)
       : Effect.void
@@ -348,7 +348,7 @@ const classifyOutcome = <State, Error, Output>(
 }
 
 export const watch = <State, Event, Error = never, Output = never>(
-  ref: StateMachineRef<State, Event, Error, Output>
+  ref: MachineRef<State, Event, Error, Output>
 ): Stream.Stream<RuntimeOutcome<State, Error, Output>> =>
   ref.changes.pipe(
     Stream.filter((snapshot) => snapshot.status !== "active"),
@@ -367,7 +367,7 @@ const makeProcessRuntime: Effect.Effect<ProcessRuntime> = Effect.gen(function*()
   const rootScope = yield* Scope.make("parallel")
   return {
     close: (exit) => Scope.close(rootScope, exit),
-    nextSessionId: Effect.sync(() => `state-machine:${sessionIdCounter++}`),
+    nextSessionId: Effect.sync(() => `machine:${sessionIdCounter++}`),
     rootScope
   }
 })
@@ -377,7 +377,7 @@ interface StartInternalOptions {
   readonly finalizer?: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void>
   readonly id?: string
   readonly onStop?: Effect.Effect<void>
-  readonly parent?: StateMachineRef<unknown, unknown, unknown, unknown>
+  readonly parent?: MachineRef<unknown, unknown, unknown, unknown>
   readonly runtime: ProcessRuntime
 }
 
@@ -392,7 +392,7 @@ const startInternal: <
   logic: ProcessLogic<State, Event, Error, Requirements, Output, InitialError>,
   options: StartInternalOptions
 ) => Effect.Effect<
-  StateMachineRef<State, Event, Error | InitialError, Output>,
+  MachineRef<State, Event, Error | InitialError, Output>,
   InitialError,
   Requirements
 > = Effect.fnUntraced(function*<State, Event, Error, Requirements, Output, InitialError>(
@@ -484,7 +484,7 @@ const startInternal: <
   function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
     logic: ProcessLogic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
   ): Effect.Effect<
-    StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+    MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
     ChildInitialError,
     Exclude<ChildRequirements, Scope.Scope>
   >
@@ -494,7 +494,7 @@ const startInternal: <
       readonly id: string
     }
   ): Effect.Effect<
-    StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+    MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
     ChildAlreadyExistsError | ChildInitialError,
     Exclude<ChildRequirements, Scope.Scope>
   >
@@ -504,7 +504,7 @@ const startInternal: <
       readonly id: string
     }
   ): Effect.Effect<
-    StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+    MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
     ChildAlreadyExistsError | ChildInitialError,
     Exclude<ChildRequirements, Scope.Scope>
   > {
@@ -514,14 +514,14 @@ const startInternal: <
           Effect.acquireRelease(
             startInternal(logic, {
               fiberScope: childrenScope,
-              parent: self as StateMachineRef<unknown, unknown, unknown, unknown>,
+              parent: self as MachineRef<unknown, unknown, unknown, unknown>,
               runtime: options.runtime
             }),
             (child) => child.stop
           ).pipe(Scope.provide(childrenScope))
         )
       ) as Effect.Effect<
-        StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+        MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
         ChildInitialError,
         Exclude<ChildRequirements, Scope.Scope>
       >
@@ -538,7 +538,7 @@ const startInternal: <
               fiberScope: childrenScope,
               id: childId,
               onStop: unregisterStartedChild(childId, token),
-              parent: self as StateMachineRef<unknown, unknown, unknown, unknown>,
+              parent: self as MachineRef<unknown, unknown, unknown, unknown>,
               runtime: options.runtime
             }).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(childId) : Effect.void))
             yield* registerStartedChild(childId, token, (event) => child.send(event as ChildEvent), child.stop)
@@ -548,17 +548,17 @@ const startInternal: <
         ).pipe(Scope.provide(childrenScope))
       )
     ) as Effect.Effect<
-      StateMachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+      MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
       ChildAlreadyExistsError | ChildInitialError,
       Exclude<ChildRequirements, Scope.Scope>
     >
   }
 
-  const self: StateMachineRef<unknown, Event, unknown, unknown> = {
+  const self: MachineRef<unknown, Event, unknown, unknown> = {
     id,
     sessionId,
-    state: Effect.die("StateMachine self state is not available during initialization"),
-    snapshot: Effect.die("StateMachine self snapshot is not available during initialization"),
+    state: Effect.die("Machine self state is not available during initialization"),
+    snapshot: Effect.die("Machine self snapshot is not available during initialization"),
     changes: Stream.empty,
     join: Effect.never,
     stop: Deferred.await(stopSelfDeferred).pipe(Effect.flatMap((stopSelf) => stopSelf)),
@@ -795,7 +795,7 @@ const startInternal: <
   )
   yield* Deferred.succeed(fiberRef, fiber)
 
-  const ref: StateMachineRef<State, Event, Error | InitialError, Output> = {
+  const ref: MachineRef<State, Event, Error | InitialError, Output> = {
     id,
     sessionId,
     state: SynchronizedRef.get(current).pipe(Effect.map((snapshot) => snapshot.state)),
@@ -822,7 +822,7 @@ export const startProcess: <
     readonly id?: string
   }
 ) => Effect.Effect<
-  StateMachineRef<State, Event, Error | InitialError, Output>,
+  MachineRef<State, Event, Error | InitialError, Output>,
   InitialError,
   Requirements
 > = Effect.fnUntraced(function*<State, Event, Error, Requirements, Output, InitialError>(
@@ -1248,7 +1248,7 @@ export const getTargetNodePath = <const States extends Machine.StateSchemas>(
   if (isSnapshot(target)) {
     return String(target.path)
   }
-  throw new Error("StateMachine expected transition target to be a snapshot or target builder result")
+  throw new Error("Machine expected transition target to be a snapshot or target builder result")
 }
 
 export const hasPathIntersection = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean => {
@@ -1368,7 +1368,7 @@ export const collectEvaluatedTransition = Effect.fnUntraced(function*<
 })
 
 export const MaxMacrostepIterations = 1000
-export const InitialEventTypeId: unique symbol = Symbol("effect/StateMachine/InitialEvent")
+export const InitialEventTypeId: unique symbol = Symbol("effect/Machine/InitialEvent")
 export const InitialEvent = { _tag: InitialEventTypeId }
 
 export const catchStartup = <A>(
@@ -1848,7 +1848,7 @@ export const actionUnsafe = Effect.fnUntraced(function*<E, R>(
 })
 
 /**
- * Defers an effectful action until the current state machine step is planned.
+ * Defers an effectful action until the current machine step is planned.
  *
  * @category combinators
  * @since 4.0.0
@@ -1858,7 +1858,7 @@ export const action = <E, R>(
 ): Effect.Effect<void, E, R> => actionUnsafe(effect) as unknown as Effect.Effect<void, E, R>
 
 /**
- * Returns the typed runtime capability for the current state machine.
+ * Returns the typed runtime capability for the current machine.
  *
  * @category combinators
  * @since 4.0.0

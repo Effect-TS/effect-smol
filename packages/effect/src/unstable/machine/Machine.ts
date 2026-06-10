@@ -1,5 +1,5 @@
 /**
- * Schema-first state machine definitions.
+ * Schema-first machine definitions.
  *
  * @since 4.0.0
  */
@@ -11,37 +11,37 @@ import type {
   InfiniteTransitionError,
   StartupError,
   UnhandledEventError
-} from "../../internal/stateMachineErrors.ts"
+} from "../../internal/machineErrors.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Types from "../../Types.ts"
-import * as Model from "./internal/stateMachineModel.ts"
-import * as internalProcess from "./internal/stateMachineProcess.ts"
-import * as internalRuntime from "./internal/stateMachineRuntime.ts"
+import * as Model from "./internal/machineModel.ts"
+import * as internalProcess from "./internal/machineProcess.ts"
+import * as internalRuntime from "./internal/machineRuntime.ts"
 
 /**
- * String literal type used as the runtime type identifier for `StateMachine`
+ * String literal type used as the runtime type identifier for `Machine`
  * values.
  *
  * @category type IDs
  * @since 4.0.0
  */
-export type TypeId = "~effect/StateMachine"
+export type TypeId = "~effect/Machine"
 
 /**
- * Runtime type identifier attached to `StateMachine` values.
+ * Runtime type identifier attached to `Machine` values.
  *
  * @category type IDs
  * @since 4.0.0
  */
-export const TypeId: TypeId = "~effect/StateMachine"
+export const TypeId: TypeId = "~effect/Machine"
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
 
 /**
- * A schema-first state machine definition.
+ * A schema-first machine definition.
  *
  * @category models
  * @since 4.0.0
@@ -96,14 +96,14 @@ export interface Machine<
 export {
   /**
    * Error returned by `spawn` when a child process with the same id already
-   * exists for the current state machine.
+   * exists for the current machine.
    *
    * @category errors
    * @since 4.0.0
    */
   ChildAlreadyExistsError,
   /**
-   * Error returned when a state machine does not stabilize within the maximum
+   * Error returned when a machine does not stabilize within the maximum
    * number of macrostep iterations.
    *
    * @category errors
@@ -111,7 +111,7 @@ export {
    */
   InfiniteTransitionError,
   /**
-   * Error returned when a state machine fails while running startup lifecycle
+   * Error returned when a machine fails while running startup lifecycle
    * logic after the initial state has been computed.
    *
    * @category errors
@@ -119,7 +119,7 @@ export {
    */
   StartupError,
   /**
-   * Error returned by `join` when a running state machine is stopped before
+   * Error returned by `join` when a running machine is stopped before
    * producing an output.
    *
    * @category errors
@@ -133,12 +133,12 @@ export {
    * @since 4.0.0
    */
   UnhandledEventError
-} from "../../internal/stateMachineErrors.ts"
+} from "../../internal/machineErrors.ts"
 
-const RuntimeRequirementTypeId = "~effect/StateMachine/RuntimeRequirement"
+const RuntimeRequirementTypeId = "~effect/Machine/RuntimeRequirement"
 
 /**
- * Runtime capability available to state machine actions.
+ * Runtime capability available to machine actions.
  *
  * @category models
  * @since 4.0.0
@@ -182,7 +182,7 @@ export declare namespace Runtime {
   export type Emits<Protocol> = Protocol extends { readonly emits: infer Emits } ? Emits : never
 
   /**
-   * Opaque service requirement for a state machine runtime capability.
+   * Opaque service requirement for a machine runtime capability.
    *
    * @category services
    * @since 4.0.0
@@ -211,7 +211,7 @@ type IncompatibleRuntime<Requirements, Events, Emits> = Requirements extends Run
   : Requirements
   : never
 
-const RuntimeCompatibilityErrorTypeId = "~effect/StateMachine/RuntimeCompatibilityError"
+const RuntimeCompatibilityErrorTypeId = "~effect/Machine/RuntimeCompatibilityError"
 
 type EnsureCompatibleRuntime<Requirements, Events, Emits> = [IncompatibleRuntime<Requirements, Events, Emits>] extends
   [never] ? unknown : {
@@ -219,7 +219,7 @@ type EnsureCompatibleRuntime<Requirements, Events, Emits> = [IncompatibleRuntime
 }
 
 type StateDefinitionError<Message extends string> = {
-  readonly "~effect/StateMachine/DefinitionError": Message
+  readonly "~effect/Machine/DefinitionError": Message
 }
 
 type ValidateStateTree<States extends Machine.StateSchemas> = {
@@ -260,7 +260,7 @@ type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.Ta
     : StateDefinitionError<"State node type must be active, final, or parallel">
   : unknown
 
-const SnapshotBuilderStateTypeId: unique symbol = Symbol("effect/StateMachine/SnapshotBuilderState")
+const SnapshotBuilderStateTypeId: unique symbol = Symbol("effect/Machine/SnapshotBuilderState")
 
 type SnapshotBuilderComplete<Regions> = {
   readonly [SnapshotBuilderStateTypeId]: Regions
@@ -568,13 +568,13 @@ type SpawnIdError<Options extends SpawnOptions> = "id" extends keyof Options ? O
 type SpawnError<Options extends SpawnOptions> = SpawnIdError<Options>
 
 type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, InitialError = never> = Effect.Effect<
-  StateMachineRef<State, Event, Error | InitialError, Output>,
+  MachineRef<State, Event, Error | InitialError, Output>,
   SpawnError | InitialError,
-  internalRuntime.StateMachineRuntime | SpawnRequirements<Requirements>
+  internalRuntime.MachineRuntime | SpawnRequirements<Requirements>
 >
 
 /**
- * Lifecycle-aware snapshot of a running state machine.
+ * Lifecycle-aware snapshot of a running machine.
  *
  * @category models
  * @since 4.0.0
@@ -598,21 +598,21 @@ export type RuntimeOutcome<State, Error = never, Output = never> = internalRunti
 >
 
 /**
- * Running state machine handle with current state, lifecycle snapshots, and a
+ * Running machine handle with current state, lifecycle snapshots, and a
  * stop action.
  *
  * @category models
  * @since 4.0.0
  */
-export type StateMachineRef<State, Event, Error = never, Output = never> = internalRuntime.StateMachineRef<
+export type MachineRef<State, Event, Error = never, Output = never> = internalRuntime.MachineRef<
   State,
   Event,
   Error,
   Output
 >
 
-const ChildAddressTypeId = "~effect/StateMachine/ChildAddress"
-const ChildAddressCompatibilityErrorTypeId = "~effect/StateMachine/ChildAddressCompatibilityError"
+const ChildAddressTypeId = "~effect/Machine/ChildAddress"
+const ChildAddressCompatibilityErrorTypeId = "~effect/Machine/ChildAddressCompatibilityError"
 
 /**
  * Parent-local address for a child process that can receive events.
@@ -705,7 +705,7 @@ export interface SpawnIdOptions extends SpawnOptions {
  */
 export declare namespace Machine {
   /**
-   * Any schema-first state machine.
+   * Any schema-first machine.
    *
    * @category models
    * @since 4.0.0
@@ -1550,7 +1550,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeRequirements<Config> = [InvokeReturn<Config>] extends [never] ? never
-    : internalRuntime.StateMachineRuntime | InvokeServices<InvokeReturn<Config>>
+    : internalRuntime.MachineRuntime | InvokeServices<InvokeReturn<Config>>
   /**
    * Extracts the return value from an eventless transition.
    *
@@ -1840,7 +1840,7 @@ const Proto = {
   },
   toJSON() {
     return {
-      _id: "StateMachine"
+      _id: "Machine"
     }
   }
 }
@@ -1867,7 +1867,7 @@ const handleUnsafe = (
 }
 
 /**
- * Returns `true` if a value is a `StateMachine`.
+ * Returns `true` if a value is a `Machine`.
  *
  * @category guards
  * @since 4.0.0
@@ -1877,7 +1877,7 @@ export const isMachine = (
 ): u is Machine.Any => hasProperty(u, TypeId)
 
 /**
- * Returns `true` if a state snapshot is final for a state machine.
+ * Returns `true` if a state snapshot is final for a machine.
  *
  * @category guards
  * @since 4.0.0
@@ -1946,14 +1946,14 @@ const getParallelSnapshotBuilderRegions = (
   builder: unknown
 ): Readonly<Record<string, unknown>> => {
   if (typeof builder !== "object" || builder === null || !hasProperty(builder, SnapshotBuilderStateTypeId)) {
-    throw new Error(`StateMachine expected parallel state "${path}" builder callback to return a builder`)
+    throw new Error(`Machine expected parallel state "${path}" builder callback to return a builder`)
   }
   const regions = (builder as { readonly [SnapshotBuilderStateTypeId]: Readonly<Record<string, unknown>> })[
     SnapshotBuilderStateTypeId
   ]
   for (const key of Object.keys(states)) {
     if (!hasProperty(regions, key)) {
-      throw new Error(`StateMachine expected parallel state "${path}" builder callback to provide region "${key}"`)
+      throw new Error(`Machine expected parallel state "${path}" builder callback to provide region "${key}"`)
     }
   }
   return regions
@@ -1976,7 +1976,7 @@ const makeSnapshotForNode = (
     return snapshot
   }
   if (selector === undefined) {
-    throw new Error(`StateMachine expected state "${path}" builder to provide active child states`)
+    throw new Error(`Machine expected state "${path}" builder to provide active child states`)
   }
   if (node.type === "parallel") {
     const builder = makeParallelSnapshotBuilder(node.states, { ...options, prefix: path }, {})
@@ -1996,7 +1996,7 @@ const getTargetBuilderNode = (
 ): Machine.StateNode => {
   const node = stateNodes.byPath.get(path)
   if (node === undefined) {
-    throw new Error(`StateMachine expected state path "${path}" to exist`)
+    throw new Error(`Machine expected state path "${path}" to exist`)
   }
   return node
 }
@@ -2061,7 +2061,7 @@ const makeLocalTargetChildBuilder = (
         return makeTargetWithValues(child.path, value, values)
       }
       if (selector === undefined) {
-        throw new Error(`StateMachine expected target "${child.path}" builder to provide an active child state`)
+        throw new Error(`Machine expected target "${child.path}" builder to provide an active child state`)
       }
       return selector(makeLocalTargetChildBuilder(
         stateNodes,
@@ -2084,7 +2084,7 @@ const makeLocalTargetBuilder = (
   const builder = makeLocalTargetChildBuilder(stateNodes, scope, undefined) as Record<string, unknown>
   builder.with = (value: unknown, selector?: (builder: unknown) => unknown) => {
     if (selector === undefined) {
-      throw new Error(`StateMachine expected target "${scope}" builder to provide an active child state`)
+      throw new Error(`Machine expected target "${scope}" builder to provide an active child state`)
     }
     return selector(makeLocalTargetChildBuilder(stateNodes, scope, { [scope]: value }))
   }
@@ -2115,7 +2115,7 @@ const makeBranchTargetNodeBuilder = (
   }
   const builder = ((value: unknown, selector?: (builder: unknown) => unknown) => {
     if (selector === undefined) {
-      throw new Error(`StateMachine expected target "${node.path}" builder to provide an active child state`)
+      throw new Error(`Machine expected target "${node.path}" builder to provide an active child state`)
     }
     const nextBuilder: Record<string, unknown> = {}
     addBranchTargetChildren(nextBuilder, stateNodes, node.path, extendTargetValues(values, node.path, value))
@@ -2167,13 +2167,13 @@ const makeTargetBuilder = <const States extends Machine.StateSchemas>(
  *
  * ```ts
  * import { Schema } from "effect"
- * import { StateMachine } from "effect/unstable/machine"
+ * import { Machine } from "effect/unstable/machine"
  *
  * class Idle extends Schema.TaggedClass<Idle>("Idle")("Idle", {}) {}
  *
- * const States = StateMachine.defineStates({ idle: Idle })
+ * const States = Machine.defineStates({ idle: Idle })
  *
- * StateMachine.make({
+ * Machine.make({
  *   states: States.states,
  *   events: [],
  *   initial: () => States.initial.idle(new Idle({}))
@@ -2193,7 +2193,7 @@ export const defineStates = <
 })
 
 /**
- * Creates a schema-first state machine definition.
+ * Creates a schema-first machine definition.
  *
  * @category constructors
  * @since 4.0.0
@@ -2245,9 +2245,9 @@ export const make = <
  *
  * **When to use**
  *
- * Use to run a child process while a state machine remains in a state and map the
- * child's active snapshots or terminal lifecycle outcome back into state
- * machine events.
+ * Use to run a child process while a machine remains in a state and map the
+ * child's active snapshots or terminal lifecycle outcome back into machine
+ * events.
  *
  * **Gotchas**
  *
@@ -2301,7 +2301,7 @@ export const invoke = <
 > => config
 
 /**
- * Plans the initial state for a state machine without running deferred actions.
+ * Plans the initial state for a machine without running deferred actions.
  *
  * @category constructors
  * @since 4.0.0
@@ -2358,7 +2358,7 @@ export const enabled = <
 export const plan = internalRuntime.plan
 
 /**
- * Defers an effectful action until the current state machine step is planned.
+ * Defers an effectful action until the current machine step is planned.
  *
  * @category combinators
  * @since 4.0.0
@@ -2368,7 +2368,7 @@ export const action = <E, R>(
 ): Effect.Effect<void, E, R> => internalRuntime.action(effect)
 
 /**
- * Returns the typed runtime capability for the current state machine.
+ * Returns the typed runtime capability for the current machine.
  *
  * @category combinators
  * @since 4.0.0
@@ -2450,19 +2450,19 @@ export const transition = <State, Event, Error = never, Requirements = never>(
 export const child = <Event>(id: string): ChildAddress<Event> => id as ChildAddress<Event>
 
 /**
- * Spawns a child process owned by the currently running state machine.
+ * Spawns a child process owned by the currently running machine.
  *
  * **When to use**
  *
- * Use to create child processes from state machine actions when the child
- * should be addressed or stopped by the owning state machine instead of tied to a
+ * Use to create child processes from machine actions when the child
+ * should be addressed or stopped by the owning machine instead of tied to a
  * single state's `invoke` lifecycle.
  *
  * **Gotchas**
  *
- * This effect requires the state machine runtime, so it only runs from state
- * machine actions. A named child id must be unique for the current parent state
- * machine until that child stops.
+ * This effect requires the machine runtime, so it only runs from machine
+ * actions. A named child id must be unique for the current parent machine until
+ * that child stops.
  *
  * @see {@link invoke} for children that start and stop with a state.
  * @see {@link sendTo} for sending events to named children.
@@ -2512,12 +2512,12 @@ export const spawn: {
   options?: SpawnOptions
 ) =>
   Effect.flatMap(
-    internalRuntime.StateMachineRuntime,
+    internalRuntime.MachineRuntime,
     (runtime) => options === undefined ? runtime.spawn(logic) : (runtime.spawn as any)(logic, options)
   )) as any
 
 /**
- * Sends an event to a named child process of the running state machine.
+ * Sends an event to a named child process of the running machine.
  *
  * @category runtime
  * @since 4.0.0
@@ -2525,20 +2525,20 @@ export const spawn: {
 export const sendTo = <Address extends string>(
   id: Address,
   event: ChildAddress.Event<Address>
-): Effect.Effect<void, never, internalRuntime.StateMachineRuntime> =>
-  Effect.flatMap(internalRuntime.StateMachineRuntime, (runtime) => runtime.sendTo(id, event))
+): Effect.Effect<void, never, internalRuntime.MachineRuntime> =>
+  Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.sendTo(id, event))
 
 /**
- * Stops a named child process of the running state machine.
+ * Stops a named child process of the running machine.
  *
  * @category runtime
  * @since 4.0.0
  */
-export const stopChild = (id: string): Effect.Effect<void, never, internalRuntime.StateMachineRuntime> =>
-  Effect.flatMap(internalRuntime.StateMachineRuntime, (runtime) => runtime.stopChild(id))
+export const stopChild = (id: string): Effect.Effect<void, never, internalRuntime.MachineRuntime> =>
+  Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.stopChild(id))
 
 /**
- * Returns a stream of terminal lifecycle outcomes for a running state machine.
+ * Returns a stream of terminal lifecycle outcomes for a running machine.
  *
  * @category combinators
  * @since 4.0.0
@@ -2546,12 +2546,12 @@ export const stopChild = (id: string): Effect.Effect<void, never, internalRuntim
 export const watch = internalRuntime.watch
 
 /**
- * Starts a state machine.
+ * Starts a machine.
  *
  * **When to use**
  *
  * Use when you want asynchronous event delivery, lifecycle snapshots, `join`,
- * and state machine-owned spawned or invoked children.
+ * and machine-owned spawned or invoked children.
  *
  * **Gotchas**
  *
@@ -2578,7 +2578,7 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  StateMachineRef<
+  MachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
@@ -2586,7 +2586,7 @@ export const start: <
   >,
   InitialE | StartupError,
   ExcludeCompatibleRuntime<
-    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >

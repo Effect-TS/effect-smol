@@ -14,7 +14,7 @@ export class UnhandledEventError extends Data.TaggedError("UnhandledEventError")
 }> {}
 
 /**
- * Error returned when a state machine does not stabilize within the maximum
+ * Error returned when a machine does not stabilize within the maximum
  * number of macrostep iterations.
  *
  * @category errors
@@ -27,7 +27,7 @@ export class InfiniteTransitionError extends Data.TaggedError("InfiniteTransitio
 }> {}
 
 /**
- * Error returned when a state machine fails while running startup lifecycle
+ * Error returned when a machine fails while running startup lifecycle
  * logic after the initial state has been computed.
  *
  * @category errors
@@ -39,7 +39,7 @@ export class StartupError extends Data.TaggedError("StartupError")<{
 
 /**
  * Error returned by `spawn` when a child process with the same id already
- * exists for the current state machine.
+ * exists for the current machine.
  *
  * @category errors
  * @since 4.0.0
@@ -49,7 +49,7 @@ export class ChildAlreadyExistsError extends Data.TaggedError("ChildAlreadyExist
 }> {}
 
 /**
- * Error returned by `join` when a running state machine is stopped before
+ * Error returned by `join` when a running machine is stopped before
  * producing an output.
  *
  * @category errors

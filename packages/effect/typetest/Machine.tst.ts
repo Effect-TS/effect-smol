@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect"
-import { StateMachine } from "effect/unstable/machine"
+import { Machine } from "effect/unstable/machine"
 import { describe, expect, it } from "tstyche"
 
-describe("StateMachine", () => {
+describe("Machine", () => {
   class Up extends Schema.TaggedClass<Up>("Up")("Up", {
     id: Schema.String
   }) {}
@@ -33,7 +33,7 @@ describe("StateMachine", () => {
     userId: Schema.String
   }) {}
 
-  const UpStates = StateMachine.defineStates({
+  const UpStates = Machine.defineStates({
     up: {
       schema: Up,
       type: "parallel",
@@ -63,7 +63,7 @@ describe("StateMachine", () => {
     : never
   type IsCallable<A> = A extends (...args: ReadonlyArray<any>) => any ? true : false
 
-  type SignInContext = StateMachine.Machine.HandlerContext<
+  type SignInContext = Machine.Machine.HandlerContext<
     typeof UpStates.states,
     readonly [typeof SignIn],
     [],
@@ -73,7 +73,7 @@ describe("StateMachine", () => {
     never
   >
 
-  type SignedOutContext = StateMachine.Machine.HandlerContext<
+  type SignedOutContext = Machine.Machine.HandlerContext<
     typeof UpStates.states,
     readonly [typeof SignIn],
     [],
@@ -83,7 +83,7 @@ describe("StateMachine", () => {
     never
   >
 
-  type AuthContext = StateMachine.Machine.HandlerContext<
+  type AuthContext = Machine.Machine.HandlerContext<
     typeof UpStates.states,
     readonly [typeof SignIn],
     [],
@@ -94,7 +94,7 @@ describe("StateMachine", () => {
   >
 
   it("defineStates preserves literal state paths", () => {
-    expect<StateMachine.Machine.StateIdentifier<typeof UpStates.states>>().type.toBe<
+    expect<Machine.Machine.StateIdentifier<typeof UpStates.states>>().type.toBe<
       | "up"
       | "up.auth"
       | "up.auth.signedOut"
@@ -107,7 +107,7 @@ describe("StateMachine", () => {
   })
 
   it("make accepts defined states", () => {
-    const machine = StateMachine.make({
+    const machine = Machine.make({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -117,7 +117,7 @@ describe("StateMachine", () => {
   })
 
   it("make rejects raw decoded initial states", () => {
-    expect(StateMachine.make).type.not.toBeCallableWith({
+    expect(Machine.make).type.not.toBeCallableWith({
       states: UpStates.states,
       events: [SignIn],
       initial: () => new Down({})
@@ -125,7 +125,7 @@ describe("StateMachine", () => {
   })
 
   it("make accepts effectful initial snapshots", () => {
-    const machine = StateMachine.make({
+    const machine = Machine.make({
       states: UpStates.states,
       events: [SignIn],
       initial: () => Effect.succeed(UpStates.initial.down(new Down({})))
@@ -135,29 +135,29 @@ describe("StateMachine", () => {
   })
 
   it("plan and getters require snapshots", () => {
-    const machine = StateMachine.make({
+    const machine = Machine.make({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
     })
 
-    expect(StateMachine.plan).type.toBeCallableWith(
+    expect(Machine.plan).type.toBeCallableWith(
       machine,
       UpStates.initial.down(new Down({})),
       new SignIn({
         userId: "user-1"
       })
     )
-    expect(StateMachine.enabled).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
-    expect(StateMachine.isFinal).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
+    expect(Machine.enabled).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
+    expect(Machine.isFinal).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
 
-    expect(StateMachine.plan).type.not.toBeCallableWith(machine, new Down({}), new SignIn({ userId: "user-1" }))
-    expect(StateMachine.enabled).type.not.toBeCallableWith(machine, new Down({}))
-    expect(StateMachine.isFinal).type.not.toBeCallableWith(machine, new Down({}))
+    expect(Machine.plan).type.not.toBeCallableWith(machine, new Down({}), new SignIn({ userId: "user-1" }))
+    expect(Machine.enabled).type.not.toBeCallableWith(machine, new Down({}))
+    expect(Machine.isFinal).type.not.toBeCallableWith(machine, new Down({}))
   })
 
   it("handlers reject raw decoded state returns", () => {
-    const machine = StateMachine.make({
+    const machine = Machine.make({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -191,7 +191,7 @@ describe("StateMachine", () => {
     )
 
     expect(snapshot).type.toBeAssignableTo<
-      StateMachine.Machine.SnapshotByIdentifier<typeof UpStates.states, "up">
+      Machine.Machine.SnapshotByIdentifier<typeof UpStates.states, "up">
     >()
     expect(snapshot.path).type.toBe<"up">()
     expect(snapshot.value).type.toBe<Up>()
@@ -279,7 +279,7 @@ describe("StateMachine", () => {
     )
 
     expect(snapshot).type.toBeAssignableTo<
-      StateMachine.Machine.SnapshotByIdentifier<typeof UpStates.states, "up">
+      Machine.Machine.SnapshotByIdentifier<typeof UpStates.states, "up">
     >()
     expect(snapshot.path).type.toBe<"up">()
     expect(snapshot.states.auth.state.path).type.toBe<"up.auth.signedOut" | "up.auth.signedIn">()
@@ -313,7 +313,7 @@ describe("StateMachine", () => {
     const target = context.target.local.signedIn(new SignedIn({ userId: "user-1" }))
 
     expect(target).type.toBeAssignableTo<
-      StateMachine.Machine.Target<typeof UpStates.states, "up.auth.signedIn">
+      Machine.Machine.Target<typeof UpStates.states, "up.auth.signedIn">
     >()
     expect(target.path).type.toBe<"up.auth.signedIn">()
     expect(target.value).type.toBe<SignedIn>()
@@ -375,7 +375,7 @@ describe("StateMachine", () => {
     )
 
     expect(target).type.toBeAssignableTo<
-      StateMachine.Machine.Target<typeof UpStates.states, "up.sync.syncing">
+      Machine.Machine.Target<typeof UpStates.states, "up.sync.syncing">
     >()
     expect(target.path).type.toBe<"up.sync.syncing">()
     expect(target.value).type.toBe<Syncing>()
@@ -415,7 +415,7 @@ describe("StateMachine", () => {
   })
 
   it("rejects invalid compound initial keys", () => {
-    expect(StateMachine.defineStates).type.not.toBeCallableWith({
+    expect(Machine.defineStates).type.not.toBeCallableWith({
       up: {
         schema: Up,
         initial: "missing",
@@ -427,7 +427,7 @@ describe("StateMachine", () => {
   })
 
   it("rejects initial keys on parallel states", () => {
-    expect(StateMachine.defineStates).type.not.toBeCallableWith({
+    expect(Machine.defineStates).type.not.toBeCallableWith({
       up: {
         schema: Up,
         type: "parallel",
@@ -440,7 +440,7 @@ describe("StateMachine", () => {
   })
 
   it("rejects invalid nested state definitions", () => {
-    expect(StateMachine.defineStates).type.not.toBeCallableWith({
+    expect(Machine.defineStates).type.not.toBeCallableWith({
       up: {
         schema: Up,
         type: "parallel",
@@ -458,7 +458,7 @@ describe("StateMachine", () => {
   })
 
   it("rejects child states on final states", () => {
-    expect(StateMachine.defineStates).type.not.toBeCallableWith({
+    expect(Machine.defineStates).type.not.toBeCallableWith({
       down: {
         schema: Down,
         type: "final",

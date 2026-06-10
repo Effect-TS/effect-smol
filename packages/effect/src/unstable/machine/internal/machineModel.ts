@@ -1,16 +1,16 @@
 /**
- * Internal state machine representation helpers.
+ * Internal machine representation helpers.
  *
  * @since 4.0.0
  */
 
 import { hasProperty } from "../../../Predicate.ts"
 import * as Schema from "../../../Schema.ts"
-import type { Machine } from "../StateMachine.ts"
+import type { Machine } from "../Machine.ts"
 
-export const TargetTypeId = "~effect/StateMachine/Target"
+export const TargetTypeId = "~effect/Machine/Target"
 
-const CompletedOutputsTypeId: unique symbol = Symbol("effect/StateMachine/CompletedOutputs")
+const CompletedOutputsTypeId: unique symbol = Symbol("effect/Machine/CompletedOutputs")
 
 export const getSchemaTag = (schema: Machine.TaggedSchema): PropertyKey | undefined => {
   const tag = (schema as any).fields?._tag?.schema?.literal ?? (schema as any).fields?._tag?.ast?.literal
@@ -30,14 +30,14 @@ export const getStateNodeDefinition = (
     return { schema: definition as Machine.TaggedSchema, type: "atomic", initial: undefined, states: undefined }
   }
   if (!hasProperty(definition, "schema") || !Schema.isSchema(definition.schema)) {
-    throw new Error(`StateMachine.make expected state "${path}" to be a tagged schema or state node config`)
+    throw new Error(`Machine.make expected state "${path}" to be a tagged schema or state node config`)
   }
   if ((definition as any).type === "parallel" && !hasProperty(definition, "states")) {
-    throw new Error(`StateMachine.make expected parallel state "${path}" to declare child regions`)
+    throw new Error(`Machine.make expected parallel state "${path}" to declare child regions`)
   }
   if (hasProperty(definition, "states")) {
     if ((definition as any).type === "final") {
-      throw new Error(`StateMachine.make expected compound state "${path}" to be active`)
+      throw new Error(`Machine.make expected compound state "${path}" to be active`)
     }
     if ((definition as any).type === "parallel") {
       return {
@@ -48,7 +48,7 @@ export const getStateNodeDefinition = (
       }
     }
     if (typeof (definition as any).initial !== "string") {
-      throw new Error(`StateMachine.make expected compound state "${path}" to declare an initial child`)
+      throw new Error(`Machine.make expected compound state "${path}" to declare an initial child`)
     }
     return {
       schema: definition.schema as Machine.TaggedSchema,
@@ -91,7 +91,7 @@ export const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNo
       if (definition.states !== undefined) {
         const children = compile(definition.states, path)
         if (node.type === "compound" && (node.initial === undefined || !children.includes(node.initial))) {
-          throw new Error(`StateMachine.make expected compound state "${path}" initial child to exist`)
+          throw new Error(`Machine.make expected compound state "${path}" initial child to exist`)
         }
         ;(node as { children: ReadonlyArray<string> }).children = children
       }
@@ -152,7 +152,7 @@ export interface FinalCompletion {
 export const getNode = (machine: Machine.Any, path: string): Machine.StateNode => {
   const node = machine.stateNodes.byPath.get(path)
   if (node === undefined) {
-    throw new Error(`StateMachine expected state path "${path}" to exist`)
+    throw new Error(`Machine expected state path "${path}" to exist`)
   }
   return node
 }
@@ -187,7 +187,7 @@ export const getActiveLeafPaths = (machine: Machine.Any, configuration: ActiveCo
     .filter((path) => !hasActiveChild(machine, configuration, path))
     .sort((left, right) => compareDocumentOrder(machine, left, right))
   if (leaves.length === 0) {
-    throw new Error("StateMachine expected an active leaf state")
+    throw new Error("Machine expected an active leaf state")
   }
   return leaves
 }
@@ -206,7 +206,7 @@ export const getActiveLeafPathFrom = (
   const leaves = getActiveLeafPaths(machine, configuration)
     .filter((leaf) => isPathInSubtree(leaf, path))
   if (leaves.length === 0) {
-    throw new Error(`StateMachine expected state "${path}" to have an active leaf state`)
+    throw new Error(`Machine expected state "${path}" to have an active leaf state`)
   }
   return leaves[0]
 }
@@ -217,12 +217,12 @@ export const getRootPath = (machine: Machine.Any, configuration: ActiveConfigura
       return path
     }
   }
-  throw new Error("StateMachine expected an active root state")
+  throw new Error("Machine expected an active root state")
 }
 
 export const getActiveValue = (configuration: ActiveConfiguration, path: string): unknown => {
   if (!configuration.values.has(path)) {
-    throw new Error(`StateMachine expected active state "${path}" to have a value`)
+    throw new Error(`Machine expected active state "${path}" to have a value`)
   }
   return configuration.values.get(path)
 }
@@ -257,7 +257,7 @@ export const snapshotFromPath = <const States extends Machine.StateSchemas>(
   if (node.type === "compound") {
     const child = node.children.find((child) => configuration.active.has(child))
     if (child === undefined) {
-      throw new Error(`StateMachine expected compound state "${path}" to have an active child`)
+      throw new Error(`Machine expected compound state "${path}" to have an active child`)
     }
     snapshot.state = snapshotFromPath(machine, configuration, child)
   }
@@ -265,7 +265,7 @@ export const snapshotFromPath = <const States extends Machine.StateSchemas>(
     const states: Record<string, unknown> = {}
     for (const child of node.children) {
       if (!configuration.active.has(child)) {
-        throw new Error(`StateMachine expected parallel state "${path}" to have active child region "${child}"`)
+        throw new Error(`Machine expected parallel state "${path}" to have active child region "${child}"`)
       }
       const childNode = getNode(machine, child)
       states[childNode.key] = snapshotFromPath(machine, configuration, child)
@@ -302,34 +302,34 @@ export const configurationFromSnapshot = (
   const visit = (current: Machine.AtomicSnapshot<string, unknown>): void => {
     const node = getNode(machine, String(current.path))
     if (!Schema.is(node.schema)(current.value)) {
-      throw new Error(`StateMachine expected snapshot for "${node.path}" to match its schema`)
+      throw new Error(`Machine expected snapshot for "${node.path}" to match its schema`)
     }
     active.add(node.path)
     values.set(node.path, current.value)
     if (node.type === "compound") {
       if (!hasProperty(current, "state") || !isSnapshot(current.state)) {
-        throw new Error(`StateMachine expected compound snapshot "${node.path}" to include an active child state`)
+        throw new Error(`Machine expected compound snapshot "${node.path}" to include an active child state`)
       }
       const child = getNode(machine, String(current.state.path))
       if (child.parent !== node.path) {
-        throw new Error(`StateMachine expected snapshot "${child.path}" to be a child of "${node.path}"`)
+        throw new Error(`Machine expected snapshot "${child.path}" to be a child of "${node.path}"`)
       }
       visit(current.state)
     }
     if (node.type === "parallel") {
       if (!hasProperty(current, "states") || typeof current.states !== "object" || current.states === null) {
-        throw new Error(`StateMachine expected parallel snapshot "${node.path}" to include active child regions`)
+        throw new Error(`Machine expected parallel snapshot "${node.path}" to include active child regions`)
       }
       const states = current.states as Readonly<Record<string, unknown>>
       for (const childPath of node.children) {
         const child = getNode(machine, childPath)
         const childSnapshot = states[child.key]
         if (!hasOwn(states, child.key) || !isSnapshot(childSnapshot)) {
-          throw new Error(`StateMachine expected parallel snapshot "${node.path}" to include region "${child.key}"`)
+          throw new Error(`Machine expected parallel snapshot "${node.path}" to include region "${child.key}"`)
         }
         const snapshotChild = getNode(machine, String(childSnapshot.path))
         if (snapshotChild.path !== child.path) {
-          throw new Error(`StateMachine expected snapshot "${snapshotChild.path}" to be region "${child.path}"`)
+          throw new Error(`Machine expected snapshot "${snapshotChild.path}" to be region "${child.path}"`)
         }
         visit(childSnapshot)
       }
@@ -359,13 +359,13 @@ export const validateInitialConfiguration = (machine: Machine.Any, configuration
     if (node.type === "compound") {
       const child = node.children.find((child) => configuration.active.has(child))
       if (child !== node.initial) {
-        throw new Error(`StateMachine initial state "${node.path}" must enter initial child "${node.initial}"`)
+        throw new Error(`Machine initial state "${node.path}" must enter initial child "${node.initial}"`)
       }
     }
     if (node.type === "parallel") {
       for (const child of node.children) {
         if (!configuration.active.has(child)) {
-          throw new Error(`StateMachine initial state "${node.path}" must enter child region "${child}"`)
+          throw new Error(`Machine initial state "${node.path}" must enter child region "${child}"`)
         }
       }
     }
@@ -395,7 +395,7 @@ export const configurationFromTargetPath = (
     } else if (current.values.has(currentPath)) {
       values.set(currentPath, current.values.get(currentPath))
     } else {
-      throw new Error(`StateMachine target "${node.path}" requires a value for ancestor state "${currentPath}"`)
+      throw new Error(`Machine target "${node.path}" requires a value for ancestor state "${currentPath}"`)
     }
   }
 
@@ -422,7 +422,7 @@ export const configurationFromTargetPath = (
   }
 
   if (node.type === "compound" || node.type === "parallel") {
-    throw new Error(`StateMachine target "${node.path}" must include an active child state`)
+    throw new Error(`Machine target "${node.path}" must include an active child state`)
   }
 
   return { active, values, outputs }
@@ -445,7 +445,7 @@ export const normalizeTargetConfiguration = <const States extends Machine.StateS
   if (isSnapshot(target)) {
     return configurationFromSnapshot(machine, target)
   }
-  throw new Error("StateMachine expected transition target to be a snapshot or target builder result")
+  throw new Error("Machine expected transition target to be a snapshot or target builder result")
 }
 
 export const getStateConfigByPath = (

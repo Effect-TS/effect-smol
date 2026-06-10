@@ -1,5 +1,5 @@
 /**
- * Internal state machine process integration.
+ * Internal machine process integration.
  *
  * @since 4.0.0
  */
@@ -7,19 +7,15 @@
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
 import * as HashMap from "../../../HashMap.ts"
-import type {
-  InfiniteTransitionError,
-  StartupError,
-  UnhandledEventError
-} from "../../../internal/stateMachineErrors.ts"
+import type { InfiniteTransitionError, StartupError, UnhandledEventError } from "../../../internal/machineErrors.ts"
 import * as Option from "../../../Option.ts"
 import * as Ref from "../../../Ref.ts"
 import type * as Schema from "../../../Schema.ts"
 import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
-import type { Machine, Runtime } from "../StateMachine.ts"
-import * as Model from "./stateMachineModel.ts"
-import * as internalRuntime from "./stateMachineRuntime.ts"
+import type { Machine, Runtime } from "../Machine.ts"
+import * as Model from "./machineModel.ts"
+import * as internalRuntime from "./machineRuntime.ts"
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
 
@@ -51,7 +47,7 @@ export const toProcessLogic: <
   Machine.EventOf<Events>,
   E | UnhandledEventError | InfiniteTransitionError,
   ExcludeCompatibleRuntime<
-    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >,
@@ -75,7 +71,7 @@ export const toProcessLogic: <
 ) =>
   ({
     initial: (scope) =>
-      internalRuntime.provideStateMachineRuntime(
+      internalRuntime.provideMachineRuntime(
         Effect.gen(function*() {
           const planned = yield* internalRuntime.planInitial(machine, ...args)
           yield* internalRuntime.runActions(
@@ -87,7 +83,7 @@ export const toProcessLogic: <
         scope
       ),
     run: (context) =>
-      internalRuntime.provideStateMachineRuntime(
+      internalRuntime.provideMachineRuntime(
         Effect.gen(function*() {
           const { receive, state, setState } = context
           let done = false
@@ -107,7 +103,7 @@ export const toProcessLogic: <
           )
           const makeInvokeSessionKey = (path: string, id: string): string => `${path.length}:${path}${id}`
           const makeInvokeChildId = (path: string, id: string): string =>
-            `StateMachine.invoke:${makeInvokeSessionKey(path, id)}`
+            `Machine.invoke:${makeInvokeSessionKey(path, id)}`
           const isCurrentInvoke = (key: string, token: symbol): Effect.Effect<boolean> =>
             Ref.get(invokeSessions).pipe(
               Effect.map((sessions) => {
@@ -154,7 +150,7 @@ export const toProcessLogic: <
             )
           const startInvokeWatchers = (
             config: internalRuntime.AnyInvokeConfig,
-            child: internalRuntime.StateMachineRef<any, any, any, any>,
+            child: internalRuntime.MachineRef<any, any, any, any>,
             key: string,
             token: symbol,
             scope: Scope.Closeable
@@ -317,7 +313,7 @@ export const toProcessLogic: <
     Machine.EventOf<Events>,
     E | UnhandledEventError | InfiniteTransitionError,
     ExcludeCompatibleRuntime<
-      Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+      Exclude<InitialR | R, internalRuntime.MachineRuntime>,
       Machine.EventOf<Events>,
       Machine.EmitOf<Emits>
     >,
@@ -341,7 +337,7 @@ export const start: <
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   ...args: [...Machine.InputArgs<Input>]
 ) => Effect.Effect<
-  internalRuntime.StateMachineRef<
+  internalRuntime.MachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
     E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
@@ -349,7 +345,7 @@ export const start: <
   >,
   InitialE | StartupError,
   ExcludeCompatibleRuntime<
-    Exclude<InitialR | R, internalRuntime.StateMachineRuntime>,
+    Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >
