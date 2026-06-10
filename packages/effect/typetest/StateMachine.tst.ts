@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Effect, Schema } from "effect"
 import { StateMachine } from "effect/unstable/actors"
 import { describe, expect, it } from "tstyche"
 
@@ -79,7 +79,25 @@ describe("StateMachine", () => {
     const machine = StateMachine.make({
       states: UpStates.states,
       events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    expect(machine.states).type.toBe<typeof UpStates.states>()
+  })
+
+  it("make rejects raw decoded initial states", () => {
+    expect(StateMachine.make).type.not.toBeCallableWith({
+      states: UpStates.states,
+      events: [SignIn],
       initial: () => new Down({})
+    })
+  })
+
+  it("make accepts effectful initial snapshots", () => {
+    const machine = StateMachine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => Effect.succeed(UpStates.initial.down(new Down({})))
     })
 
     expect(machine.states).type.toBe<typeof UpStates.states>()

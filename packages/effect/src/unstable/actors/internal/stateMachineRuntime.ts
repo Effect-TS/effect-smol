@@ -788,7 +788,7 @@ export const planInitial: <
   const result = machine.initial(...args)
   const state = Effect.isEffect(result)
     ? yield* (result.pipe(Effect.provideService(DeferredActions, deferredActions)) as Effect.Effect<
-      Machine.StateOf<States> | Machine.Snapshot<States>
+      Machine.Snapshot<States>
     >)
     : result
   const configuration = normalizeConfiguration<States>(machine, state)

@@ -1038,9 +1038,8 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InitialResult<States extends StateSchemas, E, R> =
-    | StateOf<States>
     | Snapshot<States>
-    | Effect.Effect<StateOf<States> | Snapshot<States>, E, R>
+    | Effect.Effect<Snapshot<States>, E, R>
 
   /**
    * Return value accepted from transition handlers.

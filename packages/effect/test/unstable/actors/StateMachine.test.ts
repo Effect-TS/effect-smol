@@ -198,13 +198,18 @@ describe("StateMachine", () => {
     readonly reply: Deferred.Deferred<void>
   }> {}
 
+  const FlatInitial = StateMachine.defineStates({ Idle, Loading, Success, Failed }).initial
+  const LowercaseInitial = StateMachine.defineStates({ idle: Idle, loading: Loading, success: Success }).initial
+  const DuplicateInitial = StateMachine.defineStates({ a: Duplicate, b: Duplicate }).initial
+
   it.effect("make constructs the initial state from input", () =>
     Effect.gen(function*() {
+      const states = StateMachine.defineStates({ Idle })
       const machine = StateMachine.make({
-        states: { Idle },
+        states: states.states,
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => states.initial.Idle(new Idle({ userId: input.userId }))
       })
 
       const planned = yield* StateMachine.planInitial(machine, { userId: "user-1" })
@@ -214,12 +219,13 @@ describe("StateMachine", () => {
     }))
 
   it("make stores the machine id", () => {
+    const states = StateMachine.defineStates({ Idle, Loading })
     const machine = StateMachine.make({
       id: "UserMachine",
-      states: { Idle, Loading },
+      states: states.states,
       events: [Submit],
       input: Input,
-      initial: (input) => new Idle({ userId: input.userId })
+      initial: (input) => states.initial.Idle(new Idle({ userId: input.userId }))
     }).handle("Idle", {
       on: {
         Submit: Effect.fn(function*() {
@@ -238,7 +244,7 @@ describe("StateMachine", () => {
       const machine = StateMachine.make({
         states: defined.states,
         events: [Submit],
-        initial: () => new Idle({ userId: "user-1" })
+        initial: () => defined.initial.idle(new Idle({ userId: "user-1" }))
       })
 
       const planned = yield* StateMachine.planInitial(machine)
@@ -246,6 +252,23 @@ describe("StateMachine", () => {
       assert.strictEqual(defined.states, states)
       assert.strictEqual(planned.state.path, "idle")
       assert.deepStrictEqual(planned.state.value, new Idle({ userId: "user-1" }))
+    }))
+
+  it.effect("initial builder constructs effectful atomic initial snapshots", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({ Idle })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          return states.initial.Idle(new Idle({ userId }))
+        })
+      })
+
+      const planned = yield* StateMachine.planInitial(machine, { userId: "user-1" })
+
+      assertStateSnapshot(planned.state, "Idle", new Idle({ userId: "user-1" }))
     }))
 
   it.effect("initial builder constructs compound initial snapshots", () =>
@@ -361,7 +384,7 @@ describe("StateMachine", () => {
         },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => LowercaseInitial.idle(new Idle({ userId: input.userId }))
       }).handle("idle", {
         on: {
           Submit: ({ event, state, target }) =>
@@ -388,7 +411,7 @@ describe("StateMachine", () => {
           b: Duplicate
         },
         events: [Submit, Reset],
-        initial: () => new Duplicate({ value: "a" })
+        initial: () => DuplicateInitial.a(new Duplicate({ value: "a" }))
       })
         .handle("a", {
           on: {
@@ -427,7 +450,7 @@ describe("StateMachine", () => {
           b: Duplicate
         },
         events: [Submit],
-        initial: () => new Duplicate({ value: "a" })
+        initial: () => DuplicateInitial.a(new Duplicate({ value: "a" }))
       }).handle("a", {
         on: {
           Submit: ({ event, target }) => target("b", new Duplicate({ value: event.value }))
@@ -457,7 +480,7 @@ describe("StateMachine", () => {
           }
         },
         events: [Submit],
-        initial: () => new Idle({ userId: "user-1" })
+        initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
       }).handle("idle", {
         on: {
           Submit: ({ event, target }) => target("success", new Success({ requestId: event.value }))
@@ -775,7 +798,7 @@ describe("StateMachine", () => {
           }
         },
         events: [Submit],
-        initial: () => new Idle({ userId: "user-1" })
+        initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
       })
         .handle("idle", {
           on: {
@@ -2028,7 +2051,7 @@ describe("StateMachine", () => {
       const machine = StateMachine.make({
         states: { Idle },
         events: [Submit],
-        initial: () => new Idle({ userId: "user-1" })
+        initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
       })
 
       const actor = yield* StateMachine.start(machine)
@@ -2050,7 +2073,7 @@ describe("StateMachine", () => {
               yield* deferredLog.push("initial")
             })
           )
-          return new Idle({ userId })
+          return FlatInitial.Idle(new Idle({ userId }))
         })
       })
 
@@ -2075,7 +2098,7 @@ describe("StateMachine", () => {
               yield* deferredLog.push("initial")
             })
           )
-          return new Idle({ userId })
+          return FlatInitial.Idle(new Idle({ userId }))
         })
       })
 
@@ -2094,7 +2117,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
@@ -2121,7 +2144,7 @@ describe("StateMachine", () => {
         initial: Effect.fn(function*({ userId }) {
           const deferredLog = yield* DeferredLog
           yield* StateMachine.action(deferredLog.push("initial"))
-          return new Idle({ userId })
+          return FlatInitial.Idle(new Idle({ userId }))
         })
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
@@ -2145,7 +2168,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           entry: Effect.fn(function*() {
@@ -2180,7 +2203,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           entry: Effect.fn(function*({ runtime }) {
@@ -2227,7 +2250,7 @@ describe("StateMachine", () => {
               yield* deferredLog.push(requirement.initialMessage)
             })
           )
-          return new Idle({ userId })
+          return FlatInitial.Idle(new Idle({ userId }))
         })
       })
 
@@ -2249,7 +2272,7 @@ describe("StateMachine", () => {
         initial: Effect.fn(function*({ userId }) {
           const state = new Idle({ userId })
           yield* StateMachine.action(Effect.fail(new InitialError({ state: state._tag })))
-          return state
+          return FlatInitial.Idle(state)
         })
       })
 
@@ -2266,7 +2289,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: ({ state }) => StateMachine.action(Effect.fail(new EntryError({ state: state._tag })))
       })
@@ -2290,7 +2313,7 @@ describe("StateMachine", () => {
       states: { Idle, Loading },
       events: [Submit],
       input: Input,
-      initial: (input) => Idle.make({ userId: input.userId })
+      initial: (input) => FlatInitial.Idle(Idle.make({ userId: input.userId }))
     }).handle("Idle", {
       on: {
         Submit: Effect.fn(function*() {
@@ -2310,7 +2333,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => new Loading({ requestId: "request-1" })
@@ -2336,7 +2359,7 @@ describe("StateMachine", () => {
       states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
-      initial: (input) => new Idle({ userId: input.userId })
+      initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
     })
       .handle("Idle", {
         on: {
@@ -2358,7 +2381,7 @@ describe("StateMachine", () => {
       states: { Idle, Success },
       events: [Submit],
       input: Input,
-      initial: (input) => new Idle({ userId: input.userId })
+      initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
     })
       .handle("Idle", {
         on: {
@@ -2379,7 +2402,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2415,7 +2438,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2445,7 +2468,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2471,7 +2494,7 @@ describe("StateMachine", () => {
       const machine = StateMachine.make({
         states: { Success },
         events: [Submit],
-        initial: () => new Success({ requestId: "request-1" })
+        initial: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
       }).handle("Success", {
         type: "final",
         output: ({ state }) => state.requestId
@@ -2495,7 +2518,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2523,7 +2546,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2553,7 +2576,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => new Loading({ requestId: "request-1" })
@@ -2576,7 +2599,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Success", {
         type: "final"
       })
@@ -2595,7 +2618,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2626,7 +2649,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: Effect.fn(function*() {
@@ -2653,7 +2676,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => {}
@@ -2675,7 +2698,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: Effect.fn(function*() {
@@ -2706,7 +2729,7 @@ describe("StateMachine", () => {
       states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
-      initial: (input) => new Idle({ userId: input.userId })
+      initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
     })
 
     const machine1 = machine.handle("Idle", {
@@ -2737,7 +2760,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2775,7 +2798,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => new Loading({ requestId: "request-1" })
@@ -2817,7 +2840,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2848,7 +2871,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => new Loading({ requestId: "request-1" })
@@ -2886,7 +2909,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: () =>
           StateMachine.action(
@@ -2908,7 +2931,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -2949,7 +2972,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
           Submit: () => new Loading({ requestId: "request-1" })
@@ -2995,7 +3018,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3025,7 +3048,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3057,7 +3080,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: () =>
           StateMachine.action(
@@ -3079,7 +3102,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3121,7 +3144,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: () =>
           StateMachine.action(
@@ -3163,7 +3186,7 @@ describe("StateMachine", () => {
         events: [Submit],
         emits: [ParentRequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: ({ runtime }) =>
           StateMachine.action(
@@ -3177,7 +3200,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit, ParentRequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3220,7 +3243,7 @@ describe("StateMachine", () => {
         events: [ParentRequestProgress],
         emits: [ParentRequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           entry: ({ runtime }) =>
@@ -3255,7 +3278,7 @@ describe("StateMachine", () => {
       const machine = StateMachine.make({
         states: { Idle, Success },
         events: [Resolve],
-        initial: () => new Idle({ userId: "user-1" })
+        initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
       })
         .handle("Idle", {
           entry: ({ runtime }) =>
@@ -3299,7 +3322,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Resolve],
         emits: [ParentRequestProgress],
-        initial: () => new Idle({ userId: "child-user" })
+        initial: () => FlatInitial.Idle(new Idle({ userId: "child-user" }))
       })
         .handle("Idle", {
           entry: () => StateMachine.action(notifyWorkerDone),
@@ -3316,7 +3339,7 @@ describe("StateMachine", () => {
         states: { Idle, Success },
         events: [Submit, ParentRequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3362,7 +3385,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: () =>
           StateMachine.action(
@@ -3402,7 +3425,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3460,7 +3483,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3517,7 +3540,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3566,7 +3589,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3602,7 +3625,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3648,7 +3671,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3690,7 +3713,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Failed },
         events: [Submit, RequestFailed],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3733,7 +3756,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, RequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3775,7 +3798,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, RequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3831,7 +3854,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3867,7 +3890,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestProgress],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3925,7 +3948,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -3993,7 +4016,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4069,7 +4092,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4147,7 +4170,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset, Resolve, RequestSucceeded],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4423,7 +4446,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: () =>
           StateMachine.action(
@@ -4463,7 +4486,7 @@ describe("StateMachine", () => {
         initial: Effect.fn(function*({ userId }) {
           const state = new Idle({ userId })
           yield* StateMachine.action(Effect.fail(new InitialError({ state: state._tag })))
-          return state
+          return FlatInitial.Idle(state)
         })
       })
 
@@ -4481,7 +4504,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4518,7 +4541,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4560,7 +4583,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4603,7 +4626,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           exit: Effect.fn(function*({ event }) {
@@ -4650,7 +4673,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           exit: Effect.fn(function*() {
@@ -4690,7 +4713,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4728,7 +4751,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4771,7 +4794,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4804,7 +4827,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4838,7 +4861,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Reset, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4878,7 +4901,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit, Reset, Resolve],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           exit: Effect.fn(function*({ runtime }) {
@@ -4934,7 +4957,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading, Success },
         events: [Submit, Reset],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -4974,7 +4997,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -5006,7 +5029,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           always: () => new Loading({ requestId: "request-1" }),
@@ -5035,7 +5058,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: Effect.fn(function*() {
           const deferredLog = yield* DeferredLog
@@ -5071,7 +5094,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
@@ -5123,7 +5146,7 @@ describe("StateMachine", () => {
         states: { Idle },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         entry: Effect.fn(function*({ event }) {
           const deferredLog = yield* DeferredLog
@@ -5167,7 +5190,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           exit: () =>
@@ -5219,7 +5242,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
           on: {
@@ -5245,7 +5268,7 @@ describe("StateMachine", () => {
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
-        initial: (input) => new Idle({ userId: input.userId })
+        initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         exit: ({ state }) => StateMachine.action(Effect.fail(new ExitError({ state: state._tag }))),
         on: {
