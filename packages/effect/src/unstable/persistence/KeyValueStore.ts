@@ -1,24 +1,12 @@
 /**
- * Effectful key/value storage for persistence backends.
+ * Provides effectful key/value storage for persistence backends.
  *
- * This module defines the `KeyValueStore` service used by the persistence
- * package when a simple string or binary store is enough. It is useful for
- * lightweight durable state, browser storage, local file-backed data, SQL
- * tables, test stores, and as the storage primitive underneath higher-level
- * persistence APIs.
- *
- * Values are stored as strings or `Uint8Array`s, and `toSchemaStore` adds a
- * schema-aware JSON layer for typed values. Schema changes can make existing
- * JSON fail to decode, and `prefix` should be used to separate namespaces when
- * several logical stores share the same backend. This service does not provide
- * native TTL support; higher-level persistence layers encode expiration
- * metadata in stored values when they need TTLs.
- *
- * Backend behavior is intentionally small but not identical: Web Storage is
- * string-only, `makeStringOnly` stores binary values as base64, filesystem
- * keys become encoded file names, SQL stores value type metadata in a table,
- * and the memory layer is process-local. Choose keys, prefixes, table names,
- * and value formats with those backend constraints in mind.
+ * `KeyValueStore` is a service for storing string or binary values by key. It
+ * is useful for lightweight durable state, browser storage, local files, SQL
+ * tables, tests, and as a storage building block for higher-level persistence
+ * APIs. This module includes store operations, prefixed views, schema-aware JSON
+ * storage, error values, and layers for memory, filesystem, Web Storage, and
+ * SQL-backed stores.
  *
  * @since 4.0.0
  */
@@ -44,7 +32,7 @@ const TypeId = "~effect/persistence/KeyValueStore" as const
 /**
  * Effectful key/value store service for string and binary values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValueStore {
@@ -101,7 +89,7 @@ export interface KeyValueStore {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }
@@ -109,10 +97,12 @@ export interface KeyValueStore {
 /**
  * Implementation callbacks used by `make` to construct a `KeyValueStore`.
  *
+ * **Details**
+ *
  * Primitive operations are required, while helpers such as `has`, `isEmpty`,
  * and `modify` can be supplied to override the defaults.
  *
- * @category Models
+ * @category options
  * @since 4.0.0
  */
 export type MakeOptions = Partial<KeyValueStore> & {
@@ -151,7 +141,7 @@ export type MakeOptions = Partial<KeyValueStore> & {
  * Implementation callbacks for adapting a string-only backing store into a
  * `KeyValueStore`.
  *
- * @category Models
+ * @category options
  * @since 4.0.0
  */
 export type MakeStringOptions = Partial<Omit<KeyValueStore, "set">> & {
@@ -187,7 +177,7 @@ const ErrorTypeId = "~effect/persistence/KeyValueStore/KeyValueStoreError" as co
  * Error raised by key/value store operations, including the failed method,
  * optional key, message, and cause.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
@@ -205,9 +195,14 @@ export class KeyValueStoreError extends Data.TaggedError("KeyValueStoreError")<{
 }
 
 /**
- * Context service tag for the `KeyValueStore` service.
+ * Service tag for string and binary key/value storage.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide the persistence store used for lightweight durable
+ * state.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const KeyValueStore: Context.Service<
@@ -217,6 +212,8 @@ export const KeyValueStore: Context.Service<
 
 /**
  * Constructs a `KeyValueStore` from primitive store operations.
+ *
+ * **Details**
  *
  * Default implementations are derived for `has`, `isEmpty`, `modify`, and
  * `modifyUint8Array` unless they are provided in the options.
@@ -259,6 +256,8 @@ export const make = (options: MakeOptions): KeyValueStore =>
 
 /**
  * Adapts a string-only backing store into a `KeyValueStore`.
+ *
+ * **Details**
  *
  * `Uint8Array` values are stored as base64 strings. `getUint8Array` decodes
  * base64 values and falls back to UTF-8 encoding for non-base64 strings.
@@ -339,6 +338,8 @@ export const layerMemory: Layer.Layer<KeyValueStore> = Layer.sync(KeyValueStore)
 
 /**
  * Provides a `KeyValueStore` backed by files in the specified directory.
+ *
+ * **Details**
  *
  * The directory is created if needed, and each key is encoded as a file name.
  *
@@ -459,6 +460,8 @@ export interface LayerSqlOptions {
 
 /**
  * Provides a SQL-backed `KeyValueStore`.
+ *
+ * **Details**
  *
  * The layer creates the configured table if it does not exist and stores both
  * string and binary values through the current `SqlClient`.
@@ -728,7 +731,7 @@ export interface SchemaStore<S extends Schema.Top> {
   readonly has: (key: string) => Effect.Effect<boolean, KeyValueStoreError>
 
   /**
-   * Checks if the KeyValueStore contains any entries.
+   * Checks whether the KeyValueStore contains any entries.
    */
   readonly isEmpty: Effect.Effect<boolean, KeyValueStoreError>
 }
@@ -788,7 +791,10 @@ export const toSchemaStore = <S extends Schema.Top>(self: KeyValueStore, schema:
  * Provides a `KeyValueStore` backed by a Web `Storage` instance such as
  * `localStorage` or `sessionStorage`.
  *
- * @see https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
+ * **Details**
+ *
+ * This layer uses the Web Storage API:
+ * https://developer.mozilla.org/en-US/docs/Web/API/Web_Storage_API
  *
  * @category layers
  * @since 4.0.0

@@ -3,27 +3,11 @@
  *
  * An `IndexedDbQueryBuilder` is created from an open database and a version's
  * table descriptors, then exposes `from(tableName)` as the entry point for
- * table operations. The resulting query objects can select, count, delete,
- * insert, upsert, clear tables, stream paged reads, react to invalidations, and
- * run multiple effects in a shared `IDBTransaction` with `withTransaction`.
- *
- * Use this module for local browser persistence such as caches, offline-first
- * state, background queues, drafts, and other client-side data where writes
- * should be encoded through `Schema` and reads should be decoded before they
- * reach application code.
- *
- * Index and range helpers are thinly typed wrappers around IndexedDB object
- * stores, indexes, `IDBKeyRange`, and cursors. Index names must be declared on
- * the table and created during migrations; without an index, queries use the
- * object store key path. Range values are encoded IndexedDB key values, and
- * compound key paths must follow the declared key order. Filters, offsets,
- * reverse reads, out-of-line keys, and limited deletes require cursor-based
- * scans, while simpler selects can use `getAll`.
- *
- * Table schema details affect runtime behavior: auto-increment writes may omit
- * the generated numeric key, stores without a key path require an out-of-line
- * `key` for writes and add that `key` back to selected rows, and schema
- * mismatches surface as `EncodeError` or `DecodeError` query failures.
+ * table operations. Query objects can select, count, delete, insert, upsert,
+ * clear tables, stream paged reads, react to invalidations, and run multiple
+ * effects in a shared `IDBTransaction` with `withTransaction`. Reads decode
+ * stored rows with the table schema, and writes encode input values before
+ * sending them to IndexedDB.
  *
  * @since 4.0.0
  */
@@ -83,6 +67,14 @@ export type ErrorReason =
 
 /**
  * Tagged error for IndexedDB query operations, carrying a query error reason and the original cause.
+ *
+ * **Details**
+ *
+ * `reason` is the query failure category, `cause` preserves the underlying
+ * schema, IndexedDB request, transaction, or user callback failure, and
+ * `message` is set to the reason.
+ *
+ * @see {@link ErrorReason} for the supported failure categories
  *
  * @category errors
  * @since 4.0.0
@@ -170,7 +162,6 @@ export type KeyPathNumber<TableSchema extends IndexedDbTable.AnySchemaStruct> =
 /**
  * Namespace containing the typed IndexedDB query model interfaces and helper types.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace IndexedDbQuery {
@@ -466,7 +457,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -553,7 +546,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Stream the selected data.
      *
-     * Defaults to a chunk size of 100.
+     * **Details**
+     *
+     * The default chunk size is 100.
      */
     readonly stream: (options?: {
       readonly chunkSize?: number | undefined
@@ -566,7 +561,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -605,7 +602,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactive: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -618,7 +617,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Use the Reactivity service to react to changes to the selected data.
      *
-     * By default it uses the table name as a key.
+     * **Details**
+     *
+     * By default, the table name is used as the reactivity key.
      */
     readonly reactiveQueue: (
       keys: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>>
@@ -674,7 +675,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -703,7 +706,9 @@ export declare namespace IndexedDbQuery {
     /**
      * Invalidate any queries using Reactivity service with the provided keys.
      *
-     * Defaults to using the table name as a key if no keys are provided.
+     * **Details**
+     *
+     * If no keys are provided, the table name is used as the reactivity key.
      */
     readonly invalidate: (
       keys?: ReadonlyArray<unknown> | Record.ReadonlyRecord<string, ReadonlyArray<unknown>> | undefined
@@ -1137,13 +1142,18 @@ const applyModifyAll = Effect.fnUntraced(
       Array<globalThis.IDBValidKey>,
       IndexedDbQueryError
     >((resume) => {
+      if (encodedValues.length === 0) {
+        return resume(Effect.succeed([]))
+      }
+
       const database = query.from.database
       const transaction = getOrCreateTransaction(database.current, [query.from.table.tableName], "readwrite", {
         durability: query.from.table.durability
       })
       const objectStore = transaction.objectStore(query.from.table.tableName)
 
-      const results: Array<globalThis.IDBValidKey> = []
+      const results: Array<globalThis.IDBValidKey> = new Array(encodedValues.length)
+      let remaining = encodedValues.length
 
       if (query.operation === "add") {
         for (let i = 0; i < encodedValues.length; i++) {
@@ -1164,7 +1174,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else if (query.operation === "put") {
@@ -1186,7 +1200,11 @@ const applyModifyAll = Effect.fnUntraced(
           }
 
           request.onsuccess = () => {
-            results.push(request.result)
+            results[i] = request.result
+            remaining -= 1
+            if (remaining === 0) {
+              resume(Effect.succeed(results))
+            }
           }
         }
       } else {
@@ -1202,10 +1220,6 @@ const applyModifyAll = Effect.fnUntraced(
             })
           )
         )
-      }
-
-      objectStore.transaction.oncomplete = () => {
-        resume(Effect.succeed(results))
       }
     })
   },

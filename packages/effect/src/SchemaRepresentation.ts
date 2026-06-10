@@ -1,88 +1,14 @@
 /**
- * Serializable intermediate representation (IR) of Effect Schema types.
+ * Plain data structures for describing schemas in a serializable form. A
+ * `Representation` is not the original `Schema` object; it is a JSON-friendly
+ * description of the schema's types, fields, unions, checks, annotations, and
+ * references.
  *
- * `SchemaRepresentation` sits between the internal `SchemaAST` and external
- * formats (JSON Schema, generated TypeScript code, serialized JSON). A
- * {@link Representation} is a discriminated union describing the *shape* of a
- * schema — its types, checks, annotations, and references — in a form that
- * can be round-tripped through JSON and used for code generation.
- *
- * ## Mental model
- *
- * - **Representation**: A tagged union (`_tag`) of all supported schema shapes:
- *   primitives, literals, objects, arrays, unions, declarations, references,
- *   and suspensions.
- * - **Document**: A single {@link Representation} paired with a map of named
- *   {@link References} (analogous to JSON Schema `$defs`).
- * - **MultiDocument**: Like `Document` but holds one or more representations
- *   sharing the same references.
- * - **Check / Filter / FilterGroup**: Validation constraints (min length,
- *   pattern, integer, etc.) attached to types that support them.
- * - **Meta types**: Typed metadata for checks on each category — e.g.
- *   {@link StringMeta}, {@link NumberMeta}, {@link ArraysMeta}.
- * - **Reviver**: A callback used by {@link toSchema} and {@link toCodeDocument}
- *   to handle `Declaration` nodes (custom types like `Option`, `Date`, etc.).
- * - **Code / CodeDocument**: Output of {@link toCodeDocument} — TypeScript
- *   source strings for runtime schemas and their type-level counterparts.
- *
- * ## Common tasks
- *
- * - Convert a Schema AST to a Document → {@link fromAST}
- * - Convert multiple ASTs to a MultiDocument → {@link fromASTs}
- * - Reconstruct a runtime Schema from a Document → {@link toSchema}
- * - Convert a Document to JSON Schema → {@link toJsonSchemaDocument}
- * - Convert a MultiDocument to JSON Schema → {@link toJsonSchemaMultiDocument}
- * - Parse a JSON Schema document into a Document → {@link fromJsonSchemaDocument}
- * - Parse a JSON Schema multi-document → {@link fromJsonSchemaMultiDocument}
- * - Generate TypeScript code from a MultiDocument → {@link toCodeDocument}
- * - Serialize/deserialize a Document as JSON → {@link DocumentFromJson}
- * - Serialize/deserialize a MultiDocument as JSON → {@link MultiDocumentFromJson}
- * - Wrap a Document as a MultiDocument → {@link toMultiDocument}
- *
- * ## Gotchas
- *
- * - `Declaration` nodes require a {@link Reviver} to reconstruct complex types
- *   (e.g. `Option`, `Date`). Without one, `toSchema` falls back to the
- *   declaration's `encodedSchema`. Use {@link toSchemaDefaultReviver} for
- *   built-in Effect types.
- * - `Reference` nodes are resolved against the `references` map in the
- *   `Document`. An unresolvable `$ref` throws at runtime.
- * - `Suspend` wraps a single `thunk` representation; it is used for recursive
- *   schemas. Circular references are handled by lazy resolution in
- *   {@link toSchema}.
- * - The `$`-prefixed exports (e.g. {@link $Representation}, {@link $Document})
- *   are Schema codecs for the representation types themselves — use them to
- *   validate or encode/decode representation data, not application data.
- *
- * ## Quickstart
- *
- * **Example** (Round-trip through JSON)
- *
- * ```ts
- * import { Schema, SchemaRepresentation } from "effect"
- *
- * const Person = Schema.Struct({
- *   name: Schema.String,
- *   age: Schema.Int
- * })
- *
- * // Schema AST → Document
- * const doc = SchemaRepresentation.fromAST(Person.ast)
- *
- * // Document → JSON Schema
- * const jsonSchema = SchemaRepresentation.toJsonSchemaDocument(doc)
- *
- * // Document → runtime Schema
- * const reconstructed = SchemaRepresentation.toSchema(doc)
- * ```
- *
- * ## See also
- *
- * - {@link Representation} — the core tagged union
- * - {@link Document} — single-schema container
- * - {@link fromAST} — entry point from Schema AST
- * - {@link toSchema} — reconstruct a runtime Schema
- * - {@link toCodeDocument} — generate TypeScript code
+ * This module defines the representation node types, document types, and
+ * codecs used to validate those documents. It can build representation
+ * documents from schema ASTs, turn representation documents back into schemas,
+ * convert them to and from JSON Schema documents, and generate TypeScript code
+ * artifacts for schema definitions.
  *
  * @since 4.0.0
  */
@@ -96,27 +22,31 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import type * as AST from "./SchemaAST.ts"
-import * as Getter from "./SchemaGetter.ts"
+import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaGetter from "./SchemaGetter.ts"
 
 // -----------------------------------------------------------------------------
 // specification
 // -----------------------------------------------------------------------------
 
 /**
- * A custom type declaration (e.g. `Date`, `Option`, `ReadonlySet`).
+ * A custom type declaration, such as `Date`, `Option`, or `ReadonlySet`.
  *
- * - Use when inspecting or transforming non-primitive schema types.
- * - `typeParameters` holds the inner type arguments (e.g. the `A` in `Option<A>`).
- * - `encodedSchema` is the fallback representation when no {@link Reviver}
- *   recognizes this declaration.
- * - `annotations.typeConstructor` identifies the declaration kind (e.g.
- *   `{ _tag: "effect/Option" }`).
+ * **When to use**
+ *
+ * Use when inspecting or transforming non-primitive schema types.
+ *
+ * **Details**
+ *
+ * `typeParameters` holds the inner type arguments, such as the `A` in
+ * `Option<A>`. `encodedSchema` is the fallback representation when no
+ * {@link Reviver} recognizes this declaration. `annotations.typeConstructor`
+ * identifies the declaration kind, such as `{ _tag: "effect/Option" }`.
  *
  * @see {@link Reviver}
  * @see {@link toSchemaDefaultReviver}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Declaration {
@@ -128,14 +58,16 @@ export interface Declaration {
 }
 
 /**
- * A lazily-resolved representation, used for recursive schemas.
+ * A lazily resolved representation used for recursive schemas.
  *
- * - `thunk` points to the actual representation (possibly via a {@link Reference}).
- * - `checks` is always empty on `Suspend` nodes.
+ * **Details**
+ *
+ * `thunk` points to the actual representation, possibly via a
+ * {@link Reference}. `checks` is always empty on `Suspend` nodes.
  *
  * @see {@link Reference}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Suspend {
@@ -148,14 +80,25 @@ export interface Suspend {
 /**
  * A named reference to a definition in the {@link References} map.
  *
- * - `$ref` is the key into `Document.references` or `MultiDocument.references`.
- * - Resolved lazily by {@link toSchema} and {@link toCodeDocument}.
- * - Throws at runtime if the key is not found in the references map.
+ * **When to use**
+ *
+ * Use when a representation should point to a named definition instead of
+ * embedding the definition inline.
+ *
+ * **Details**
+ *
+ * `$ref` is the key into `Document.references` or `MultiDocument.references`.
+ * References are resolved lazily by {@link toSchema} and
+ * {@link toCodeDocument}.
+ *
+ * **Gotchas**
+ *
+ * Resolution throws at runtime if the key is not found in the references map.
  *
  * @see {@link References}
  * @see {@link Document}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Reference {
@@ -166,7 +109,7 @@ export interface Reference {
 /**
  * The `null` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Null {
@@ -177,7 +120,7 @@ export interface Null {
 /**
  * The `undefined` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Undefined {
@@ -188,7 +131,7 @@ export interface Undefined {
 /**
  * The `void` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Void {
@@ -199,7 +142,7 @@ export interface Void {
 /**
  * The `never` type (no valid values).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Never {
@@ -210,7 +153,7 @@ export interface Never {
 /**
  * The `unknown` type (any value accepted).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Unknown {
@@ -221,7 +164,7 @@ export interface Unknown {
 /**
  * The `any` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -232,14 +175,17 @@ export interface Any {
 /**
  * The `string` type with optional validation checks.
  *
- * - `checks` holds string-specific constraints (min/max length, pattern, UUID, etc.).
- * - `contentMediaType` + `contentSchema` indicate the string contains
- *   encoded data (e.g. `"application/json"` with a nested schema).
+ * **Details**
+ *
+ * `checks` holds string-specific constraints, such as min/max length, pattern,
+ * and UUID checks. `contentMediaType` and `contentSchema` indicate that the
+ * string contains encoded data, such as `"application/json"` with a nested
+ * schema.
  *
  * @see {@link StringMeta}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface String {
@@ -253,11 +199,14 @@ export interface String {
 /**
  * The `number` type with optional validation checks.
  *
- * - `checks` holds number-specific constraints (int, finite, min, max, multipleOf, etc.).
+ * **Details**
+ *
+ * `checks` holds number-specific constraints, such as int, finite, min, max,
+ * multipleOf, and between checks.
  *
  * @see {@link NumberMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Number {
@@ -269,7 +218,7 @@ export interface Number {
 /**
  * The `boolean` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Boolean {
@@ -282,7 +231,7 @@ export interface Boolean {
  *
  * @see {@link BigIntMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface BigInt {
@@ -294,7 +243,7 @@ export interface BigInt {
 /**
  * The `symbol` type.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Symbol {
@@ -305,7 +254,7 @@ export interface Symbol {
 /**
  * A specific literal value (`string`, `number`, `boolean`, or `bigint`).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Literal {
@@ -317,7 +266,7 @@ export interface Literal {
 /**
  * A specific unique `symbol` value.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface UniqueSymbol {
@@ -329,7 +278,7 @@ export interface UniqueSymbol {
 /**
  * The `object` keyword type (matches any non-primitive).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface ObjectKeyword {
@@ -340,7 +289,7 @@ export interface ObjectKeyword {
 /**
  * A TypeScript-style enum. Each entry is a `[name, value]` pair.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Enum {
@@ -353,7 +302,7 @@ export interface Enum {
  * A template literal type composed of a sequence of parts (literals, strings,
  * numbers, etc.).
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface TemplateLiteral {
@@ -365,16 +314,17 @@ export interface TemplateLiteral {
 /**
  * An array or tuple type.
  *
- * - `elements` are the fixed positional elements (tuple prefix). Each may be
- *   optional.
- * - `rest` are the variadic tail types. A single-element `rest` with no
- *   `elements` produces a plain `Array<T>`.
- * - `checks` holds array-specific constraints (minLength, maxLength, unique, etc.).
+ * **Details**
+ *
+ * `elements` are the fixed positional elements, or tuple prefix, and each may
+ * be optional. `rest` contains the variadic tail types; a single-element
+ * `rest` with no `elements` produces a plain `Array<T>`. `checks` holds
+ * array-specific constraints, such as minLength, maxLength, and unique checks.
  *
  * @see {@link Element}
  * @see {@link ArraysMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Arrays {
@@ -388,12 +338,14 @@ export interface Arrays {
 /**
  * A positional element within an {@link Arrays} tuple.
  *
- * - `isOptional` indicates whether this element can be absent.
- * - `type` is the schema representation for this element's value.
+ * **Details**
+ *
+ * `isOptional` indicates whether this element can be absent. `type` is the
+ * schema representation for this element's value.
  *
  * @see {@link Arrays}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Element {
@@ -405,15 +357,17 @@ export interface Element {
 /**
  * An object/struct type with named properties and optional index signatures.
  *
- * - `propertySignatures` are the explicitly named fields.
- * - `indexSignatures` define catch-all key/value types (like `Record<string, T>`).
- * - `checks` holds object-specific constraints (minProperties, maxProperties, etc.).
+ * **Details**
+ *
+ * `propertySignatures` are the explicitly named fields. `indexSignatures`
+ * define catch-all key/value types, such as `Record<string, T>`. `checks`
+ * holds object-specific constraints, such as minProperties and maxProperties.
  *
  * @see {@link PropertySignature}
  * @see {@link IndexSignature}
  * @see {@link ObjectsMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Objects {
@@ -427,13 +381,15 @@ export interface Objects {
 /**
  * A named property within an {@link Objects} representation.
  *
- * - `name` is the property key (string, number, or symbol).
- * - `isOptional` indicates whether the key can be absent.
- * - `isMutable` indicates whether the property is mutable (vs. readonly).
+ * **Details**
+ *
+ * `name` is the property key, which can be a string, number, or symbol.
+ * `isOptional` indicates whether the key can be absent. `isMutable` indicates
+ * whether the property is mutable rather than readonly.
  *
  * @see {@link Objects}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface PropertySignature {
@@ -445,14 +401,17 @@ export interface PropertySignature {
 }
 
 /**
- * An index signature (e.g. `[key: string]: number`) within an {@link Objects}.
+ * An index signature, such as `[key: string]: number`, within an
+ * {@link Objects}.
  *
- * - `parameter` is the key type representation.
- * - `type` is the value type representation.
+ * **Details**
+ *
+ * `parameter` is the key type representation. `type` is the value type
+ * representation.
  *
  * @see {@link Objects}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface IndexSignature {
@@ -463,11 +422,12 @@ export interface IndexSignature {
 /**
  * A union of multiple representations.
  *
- * - `types` are the union members.
- * - `mode` controls JSON Schema output: `"anyOf"` (default) or `"oneOf"`
- *   (mutually exclusive).
+ * **Details**
  *
- * @category Model
+ * `types` are the union members. `mode` controls JSON Schema output as either
+ * `"anyOf"` (the default) or mutually exclusive `"oneOf"`.
+ *
+ * @category models
  * @since 4.0.0
  */
 export interface Union {
@@ -480,6 +440,8 @@ export interface Union {
 /**
  * The core tagged union of all supported schema shapes.
  *
+ * **Details**
+ *
  * Each variant has a `_tag` discriminator. Switch on `_tag` to handle each
  * shape. Most variants carry optional `annotations` and some carry `checks`
  * for validation constraints.
@@ -487,7 +449,7 @@ export interface Union {
  * @see {@link Document}
  * @see {@link fromAST}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Representation =
@@ -521,7 +483,7 @@ export type Representation =
  * @see {@link Filter}
  * @see {@link FilterGroup}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Check<M> = Filter<M> | FilterGroup<M>
@@ -532,7 +494,7 @@ export type Check<M> = Filter<M> | FilterGroup<M>
  *
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface Filter<M> {
@@ -547,7 +509,7 @@ export interface Filter<M> {
  *
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface FilterGroup<M> {
@@ -563,7 +525,7 @@ export interface FilterGroup<M> {
  * @see {@link String}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -576,6 +538,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
   | "isLengthBetween"
   | "isTrimmed"
   | "isUUID"
+  | "isGUID"
   | "isULID"
   | "isBase64"
   | "isBase64Url"
@@ -595,7 +558,7 @@ export type StringMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Number}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -615,7 +578,7 @@ export type NumberMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link BigInt}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -633,7 +596,7 @@ export type BigIntMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Arrays}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -650,7 +613,7 @@ export type ArraysMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Objects}
  * @see {@link Check}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type ObjectsMeta =
@@ -667,7 +630,7 @@ export type ObjectsMeta =
  * @see {@link Declaration}
  * @see {@link DeclarationMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -686,7 +649,7 @@ export type DateMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * @see {@link Declaration}
  * @see {@link DeclarationMeta}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
@@ -699,7 +662,7 @@ export type SizeMeta = Schema.Annotations.BuiltInMetaDefinitions[
  * Metadata union for {@link Declaration} checks — either {@link DateMeta}
  * or {@link SizeMeta}.
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type DeclarationMeta = DateMeta | SizeMeta
@@ -715,7 +678,7 @@ export type Meta = StringMeta | NumberMeta | BigIntMeta | ArraysMeta | ObjectsMe
  * @see {@link Reference}
  * @see {@link Document}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export interface References {
@@ -725,15 +688,16 @@ export interface References {
 /**
  * A single {@link Representation} together with its named {@link References}.
  *
- * - Use {@link fromAST} to create a `Document` from a Schema AST.
- * - Use {@link toSchema} to reconstruct a runtime Schema.
- * - Use {@link toJsonSchemaDocument} to convert to JSON Schema.
- * - Use {@link toMultiDocument} to wrap as a {@link MultiDocument}.
+ * **When to use**
+ *
+ * Use when representing a single Schema AST together with its named references
+ * before reconstructing a runtime Schema, converting to JSON Schema, or
+ * wrapping it as a {@link MultiDocument}.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type Document = {
@@ -744,14 +708,16 @@ export type Document = {
 /**
  * One or more {@link Representation}s sharing a common {@link References} map.
  *
- * - Use {@link fromASTs} to create from multiple Schema ASTs.
- * - Use {@link toCodeDocument} to generate TypeScript code.
- * - Use {@link toJsonSchemaMultiDocument} to convert to JSON Schema.
+ * **When to use**
+ *
+ * Use when you use {@link fromASTs} to create this from multiple Schema ASTs,
+ * {@link toCodeDocument} to generate TypeScript code, and
+ * {@link toJsonSchemaMultiDocument} to convert to JSON Schema.
  *
  * @see {@link Document}
  * @see {@link fromASTs}
  *
- * @category Model
+ * @category models
  * @since 4.0.0
  */
 export type MultiDocument = {
@@ -781,9 +747,17 @@ const toJsonAnnotationsBlacklist: Set<string> = new Set([
 export type PrimitiveTree = Schema.Tree<null | number | boolean | bigint | symbol | string>
 
 /**
- * Schema codec for {@link PrimitiveTree}.
+ * Schema for {@link PrimitiveTree}.
  *
- * @category Schema
+ * **When to use**
+ *
+ * Use to validate recursive annotation metadata trees whose leaves are `null`,
+ * `number`, `boolean`, `bigint`, `symbol`, or `string`.
+ *
+ * @see {@link PrimitiveTree} for the recursive tree type accepted by this codec
+ * @see {@link $Annotations} for the annotation codec that filters values through this codec
+ *
+ * @category schemas
  * @since 4.0.0
  */
 export const $PrimitiveTree: Schema.Codec<PrimitiveTree> = Schema.Tree(
@@ -800,16 +774,29 @@ export const $PrimitiveTree: Schema.Codec<PrimitiveTree> = Schema.Tree(
 const isPrimitiveTree = Schema.is($PrimitiveTree)
 
 /**
- * Schema codec for `Schema.Annotations.Annotations`. Filters out internal
- * annotation keys and non-primitive values during encoding.
+ * Schema for serializing public `Schema.Annotations.Annotations` values. It
+ * filters out internal annotation keys and non-primitive values during
+ * encoding.
  *
- * @category Schema
+ * **When to use**
+ *
+ * Use to serialize schema annotations in representation schemas while retaining
+ * only primitive-tree metadata.
+ *
+ * **Details**
+ *
+ * Decoding is passthrough. Encoding removes internal annotation keys and values
+ * that are not accepted by `$PrimitiveTree`.
+ *
+ * @see {@link $PrimitiveTree} for the codec used to filter annotation values
+ *
+ * @category schemas
  * @since 4.0.0
  */
 export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
   Schema.encodeTo(Schema.Record(Schema.String, $PrimitiveTree), {
-    decode: Getter.passthrough(),
-    encode: Getter.transformOptional(Option.flatMap((r) => {
+    decode: SchemaGetter.passthrough(),
+    encode: SchemaGetter.transformOptional(Option.flatMap((r) => {
       const out: Record<string, typeof $PrimitiveTree["Type"]> = {}
       for (const [k, v] of Object.entries(r)) {
         if (!toJsonAnnotationsBlacklist.has(k) && isPrimitiveTree(v)) {
@@ -822,9 +809,9 @@ export const $Annotations = Schema.Record(Schema.String, Schema.Unknown).pipe(
 ).annotate({ identifier: "Annotations" })
 
 /**
- * Schema codec for the {@link Null} representation node.
+ * Schema for the {@link Null} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Null = Schema.Struct({
@@ -833,9 +820,9 @@ export const $Null = Schema.Struct({
 }).annotate({ identifier: "Null" })
 
 /**
- * Schema codec for the {@link Undefined} representation node.
+ * Schema for the {@link Undefined} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Undefined = Schema.Struct({
@@ -844,9 +831,9 @@ export const $Undefined = Schema.Struct({
 }).annotate({ identifier: "Undefined" })
 
 /**
- * Schema codec for the {@link Void} representation node.
+ * Schema for the {@link Void} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Void = Schema.Struct({
@@ -855,9 +842,9 @@ export const $Void = Schema.Struct({
 }).annotate({ identifier: "Void" })
 
 /**
- * Schema codec for the {@link Never} representation node.
+ * Schema for the {@link Never} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Never = Schema.Struct({
@@ -866,9 +853,9 @@ export const $Never = Schema.Struct({
 }).annotate({ identifier: "Never" })
 
 /**
- * Schema codec for the {@link Unknown} representation node.
+ * Schema for the {@link Unknown} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Unknown = Schema.Struct({
@@ -877,9 +864,9 @@ export const $Unknown = Schema.Struct({
 }).annotate({ identifier: "Unknown" })
 
 /**
- * Schema codec for the {@link Any} representation node.
+ * Schema for the {@link Any} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Any = Schema.Struct({
@@ -912,6 +899,11 @@ const $IsUUID = Schema.Struct({
   regExp: Schema.RegExp,
   version: Schema.UndefinedOr(Schema.Literals([1, 2, 3, 4, 5, 6, 7, 8]))
 }).annotate({ identifier: "IsUUID" })
+
+const $IsGUID = Schema.Struct({
+  _tag: Schema.tag("isGUID"),
+  regExp: Schema.RegExp
+}).annotate({ identifier: "IsGUID" })
 
 const $IsULID = Schema.Struct({
   _tag: Schema.tag("isULID"),
@@ -990,9 +982,9 @@ const $IsPattern = Schema.Struct({
 }).annotate({ identifier: "IsPattern" })
 
 /**
- * Schema codec for {@link StringMeta}.
+ * Schema for {@link StringMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $StringMeta = Schema.Union([
@@ -1001,6 +993,7 @@ export const $StringMeta = Schema.Union([
   $IsStringSymbol,
   $IsTrimmed,
   $IsUUID,
+  $IsGUID,
   $IsULID,
   $IsBase64,
   $IsBase64Url,
@@ -1035,9 +1028,9 @@ function makeCheck<T>(meta: Schema.Codec<T>, identifier: string) {
 }
 
 /**
- * Schema codec for the {@link String} representation node.
+ * Schema for the {@link String} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $String = Schema.Struct({
@@ -1090,9 +1083,9 @@ const $IsBetween = Schema.Struct({
 }).annotate({ identifier: "IsBetween" })
 
 /**
- * Schema codec for {@link NumberMeta}.
+ * Schema for {@link NumberMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $NumberMeta = Schema.Union([
@@ -1107,9 +1100,9 @@ export const $NumberMeta = Schema.Union([
 ]).annotate({ identifier: "NumberMeta" })
 
 /**
- * Schema codec for the {@link Number} representation node.
+ * Schema for the {@link Number} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Number = Schema.Struct({
@@ -1119,9 +1112,9 @@ export const $Number = Schema.Struct({
 }).annotate({ identifier: "Number" })
 
 /**
- * Schema codec for the {@link Boolean} representation node.
+ * Schema for the {@link Boolean} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Boolean = Schema.Struct({
@@ -1166,9 +1159,21 @@ const $BigIntMeta = Schema.Union([
 ]).annotate({ identifier: "BigIntMeta" })
 
 /**
- * Schema codec for the {@link BigInt} representation node.
+ * Schema for the {@link BigInt} representation node.
  *
- * @category Schema
+ * **When to use**
+ *
+ * Use to encode, decode, or validate serialized `BigInt` representation nodes,
+ * not application `bigint` values.
+ *
+ * **Details**
+ *
+ * Accepts representation nodes with `_tag: "BigInt"`, optional annotations,
+ * and bigint-specific validation metadata in `checks`.
+ *
+ * @see {@link BigIntMeta} for the metadata accepted by the `checks` array
+ *
+ * @category schemas
  * @since 4.0.0
  */
 export const $BigInt = Schema.Struct({
@@ -1178,9 +1183,9 @@ export const $BigInt = Schema.Struct({
 }).annotate({ identifier: "BigInt" })
 
 /**
- * Schema codec for the {@link Symbol} representation node.
+ * Schema for the {@link Symbol} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Symbol = Schema.Struct({
@@ -1189,10 +1194,10 @@ export const $Symbol = Schema.Struct({
 }).annotate({ identifier: "Symbol" })
 
 /**
- * Schema codec for the literal value types allowed in a {@link Literal} node
+ * Schema for the literal value types allowed in a {@link Literal} node
  * (string, finite number, boolean, or bigint).
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $LiteralValue = Schema.Union([
@@ -1203,9 +1208,9 @@ export const $LiteralValue = Schema.Union([
 ]).annotate({ identifier: "LiteralValue" })
 
 /**
- * Schema codec for the {@link Literal} representation node.
+ * Schema for the {@link Literal} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Literal = Schema.Struct({
@@ -1215,9 +1220,9 @@ export const $Literal = Schema.Struct({
 }).annotate({ identifier: "Literal" })
 
 /**
- * Schema codec for the {@link UniqueSymbol} representation node.
+ * Schema for the {@link UniqueSymbol} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $UniqueSymbol = Schema.Struct({
@@ -1227,9 +1232,9 @@ export const $UniqueSymbol = Schema.Struct({
 }).annotate({ identifier: "UniqueSymbol" })
 
 /**
- * Schema codec for the {@link ObjectKeyword} representation node.
+ * Schema for the {@link ObjectKeyword} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $ObjectKeyword = Schema.Struct({
@@ -1238,9 +1243,9 @@ export const $ObjectKeyword = Schema.Struct({
 }).annotate({ identifier: "ObjectKeyword" })
 
 /**
- * Schema codec for the {@link Enum} representation node.
+ * Schema for the {@link Enum} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Enum = Schema.Struct({
@@ -1258,9 +1263,9 @@ export const $Enum = Schema.Struct({
 }).annotate({ identifier: "Enum" })
 
 /**
- * Schema codec for the {@link TemplateLiteral} representation node.
+ * Schema for the {@link TemplateLiteral} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $TemplateLiteral = Schema.Struct({
@@ -1270,9 +1275,9 @@ export const $TemplateLiteral = Schema.Struct({
 }).annotate({ identifier: "TemplateLiteral" })
 
 /**
- * Schema codec for the {@link Element} type (positional tuple element).
+ * Schema for the {@link Element} type (positional tuple element).
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Element = Schema.Struct({
@@ -1293,9 +1298,9 @@ const $ArraysMeta = Schema.Union([
 ]).annotate({ identifier: "ArraysMeta" })
 
 /**
- * Schema codec for the {@link Arrays} representation node.
+ * Schema for the {@link Arrays} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Arrays = Schema.Struct({
@@ -1307,9 +1312,9 @@ export const $Arrays = Schema.Struct({
 }).annotate({ identifier: "Arrays" })
 
 /**
- * Schema codec for the {@link PropertySignature} type.
+ * Schema for the {@link PropertySignature} type.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $PropertySignature = Schema.Struct({
@@ -1321,9 +1326,9 @@ export const $PropertySignature = Schema.Struct({
 }).annotate({ identifier: "PropertySignature" })
 
 /**
- * Schema codec for the {@link IndexSignature} type.
+ * Schema for the {@link IndexSignature} type.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $IndexSignature = Schema.Struct({
@@ -1353,9 +1358,9 @@ const $IsPropertyNames = Schema.Struct({
 }).annotate({ identifier: "IsPropertyNames" })
 
 /**
- * Schema codec for {@link ObjectsMeta}.
+ * Schema for {@link ObjectsMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $ObjectsMeta = Schema.Union([
@@ -1366,9 +1371,9 @@ export const $ObjectsMeta = Schema.Union([
 ]).annotate({ identifier: "ObjectsMeta" })
 
 /**
- * Schema codec for the {@link Objects} representation node.
+ * Schema for the {@link Objects} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Objects = Schema.Struct({
@@ -1380,9 +1385,9 @@ export const $Objects = Schema.Struct({
 }).annotate({ identifier: "Objects" })
 
 /**
- * Schema codec for the {@link Union} representation node.
+ * Schema for the {@link Union} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Union = Schema.Struct({
@@ -1393,9 +1398,9 @@ export const $Union = Schema.Struct({
 }).annotate({ identifier: "Union" })
 
 /**
- * Schema codec for the {@link Reference} representation node.
+ * Schema for the {@link Reference} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Reference = Schema.Struct({
@@ -1436,9 +1441,9 @@ const $IsBetweenDate = Schema.Struct({
 }).annotate({ identifier: "IsBetweenDate" })
 
 /**
- * Schema codec for {@link DateMeta}.
+ * Schema for {@link DateMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $DateMeta = Schema.Union([
@@ -1467,9 +1472,9 @@ const $IsSizeBetween = Schema.Struct({
 }).annotate({ identifier: "IsSizeBetween" })
 
 /**
- * Schema codec for {@link SizeMeta}.
+ * Schema for {@link SizeMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $SizeMeta = Schema.Union([
@@ -1479,9 +1484,9 @@ export const $SizeMeta = Schema.Union([
 ]).annotate({ identifier: "SizeMeta" })
 
 /**
- * Schema codec for {@link DeclarationMeta}.
+ * Schema for {@link DeclarationMeta}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $DeclarationMeta = Schema.Union([
@@ -1490,9 +1495,9 @@ export const $DeclarationMeta = Schema.Union([
 ]).annotate({ identifier: "DeclarationMeta" })
 
 /**
- * Schema codec for the {@link Declaration} representation node.
+ * Schema for the {@link Declaration} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Declaration = Schema.Struct({
@@ -1504,9 +1509,9 @@ export const $Declaration = Schema.Struct({
 }).annotate({ identifier: "Declaration" })
 
 /**
- * Schema codec for the {@link Suspend} representation node.
+ * Schema for the {@link Suspend} representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Suspend = Schema.Struct({
@@ -1519,15 +1524,16 @@ export const $Suspend = Schema.Struct({
 /**
  * Type-level helper for the recursive {@link $Representation} codec.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export interface $Representation extends Schema.Codec<Representation> {}
 
 /**
- * Schema codec for the full {@link Representation} union. This is the
- * recursive codec that can validate/encode any representation node.
+ * Schema for the full {@link Representation} union. It recursively validates
+ * and encodes any representation node.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $Representation: $Representation = Schema.Union([
@@ -1556,10 +1562,22 @@ export const $Representation: $Representation = Schema.Union([
 ]).annotate({ identifier: "Schema" })
 
 /**
- * Schema codec for {@link Document}. Use with `Schema.decodeUnknownSync` or
- * `Schema.encodeSync` to validate or serialize document data.
+ * Schema for {@link Document}.
  *
- * @category Schema
+ * **When to use**
+ *
+ * Use to validate or serialize a single schema representation document with
+ * `Schema.decodeUnknownSync` or `Schema.encodeSync`.
+ *
+ * **Gotchas**
+ *
+ * This codec validates document structure but does not resolve `$ref` keys
+ * against `references`.
+ *
+ * @see {@link DocumentFromJson} for the JSON-string codec wrapper
+ * @see {@link $MultiDocument} for validating documents with multiple root representations
+ *
+ * @category schemas
  * @since 4.0.0
  */
 export const $Document = Schema.Struct({
@@ -1568,9 +1586,9 @@ export const $Document = Schema.Struct({
 }).annotate({ identifier: "Document" })
 
 /**
- * Schema codec for {@link MultiDocument}.
+ * Schema for {@link MultiDocument}.
  *
- * @category Schema
+ * @category schemas
  * @since 4.0.0
  */
 export const $MultiDocument = Schema.Struct({
@@ -1585,9 +1603,14 @@ export const $MultiDocument = Schema.Struct({
 /**
  * Converts a Schema AST into a {@link Document}.
  *
- * - Use when you have a single schema and need its representation.
- * - Pure function; does not mutate the input AST.
- * - Shared/recursive sub-schemas are extracted into the `references` map.
+ * **When to use**
+ *
+ * Use when you have a single Schema AST and need a schema representation
+ * document.
+ *
+ * **Details**
+ *
+ * Shared/recursive sub-schemas are extracted into the `references` map.
  *
  * **Example** (Converting a Schema to a Document)
  *
@@ -1607,29 +1630,39 @@ export const $MultiDocument = Schema.Struct({
  * @see {@link Document}
  * @see {@link fromASTs}
  *
+ * @category constructors
  * @since 4.0.0
  */
-export const fromAST: (ast: AST.AST) => Document = InternalRepresentation.fromAST
+export const fromAST: (ast: SchemaAST.AST) => Document = InternalRepresentation.fromAST
 
 /**
  * Converts one or more Schema ASTs into a {@link MultiDocument}.
  *
- * - Use when you have multiple schemas that may share references.
- * - Pure function; does not mutate the input ASTs.
- * - All schemas share a single `references` map.
+ * **When to use**
+ *
+ * Use when you have multiple Schema ASTs and need one schema representation
+ * `MultiDocument` with shared references.
+ *
+ * **Details**
+ *
+ * All schemas share a single `references` map.
  *
  * @see {@link MultiDocument}
  * @see {@link fromAST}
  *
+ * @category constructors
  * @since 4.0.0
  */
-export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDocument = InternalRepresentation.fromASTs
+export const fromASTs: (asts: readonly [SchemaAST.AST, ...Array<SchemaAST.AST>]) => MultiDocument =
+  InternalRepresentation.fromASTs
 
 /**
- * Schema codec that decodes a {@link Document} from JSON and encodes it back.
+ * Schema that decodes a {@link Document} from JSON and encodes it back.
  *
- * - Use with `Schema.decodeUnknownSync` / `Schema.encodeSync` to
- *   serialize/deserialize documents.
+ * **When to use**
+ *
+ * Use when you need a JSON codec for schema representation documents with
+ * `Schema.decodeUnknownSync` or `Schema.encodeSync`.
  *
  * **Example** (Round-tripping a Document through JSON)
  *
@@ -1644,17 +1677,18 @@ export const fromASTs: (asts: readonly [AST.AST, ...Array<AST.AST>]) => MultiDoc
  * @see {@link $Document}
  * @see {@link MultiDocumentFromJson}
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const DocumentFromJson: Schema.Codec<Document, Schema.Json> = Schema.toCodecJson($Document)
 
 /**
- * Schema codec that decodes a {@link MultiDocument} from JSON and encodes it
- * back.
+ * Schema for `MultiDocument` values encoded as JSON.
  *
  * @see {@link $MultiDocument}
  * @see {@link DocumentFromJson}
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = Schema.toCodecJson($MultiDocument)
@@ -1663,13 +1697,15 @@ export const MultiDocumentFromJson: Schema.Codec<MultiDocument, Schema.Json> = S
  * Wraps a single {@link Document} as a {@link MultiDocument} with one
  * representation.
  *
- * - Use when an API expects a `MultiDocument` but you only have a single
- *   `Document`.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use when you need to pass a single schema representation `Document` where an
+ * API expects a `MultiDocument`.
  *
  * @see {@link Document}
  * @see {@link MultiDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export function toMultiDocument(document: Document): MultiDocument {
@@ -1683,33 +1719,41 @@ export function toMultiDocument(document: Document): MultiDocument {
  * A callback that handles {@link Declaration} nodes during reconstruction
  * ({@link toSchema}) or code generation ({@link toCodeDocument}).
  *
- * - Return a value to handle the declaration.
- * - Return `undefined` to fall back to default behavior (use `encodedSchema`
- *   for `toSchema`, or `generation` annotation for `toCodeDocument`).
- * - `recur` processes child representations recursively.
+ * **Details**
+ *
+ * Return a value to handle the declaration. Return `undefined` to fall back to
+ * default behavior, which uses `encodedSchema` for `toSchema` or the
+ * `generation` annotation for `toCodeDocument`. `recur` processes child
+ * representations recursively.
  *
  * @see {@link toSchema}
  * @see {@link toSchemaDefaultReviver}
  * @see {@link toCodeDocument}
  *
+ * @category models
  * @since 4.0.0
  */
 export type Reviver<T> = (declaration: Declaration, recur: (representation: Representation) => T) => T | undefined
 
 /**
  * Default {@link Reviver} for {@link toSchema} that handles built-in Effect
- * types (Option, Result, Redacted, Cause, Exit, ReadonlyMap, HashMap,
- * ReadonlySet,
- * Date, Duration, URL, RegExp, etc.).
+ * types, including Option, Result, Redacted, Cause, Exit, ReadonlyMap, HashMap,
+ * ReadonlySet, Date, Duration, URL, and RegExp.
  *
- * - Pass as `options.reviver` to {@link toSchema} to reconstruct schemas that
- *   use these types.
- * - Returns `undefined` for unrecognized declarations, causing fallback to
- *   `encodedSchema`.
+ * **When to use**
+ *
+ * Use when you need the default `options.reviver` for {@link toSchema} to
+ * reconstruct runtime schemas for built-in Effect declarations.
+ *
+ * **Details**
+ *
+ * The reviver returns `undefined` for unrecognized declarations, causing
+ * fallback to `encodedSchema`.
  *
  * @see {@link toSchema}
  * @see {@link Reviver}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
@@ -1721,9 +1765,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "Date":
         return Schema.Date
       case "Error":
-        return Schema.Error
-      case "ErrorWithStack":
-        return Schema.ErrorWithStack
+        return Schema.Error(typeConstructor.options as Schema.ErrorOptions | undefined)
       case "File":
         return Schema.File
       case "FormData":
@@ -1746,7 +1788,7 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
       case "effect/Result":
         return Schema.Result(typeParameters[0], typeParameters[1])
       case "effect/Redacted":
-        return Schema.Redacted(typeParameters[0])
+        return Schema.Redacted(typeParameters[0], typeConstructor.options as any)
       case "effect/DateTime.TimeZone":
         return Schema.TimeZone
       case "effect/DateTime.TimeZone.Named":
@@ -1782,15 +1824,23 @@ export const toSchemaDefaultReviver: Reviver<Schema.Top> = (s, recur) => {
 }
 
 /**
- * Reconstructs a runtime Schema from a {@link Document}.
+ * Creates a runtime Schema from a {@link Document}.
  *
- * - Use when you have a serialized or computed representation and need a
- *   working Schema for decoding/encoding.
- * - Pass `options.reviver` (e.g. {@link toSchemaDefaultReviver}) to handle
- *   {@link Declaration} nodes for types like `Date`, `Option`, etc.
- * - Without a reviver, declarations fall back to their `encodedSchema`.
- * - Handles circular references via lazy `Schema.suspend`.
- * - Throws if a `$ref` is not found in `document.references`.
+ * **When to use**
+ *
+ * Use when you have a serialized or computed schema representation document and
+ * need a runtime Schema for decoding/encoding.
+ *
+ * **Details**
+ *
+ * Pass `options.reviver`, such as {@link toSchemaDefaultReviver}, to handle
+ * {@link Declaration} nodes for types like `Date` and `Option`. Without a
+ * reviver, declarations fall back to their `encodedSchema`. Circular references
+ * are handled via lazy `Schema.suspend`.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` is not found in `document.references`.
  *
  * **Example** (Reconstructing a Schema)
  *
@@ -1997,7 +2047,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
     }
   }
 
-  function toSchemaCheck(check: Check<Meta>): AST.Check<any> {
+  function toSchemaCheck(check: Check<Meta>): SchemaAST.Check<any> {
     switch (check._tag) {
       case "Filter":
         return toSchemaFilter(check)
@@ -2007,7 +2057,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
     }
   }
 
-  function toSchemaFilter(filter: Filter<Meta>): AST.Check<any> {
+  function toSchemaFilter(filter: Filter<Meta>): SchemaAST.Check<any> {
     const a = filter.annotations
     switch (filter.meta._tag) {
       // String Meta
@@ -2029,6 +2079,8 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
         return Schema.isTrimmed(a)
       case "isUUID":
         return Schema.isUUID(filter.meta.version, a)
+      case "isGUID":
+        return Schema.isGUID(a)
       case "isULID":
         return Schema.isULID(a)
       case "isBase64":
@@ -2122,8 +2174,10 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
 /**
  * Converts a {@link Document} to a Draft 2020-12 JSON Schema document.
  *
- * - Use to produce a standard JSON Schema from an Effect Schema representation.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use when you need to produce a standard JSON Schema document from a schema
+ * representation `Document`.
  *
  * **Example** (Generating JSON Schema)
  *
@@ -2140,6 +2194,7 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
  * @see {@link toJsonSchemaMultiDocument}
  * @see {@link fromJsonSchemaDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toJsonSchemaDocument: (
@@ -2151,13 +2206,16 @@ export const toJsonSchemaDocument: (
  * Converts a {@link MultiDocument} to a Draft 2020-12 JSON Schema
  * multi-document.
  *
- * - Use when you have multiple schemas sharing references.
- * - Pure function; does not mutate the input.
+ * **When to use**
+ *
+ * Use when you need to export related schema representation documents together
+ * so shared definitions stay in multi-document JSON Schema form.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaDocument}
  * @see {@link fromJsonSchemaMultiDocument}
  *
+ * @category transforming
  * @since 4.0.0
  */
 export const toJsonSchemaMultiDocument: (
@@ -2223,10 +2281,13 @@ export type Artifact =
  * The output of {@link toCodeDocument}: generated TypeScript code for one or
  * more schemas plus their shared references and auxiliary artifacts.
  *
- * - `codes` — one {@link Code} per input representation.
- * - `references.nonRecursives` — topologically sorted non-recursive definitions.
- * - `references.recursives` — definitions involved in cycles.
- * - `artifacts` — symbols, enums, and import statements needed by the code.
+ * **Details**
+ *
+ * `codes` contains one {@link Code} per input representation.
+ * `references.nonRecursives` contains topologically sorted non-recursive
+ * definitions. `references.recursives` contains definitions involved in cycles.
+ * `artifacts` contains symbols, enums, and import statements needed by the
+ * code.
  *
  * @see {@link toCodeDocument}
  * @see {@link Code}
@@ -2252,13 +2313,18 @@ export type CodeDocument = {
 /**
  * Generates TypeScript code strings from a {@link MultiDocument}.
  *
- * - Use to produce source code for Schema definitions (e.g. for codegen tools).
- * - `options.reviver` can customize code generation for {@link Declaration}
- *   nodes. Return `undefined` to fall back to the default logic (which uses
- *   `generation` annotations or the encoded schema).
- * - Performs topological sorting of references to emit non-recursive
- *   definitions before their dependents.
- * - Produces sanitized JavaScript identifiers for `$ref` keys.
+ * **When to use**
+ *
+ * Use when you need to produce source code for Effect Schema definitions from a
+ * schema representation `MultiDocument`.
+ *
+ * **Details**
+ *
+ * `options.reviver` can customize code generation for {@link Declaration}
+ * nodes. Return `undefined` to fall back to the default logic, which uses
+ * `generation` annotations or the encoded schema. References are
+ * topologically sorted so non-recursive definitions are emitted before their
+ * dependents. `$ref` keys are converted to sanitized JavaScript identifiers.
  *
  * **Example** (Generating TypeScript code)
  *
@@ -2646,6 +2712,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
     const ca = a === "" ? "" : `, ${a}`
     switch (filter.meta._tag) {
       case "isTrimmed":
+      case "isGUID":
       case "isULID":
       case "isBase64":
       case "isBase64Url":
@@ -2657,7 +2724,7 @@ export function toCodeDocument(multiDocument: MultiDocument, options?: {
       case "isInt":
       case "isUnique":
       case "isDateValid":
-        return `Schema.${filter.meta._tag}(${ca})`
+        return `Schema.${filter.meta._tag}(${a})`
 
       case "isStringFinite":
       case "isStringBigInt":
@@ -2883,16 +2950,26 @@ function toRuntimeRegExp(regExp: RegExp): string {
 /**
  * Parses a Draft 2020-12 JSON Schema document into a {@link Document}.
  *
- * - Use to import external JSON Schemas into the Effect representation system.
- * - `options.onEnter` is an optional hook called on each JSON Schema node
- *   before processing, allowing pre-transformation.
- * - Throws if a `$ref` cannot be resolved within the document's definitions.
- * - Circular `$ref`s are detected and cause an error.
+ * **When to use**
+ *
+ * Use when you need to import a Draft 2020-12 JSON Schema document into the
+ * Effect schema representation system.
+ *
+ * **Details**
+ *
+ * `options.onEnter` is an optional hook called on each JSON Schema node before
+ * processing, allowing pre-transformation.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` cannot be resolved within the document's definitions.
+ * Circular `$ref`s are detected and cause an error.
  *
  * @see {@link Document}
  * @see {@link toJsonSchemaDocument}
  * @see {@link fromJsonSchemaMultiDocument}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020-12">, options?: {
@@ -2913,15 +2990,25 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * Parses a Draft 2020-12 JSON Schema multi-document into a
  * {@link MultiDocument}.
  *
- * - Use to import multiple JSON Schemas sharing definitions.
- * - `options.onEnter` is an optional hook called on each JSON Schema node
- *   before processing.
- * - Throws if a `$ref` cannot be resolved.
+ * **When to use**
+ *
+ * Use when you need to import a Draft 2020-12 JSON Schema multi-document whose
+ * schemas share definitions.
+ *
+ * **Details**
+ *
+ * `options.onEnter` is an optional hook called on each JSON Schema node before
+ * processing.
+ *
+ * **Gotchas**
+ *
+ * This throws if a `$ref` cannot be resolved.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaMultiDocument}
  * @see {@link fromJsonSchemaDocument}
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">, options?: {
@@ -3566,7 +3653,7 @@ function collectAnnotations(
   return Rec.isEmptyRecord(as) ? undefined : as
 }
 
-function isLiteralValue(value: unknown): value is AST.LiteralValue {
+function isLiteralValue(value: unknown): value is SchemaAST.LiteralValue {
   return typeof value === "string" || typeof value === "number" || typeof value === "boolean"
 }
 

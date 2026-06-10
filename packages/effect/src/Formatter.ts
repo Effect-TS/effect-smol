@@ -1,54 +1,11 @@
 /**
- * Utilities for converting arbitrary JavaScript values into human-readable
- * strings, with support for circular references, redaction, and common JS
- * types that `JSON.stringify` handles poorly.
+ * Formats JavaScript values into readable strings.
  *
- * Mental model:
- * - A `Formatter<Value, Format>` is a callable `(value: Value) => Format`.
- * - {@link format} is the general-purpose pretty-printer: it handles
- *   primitives, arrays, objects, `BigInt`, `Symbol`, `Date`, `RegExp`,
- *   `Set`, `Map`, class instances, and circular references.
- * - {@link formatJson} is a safe `JSON.stringify` wrapper that silently
- *   drops circular references and applies redaction.
- * - Both functions accept a `space` option for indentation control.
- *
- * Common tasks:
- * - Pretty-print any value for debugging / logging -> {@link format}
- * - Serialize to JSON safely (no circular throws) -> {@link formatJson}
- * - Format a single object property key -> {@link formatPropertyKey}
- * - Format a property path like `["a"]["b"]` -> {@link formatPath}
- * - Format a `Date` to ISO string safely -> {@link formatDate}
- *
- * Gotchas:
- * - {@link format} output is **not** valid JSON; use {@link formatJson} when
- *   you need parseable JSON.
- * - {@link format} calls `toString()` on objects by default; pass
- *   `ignoreToString: true` to disable.
- * - {@link formatJson} silently omits circular references (the key is
- *   dropped from the output).
- * - Values implementing the `Redactable` protocol are automatically
- *   redacted by both {@link format} and {@link formatJson}.
- *
- * **Example** (Pretty-print a value)
- *
- * ```ts
- * import { Formatter } from "effect"
- *
- * const obj = { name: "Alice", scores: [100, 97] }
- * console.log(Formatter.format(obj))
- * // {"name":"Alice","scores":[100,97]}
- *
- * console.log(Formatter.format(obj, { space: 2 }))
- * // {
- * //   "name": "Alice",
- * //   "scores": [
- * //     100,
- * //     97
- * //   ]
- * // }
- * ```
- *
- * See also: {@link Formatter}, {@link format}, {@link formatJson}
+ * `format` is intended for logs, diagnostics, and error messages. It handles
+ * primitives, objects, arrays, dates, regular expressions, maps, sets, class
+ * instances, errors, circular references, and redactable values. `formatJson`
+ * wraps JSON formatting with redaction and circular-reference handling, and the
+ * module also includes helpers for property keys, paths, and dates.
  *
  * @since 4.0.0
  */
@@ -56,16 +13,15 @@ import * as Predicate from "./Predicate.ts"
 import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
 
 /**
- * A callable interface representing a function that converts a `Value` into a
- * `Format` (defaults to `string`).
+ * A callable interface representing a function that converts a `Value` into a `Format`, which defaults to `string`.
  *
- * When to use:
- * - You want to type a formatting / rendering function generically.
- * - You are building a pipeline that accepts pluggable formatters.
+ * **When to use**
  *
- * Behavior:
- * - Pure callable type; carries no runtime implementation.
- * - Contravariant in `Value`, covariant in `Format`.
+ * Use when you want to type a formatting or rendering function generically, or when you are building a pipeline that accepts pluggable formatters.
+ *
+ * **Details**
+ *
+ * This is a pure callable type and carries no runtime implementation. It is contravariant in `Value` and covariant in `Format`.
  *
  * **Example** (Define a custom formatter)
  *
@@ -78,9 +34,9 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  * // HELLO
  * ```
  *
- * See also: {@link format}, {@link formatJson}
- *
- * @category Model
+ * @see {@link format}
+ * @see {@link formatJson}
+ * @category models
  * @since 4.0.0
  */
 export interface Formatter<in Value, out Format = string> {
@@ -90,17 +46,18 @@ export interface Formatter<in Value, out Format = string> {
 /**
  * Converts any JavaScript value into a human-readable string.
  *
- * When to use:
- * - Pretty-printing values for debugging, logging, or error messages.
- * - You need to handle `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`,
- *   or class instances that `JSON.stringify` cannot represent.
- * - You want circular references shown as `"[Circular]"` instead of
- *   throwing.
+ * **When to use**
  *
- * Behavior:
- * - Does not mutate input.
+ * Use when you need to format arbitrary JavaScript values for debugging,
+ * logging, or error messages.
+ *
+ * **Details**
+ *
  * - Output is **not** valid JSON; use {@link formatJson} when you need
  *   parseable JSON.
+ * - Handles `BigInt`, `Symbol`, `Set`, `Map`, `Date`, `RegExp`, and class
+ *   instances that `JSON.stringify` cannot represent.
+ * - Circular references are shown as `"[Circular]"` instead of throwing.
  * - Primitives: stringified naturally (`null`, `undefined`, `123`, `true`).
  *   Strings are JSON-quoted.
  * - Objects with a custom `toString` (not `Object.prototype.toString`):
@@ -112,9 +69,6 @@ export interface Formatter<in Value, out Format = string> {
  * - `Redactable` values are automatically redacted.
  * - Arrays/objects with 0–1 entries are inline; larger ones are
  *   pretty-printed when `space` is set.
- * - Circular references are replaced with `"[Circular]"`.
- *
- * Options:
  * - `space` — indentation unit (number of spaces, or a string like
  *   `"\t"`). Defaults to `0` (compact).
  * - `ignoreToString` — skip calling `toString()`. Defaults to `false`.
@@ -154,9 +108,10 @@ export interface Formatter<in Value, out Format = string> {
  * // {"name":"loop","self":[Circular]}
  * ```
  *
- * See also: {@link formatJson}, {@link Formatter}
- *
- * @since 4.0.0
+ * @see {@link formatJson}
+ * @see {@link Formatter}
+ * @category formatting
+ * @since 2.0.0
  */
 export function format(input: unknown, options?: {
   readonly space?: number | string | undefined
@@ -246,30 +201,6 @@ export function format(input: unknown, options?: {
 const CIRCULAR = "[Circular]"
 
 /**
- * Formats a single property key for display.
- *
- * When to use:
- * - You are building a custom formatter that needs to render object keys.
- *
- * Behavior:
- * - String keys are JSON-quoted (e.g. `"foo"`).
- * - Symbol and number keys are converted with `String()`.
- * - Pure function; does not mutate input.
- *
- * **Example** (Format property keys)
- *
- * ```ts
- * import { Formatter } from "effect"
- *
- * console.log(Formatter.formatPropertyKey("name"))
- * // "name"
- *
- * console.log(Formatter.formatPropertyKey(Symbol.for("id")))
- * // Symbol(id)
- * ```
- *
- * See also: {@link formatPath}, {@link format}
- *
  * @internal
  */
 export function formatPropertyKey(name: PropertyKey): string {
@@ -278,27 +209,6 @@ export function formatPropertyKey(name: PropertyKey): string {
 
 /**
  * Formats an array of property keys as a bracket-notation path string.
- *
- * When to use:
- * - You need to display a path through a nested object (e.g. in error
- *   messages or schema validation output).
- *
- * Behavior:
- * - Each key is wrapped in brackets and formatted via
- *   {@link formatPropertyKey}.
- * - Returns an empty string for an empty path.
- * - Pure function; does not mutate input.
- *
- * **Example** (Render a property path)
- *
- * ```ts
- * import { Formatter } from "effect"
- *
- * console.log(Formatter.formatPath(["users", 0, "name"]))
- * // ["users"][0]["name"]
- * ```
- *
- * See also: {@link formatPropertyKey}, {@link format}
  *
  * @internal
  */
@@ -309,29 +219,6 @@ export function formatPath(path: ReadonlyArray<PropertyKey>): string {
 /**
  * Formats a `Date` as an ISO 8601 string, returning `"Invalid Date"` for
  * invalid dates instead of throwing.
- *
- * When to use:
- * - You want a safe `toISOString()` that never throws.
- *
- * Behavior:
- * - Returns `date.toISOString()` on success.
- * - Returns `"Invalid Date"` if `toISOString()` throws (e.g. for
- *   `new Date(NaN)`).
- * - Pure function; does not mutate input.
- *
- * **Example** (Safe date formatting)
- *
- * ```ts
- * import { Formatter } from "effect"
- *
- * console.log(Formatter.formatDate(new Date("2024-01-15T10:30:00Z")))
- * // 2024-01-15T10:30:00.000Z
- *
- * console.log(Formatter.formatDate(new Date("invalid")))
- * // Invalid Date
- * ```
- *
- * See also: {@link format}
  *
  * @internal
  */
@@ -353,27 +240,22 @@ function safeToString(input: any): string {
 }
 
 /**
- * Safely stringifies a value to JSON, silently dropping circular references.
+ * Stringifies a value to JSON safely, silently dropping circular references.
  *
- * When to use:
- * - You need valid JSON output (unlike {@link format}).
- * - The input may contain circular references and you want them silently
- *   omitted rather than throwing a `TypeError`.
+ * **When to use**
  *
- * Behavior:
- * - Does not mutate input.
- * - Uses `JSON.stringify` internally with a replacer that tracks the
- *   current object ancestry.
- * - Circular references are replaced with `undefined` (omitted from
- *   output).
- * - `Redactable` values are automatically redacted before serialization.
- * - Types not supported by JSON (`BigInt`, `Symbol`, `undefined`,
- *   functions) follow standard `JSON.stringify` behavior (omitted or
- *   `null` in arrays).
+ * Use when you need valid JSON output, unlike `format`, and the input may
+ * contain circular references that should be silently omitted rather than
+ * throwing a `TypeError`.
  *
- * Options:
- * - `space` — indentation unit (number of spaces, or a string like
- *   `"\t"`). Defaults to `0` (compact).
+ * **Details**
+ *
+ * Uses `JSON.stringify` internally with a replacer that tracks the current
+ * object ancestry. Circular references are replaced with `undefined`, which
+ * omits them from object output. `Redactable` values are automatically redacted
+ * before serialization. Values not supported by JSON, such as `BigInt`,
+ * `Symbol`, `undefined`, and functions, follow standard `JSON.stringify`
+ * behavior. The `space` parameter controls indentation and defaults to `0`.
  *
  * **Example** (Compact JSON)
  *
@@ -407,8 +289,9 @@ function safeToString(input: any): string {
  * // }
  * ```
  *
- * See also: {@link format}, {@link Formatter}
- *
+ * @see {@link format}
+ * @see {@link Formatter}
+ * @category serialization
  * @since 4.0.0
  */
 export function formatJson(input: unknown, options?: {

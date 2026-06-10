@@ -1,29 +1,11 @@
 /**
- * The `RpcMiddleware` module defines middleware services that can wrap RPC
- * handler execution on the server and request execution in generated clients.
+ * Middleware services for the unstable RPC runtime.
  *
- * Use middleware to attach cross-cutting behavior to individual RPCs or whole
- * `RpcGroup`s, such as authentication, authorization, request logging, tracing,
- * metrics, rate limiting, header propagation, or adding request-scoped services
- * to the handler context. A middleware service records the services it requires
- * and provides, the schema for errors it can fail with, and whether clients must
- * install a matching middleware via `layerClient`.
- *
- * Server middleware receives the target `rpc`, decoded `payload`, request
- * `headers`, `requestId`, and `Rpc.ServerClient`, then wraps the handler effect.
- * Its `provides` type removes services from the downstream handler requirement,
- * while `requires` adds the services needed by the middleware implementation.
- * Middleware errors must be declared with a `Schema` so they can be encoded as
- * RPC failures, and any schema encoding or decoding services remain part of the
- * generated RPC environments.
- *
- * Client middleware is installed with `layerClient`, captures the surrounding
- * layer context, and can inspect, rewrite, retry, or short-circuit outgoing
- * requests before calling `next`. Set `requiredForClient` when an RPC's typed
- * client must require that `ForClient` layer; otherwise a client implementation
- * is used only when one is present. `clientError` contributes only to the
- * client-side call error channel, while the middleware `error` schema is shared
- * with server failures.
+ * A middleware service wraps server handler execution and can also install a
+ * client-side wrapper for generated clients. Its metadata records the services
+ * provided to downstream handlers, the services required by the middleware
+ * implementation, the schema for server-visible failures, the client-only error
+ * type, and whether generated clients must require the matching client layer.
  *
  * @since 4.0.0
  */
@@ -40,7 +22,7 @@ import type { Request, RequestId } from "./RpcMessage.ts"
 /**
  * The literal type id used to identify RPC middleware service classes.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~effect/rpc/RpcMiddleware"
@@ -48,7 +30,7 @@ export type TypeId = "~effect/rpc/RpcMiddleware"
 /**
  * The runtime type id used to attach and inspect RPC middleware metadata.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/rpc/RpcMiddleware"
@@ -269,7 +251,7 @@ export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any,
  * requirements, provided services, error schema, and client-side requirement
  * metadata.
  *
- * @category tags
+ * @category constructors
  * @since 4.0.0
  */
 export const Service = <

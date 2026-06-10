@@ -4,30 +4,18 @@
  * by exposing a method at the `DeliverAt` symbol that returns the target
  * `DateTime`.
  *
- * **Common tasks**
- *
- * - Mark a message payload as deliverable at a specific time by implementing
- *   {@link DeliverAt}
- * - Check whether an arbitrary value carries a scheduled delivery time with
- *   {@link isDeliverAt}
- * - Convert a scheduled delivery time to epoch milliseconds with
- *   {@link toMillis}
- *
- * **Gotchas**
- *
- * - The protocol records the requested delivery instant; cluster infrastructure
- *   may still deliver later because of clock skew, queue latency, or worker
- *   availability
- * - Values that do not implement the symbol method are treated as unscheduled;
- *   {@link toMillis} returns `null` for those values
- *
  * @since 4.0.0
  */
 import type { DateTime } from "../../DateTime.ts"
 import { hasProperty } from "../../Predicate.ts"
 
 /**
- * Property key used by values that provide a scheduled delivery time.
+ * Defines the property key used by values that provide a scheduled delivery time.
+ *
+ * **When to use**
+ *
+ * Use to implement the scheduled-delivery protocol on cluster message payloads
+ * by defining a method at this property key.
  *
  * @category symbols
  * @since 4.0.0
@@ -35,10 +23,9 @@ import { hasProperty } from "../../Predicate.ts"
 export const symbol = "~effect/cluster/DeliverAt"
 
 /**
- * Interface for payloads that specify when a cluster message should be delivered.
- *
- * Implementations return the target delivery `DateTime` through the `DeliverAt`
- * symbol method.
+ * Interface for payloads that specify when a cluster message should be delivered
+ * by returning the target delivery `DateTime` through the `DeliverAt` symbol
+ * method.
  *
  * @category models
  * @since 4.0.0

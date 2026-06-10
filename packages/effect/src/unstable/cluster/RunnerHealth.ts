@@ -1,23 +1,11 @@
 /**
- * The `RunnerHealth` module defines the health-check service used by cluster
- * sharding to decide whether a runner may still own its assigned shards. A
- * runner that is reported as alive is allowed to keep processing messages,
- * while a runner that is reported as unavailable can have its shards moved to
- * another runner.
+ * Checks whether cluster runners should be treated as alive.
  *
- * **Common tasks**
- *
- * - Provide a custom {@link RunnerHealth} service for a cluster deployment
- * - Use {@link layerPing} to check runners through the cluster runner protocol
- * - Use {@link layerK8s} when Kubernetes pod readiness should drive health
- * - Use {@link layerNoop} in tests or environments where runners are always considered healthy
- *
- * **Gotchas**
- *
- * - Health checks affect shard reassignment, so false negatives can move shards
- *   away from runners that may still be processing messages
- * - The Kubernetes implementation treats API failures as healthy to avoid
- *   reassignment caused by a temporary control-plane outage
+ * `RunnerHealth` is used by sharding when deciding whether assigned shards can
+ * stay on a runner or need to move elsewhere. This module includes the
+ * health-check service, a no-op layer that always reports runners as alive, a
+ * ping-based checker, and a Kubernetes-based checker that looks at pod readiness
+ * for the runner host.
  *
  * @since 4.0.0
  */
@@ -32,6 +20,8 @@ import * as Runners from "./Runners.ts"
 
 /**
  * Represents the service used to check if a Runner is healthy.
+ *
+ * **Details**
  *
  * If a Runner is responsive, shards will not be re-assigned because the Runner may
  * still be processing messages. If a Runner is not responsive, then its
@@ -48,9 +38,12 @@ export class RunnerHealth extends Context.Service<
 >()("effect/cluster/RunnerHealth") {}
 
 /**
- * A layer which will **always** consider a Runner healthy.
+ * Layer that always considers a runner healthy.
  *
- * This is useful for testing.
+ * **When to use**
+ *
+ * Use when you need a runner-health layer for tests or local development where
+ * active health checks are unnecessary.
  *
  * @category layers
  * @since 4.0.0
@@ -64,7 +57,7 @@ export const layerNoop = Layer.succeed(RunnerHealth, {
  * failed pings on a short schedule and treating a successful ping within the
  * timeout as healthy.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makePing: Effect.Effect<
@@ -87,7 +80,7 @@ export const makePing: Effect.Effect<
 })
 
 /**
- * A layer which will ping a Runner directly to check if it is healthy.
+ * Layer that pings runners directly to check whether they are healthy.
  *
  * @category layers
  * @since 4.0.0
@@ -102,9 +95,11 @@ export const layerPing: Layer.Layer<
  * Creates a `RunnerHealth` service that checks Kubernetes pod readiness for a
  * runner host, optionally scoped by namespace and label selector.
  *
+ * **Gotchas**
+ *
  * If the Kubernetes API check fails, the runner is treated as healthy.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeK8s = Effect.fnUntraced(function*(options?: {
@@ -123,12 +118,17 @@ export const makeK8s = Effect.fnUntraced(function*(options?: {
 })
 
 /**
- * A layer which checks Kubernetes pod readiness to determine whether a runner is
+ * Layer that checks Kubernetes pod readiness to determine whether a runner is
  * healthy.
  *
+ * **Details**
+ *
  * The provided `HttpClient` must trust the pod CA certificate and the pod service
- * account must be allowed to list pods. If the Kubernetes API check fails, the
- * runner is treated as healthy.
+ * account must be allowed to list pods.
+ *
+ * **Gotchas**
+ *
+ * If the Kubernetes API check fails, the runner is treated as healthy.
  *
  * @category layers
  * @since 4.0.0

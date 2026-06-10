@@ -1,21 +1,10 @@
 /**
- * Node TCP socket integration for Effect Cluster runner communication.
+ * Node TCP socket transport for Effect Cluster runner-to-runner RPC.
  *
  * This module provides the shared Node layers used by socket-based cluster
- * transports: a client protocol that opens TCP sockets to runner addresses and
- * a socket server that listens for incoming runner RPC traffic. It is useful
- * when wiring Node or Node-compatible cluster runners, sharing the same socket
- * implementation across platform packages, or building tests and deployments
- * that need direct runner-to-runner RPC over TCP rather than HTTP.
- *
- * Cluster runners must advertise an address that peers can reach while the
- * server may listen on a different address via `runnerListenAddress`, which is
- * common behind containers, port mappings, or Kubernetes services. Serialization
- * is supplied by the surrounding layer, and gossip, shard discovery, health
- * checks, and storage-backed delivery are coordinated by the cluster services
- * that use this transport. Keep those responsibilities separate when debugging:
- * a reachable socket does not by itself guarantee that runner membership,
- * shard ownership, or persisted message notification is current.
+ * transports. `layerClientProtocol` opens TCP sockets to peer runner addresses
+ * and wraps them in the current RPC serialization protocol. `layerSocketServer`
+ * exposes the socket server that receives incoming runner RPC traffic.
  *
  * @since 4.0.0
  */
@@ -35,7 +24,7 @@ import * as NodeSocketServer from "./NodeSocketServer.ts"
  * Provides the cluster `RpcClientProtocol` by opening TCP sockets to runner
  * addresses and using the current RPC serialization service.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerClientProtocol: Layer.Layer<
@@ -64,7 +53,7 @@ export const layerClientProtocol: Layer.Layer<
  * Provides the socket server used by cluster runners, listening on
  * `ShardingConfig.runnerListenAddress` or `runnerAddress`.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerSocketServer: Layer.Layer<

@@ -1,24 +1,11 @@
 /**
- * The `HelpDoc` module defines the structured documentation model used by the
- * unstable CLI package to describe command help. A `HelpDoc` value captures the
- * user-facing parts of a command, including its description, usage string,
- * positional arguments, flags, global flags, subcommands, and examples.
+ * Structured help documentation model for the unstable CLI package. A
+ * `HelpDoc` value captures the user-facing parts of a command, including its
+ * description, usage string, positional arguments, flags, global flags,
+ * subcommands, annotations, and examples.
  *
- * **Common tasks**
- *
- * - Build help data from command definitions before rendering it
- * - Pass command documentation to `CliOutput.Formatter` implementations
- * - Represent custom help output formats without changing command parsing
- * - Group subcommands and distinguish local flags from global flags
- *
- * **Gotchas**
- *
- * - `HelpDoc` is format-agnostic; layout, ANSI styling, and table alignment are
- *   handled by the output formatter
- * - Optional argument and flag descriptions use `Option.Option<string>`, while
- *   optional sections are omitted when they have no entries
- * - Long names, aliases, and descriptions may require formatter-specific width
- *   handling when rendering terminal help
+ * This module only defines the data shapes used to describe help. Rendering
+ * that data as terminal text is handled by `CliOutput`.
  *
  * @since 4.0.0
  */
@@ -35,8 +22,8 @@ import type * as Option from "../../Option.ts"
  * **Example** (Defining command help documentation)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
- * import type * as HelpDoc from "effect/unstable/cli/HelpDoc"
+ * import { Context, Option as O } from "effect"
+ * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deployCommandHelp: HelpDoc.HelpDoc = {
  *   description: "Deploy your application to the cloud",
@@ -196,7 +183,7 @@ export interface FlagDoc {
  * **Example** (Documenting subcommands)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
+ * import { Context, Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const deploySubcommand: HelpDoc.SubcommandDoc = {
@@ -276,7 +263,7 @@ export interface SubcommandGroupDoc {
  * **Example** (Documenting positional arguments)
  *
  * ```ts
- * import { Option as O, Context } from "effect"
+ * import { Context, Option as O } from "effect"
  * import type { HelpDoc } from "effect/unstable/cli"
  *
  * const sourceArg: HelpDoc.ArgDoc = {

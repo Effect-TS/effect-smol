@@ -1,27 +1,11 @@
 /**
  * Bun Redis integration backed by Bun's built-in `RedisClient`.
  *
- * This module provides scoped layers that create a Bun `RedisClient` and expose
- * both the low-level `Redis` service used by Effect persistence modules and the
- * `BunRedis` service for direct access to the underlying client. Use it in Bun
- * applications that need Redis-backed persistence, persisted queues,
- * distributed rate limiting, custom Redis commands, or Bun Redis features such
- * as pub/sub through the raw client.
- *
- * The client is acquired when the layer is built and closed with `close` when
- * the layer scope ends, so install the layer at the lifetime you want for the
- * connection and pass a Redis URL, Bun `RedisOptions`, or `layerConfig` for
- * connection settings. The portable `Redis` service sends ordinary commands
- * through `RedisClient.send`; pub/sub is available through `BunRedis.client`
- * or `BunRedis.use` and should normally use a separately scoped client so a
- * subscription does not interfere with command traffic used by persistence or
- * rate limiter stores.
- *
- * Persistence and rate limiter stores build keys and Lua scripts on top of this
- * service. Choose stable prefixes and store ids to avoid collisions, account
- * for persisted values that may fail to decode after schema changes, and avoid
- * unbounded high-cardinality rate-limit keys unless you have a cleanup or
- * bounding strategy.
+ * This module creates scoped Bun `RedisClient` connections and exposes them as
+ * both the portable `Redis` service and the Bun-specific `BunRedis` service for
+ * direct access to the raw client. The `layer` helper accepts Redis options
+ * directly, while `layerConfig` reads them from Effect config. Both close the
+ * underlying client when the layer scope finalizes.
  *
  * @since 4.0.0
  */
@@ -37,7 +21,7 @@ import * as Redis from "effect/unstable/persistence/Redis"
 /**
  * Service tag for Bun Redis integration, exposing the raw `RedisClient` and a `use` helper that maps client promise failures to `RedisError`.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class BunRedis extends Context.Service<BunRedis, {
@@ -81,7 +65,7 @@ const make = Effect.fnUntraced(function*(
 /**
  * Creates scoped Bun Redis layers for `Redis.Redis` and `BunRedis`, closing the underlying client when the scope finalizes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -91,7 +75,7 @@ export const layer = (
 /**
  * Creates scoped Bun Redis layers from configurable Redis options, closing the underlying client when the scope finalizes.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig = (

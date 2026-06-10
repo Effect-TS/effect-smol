@@ -98,6 +98,7 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
   readonly description?: string | undefined
   readonly shortDescription?: string | undefined
   readonly alias?: string | undefined
+  readonly hidden?: boolean | undefined
   readonly examples?: ReadonlyArray<Command.Example> | undefined
   readonly subcommands?: ReadonlyArray<SubcommandGroup> | undefined
   readonly parse?: ((input: ParsedTokens) => Effect.Effect<Input, CliError.CliError, Environment>) | undefined
@@ -145,7 +146,9 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     }
 
     let usage = commandPath.length > 0 ? commandPath.join(" ") : options.name
-    if (subcommands.some((group) => group.commands.length > 0)) {
+    // Only render `<subcommand>` in usage when at least one visible subcommand
+    // exists; an all-hidden subcommand tree should look like a leaf command.
+    if (subcommands.some((group) => group.commands.some((c) => !c.hidden))) {
       usage += " <subcommand>"
     }
     usage += " [flags]"
@@ -157,6 +160,9 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     for (const option of config.flags) {
       const singles = Param.extractSingleParams(option)
       for (const single of singles) {
+        // Hidden flags still parse on the command line but are omitted from
+        // generated --help output.
+        if (single.hidden) continue
         flags.push(toFlagDoc(single))
       }
     }
@@ -164,9 +170,14 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     const subcommandDocs: Array<SubcommandGroupDoc> = []
 
     for (const group of subcommands) {
+      // Hidden subcommands still parse on the command line but are omitted
+      // from --help. Drop the whole group when nothing visible remains so we
+      // don't render an empty heading.
+      const visible = group.commands.filter((c) => !c.hidden)
+      if (visible.length === 0) continue
       subcommandDocs.push({
         group: group.group,
-        commands: Arr.map(group.commands, (subcommand) => ({
+        commands: Arr.map(visible as unknown as Arr.NonEmptyReadonlyArray<Command.Any>, (subcommand) => ({
           name: subcommand.name,
           alias: subcommand.alias,
           shortDescription: subcommand.shortDescription,
@@ -195,6 +206,7 @@ export const makeCommand = <const Name extends string, Input, E, R, ContextInput
     annotations,
     globalFlags,
     subcommands,
+    hidden: options.hidden ?? false,
     config,
     contextConfig,
     service,

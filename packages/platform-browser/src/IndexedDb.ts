@@ -7,28 +7,12 @@
  * wiring those primitives from `window`, and schemas for the key shapes accepted
  * by IndexedDB object stores and indexes.
  *
- * Use it when building typed local persistence for browser caches,
- * offline-first state, background queues, drafts, or other client-side data
- * that should be validated before it reaches IndexedDB. Higher-level database,
- * version, table, and query modules build on these primitives for migrations
- * and typed transactions.
- *
- * IndexedDB still follows the browser rules: schema changes happen only during
- * version upgrades, upgrades may be blocked by other open tabs or connections,
- * and reads or writes must run in transactions scoped to the object stores they
- * touch. The `layerWindow` constructor should be used only where browser
- * globals are available, and code that also runs during SSR or in restricted
- * browser contexts should account for `indexedDB` or `IDBKeyRange` being
- * missing.
- *
  * @since 4.0.0
  */
-import * as Config from "effect/Config"
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
 import * as Layer from "effect/Layer"
 import * as Schema from "effect/Schema"
-import * as SchemaIssue from "effect/SchemaIssue"
 
 const TypeId = "~@effect/platform-browser/IndexedDb"
 
@@ -47,7 +31,7 @@ export interface IndexedDb {
 /**
  * Service tag for browser IndexedDB primitives.
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const IndexedDb: Context.Service<IndexedDb, IndexedDb> = Context.Service<IndexedDb, IndexedDb>(TypeId)
@@ -75,6 +59,18 @@ export const IDBValidKey = Schema.Union([IDBFlatKey, Schema.Array(IDBFlatKey)])
 /**
  * Schema for auto-incremented IndexedDB keys, accepting integers from 1 through `2 ** 53`.
  *
+ * **When to use**
+ *
+ * Use when you need to define numeric key-path fields for `IndexedDbTable`
+ * definitions that use IndexedDB auto-increment keys.
+ *
+ * **Details**
+ *
+ * The schema accepts integer values from `1` through `2 ** 53`, matching the
+ * range used for generated IndexedDB auto-increment keys.
+ *
+ * @see {@link IDBValidKey} for the broader IndexedDB key schema
+ *
  * @category schemas
  * @since 4.0.0
  */
@@ -89,7 +85,7 @@ export const AutoIncrement = Schema.Int.check(
 /**
  * Creates an `IndexedDb` service from an `IDBFactory` and `IDBKeyRange` constructor.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => IndexedDb.of({ [TypeId]: TypeId, ...impl })
@@ -100,7 +96,7 @@ export const make = (impl: Omit<IndexedDb, typeof TypeId>): IndexedDb => Indexed
  * @category constructors
  * @since 4.0.0
  */
-export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> = Layer.effect(
+export const layerWindow: Layer.Layer<IndexedDb> = Layer.effect(
   IndexedDb,
   Effect.suspend(() => {
     if (window.indexedDB && window.IDBKeyRange) {
@@ -111,15 +107,7 @@ export const layerWindow: Layer.Layer<IndexedDb, Config.ConfigError> = Layer.eff
         })
       )
     } else {
-      return Effect.fail(
-        new Config.ConfigError(
-          new Schema.SchemaError(
-            new SchemaIssue.MissingKey({
-              messageMissingKey: "window.indexedDB is not available"
-            })
-          )
-        )
-      )
+      return Effect.die(new Error("window.indexedDB is not available"))
     }
   })
 )

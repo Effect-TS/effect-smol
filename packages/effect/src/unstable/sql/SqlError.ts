@@ -1,21 +1,12 @@
 /**
- * Structured SQL errors used by the unstable SQL APIs.
+ * Defines structured failures for SQL clients and driver integrations.
  *
- * This module defines the top-level `SqlError` wrapper, the concrete
- * `SqlErrorReason` variants used by drivers and adapters, and helpers for
- * recognizing and classifying database failures. It is useful when turning
- * native driver errors into typed Effect failures, choosing retry policies from
- * `isRetryable`, or distinguishing user-facing query problems such as syntax
- * and constraint failures from infrastructure problems such as connection,
- * lock, statement timeout, deadlock, and serialization failures.
- *
- * Query, connection, and migration code should preserve the original cause and
- * operation metadata when constructing these errors. Retrying can be appropriate
- * for transient connection and concurrency failures, but syntax, authorization,
- * authentication, and constraint failures generally require changing the query,
- * credentials, permissions, or migration data. When classifying SQLite errors,
- * the helpers inspect `code` and `errno` values and extract unique constraint
- * names when available.
+ * `SqlError` wraps the different reasons a SQL operation can fail, such as
+ * connection, authentication, authorization, syntax, constraint, or transaction
+ * problems. Each reason keeps the original cause, optional message and
+ * operation metadata, and whether retrying may succeed. This module also
+ * includes schemas, guards, a SQLite error classifier, and the
+ * `ResultLengthMismatch` error used by ordered batched SQL resolvers.
  *
  * @since 4.0.0
  */
@@ -26,7 +17,7 @@ const TypeId = "~effect/sql/SqlError" as const
 const ReasonTypeId = "~effect/sql/SqlError/Reason" as const
 
 const ReasonFields = {
-  cause: Schema.Defect,
+  cause: Schema.Defect(),
   message: Schema.optional(Schema.String),
   operation: Schema.optional(Schema.String)
 }
@@ -34,6 +25,7 @@ const ReasonFields = {
 /**
  * SQL error reason for connection or open failures; marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class ConnectionError extends Schema.TaggedErrorClass<ConnectionError>("effect/sql/SqlError/ConnectionError")(
@@ -61,6 +53,7 @@ export class ConnectionError extends Schema.TaggedErrorClass<ConnectionError>("e
  * SQL error reason for authentication failures such as invalid credentials; not
  * marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class AuthenticationError extends Schema.TaggedErrorClass<AuthenticationError>(
@@ -87,6 +80,7 @@ export class AuthenticationError extends Schema.TaggedErrorClass<AuthenticationE
  * SQL error reason for authorization or permission failures; not marked
  * retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class AuthorizationError extends Schema.TaggedErrorClass<AuthorizationError>(
@@ -112,6 +106,7 @@ export class AuthorizationError extends Schema.TaggedErrorClass<AuthorizationErr
 /**
  * SQL error reason for invalid SQL syntax; not marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class SqlSyntaxError extends Schema.TaggedErrorClass<SqlSyntaxError>("effect/sql/SqlError/SqlSyntaxError")(
@@ -144,6 +139,7 @@ const UniqueViolationFields = {
  * SQL error reason for a unique constraint violation, including the violated
  * constraint identifier; not marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class UniqueViolation extends Schema.TaggedErrorClass<UniqueViolation>("effect/sql/SqlError/UniqueViolation")(
@@ -170,6 +166,7 @@ export class UniqueViolation extends Schema.TaggedErrorClass<UniqueViolation>("e
 /**
  * SQL error reason for a non-unique constraint violation; not marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class ConstraintError extends Schema.TaggedErrorClass<ConstraintError>("effect/sql/SqlError/ConstraintError")(
@@ -196,6 +193,7 @@ export class ConstraintError extends Schema.TaggedErrorClass<ConstraintError>("e
 /**
  * SQL error reason for a database deadlock; marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class DeadlockError extends Schema.TaggedErrorClass<DeadlockError>("effect/sql/SqlError/DeadlockError")(
@@ -223,6 +221,7 @@ export class DeadlockError extends Schema.TaggedErrorClass<DeadlockError>("effec
  * SQL error reason for a transaction serialization or isolation conflict;
  * marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class SerializationError extends Schema.TaggedErrorClass<SerializationError>(
@@ -249,6 +248,7 @@ export class SerializationError extends Schema.TaggedErrorClass<SerializationErr
  * SQL error reason for timing out while waiting on a database lock; marked
  * retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class LockTimeoutError extends Schema.TaggedErrorClass<LockTimeoutError>("effect/sql/SqlError/LockTimeoutError")(
@@ -275,6 +275,7 @@ export class LockTimeoutError extends Schema.TaggedErrorClass<LockTimeoutError>(
 /**
  * SQL error reason for a statement or query timeout; marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class StatementTimeoutError extends Schema.TaggedErrorClass<StatementTimeoutError>(
@@ -300,6 +301,7 @@ export class StatementTimeoutError extends Schema.TaggedErrorClass<StatementTime
 /**
  * SQL error reason for an unclassified database failure; not marked retryable.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class UnknownError extends Schema.TaggedErrorClass<UnknownError>("effect/sql/SqlError/UnknownError")(
@@ -327,6 +329,7 @@ export class UnknownError extends Schema.TaggedErrorClass<UnknownError>("effect/
  * Union of structured SQL error reasons, each carrying the original cause plus
  * optional message and operation metadata.
  *
+ * @category errors
  * @since 4.0.0
  */
 export type SqlErrorReason =
@@ -343,8 +346,9 @@ export type SqlErrorReason =
   | UnknownError
 
 /**
- * Schema union for encoding and decoding `SqlErrorReason` values.
+ * Schema for encoding and decoding SQL error reasons.
  *
+ * @category schemas
  * @since 4.0.0
  */
 export const SqlErrorReason: Schema.Union<[
@@ -374,9 +378,10 @@ export const SqlErrorReason: Schema.Union<[
 ])
 
 /**
- * Top-level SQL error wrapper whose `message`, `cause`, and `isRetryable`
+ * Error wrapper for SQL failures whose `message`, `cause`, and `isRetryable`
  * values are derived from its `SqlErrorReason`.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlError")("SqlError", {
@@ -418,6 +423,7 @@ export class SqlError extends Schema.TaggedErrorClass<SqlError>("effect/sql/SqlE
 /**
  * Returns `true` when a value is a `SqlError`.
  *
+ * @category guards
  * @since 4.0.0
  */
 export const isSqlError = (u: unknown): u is SqlError => Predicate.hasProperty(u, TypeId)
@@ -425,6 +431,7 @@ export const isSqlError = (u: unknown): u is SqlError => Predicate.hasProperty(u
 /**
  * Returns `true` when a value is a `SqlErrorReason`.
  *
+ * @category guards
  * @since 4.0.0
  */
 export const isSqlErrorReason = (u: unknown): u is SqlErrorReason => Predicate.hasProperty(u, ReasonTypeId)
@@ -500,6 +507,7 @@ const sqliteUniqueConstraintFromCause = (cause: unknown): string => {
  * Classifies a native SQLite error cause into a `SqlErrorReason` using its
  * `code` or `errno`, with optional message and operation metadata.
  *
+ * @category converting
  * @since 4.0.0
  */
 export const classifySqliteError = (
@@ -562,6 +570,7 @@ export const classifySqliteError = (
  * Error raised when an ordered batched SQL resolver receives a different number
  * of result rows than requests.
  *
+ * @category errors
  * @since 4.0.0
  */
 export class ResultLengthMismatch

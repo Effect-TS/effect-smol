@@ -1,55 +1,11 @@
 /**
- * The `Prompt` module provides several data structures to simplify creating and
- * combining prompts.
+ * Defines prompts sent to AI language models.
  *
- * This module defines the complete structure of a conversation with a large
- * language model, including messages, content parts, and provider-specific
- * options. It supports rich content types like text, files, tool calls, and
- * reasoning.
- *
- * **Example** (Creating a structured conversation)
- *
- * ```ts
- * import { Prompt } from "effect/unstable/ai"
- *
- * // Create a structured conversation
- * const conversation = Prompt.make([
- *   {
- *     role: "system",
- *     content: "You are a helpful assistant specialized in mathematics."
- *   },
- *   {
- *     role: "user",
- *     content: [{
- *       type: "text",
- *       text: "What is the derivative of x²?"
- *     }]
- *   },
- *   {
- *     role: "assistant",
- *     content: [{
- *       type: "text",
- *       text: "The derivative of x² is 2x."
- *     }]
- *   }
- * ])
- * ```
- *
- * **Example** (Combining prompts)
- *
- * ```ts
- * import { Prompt } from "effect/unstable/ai"
- *
- * // Concatenate multiple prompts together sequentially
- * const systemPrompt = Prompt.make([{
- *   role: "system",
- *   content: "You are a coding assistant."
- * }])
- *
- * const userPrompt = Prompt.make("Help me write a function")
- *
- * const combined = Prompt.concat(systemPrompt, userPrompt)
- * ```
+ * A prompt is an ordered list of messages. Messages can use roles such as
+ * system, user, assistant, and tool, and their content can be split into typed
+ * parts such as text, files, reasoning, tool calls, tool results, and approval
+ * messages. This module helps build prompts, combine them, and convert raw
+ * input or response parts into the shared prompt shape.
  *
  * @since 4.0.0
  */
@@ -61,7 +17,7 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
-import * as Parser from "../../SchemaParser.ts"
+import * as SchemaParser from "../../SchemaParser.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import type * as Response from "./Response.ts"
 
@@ -70,20 +26,15 @@ import type * as Response from "./Response.ts"
 // =============================================================================
 
 /**
- * Schema for provider-specific options which can be attached to both content
- * parts and messages, enabling provider-specific behavior.
+ * Schema for provider-specific options that can be attached to content parts
+ * and messages.
  *
- * Provider-specific options are namespaced by provider and have the structure:
+ * **Details**
  *
- * ```
- * {
- *   "<provider-specific-key>": {
- *     // Provider-specific options
- *   }
- * }
- * ```
+ * Provider-specific options are keyed by provider-specific names, and each
+ * value is JSON or `null`.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export const ProviderOptions: Schema.$Record<
@@ -95,7 +46,7 @@ export const ProviderOptions: Schema.$Record<
  * Type of provider-specific options that can be attached to prompt messages
  * and content parts.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type ProviderOptions = typeof ProviderOptions.Type
@@ -109,7 +60,7 @@ const PartTypeId = "~effect/ai/Prompt/Part" as const
 /**
  * Type guard to check if a value is a Part.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTypeId)
@@ -117,8 +68,11 @@ export const isPart = (u: unknown): u is Part => Predicate.hasProperty(u, PartTy
 /**
  * Union type representing all possible content parts within messages.
  *
+ * **Details**
+ *
  * Parts are the building blocks of message content, supporting text, files,
- * reasoning, tool calls, and tool results.
+ * reasoning, tool calls, tool results, tool approval responses, and tool
+ * approval requests.
  *
  * @category models
  * @since 4.0.0
@@ -150,7 +104,10 @@ export type PartEncoded =
 /**
  * Base interface for all content parts.
  *
- * Provides common structure including type and provider options.
+ * **Details**
+ *
+ * It provides the common structure shared by all content parts, including the
+ * part type and provider options.
  *
  * @category models
  * @since 4.0.0
@@ -238,7 +195,7 @@ export const makePart = <const Type extends Part["type"]>(
  * A utility type for specifying the parameters required to construct a
  * specific part of a prompt.
  *
- * @category Utility Types
+ * @category utility types
  * @since 4.0.0
  */
 export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | "type" | "options"> & {
@@ -255,7 +212,10 @@ export type PartConstructorParams<P extends Part> = Omit<P, typeof PartTypeId | 
 /**
  * Content part representing plain text.
  *
- * The most basic content type used for textual information in messages.
+ * **Details**
+ *
+ * Text parts are the basic content type used for textual information in
+ * messages.
  *
  * **Example** (Creating text parts)
  *
@@ -294,7 +254,7 @@ export interface TextPartEncoded extends BasePartEncoded<"text", TextPartOptions
  * Represents provider-specific options that can be associated with a
  * `TextPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface TextPartOptions extends ProviderOptions {}
@@ -377,7 +337,7 @@ export interface ReasoningPartEncoded extends BasePartEncoded<"reasoning", Reaso
  * Represents provider-specific options that can be associated with a
  * `ReasoningPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ReasoningPartOptions extends ProviderOptions {}
@@ -418,10 +378,12 @@ export const reasoningPart = (params: PartConstructorParams<ReasoningPart>): Rea
 // =============================================================================
 
 /**
- * Content part representing a file attachment. Files can be provided as base64
- * strings of data, byte arrays, or URLs.
+ * Content part representing a file attachment.
  *
- * Supports various file types including images, documents, and binary data.
+ * **Details**
+ *
+ * Files can be provided as base64 data strings, byte arrays, or URLs, and can
+ * represent images, documents, or other binary data.
  *
  * **Example** (Creating file parts)
  *
@@ -484,7 +446,7 @@ export interface FilePartEncoded extends BasePartEncoded<"file", FilePartOptions
  * Represents provider-specific options that can be associated with a
  * `FilePart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface FilePartOptions extends ProviderOptions {}
@@ -516,7 +478,14 @@ export const FilePart: Schema.Struct<{
 }).annotate({ identifier: "FilePart" })
 
 /**
- * Constructs a new file part.
+ * Constructs a `FilePart` for prompt file attachments.
+ *
+ * **When to use**
+ *
+ * Use to create the file-attachment part of a prompt from typed file part
+ * parameters.
+ *
+ * @see {@link makePart} for the generic part constructor
  *
  * @category constructors
  * @since 4.0.0
@@ -594,7 +563,7 @@ export interface ToolCallPartEncoded extends BasePartEncoded<"tool-call", ToolCa
  * Represents provider-specific options that can be associated with a
  * `ToolCallPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolCallPartOptions extends ProviderOptions {}
@@ -711,7 +680,7 @@ export interface ToolResultPartEncoded extends BasePartEncoded<"tool-result", To
  * Represents provider-specific options that can be associated with a
  * `ToolResultPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolResultPartOptions extends ProviderOptions {}
@@ -760,8 +729,10 @@ export const toolResultPart = (params: PartConstructorParams<ToolResultPart>): T
 /**
  * Content part representing a user's response to a tool approval request.
  *
- * Used in tool messages to approve or deny tool execution when tools have
- * the `needsApproval` property set.
+ * **When to use**
+ *
+ * Use when tool messages must approve or deny tool execution for tools with the
+ * `needsApproval` property set.
  *
  * **Example** (Creating tool approval responses)
  *
@@ -831,7 +802,7 @@ export interface ToolApprovalResponsePartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalResponsePart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolApprovalResponsePartOptions extends ProviderOptions {}
@@ -879,9 +850,11 @@ export const toolApprovalResponsePart = (
 /**
  * Content part representing a tool approval request from the framework.
  *
- * Stored in assistant messages when a tool requires user approval before
- * execution. The user responds with a `ToolApprovalResponsePart` in a tool
- * message.
+ * **Details**
+ *
+ * Tool approval request parts are stored in assistant messages when a tool
+ * requires user approval before execution. The user responds with a
+ * `ToolApprovalResponsePart` in a tool message.
  *
  * **Example** (Creating tool approval requests)
  *
@@ -934,7 +907,7 @@ export interface ToolApprovalRequestPartEncoded
  * Represents provider-specific options that can be associated with a
  * `ToolApprovalRequestPart` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolApprovalRequestPartOptions extends ProviderOptions {}
@@ -982,7 +955,7 @@ const MessageTypeId = "~effect/ai/Prompt/Message" as const
 /**
  * Type guard to check if a value is a Message.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, MessageTypeId)
@@ -990,7 +963,10 @@ export const isMessage = (u: unknown): u is Message => Predicate.hasProperty(u, 
 /**
  * Base interface for all message types.
  *
- * Provides common structure including role and provider options.
+ * **Details**
+ *
+ * It provides the common structure shared by all messages, including the role
+ * and provider options.
  *
  * @category models
  * @since 4.0.0
@@ -1009,8 +985,6 @@ export interface BaseMessage<Role extends string, Options extends ProviderOption
 
 /**
  * Base interface for encoded message types.
- *
- * @template Role - String literal type for the message role
  *
  * @category models
  * @since 4.0.0
@@ -1069,7 +1043,7 @@ export const makeMessage = <const Role extends Message["role"]>(
  * A utility type for specifying the parameters required to construct a
  * specific message for a prompt.
  *
- * @category Utility Types
+ * @category utility types
  * @since 4.0.0
  */
 export type MessageConstructorParams<M extends Message> = Omit<M, typeof MessageTypeId | "role" | "options"> & {
@@ -1158,7 +1132,7 @@ export interface SystemMessageEncoded extends BaseMessageEncoded<"system", Syste
  * Represents provider-specific options that can be associated with a
  * `SystemMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface SystemMessageOptions extends ProviderOptions {}
@@ -1271,7 +1245,7 @@ export type UserMessagePartEncoded = TextPartEncoded | FilePartEncoded
  * Represents provider-specific options that can be associated with a
  * `UserMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface UserMessageOptions extends ProviderOptions {}
@@ -1457,13 +1431,19 @@ export type AssistantMessagePartEncoded =
  * Represents provider-specific options that can be associated with a
  * `AssistantMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface AssistantMessageOptions extends ProviderOptions {}
 
 /**
  * Schema for validation and encoding of assistant messages.
+ *
+ * **Details**
+ *
+ * Assistant content can be a string decoded through `ContentFromString` or an
+ * array of text, file, reasoning, tool-call, tool-result, and
+ * tool-approval-request parts.
  *
  * @category schemas
  * @since 4.0.0
@@ -1531,6 +1511,14 @@ export const AssistantMessage: Schema.Struct<{
 
 /**
  * Constructs a new assistant message.
+ *
+ * **When to use**
+ *
+ * Use to add assistant-role prompt history or model responses.
+ *
+ * **Details**
+ *
+ * This is the role-specific wrapper around `makeMessage("assistant", params)`.
  *
  * @category constructors
  * @since 4.0.0
@@ -1612,7 +1600,7 @@ export type ToolMessagePartEncoded = ToolResultPartEncoded | ToolApprovalRespons
  * Represents provider-specific options that can be associated with a
  * `ToolMessage` through module augmentation.
  *
- * @category ProviderOptions
+ * @category options
  * @since 4.0.0
  */
 export interface ToolMessageOptions extends ProviderOptions {}
@@ -1738,7 +1726,7 @@ const $Prompt = Schema.declare((u) => isPrompt(u), { identifier: "Prompt" })
 // TODO: shoudn't the name be `PromptFrom...`?
 // TODO: is the explicit encoding necessary? maybe use the default JSON serializer?
 /**
- * Describes a schema that represents a `Prompt` instance.
+ * Schema for AI prompt instances.
  *
  * @category schemas
  * @since 4.0.0
@@ -1751,7 +1739,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
     SchemaTransformation.transformOrFail({
       decode: (input) =>
         Effect.mapBothEager(
-          Parser.decodeEffect(Schema.Array(Message))(input.content),
+          SchemaParser.decodeEffect(Schema.Array(Message))(input.content),
           {
             onSuccess: makePrompt,
             onFailure: () =>
@@ -1760,7 +1748,7 @@ export const Prompt: Schema.Codec<Prompt, PromptEncoded> = Schema.Struct({
         ),
       encode: (prompt) =>
         Effect.mapBothEager(
-          Parser.encodeEffect(Schema.Array(Message))(prompt.content),
+          SchemaParser.encodeEffect(Schema.Array(Message))(prompt.content),
           {
             onSuccess: (messages) => ({ content: messages }),
             onFailure: () =>
@@ -1834,7 +1822,9 @@ const decodeMessagesSync = Schema.decodeSync(Schema.Array(Message))
 export const empty: Prompt = makePrompt([])
 
 /**
- * Creates a Prompt from an input.
+ * Creates a `Prompt` from an input.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating prompts, supporting multiple
  * input formats for convenience and flexibility.
@@ -2061,8 +2051,10 @@ export const fromResponseParts = (parts: ReadonlyArray<Response.AnyPart>): Promp
 /**
  * Concatenates a prompt with additional raw input by concatenating messages.
  *
- * Creates a new prompt containing all messages from both the original prompt,
- * and the provided raw input, maintaining the order of messages.
+ * **Details**
+ *
+ * The returned prompt contains all messages from the original prompt followed
+ * by the provided raw input, preserving message order.
  *
  * **Example** (Concatenating prompts)
  *
@@ -2102,8 +2094,10 @@ export const concat: {
  * Creates a new prompt from the specified prompt with the system message set
  * to the specified text content.
  *
- * **NOTE**: This method will remove and replace any previous system message
- * from the prompt.
+ * **Gotchas**
+ *
+ * This method removes and replaces any previous system message from the
+ * prompt.
  *
  * **Example** (Replacing system instructions)
  *
@@ -2168,7 +2162,7 @@ export const setSystem: {
  * // result content: "You are a helpful assistant. You are an expert in programming."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const prependSystem: {
@@ -2217,7 +2211,7 @@ export const prependSystem: {
  * // result content: "You are an expert in programming. You are a helpful assistant."
  * ```
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const appendSystem: {

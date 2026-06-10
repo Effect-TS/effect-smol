@@ -1,38 +1,11 @@
 /**
- * The `BunClusterSocket` module provides the Bun socket transport for Effect
- * Cluster runners. It wires `SocketRunner` to Bun-compatible TCP sockets,
- * supplies RPC client and server protocol layers, and builds a complete
- * sharding layer with serialization, runner health, runner storage, and message
- * storage.
+ * Bun socket layers for Effect Cluster runners.
  *
- * **Common tasks**
- *
- * - Run a Bun process as a cluster runner over raw TCP sockets with
- *   {@link layer}
- * - Connect a client-only process to an existing socket cluster without
- *   starting a runner server
- * - Use SQL-backed storage for durable multi-process clusters, `local` storage
- *   for short-lived development, or `byo` storage when the deployment owns the
- *   persistence boundary
- * - Check runner health with socket pings or Kubernetes pod readiness through
- *   {@link layerK8sHttpClient}
- *
- * **Gotchas**
- *
- * - `runnerAddress` is the host and port advertised to other runners; set
- *   `runnerListenAddress` when the local bind address differs from the
- *   externally reachable address
- * - The socket transport is point-to-point RPC, not cluster gossip: runner
- *   membership, shard ownership, and persisted delivery are coordinated through
- *   `RunnerStorage`, `MessageStorage`, and `RunnerHealth`
- * - `clientOnly` does not start a socket server or receive shard assignments
- * - SQL storage is the default; `local` storage is in-memory/noop and `byo`
- *   requires the surrounding application to provide both runner and message
- *   storage services
- * - Ping health checks use the same socket protocol, so unreachable ports,
- *   firewalls, or serialization mismatches can make a runner appear unhealthy
- * - Kubernetes health checks use Bun's Fetch-backed HTTP client and the service
- *   account CA certificate when it is available
+ * The main `layer` builds a sharding layer for socket transport, choosing
+ * serialization, runner health checks, runner storage, message storage, and
+ * optional client-only mode from the supplied options. This module also
+ * re-exports the shared socket client and server protocol layers and provides
+ * `layerK8sHttpClient` for Kubernetes runner health checks.
  *
  * @since 4.0.0
  */
@@ -59,12 +32,18 @@ import * as BunFileSystem from "./BunFileSystem.ts"
 
 export {
   /**
-   * @category Re-exports
+   * Provides the cluster `RpcClientProtocol` using the shared socket client
+   * implementation.
+   *
+   * @category re-exports
    * @since 4.0.0
    */
   layerClientProtocol,
   /**
-   * @category Re-exports
+   * Provides the socket server used by Bun cluster runners through the shared
+   * socket server implementation.
+   *
+   * @category re-exports
    * @since 4.0.0
    */
   layerSocketServer
@@ -73,7 +52,7 @@ export {
 /**
  * Creates Bun socket cluster layers, configuring serialization, storage, runner health, and optional client-only mode.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = <
@@ -149,7 +128,7 @@ export const layer = <
 /**
  * Layer that provides `K8sHttpClient`, using the Kubernetes service-account CA certificate when it is available.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerK8sHttpClient: Layer.Layer<K8sHttpClient.K8sHttpClient> = K8sHttpClient.layer.pipe(

@@ -1,24 +1,11 @@
 /**
- * The `CliOutput` module provides the formatting service used by Effect CLI
- * applications to turn parsed CLI metadata and failures into terminal text.
- * It renders help documents, parser errors, grouped errors, and version output,
- * while allowing applications and tests to replace the formatter through a
- * `Context` service or `Layer`.
+ * Formats CLI help and errors as text.
  *
- * **Common tasks**
- *
- * - Render generated {@link HelpDoc} values for `--help` output
- * - Display parser failures and validation errors from CLI programs
- * - Customize output for plain text, colored terminals, tests, or alternate
- *   formats
- * - Format version strings consistently with the rest of CLI output
- *
- * **Gotchas**
- *
- * - Color output is auto-detected from `process.stdout.isTTY` and `NO_COLOR`,
- *   but can be forced with {@link defaultFormatter}
- * - Help tables measure visible width after stripping ANSI escape codes, so
- *   colored output stays aligned with plain output
+ * This module turns help documents, CLI errors, grouped errors, and version
+ * information into strings. It does not write those strings to the terminal
+ * itself. It includes the `Formatter` interface, the formatter service, a layer
+ * for custom formatters, and the default formatter with configurable color
+ * support.
  *
  * @since 4.0.0
  */
@@ -30,7 +17,7 @@ import type * as CliError from "./CliError.ts"
 import type { HelpDoc } from "./HelpDoc.ts"
 
 /**
- * Service interface for formatting CLI output including help, errors, and version info.
+ * Defines the service interface for formatting CLI output including help, errors, and version info.
  * This allows customization of output formatting, including color support.
  *
  * **Example** (Customizing CLI output formatting)
@@ -69,8 +56,8 @@ export interface Formatter {
    *
    * ```ts
    * import { Option as O } from "effect"
-   * import type { HelpDoc } from "effect/unstable/cli"
    * import { CliOutput } from "effect/unstable/cli"
+   * import type { HelpDoc } from "effect/unstable/cli"
    *
    * const helpDoc: HelpDoc = {
    *   usage: "myapp [options] <file>",
@@ -111,7 +98,7 @@ export interface Formatter {
    * **Example** (Formatting CLI errors)
    *
    * ```ts
-   * import * as Data from "effect/Data"
+   * import { Data } from "effect"
    * import { CliOutput } from "effect/unstable/cli"
    *
    * class InvalidOption extends Data.TaggedError("InvalidOption")<{
@@ -134,7 +121,7 @@ export interface Formatter {
    * **Example** (Formatting error sections)
    *
    * ```ts
-   * import * as Data from "effect/Data"
+   * import { Data } from "effect"
    * import { CliOutput } from "effect/unstable/cli"
    *
    * class ValidationError extends Data.TaggedError("ValidationError")<{
@@ -217,7 +204,7 @@ export interface Formatter {
  * **Example** (Accessing the output formatter)
  *
  * ```ts
- * import * as Effect from "effect/Effect"
+ * import { Effect } from "effect"
  * import { CliOutput } from "effect/unstable/cli"
  *
  * // Access the formatter service
@@ -249,8 +236,7 @@ export const Formatter: Context.Reference<Formatter> = Context.Reference(
  * **Example** (Providing a custom formatter)
  *
  * ```ts
- * import * as Console from "effect/Console"
- * import * as Effect from "effect/Effect"
+ * import { Console, Effect } from "effect"
  * import { CliOutput } from "effect/unstable/cli"
  *
  * // Create a custom formatter without colors

@@ -1,7 +1,9 @@
 /**
- * This module provides types and utility functions to create and work with
- * branded types, which are TypeScript types with an added type tag to prevent
- * accidental usage of a value in the wrong context.
+ * The `Brand` module adds compile-time names to ordinary TypeScript values so
+ * structurally identical values cannot be mixed accidentally. A branded value
+ * has the same runtime representation as its unbranded value; the extra
+ * information lives in the type system unless you choose a validating
+ * constructor.
  *
  * @since 2.0.0
  */
@@ -9,14 +11,23 @@ import * as Arr from "./Array.ts"
 import * as Option from "./Option.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import type * as Issue from "./SchemaIssue.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import type * as SchemaIssue from "./SchemaIssue.ts"
 import type * as Types from "./Types.ts"
 
 const TypeId = "~effect/Brand"
 
 /**
  * A generic interface that defines a branded type.
+ *
+ * **When to use**
+ *
+ * Use to define a branded type such as `number & Brand<"Positive">` when
+ * TypeScript should keep structurally identical values separate without
+ * changing their runtime value.
+ *
+ * @see {@link Branded} for applying a brand key to a base type
+ * @see {@link Constructor} for validating or constructing branded values
  *
  * @category models
  * @since 2.0.0
@@ -30,6 +41,17 @@ export interface Brand<in out Keys extends string> {
 /**
  * A constructor for a branded type that provides validation and safe
  * construction methods.
+ *
+ * **When to use**
+ *
+ * Use as the shared callable interface for branded values when an API accepts
+ * or returns a brand constructor and callers need throwing, `Option`, `Result`,
+ * or type-guard validation forms.
+ *
+ * @see {@link nominal} for a constructor without runtime validation
+ * @see {@link make} for creating a constructor from a validation predicate
+ * @see {@link check} for creating a constructor from schema checks
+ * @see {@link all} for combining brand constructors
  *
  * @category models
  * @since 2.0.0
@@ -62,18 +84,27 @@ export interface Constructor<in out B extends Brand<any>> {
    *
    * @internal
    */
-  checks?: readonly [AST.Check<Brand.Unbranded<B>>, ...Array<AST.Check<Brand.Unbranded<B>>>] | undefined
+  checks?: readonly [SchemaAST.Check<Brand.Unbranded<B>>, ...Array<SchemaAST.Check<Brand.Unbranded<B>>>] | undefined
 }
 
 /**
- * A `BrandError` is returned when a branded type is constructed from an invalid
- * value.
+ * Error returned when a branded type is constructed from an invalid value.
  *
- * @category models
+ * **Details**
+ *
+ * The error wraps a `SchemaIssue.Issue`, exposes `message` through
+ * `issue.toString()`, and formats as `BrandError(<message>)`.
+ *
+ * **Gotchas**
+ *
+ * `BrandError` is an error-like model with `_tag`, `name`, `message`, and
+ * `toString`; it does not extend JavaScript `Error`.
+ *
+ * @category errors
  * @since 4.0.0
  */
 export class BrandError {
-  constructor(issue: Issue.Issue) {
+  constructor(issue: SchemaIssue.Issue) {
     this.issue = issue
   }
   /**
@@ -93,7 +124,7 @@ export class BrandError {
    *
    * @since 4.0.0
    */
-  readonly issue: Issue.Issue
+  readonly issue: SchemaIssue.Issue
   /**
    * Human-readable rendering of the validation issue.
    *
@@ -122,6 +153,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract a branded type from a `Constructor`.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type FromConstructor<C> = C extends Constructor<infer B> ? B : never
@@ -129,6 +161,7 @@ export declare namespace Brand {
   /**
    * A utility type to extract the unbranded value type from a brand.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Unbranded<B extends Brand<any>> = B extends infer U & Brands<B> ? U : B
@@ -136,13 +169,15 @@ export declare namespace Brand {
   /**
    * A utility type to extract the keys of a branded type.
    *
-   * @since 2.0.0
+   * @category utility types
+   * @since 4.0.0
    */
   export type Keys<B extends Brand<any>> = keyof B[typeof TypeId]
 
   /**
    * A utility type to extract the brands from a branded type.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Brands<B extends Brand<any>> = Types.UnionToIntersection<
@@ -152,6 +187,7 @@ export declare namespace Brand {
   /**
    * A utility type that checks that all brands have the same base type.
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type EnsureCommonBase<
@@ -169,19 +205,22 @@ export declare namespace Brand {
 /**
  * A type alias for creating branded types more concisely.
  *
- * @category alias
+ * @category utility types
  * @since 2.0.0
  */
 export type Branded<A, Key extends string> = A & Brand<Key>
 
 /**
- * This function returns a `Constructor` that **does not apply any runtime
- * checks**, it just returns the provided value. It can be used to create
- * nominal types that allow distinguishing between two values of the same type
- * but with different meanings.
+ * Returns a `Constructor` that **does not apply any runtime checks** and just
+ * returns the provided value.
  *
- * If you also want to perform some validation, see {@link make} or
- * {@link check} or {@link refine}.
+ * **When to use**
+ *
+ * Use to create nominal types that allow distinguishing between two values
+ * of the same type but with different meanings.
+ *
+ * @see {@link make} for constructing branded values with validation.
+ * @see {@link check} for constructing branded values from schema checks.
  *
  * @category constructors
  * @since 2.0.0
@@ -195,39 +234,51 @@ export function nominal<A extends Brand<any>>(): Constructor<A> {
 }
 
 /**
- * Returns a `Constructor` that can construct a branded type from an
- * unbranded value using the provided `filter` predicate as validation of
- * the input data.
+ * Returns a `Constructor` that can construct a branded type from an unbranded
+ * value using the provided `filter` predicate as validation of the input data.
  *
- * If you don't want to perform any validation but only distinguish between two
- * values of the same type but with different meanings, see {@link nominal}.
+ * **When to use**
+ *
+ * Use when you want validation while constructing the branded type.
+ *
+ * @see {@link nominal} for a brand constructor that performs no validation.
  *
  * @category constructors
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function make<A extends Brand<any>>(
   filter: (unbranded: Brand.Unbranded<A>) => Schema.FilterOutput
 ): Constructor<A> {
-  return check(AST.makeFilter(filter))
+  return check(SchemaAST.makeFilter(filter))
 }
 
 /**
  * Creates a branded type `Constructor` from one or more schema checks.
  *
+ * **When to use**
+ *
+ * Use when you need a branded type constructor that performs runtime validation
+ * via schema checks.
+ *
+ * **Details**
+ *
  * Calling the returned constructor validates the unbranded value and throws on
  * failure. Use the returned `option`, `result`, or `is` methods for
  * non-throwing validation.
  *
+ * @see {@link nominal} for a brand constructor without runtime validation
+ * @see {@link all} for combining multiple brand constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function check<A extends Brand<any>>(
   ...checks: readonly [
-    AST.Check<Brand.Unbranded<A>>,
-    ...Array<AST.Check<Brand.Unbranded<A>>>
+    SchemaAST.Check<Brand.Unbranded<A>>,
+    ...Array<SchemaAST.Check<Brand.Unbranded<A>>>
   ]
 ): Constructor<A> {
   const result = (input: Brand.Unbranded<A>): Result.Result<A, BrandError> => {
-    return Result.mapError(AST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
+    return Result.mapError(SchemaAST.runChecks(checks, input), (issue) => new BrandError(issue)) as any
   }
   return Object.assign((input: Brand.Unbranded<A>) => Result.getOrThrow(result(input)), {
     option: (input: Brand.Unbranded<A>) => Option.getSuccess(result(input)),
@@ -238,9 +289,18 @@ export function check<A extends Brand<any>>(
 }
 
 /**
- * Combines two or more brands together to form a single branded type. This API
- * is useful when you want to validate that the input data passes multiple brand
- * validators.
+ * Combines one or more brand constructors to form a single branded type.
+ *
+ * **When to use**
+ *
+ * Use to require an input to satisfy every runtime check collected by the
+ * provided brand constructors.
+ *
+ * **Details**
+ *
+ * If the provided constructors contain runtime checks, the combined
+ * constructor succeeds only when all checks pass. If no runtime checks are
+ * present, it behaves as a nominal constructor.
  *
  * @category combining
  * @since 2.0.0

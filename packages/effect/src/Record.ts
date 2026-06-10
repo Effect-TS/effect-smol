@@ -1,5 +1,11 @@
 /**
- * This module provides utility functions for working with records in TypeScript.
+ * Works with plain JavaScript records as immutable key/value dictionaries.
+ *
+ * A record is an object whose keys are strings or symbols. This module includes
+ * helpers for construction, lookup, updates, mapping, filtering, folding,
+ * set-like combination, and typed conversions between records and iterable
+ * entries. Helpers that change values return new records instead of mutating the
+ * input.
  *
  * @since 2.0.0
  */
@@ -56,7 +62,6 @@ export type ReadonlyRecord<in out K extends string | symbol, out A> = {
  * type CommonKeys = Record.ReadonlyRecord.IntersectKeys<"a" | "b", "b" | "c"> // "b"
  * ```
  *
- * @category models
  * @since 2.0.0
  */
 export declare namespace ReadonlyRecord {
@@ -167,7 +172,7 @@ export const empty = <K extends string | symbol = never, V = never>(): Record<
 > => ({} as any)
 
 /**
- * Determine if a record is empty.
+ * Determines if a mutable record is empty.
  *
  * **Example** (Checking for an empty record)
  *
@@ -186,7 +191,7 @@ export const isEmptyRecord = <K extends string, A>(self: Record<K, A>): self is 
   Object.keys(self).length === 0
 
 /**
- * Determine if a record is empty.
+ * Determines if a readonly record is empty.
  *
  * **Example** (Checking for an empty readonly record)
  *
@@ -283,6 +288,8 @@ export const fromIterableBy = <A, K extends string | symbol>(
 /**
  * Builds a record from an iterable of key-value pairs.
  *
+ * **Details**
+ *
  * If there are conflicting keys when using `fromEntries`, the last occurrence of the key/value pair will overwrite the
  * previous ones. So the resulting record will only have the value of the last occurrence of each key.
  *
@@ -320,7 +327,7 @@ export const fromEntries: <Entry extends readonly [string | symbol, any]>(
  * ], ["c", 3]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const collect: {
@@ -350,7 +357,7 @@ export const collect: {
  * assert.deepStrictEqual(Record.toEntries(x), [["a", 1], ["b", 2], ["c", 3]])
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 2.0.0
  */
 export const toEntries: <K extends string, A>(self: ReadonlyRecord<K, A>) => Array<[K, A]> = collect((
@@ -376,7 +383,7 @@ export const toEntries: <K extends string, A>(self: ReadonlyRecord<K, A>) => Arr
 export const size = <K extends string, A>(self: ReadonlyRecord<K, A>): number => keys(self).length
 
 /**
- * Check if a given `key` exists in a record.
+ * Checks whether a given `key` exists in a record.
  *
  * **Example** (Checking key membership)
  *
@@ -408,7 +415,7 @@ export const has: {
 )
 
 /**
- * Retrieve a value at a particular key from a record, returning it wrapped in an `Option`.
+ * Retrieves a value at a particular key from a record safely, returning it wrapped in an `Option`.
  *
  * **Example** (Getting a value as an Option)
  *
@@ -435,7 +442,7 @@ export const get: {
 )
 
 /**
- * Apply a function to the element at the specified key, creating a new record,
+ * Applies a function to the element at the specified key safely, creating a new record,
  * or return `Option.none()` if the key doesn't exist.
  *
  * **Example** (Modifying a value at a key)
@@ -451,7 +458,7 @@ export const get: {
  * Record.modify(input, "b", f) // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const modify: {
@@ -477,8 +484,10 @@ export const modify: {
 )
 
 /**
- * Replaces the value at an existing key and returns the updated record in
+ * Replaces the value at an existing key safely and returns the updated record in
  * `Option.some`.
+ *
+ * **Details**
  *
  * If the key is not present, returns `Option.none()` and leaves the record
  * unchanged.
@@ -492,7 +501,7 @@ export const modify: {
  * Record.replace(Record.empty<string>(), "a", 10) // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const replace: {
@@ -515,8 +524,16 @@ export const replace: {
 )
 
 /**
- * If the given key exists in the record, returns a new record with the key removed.
- * If the key does not exist, returns a shallow copy of the original record.
+ * Removes a key from a record.
+ *
+ * **When to use**
+ *
+ * Use to create a shallow copy of a record without one property.
+ *
+ * **Details**
+ *
+ * If the key is not present, the result is still a shallow copy of the original
+ * record.
  *
  * **Example** (Removing a key)
  *
@@ -527,7 +544,7 @@ export const replace: {
  * assert.deepStrictEqual(Record.remove({ a: 1, b: 2 }, "a"), { b: 2 })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const remove: {
@@ -546,7 +563,7 @@ export const remove: {
 )
 
 /**
- * Retrieves the value of the property with the given `key` from a record and returns an `Option`
+ * Retrieves the value of the property with the given `key` from a record safely and returns an `Option`
  * of a tuple with the value and the record with the removed property.
  * If the key is not present, returns `Option.none()`.
  *
@@ -561,7 +578,7 @@ export const remove: {
  * Record.pop(input, "c") // Option.none()
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const pop: {
@@ -786,7 +803,8 @@ export const filter: {
 )
 
 /**
- * Given a record with `Option` values, returns a new record containing only the `Some` values, preserving the original keys.
+ * Returns a new record containing only the `Some` values from a record of
+ * `Option` values, preserving the original keys.
  *
  * **Example** (Extracting Some values)
  *
@@ -819,7 +837,8 @@ export const getSomes: <K extends string, A>(
 }
 
 /**
- * Given a record with `Result` values, returns a new record containing only the `Err` values, preserving the original keys.
+ * Returns a new record containing only the `Err` values from a record of
+ * `Result` values, preserving the original keys.
  *
  * **Example** (Extracting Result failures)
  *
@@ -838,7 +857,7 @@ export const getSomes: <K extends string, A>(
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getFailures = <K extends string, A, E>(
   self: ReadonlyRecord<K, Result<A, E>>
@@ -855,7 +874,8 @@ export const getFailures = <K extends string, A, E>(
 }
 
 /**
- * Given a record with `Result` values, returns a new record containing only the `Ok` values, preserving the original keys.
+ * Returns a new record containing only the `Ok` values from a record of
+ * `Result` values, preserving the original keys.
  *
  * **Example** (Extracting Result successes)
  *
@@ -874,7 +894,7 @@ export const getFailures = <K extends string, A, E>(
  * ```
  *
  * @category filtering
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getSuccesses = <K extends string, A, E>(
   self: ReadonlyRecord<K, Result<A, E>>
@@ -893,6 +913,8 @@ export const getSuccesses = <K extends string, A, E>(
 /**
  * Applies a function to each record entry and partitions the returned `Result`
  * values into two records.
+ *
+ * **Details**
  *
  * Failure values are collected in the left record, and success values are
  * collected in the right record, preserving the original keys.
@@ -965,7 +987,7 @@ export const separate: <K extends string, A, B>(
 ) => [Record<ReadonlyRecord.NonLiteralKey<K>, A>, Record<ReadonlyRecord.NonLiteralKey<K>, B>] = partition(identity)
 
 /**
- * Retrieve the keys of a given record as an array.
+ * Retrieves the keys of a given record as an array.
  *
  * **Example** (Getting record keys)
  *
@@ -983,7 +1005,7 @@ export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): 
   Object.keys(self) as Array<K & string>
 
 /**
- * Retrieve the values of a given record as an array.
+ * Retrieves the values of a given record as an array.
  *
  * **Example** (Getting record values)
  *
@@ -1000,7 +1022,7 @@ export const keys = <K extends string | symbol, A>(self: ReadonlyRecord<K, A>): 
 export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A> => collect(self, (_, a) => a)
 
 /**
- * Add a new key-value pair or update an existing key's value in a record.
+ * Adds a new key-value pair or update an existing key's value in a record.
  *
  * **Example** (Setting a record value)
  *
@@ -1012,7 +1034,7 @@ export const values = <K extends string, A>(self: ReadonlyRecord<K, A>): Array<A
  * assert.deepStrictEqual(Record.set("c", 5)({ a: 1, b: 2 }), { a: 1, b: 2, c: 5 })
  * ```
  *
- * @category utils
+ * @category mutations
  * @since 2.0.0
  */
 export const set: {
@@ -1037,7 +1059,7 @@ export const set: {
 )
 
 /**
- * Check if all the keys and values in one record are also found in another record.
+ * Checks whether all the keys and values in one record are also found in another record.
  * Uses the provided equivalence function to compare values.
  *
  * **Example** (Checking subrecords with a custom equivalence)
@@ -1085,6 +1107,8 @@ export const isSubrecordBy = <A>(equivalence: Equivalence<A>): {
 /**
  * Checks whether the first record is a subrecord of the second record.
  *
+ * **Details**
+ *
  * Returns `true` when every key and value in `self` is also present in `that`.
  * Values are compared with Effect equality via `Equal.asEquivalence()`.
  *
@@ -1113,7 +1137,7 @@ export const isSubrecord: {
 } = isSubrecordBy(Equal.asEquivalence())
 
 /**
- * Reduce a record to a single value by combining its entries with a specified function.
+ * Reduces a record to a single value by combining its entries with a specified function.
  *
  * **Example** (Reducing record values)
  *
@@ -1152,7 +1176,7 @@ export const reduce: {
 )
 
 /**
- * Check if all entries in a record meet a specific condition.
+ * Checks whether all entries in a record meet a specific condition.
  *
  * **Example** (Checking every record value)
  *
@@ -1193,7 +1217,7 @@ export const every: {
 )
 
 /**
- * Check if any entry in a record meets a specific condition.
+ * Checks whether any entry in a record meets a specific condition.
  *
  * **Example** (Checking for any matching value)
  *
@@ -1224,7 +1248,7 @@ export const some: {
 )
 
 /**
- * Merge two records, preserving entries that exist in either of the records.
+ * Merges two records, preserving entries that exist in either of the records.
  * For keys that exist in both records, the provided combine function is used to merge the values.
  *
  * **Example** (Merging records with union)
@@ -1283,7 +1307,7 @@ export const union: {
 )
 
 /**
- * Merge two records, retaining only the entries that exist in both records.
+ * Merges two records, retaining only the entries that exist in both records.
  * For intersecting keys, the provided combine function is used to merge the values.
  *
  * **Example** (Merging intersecting keys)
@@ -1332,7 +1356,7 @@ export const intersection: {
 )
 
 /**
- * Merge two records, preserving only the entries that are unique to each record.
+ * Merges two records, preserving only the entries that are unique to each record.
  * Keys that exist in both records are excluded from the result.
  *
  * **Example** (Keeping keys unique to each record)
@@ -1399,7 +1423,7 @@ export const difference: {
  * ```
  *
  * @category instances
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const makeEquivalence = <K extends string, A>(
   equivalence: Equivalence<A>
@@ -1428,10 +1452,25 @@ export const singleton = <K extends string | symbol, A>(key: K, value: A): Recor
 } as any)
 
 /**
- * A `Reducer` for combining `Record`s using union.
+ * Creates a `Reducer` for combining `Record`s using union, with values for keys that exist in both records combined
+ * using the provided `Combiner`.
  *
- * Values for keys that exist in both records are combined using the provided `Combiner`.
+ * **When to use**
  *
+ * Use to build a reusable reducer for accumulating many records into one
+ * union-shaped record, preserving keys from every input and combining
+ * overlapping values with the supplied combiner.
+ *
+ * **Details**
+ *
+ * The returned reducer uses `Record.union` for combine and an empty record as
+ * `initialValue`, so the default `combineAll` folds from `{}` and accumulates
+ * keys from each input record.
+ *
+ * @see {@link union} for one-off record merging with the same union semantics
+ * @see {@link makeReducerIntersection} for a reducer that keeps only keys present on both sides
+ *
+ * @category combining
  * @since 4.0.0
  */
 export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<Record<K, A>> {
@@ -1445,10 +1484,21 @@ export function makeReducerUnion<K extends string, A>(combiner: Combiner.Combine
  * Creates a `Reducer` whose `combine` operation intersects two records and
  * combines values for keys present in both records.
  *
+ * **When to use**
+ *
+ * Use to build a `Reducer` that combines records by retaining only keys shared
+ * by both inputs and combining matching values with a `Combiner`.
+ *
+ * **Gotchas**
+ *
  * The reducer's `initialValue` is an empty record. Because intersection with
  * an empty record is empty, the default `combineAll` folds from `{}` and
  * therefore produces `{}` for ordinary non-empty inputs.
  *
+ * @see {@link makeReducerUnion} for a reducer that preserves keys from either input record
+ * @see {@link intersection} for applying the shared-key merge to one pair of records
+ *
+ * @category combining
  * @since 4.0.0
  */
 export function makeReducerIntersection<K extends string, A>(

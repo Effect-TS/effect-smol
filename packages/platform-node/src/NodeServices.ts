@@ -1,23 +1,14 @@
 /**
- * Provides the aggregate Node platform services layer for applications that run
- * on the Node.js runtime.
+ * Aggregate Node.js platform services layer.
  *
- * This module is useful when an application needs the standard Node-backed
- * implementations of filesystem access, path operations, stdio, terminal
- * interaction, and child process spawning from a single layer. Provide
- * `NodeServices.layer` near the edge of a program to satisfy effects that read
- * or write files, resolve paths, interact with stdin/stdout/stderr or a
- * terminal, or launch subprocesses.
- *
- * The layer only supplies the runtime services listed by `NodeServices`; it does
- * not provide unrelated platform services such as HTTP clients or servers.
- * Libraries should continue to depend on the individual service tags they use,
- * while applications, CLIs, and tests can choose this layer or narrower
- * service-specific layers depending on how much of the Node runtime they want to
- * expose.
+ * This module defines the `NodeServices` union and a single `layer` that
+ * provides Node-backed child process spawning, crypto, filesystem, path, stdio,
+ * and terminal services. Use the layer when a Node program wants the standard
+ * platform services from one place.
  *
  * @since 4.0.0
  */
+import type { Crypto } from "effect/Crypto"
 import type { FileSystem } from "effect/FileSystem"
 import * as Layer from "effect/Layer"
 import type { Path } from "effect/Path"
@@ -25,6 +16,7 @@ import type { Stdio } from "effect/Stdio"
 import type { Terminal } from "effect/Terminal"
 import type { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 import * as NodeChildProcessSpawner from "./NodeChildProcessSpawner.ts"
+import * as NodeCrypto from "./NodeCrypto.ts"
 import * as NodeFileSystem from "./NodeFileSystem.ts"
 import * as NodePath from "./NodePath.ts"
 import * as NodeStdio from "./NodeStdio.ts"
@@ -37,19 +29,20 @@ import * as NodeTerminal from "./NodeTerminal.ts"
  * @category models
  * @since 4.0.0
  */
-export type NodeServices = ChildProcessSpawner | FileSystem | Path | Stdio | Terminal
+export type NodeServices = ChildProcessSpawner | Crypto | FileSystem | Path | Stdio | Terminal
 
 /**
  * Provides the default Node implementations for child process spawning,
  * filesystem, path, stdio, and terminal services.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<NodeServices> = Layer.provideMerge(
   NodeChildProcessSpawner.layer,
   Layer.mergeAll(
     NodeFileSystem.layer,
+    NodeCrypto.layer,
     NodePath.layer,
     NodeStdio.layer,
     NodeTerminal.layer

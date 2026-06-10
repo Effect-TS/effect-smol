@@ -1,18 +1,10 @@
 /**
- * Template literal helpers for rendering HTTP-oriented text with Effect values.
+ * Builds HTTP response text from template literals.
  *
- * This module powers response helpers that accept template tags, such as HTML
- * responses with dynamic fragments, deferred service lookups, or streaming
- * sections. Use `make` when the whole rendered value should be assembled before
- * building the response, and `stream` when parts of the template can be emitted
- * incrementally from effects or streams.
- *
- * Interpolation is intentionally simple: primitive values are converted to
- * strings, arrays are concatenated without separators, and `Option.none`,
- * `null`, and `undefined` render as empty text. The module does not escape HTML,
- * encode bytes, set content types, or compute content lengths, so callers should
- * escape or encode untrusted values and choose the appropriate response
- * constructor for the rendered output.
+ * Template interpolations can be plain values, optional values, effects, or
+ * streams. The resulting effect or stream keeps the errors and service
+ * requirements from any effectful interpolations, which lets response helpers
+ * assemble dynamic text without losing type information.
  *
  * @since 4.0.0
  */
@@ -32,6 +24,8 @@ export type PrimitiveValue = string | number | bigint | boolean | null | undefin
 /**
  * Primitive template interpolation value.
  *
+ * **Details**
+ *
  * Arrays are rendered by converting each element to a string and concatenating the
  * results.
  *
@@ -42,6 +36,8 @@ export type Primitive = PrimitiveValue | ReadonlyArray<PrimitiveValue>
 
 /**
  * Value accepted by the string template constructor.
+ *
+ * **Details**
  *
  * Interpolations can be primitive values, optional primitive values, or effects
  * that produce primitive values.
@@ -57,6 +53,8 @@ export type Interpolated =
 /**
  * Value accepted by the streaming template constructor.
  *
+ * **Details**
+ *
  * In addition to normal interpolations, stream interpolations can emit primitive
  * values over time.
  *
@@ -68,12 +66,13 @@ export type InterpolatedWithStream = Interpolated | Stream.Stream<Primitive, any
 /**
  * Namespace containing type-level helpers for template interpolations.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Interpolated {
   /**
    * Extracts the required context from an effect or stream interpolation.
+   *
+   * **Details**
    *
    * Plain values and `Option` interpolations contribute no context.
    *
@@ -89,6 +88,8 @@ export declare namespace Interpolated {
   /**
    * Extracts the error type from an effect or stream interpolation.
    *
+   * **Details**
+   *
    * Plain values and `Option` interpolations contribute no error type.
    *
    * @category models
@@ -103,6 +104,8 @@ export declare namespace Interpolated {
 
 /**
  * Creates an effectful string from a template literal.
+ *
+ * **Details**
  *
  * Primitive and `Option` interpolations are rendered immediately. Effect
  * interpolations are evaluated and rendered before the final string is produced.
@@ -161,6 +164,8 @@ export function make<A extends ReadonlyArray<Interpolated>>(
 
 /**
  * Creates a stream of strings from a template literal.
+ *
+ * **Details**
  *
  * Static text is emitted with interpolated values. Effect interpolations are
  * evaluated as stream chunks, and stream interpolations are flattened into the

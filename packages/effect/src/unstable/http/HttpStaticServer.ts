@@ -1,19 +1,11 @@
 /**
- * Static file serving for Effect HTTP applications.
+ * Serves static files for Effect HTTP applications.
  *
- * This module builds request handlers and router layers that serve files from a
- * configured root directory. It is intended for public assets such as compiled
- * front-end bundles, images, fonts, downloads, documentation sites, and single
- * page applications that need an `index.html` fallback.
- *
- * Requests are resolved relative to the configured root after decoding and
- * normalizing the URL path. Malformed paths, null bytes, and `..` traversal
- * outside the root are rejected, but the module still serves anything the
- * configured `FileSystem` can reach below that root. Keep secrets out of the
- * served tree, be careful with symlinks or generated files, and remember that
- * dotfiles are not hidden automatically. File responses include content type,
- * optional cache control, byte-range support, and conditional request handling
- * based on the metadata supplied by `HttpPlatform`.
+ * `HttpStaticServer` turns request paths into file responses under a configured
+ * root directory. It can be used as an application value or mounted onto an
+ * `HttpRouter`, and it handles index files, optional single-page application
+ * fallback, MIME type headers, cache-control headers, byte ranges, and
+ * conditional `304 Not Modified` responses.
  *
  * @since 4.0.0
  */
@@ -36,7 +28,7 @@ import * as HttpServerResponse from "./HttpServerResponse.ts"
  *
  * ```ts
  * import { Effect } from "effect"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpStaticServer } from "effect/unstable/http"
  *
  * const program = Effect.gen(function*() {
  *   const app = yield* HttpStaticServer.make({ root: "./public" })
@@ -189,9 +181,7 @@ export const make: (options: {
  *
  * ```ts
  * import { Layer } from "effect"
- * import * as HttpRouter from "effect/unstable/http/HttpRouter"
- * import * as HttpServerResponse from "effect/unstable/http/HttpServerResponse"
- * import * as HttpStaticServer from "effect/unstable/http/HttpStaticServer"
+ * import { HttpRouter, HttpServerResponse, HttpStaticServer } from "effect/unstable/http"
  *
  * const ApiLayer = HttpRouter.add("GET", "/health", HttpServerResponse.text("ok"))
  *

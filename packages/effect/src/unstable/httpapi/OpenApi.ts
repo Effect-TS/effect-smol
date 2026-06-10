@@ -1,32 +1,10 @@
 /**
- * The `OpenApi` module converts declarative `HttpApi` definitions into
- * OpenAPI 3.1 specifications and provides annotations for shaping the
- * generated document.
+ * Generates OpenAPI 3.1 documents from declarative `HttpApi` contracts.
  *
- * Use this module when you need to publish an `HttpApi` contract to tooling
- * such as Swagger UI, Scalar, client generators, API gateways, or documentation
- * pipelines. `fromApi` reflects the API's groups and endpoints into tags,
- * paths, operations, parameters, request bodies, responses, security schemes,
- * and component schemas while preserving Effect Schema metadata where OpenAPI
- * can represent it.
- *
- * The generated specification is driven by annotations on APIs, groups,
- * endpoints, security definitions, and schemas. `Title`, `Description`,
- * `Summary`, `Version`, `Servers`, `License`, `ExternalDocs`, `Identifier`,
- * `Deprecated`, and `Format` feed the corresponding OpenAPI fields; `Exclude`
- * omits a group or endpoint; `Override` shallowly merges custom fields; and
- * `Transform` can rewrite the generated API, tag, or operation object. Schema
- * identifiers are important for stable component names, additional schemas must
- * have identifiers, and invalid OpenAPI component keys are rejected during
- * generation.
- *
- * A few generation details are worth keeping in mind: `HttpApiSchema`
- * encodings choose media types and special representations for JSON,
- * form-url-encoded, text, binary, and multipart payloads; no-content schemas
- * emit responses without bodies; request and response unions are grouped by
- * status code and content type; path parameters are rendered from `:id` route
- * segments as `{id}`; and schemas are converted through the OpenAPI 3.1 JSON
- * Schema representation before being patched into the final document.
+ * The generator reads API groups, endpoints, schemas, security definitions, and
+ * annotations, then produces an OpenAPI document. This module also provides the
+ * annotations used to shape that output and the TypeScript model for the
+ * OpenAPI objects it generates.
  *
  * @since 4.0.0
  */
@@ -39,7 +17,7 @@ import { escapeToken } from "../../JsonPointer.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaRepresentation from "../../SchemaRepresentation.ts"
 import * as HttpMethod from "../http/HttpMethod.ts"
 import * as HttpApi from "./HttpApi.ts"
@@ -142,7 +120,13 @@ export class Deprecated extends Context.Service<Deprecated, boolean>()("effect/h
 export class Override extends Context.Service<Override, Record<string, unknown>>()("effect/httpapi/OpenApi/Override") {}
 
 /**
- * OpenAPI annotation reference that excludes an annotated group or endpoint from the generated specification.
+ * Annotation that excludes an annotated group or endpoint from the generated
+ * OpenAPI specification.
+ *
+ * **When to use**
+ *
+ * Use to hide internal, experimental, or otherwise undocumented HTTP API groups
+ * and endpoints from generated OpenAPI output.
  *
  * @category annotations
  * @since 4.0.0
@@ -153,6 +137,8 @@ export const Exclude = Context.Reference<boolean>("effect/httpapi/OpenApi/Exclud
 
 /**
  * OpenAPI annotation for transforming a generated OpenAPI object.
+ *
+ * **Details**
  *
  * The function is applied during generation to the annotated API, group tag, or
  * endpoint operation.
@@ -285,11 +271,11 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
   const pathOps: Array<
     {
       readonly _tag: "schema"
-      readonly ast: AST.AST
+      readonly ast: SchemaAST.AST
       readonly path: ReadonlyArray<string>
     } | {
       readonly _tag: "parameter"
-      readonly ast: AST.AST
+      readonly ast: SchemaAST.AST
       readonly path: ReadonlyArray<string>
     }
   > = []
@@ -363,8 +349,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
             const filtered = schemas.filter((s) => !HttpApiSchema.isNoContent(s.ast))
             if (filtered.length === 0) return
             hasContent = true
-            const asts = filtered.map(AST.getAST)
-            const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+            const asts = filtered.map(SchemaAST.getAST)
+            const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
             pathOps.push({
               _tag: "schema",
               ast: toEncodingAST(ast, encoding._tag),
@@ -389,8 +375,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
           if (content !== undefined) {
             content.forEach((map, encoding) => {
               map.forEach((schemas, contentType) => {
-                const asts = Array.from(schemas, AST.getAST)
-                const ast = asts.length === 1 ? asts[0] : new AST.Union(asts, "anyOf")
+                const asts = Array.from(schemas, SchemaAST.getAST)
+                const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
 
                 pathOps.push({
                   _tag: "schema",
@@ -409,14 +395,14 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       function processParameters(schema: Schema.Top | undefined, i: OpenAPISpecParameter["in"]) {
         if (schema) {
-          const ast = AST.getLastEncoding(schema.ast)
-          if (AST.isObjects(ast)) {
+          const ast = SchemaAST.getLastEncoding(schema.ast)
+          if (SchemaAST.isObjects(ast)) {
             for (const ps of ast.propertySignatures) {
               op.parameters.push({
                 name: String(ps.name),
                 in: i,
                 schema: {},
-                required: i === "path" || !AST.isOptional(ps.type)
+                required: i === "path" || !SchemaAST.isOptional(ps.type)
               })
               pathOps.push({
                 _tag: "parameter",
@@ -508,7 +494,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
   processAnnotation(api.annotations, HttpApi.AdditionalSchemas, (componentSchemas) => {
     componentSchemas.forEach((componentSchema) => {
-      const identifier = AST.resolveIdentifier(componentSchema.ast)
+      const identifier = SchemaAST.resolveIdentifier(componentSchema.ast)
       if (identifier !== undefined) {
         if (identifier in spec.components.schemas) {
           throw new globalThis.Error(`Duplicate component schema identifier: ${identifier}`)
@@ -583,8 +569,8 @@ type ResponseBodies = Map<
 
 function extractResponseBodies(
   schemas: Array<Schema.Top>,
-  getStatus: (ast: AST.AST) => number,
-  getDescription: (ast: AST.AST) => string | undefined
+  getStatus: (ast: SchemaAST.AST) => number,
+  getDescription: (ast: SchemaAST.AST) => string | undefined
 ): ResponseBodies {
   const map = new Map<number, {
     descriptions: Set<string>
@@ -651,8 +637,8 @@ function extractResponseBodies(
   }
 }
 
-function resolveDescriptionOrIdentifier(ast: AST.AST): string | undefined {
-  return AST.resolveDescription(ast) ?? AST.resolveIdentifier(ast)
+function resolveDescriptionOrIdentifier(ast: SchemaAST.AST): string | undefined {
+  return SchemaAST.resolveDescription(ast) ?? SchemaAST.resolveIdentifier(ast)
 }
 
 type Content = Map<
@@ -667,7 +653,7 @@ const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"
 })
 
-function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.AST {
+function toEncodingAST(ast: SchemaAST.AST, _tag: HttpApiSchema.Encoding["_tag"]): SchemaAST.AST {
   switch (_tag) {
     case "Uint8Array":
       return Uint8ArrayEncoding.ast
@@ -681,9 +667,9 @@ function toEncodingAST(ast: AST.AST, _tag: HttpApiSchema.Encoding["_tag"]): AST.
   }
 }
 
-function persistedFileToBinaryEncoding(ast: AST.AST): AST.AST {
+function persistedFileToBinaryEncoding(ast: SchemaAST.AST): SchemaAST.AST {
   if (
-    AST.isDeclaration(ast) &&
+    SchemaAST.isDeclaration(ast) &&
     ((ast.annotations as (Schema.Annotations.Declaration<unknown, readonly []> | undefined))?.typeConstructor?._tag ===
       "effect/http/PersistedFile")
   ) {
@@ -710,7 +696,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
         scheme: "basic"
       }
     }
-    case "Bearer": {
+    case "Http": {
       const format = Context.getOption(security.annotations, Format).pipe(
         Option.map((format) => ({ bearerFormat: format })),
         Option.getOrUndefined
@@ -718,7 +704,7 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
       return {
         ...meta,
         type: "http",
-        scheme: "bearer",
+        scheme: security.scheme,
         ...format
       }
     }

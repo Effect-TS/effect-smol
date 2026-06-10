@@ -1,38 +1,12 @@
 /**
- * This module provides a comprehensive file system abstraction that supports both synchronous
- * and asynchronous file operations through Effect. It includes utilities for file I/O, directory
- * management, permissions, timestamps, and file watching with proper error handling.
+ * Defines the portable file system service for Effect programs.
  *
- * The `FileSystem` interface provides a cross-platform abstraction over file system operations,
- * allowing you to work with files and directories in a functional, composable way. All operations
- * return `Effect` values that can be composed, transformed, and executed safely.
- *
- * **Example** (Working with files and directories)
- *
- * ```ts
- * import { Console, Effect, FileSystem } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const fs = yield* FileSystem.FileSystem
- *
- *   // Create a directory
- *   yield* fs.makeDirectory("./temp", { recursive: true })
- *
- *   // Write a file
- *   yield* fs.writeFileString("./temp/hello.txt", "Hello, World!")
- *
- *   // Read the file back
- *   const content = yield* fs.readFileString("./temp/hello.txt")
- *   yield* Console.log("File content:", content)
- *
- *   // Get file information
- *   const stats = yield* fs.stat("./temp/hello.txt")
- *   yield* Console.log("File size:", stats.size)
- *
- *   // Clean up
- *   yield* fs.remove("./temp", { recursive: true })
- * })
- * ```
+ * `FileSystem` is the boundary between Effect code and the host file system.
+ * Platform packages provide concrete layers, while this module defines the
+ * operations for reading, writing, inspecting, streaming, and watching files.
+ * Operations return `Effect`, `Stream`, or `Sink` values and fail with
+ * `PlatformError`. The module also includes file handles, size helpers, open
+ * flags, watch events, and the watch backend service.
  *
  * @since 4.0.0
  */
@@ -55,6 +29,8 @@ const TypeId = "~effect/platform/FileSystem"
 
 /**
  * Core interface for file system operations in Effect.
+ *
+ * **Details**
  *
  * The FileSystem interface provides a comprehensive set of file and directory operations
  * that work cross-platform. All operations return Effect values that can be composed,
@@ -87,14 +63,14 @@ const TypeId = "~effect/platform/FileSystem"
  * })
  * ```
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export interface FileSystem {
   readonly [TypeId]: typeof TypeId
 
   /**
-   * Check if a file can be accessed.
+   * Checks whether a file can be accessed.
    * You can optionally specify the level of access to check for.
    */
   readonly access: (
@@ -107,6 +83,8 @@ export interface FileSystem {
   ) => Effect.Effect<void, PlatformError>
   /**
    * Copy a file or directory from `fromPath` to `toPath`.
+   *
+   * **Details**
    *
    * Equivalent to `cp -r`.
    */
@@ -141,7 +119,7 @@ export interface FileSystem {
     gid: number
   ) => Effect.Effect<void, PlatformError>
   /**
-   * Check if a path exists.
+   * Checks whether a path exists.
    */
   readonly exists: (
     path: string
@@ -167,6 +145,8 @@ export interface FileSystem {
   /**
    * Create a temporary directory.
    *
+   * **Details**
+   *
    * By default the directory will be created inside the system's default
    * temporary directory, but you can specify a different location by setting
    * the `directory` option.
@@ -180,6 +160,8 @@ export interface FileSystem {
   }) => Effect.Effect<string, PlatformError>
   /**
    * Create a temporary directory inside a scope.
+   *
+   * **Details**
    *
    * Functionally equivalent to `makeTempDirectory`, but the directory will be
    * automatically deleted when the scope is closed.
@@ -201,6 +183,8 @@ export interface FileSystem {
   /**
    * Create a temporary file inside a scope.
    *
+   * **Details**
+   *
    * Functionally equivalent to `makeTempFile`, but the file will be
    * automatically deleted when the scope is closed.
    */
@@ -211,6 +195,8 @@ export interface FileSystem {
   }) => Effect.Effect<string, PlatformError, Scope>
   /**
    * Open a file at `path` with the specified `options`.
+   *
+   * **Details**
    *
    * The file handle will be automatically closed when the scope is closed.
    */
@@ -223,6 +209,8 @@ export interface FileSystem {
   ) => Effect.Effect<File, PlatformError, Scope>
   /**
    * List the contents of a directory.
+   *
+   * **Details**
    *
    * You can recursively list the contents of nested directories by setting the
    * `recursive` option.
@@ -300,6 +288,8 @@ export interface FileSystem {
   /**
    * Create a readable `Stream` for the specified `path`.
    *
+   * **Details**
+   *
    * Changing the `bufferSize` option will change the internal buffer size of
    * the stream. It defaults to `4`.
    *
@@ -371,6 +361,8 @@ export interface FileSystem {
 /**
  * Represents a file size in bytes using a branded bigint.
  *
+ * **Details**
+ *
  * This type ensures type safety when working with file sizes, preventing
  * accidental mixing of regular numbers with size values. The underlying
  * bigint allows for handling very large file sizes beyond JavaScript's
@@ -400,6 +392,8 @@ export type Size = Brand.Branded<bigint, "Size">
 /**
  * Input type for size parameters that accepts multiple numeric types.
  *
+ * **Details**
+ *
  * This union type allows file system operations to accept size values in
  * different formats for convenience, which are then normalized to the
  * branded `Size` type internally.
@@ -426,6 +420,8 @@ export type SizeInput = bigint | number | Size
 
 /**
  * Creates a `Size` from various numeric input types.
+ *
+ * **Details**
  *
  * Converts numbers, bigints, or existing Size values into a properly
  * branded Size type. This function handles the conversion and ensures
@@ -464,6 +460,8 @@ export const Size = (bytes: SizeInput): Size => typeof bytes === "bigint" ? byte
 /**
  * Creates a `Size` representing kilobytes (1024 bytes).
  *
+ * **Details**
+ *
  * Converts a number of kilobytes to the equivalent size in bytes.
  * Uses binary kilobytes (1024 bytes) rather than decimal (1000 bytes).
  *
@@ -494,6 +492,8 @@ export const KiB = (n: number): Size => Size(n * 1024)
 
 /**
  * Creates a `Size` representing mebibytes (1024² bytes).
+ *
+ * **Details**
  *
  * Converts a number of mebibytes to the equivalent size in bytes.
  * Uses binary mebibytes (1,048,576 bytes) rather than decimal megabytes.
@@ -530,6 +530,8 @@ export const MiB = (n: number): Size => Size(n * 1024 * 1024)
 /**
  * Creates a `Size` representing gibibytes (1024³ bytes).
  *
+ * **Details**
+ *
  * Converts a number of gibibytes to the equivalent size in bytes.
  * Uses binary gibibytes (1,073,741,824 bytes) rather than decimal gigabytes.
  *
@@ -562,6 +564,8 @@ export const GiB = (n: number): Size => Size(n * 1024 * 1024 * 1024)
 
 /**
  * Creates a `Size` representing tebibytes (1024⁴ bytes).
+ *
+ * **Details**
  *
  * Converts a number of tebibytes to the equivalent size in bytes.
  * Uses binary tebibytes (1,099,511,627,776 bytes) rather than decimal terabytes.
@@ -600,6 +604,8 @@ const bigintPiB = bigint1024 * bigint1024 * bigint1024 * bigint1024 * bigint1024
 /**
  * Creates a `Size` representing pebibytes (1024⁵ bytes).
  *
+ * **Details**
+ *
  * Converts a number of pebibytes to the equivalent size in bytes.
  * Uses binary pebibytes (1,125,899,906,842,624 bytes) rather than decimal petabytes.
  * This function uses BigInt arithmetic to handle the very large numbers involved.
@@ -633,6 +639,8 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
 
 /**
  * File open flags that determine how a file is opened and what operations are allowed.
+ *
+ * **Details**
  *
  * These flags correspond to standard POSIX file open modes and control the file access
  * permissions and behavior when opening files.
@@ -670,7 +678,7 @@ export const PiB = (n: number): Size => Size(BigInt(n) * bigintPiB)
  * })
  * ```
  *
- * @category model
+ * @category models
  * @since 4.0.0
  */
 export type OpenFlag =
@@ -686,10 +694,16 @@ export type OpenFlag =
   | "ax+"
 
 /**
- * The service identifier for the FileSystem service.
+ * Service tag for platform file-system operations.
+ *
+ * **When to use**
+ *
+ * Use to access or provide operations for files, directories, permissions,
+ * streams, and sinks through the Effect context.
+ *
+ * **Details**
  *
  * This key is used to provide and access the FileSystem service in the Effect context.
- * Use this to inject file system implementations or access file system operations.
  *
  * **Example** (Accessing and providing FileSystem)
  *
@@ -721,7 +735,7 @@ export type OpenFlag =
  * )
  * ```
  *
- * @category tag
+ * @category services
  * @since 4.0.0
  */
 export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Service("effect/platform/FileSystem")
@@ -729,11 +743,22 @@ export const FileSystem: Context.Service<FileSystem, FileSystem> = Context.Servi
 /**
  * Creates a FileSystem implementation from a partial implementation.
  *
+ * **When to use**
+ *
+ * Use to build a concrete `FileSystem` service from platform-specific core
+ * operations while deriving the convenience methods that can be implemented
+ * from them.
+ *
+ * **Details**
+ *
  * This function takes a partial FileSystem implementation and automatically provides
  * default implementations for `exists`, `readFileString`, `stream`, `sink`, and
  * `writeFileString` methods based on the provided core methods.
  *
- * @category constructor
+ * @see {@link makeNoop} for a testing stub that accepts method overrides without requiring a complete implementation
+ * @see {@link layerNoop} for providing a no-op `FileSystem` as a `Layer` in tests
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -826,6 +851,8 @@ const notFound = (method: string, path: string) =>
 /**
  * Creates a stub `FileSystem` implementation for tests.
  *
+ * **Details**
+ *
  * By default, `exists` returns `false`, `remove` succeeds, many file operations
  * fail with `PlatformError` `NotFound`, and temporary-directory/file operations
  * die as not implemented. Pass method overrides to provide the behavior needed
@@ -869,7 +896,7 @@ const notFound = (method: string, path: string) =>
  * )
  * ```
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
@@ -968,6 +995,8 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
 /**
  * Creates a Layer that provides a no-op FileSystem implementation for testing.
  *
+ * **Details**
+ *
  * This is a convenience function that wraps `makeNoop` in a Layer, making it easy
  * to provide the test filesystem to your Effect programs.
  *
@@ -1002,24 +1031,45 @@ export const layerNoop = (fileSystem: Partial<FileSystem>): Layer.Layer<FileSyst
  * Runtime type identifier attached to `FileSystem.File` handles and used by
  * `isFile` to recognize them.
  *
- * @category File
+ * **Details**
+ *
+ * This marker is part of the runtime representation of file handles. Prefer
+ * `isFile` when narrowing unknown values.
+ *
+ * @see {@link File} for the open file handle shape that carries this marker
+ * @see {@link isFile} for the public guard that checks this marker
+ *
+ * @category type IDs
  * @since 4.0.0
  */
 export const FileTypeId = "~effect/platform/FileSystem/File"
 
 /**
- * Type guard to check if a value is a File instance.
+ * Returns `true` if a value is a `File` handle by checking for the
+ * `FileTypeId` marker.
  *
- * This function determines whether the provided value is a valid File
- * instance by checking for the presence of the File type identifier.
+ * **When to use**
  *
- * @category File
+ * Use when accepting an unknown value and you need to narrow it to a `File`
+ * before calling file-handle operations.
+ *
+ * **Details**
+ *
+ * This is a structural marker check. It does not validate the marker value or
+ * the shape of the file handle.
+ *
+ * @see {@link File} for the file-handle interface narrowed by this guard
+ * @see {@link FileTypeId} for the runtime marker checked by this guard
+ *
+ * @category file
  * @since 4.0.0
  */
 export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
 
 /**
  * Interface representing an open file handle.
+ *
+ * **Details**
  *
  * Provides low-level file operations including reading, writing, seeking,
  * and retrieving file information. File handles are automatically managed
@@ -1057,7 +1107,7 @@ export const isFile = (u: unknown): u is File => hasProperty(u, FileTypeId)
  * })
  * ```
  *
- * @category File
+ * @category file
  * @since 4.0.0
  */
 export interface File {
@@ -1077,17 +1127,18 @@ export interface File {
  * Namespace containing types associated with open file handles, including file
  * descriptors, entry kinds, and stat information.
  *
- * @category File
  * @since 4.0.0
  */
 export declare namespace File {
   /**
    * Branded type for file descriptors.
    *
+   * **Details**
+   *
    * File descriptors are numeric handles used by the operating system
    * to identify open files. The branded type ensures type safety.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Descriptor = Brand.Branded<number, "FileDescriptor">
@@ -1095,10 +1146,12 @@ export declare namespace File {
   /**
    * Enumeration of possible file system entry types.
    *
+   * **Details**
+   *
    * Represents the different types of entries that can exist in a file system,
    * from regular files to special device files and symbolic links.
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export type Type =
@@ -1113,6 +1166,8 @@ export declare namespace File {
 
   /**
    * Comprehensive file information structure.
+   *
+   * **Details**
    *
    * Contains metadata about a file or directory including type, timestamps,
    * permissions, and size information. This structure is returned by file
@@ -1151,7 +1206,7 @@ export declare namespace File {
    * })
    * ```
    *
-   * @category File
+   * @category file
    * @since 4.0.0
    */
   export interface Info {
@@ -1173,31 +1228,68 @@ export declare namespace File {
 }
 
 /**
- * Creates a branded file descriptor.
+ * Creates a `File.Descriptor` from a number.
  *
- * File descriptors are integer handles that the operating system uses to identify
- * open files. This branded type ensures type safety when working with file descriptors.
+ * **When to use**
  *
- * @category constructor
+ * Use to brand an operating-system file descriptor number when implementing a
+ * `FileSystem` that returns custom `File` handles.
+ *
+ * **Details**
+ *
+ * `File.Descriptor` is a branded integer handle used by operating systems to
+ * identify open files.
+ *
+ * **Gotchas**
+ *
+ * This constructor is nominal and does not check that the number is an integer
+ * or that it refers to an open file descriptor.
+ *
+ * @see {@link File.Descriptor} for the branded descriptor type produced by this constructor
+ * @see {@link File} for file handles that expose a descriptor through `fd`
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const FileDescriptor = Brand.nominal<File.Descriptor>()
 
 /**
- * Specifies the reference point for seeking within a file.
+ * Specifies the reference point for seeking within an open file.
  *
- * - `"start"` - Seek from the beginning of the file
- * - `"current"` - Seek from the current position
+ * **When to use**
  *
- * @category model
+ * Use with `File` handles when positioning the cursor before a read or write
+ * and the offset must be interpreted from either the start of the file or the
+ * current cursor.
+ *
+ * **Details**
+ *
+ * - `"start"` seeks from the beginning of the file.
+ * - `"current"` seeks from the current cursor position.
+ *
+ * @see {@link File} for the open file handle API whose `seek` method consumes this mode
+ *
+ * @category models
  * @since 4.0.0
  */
 export type SeekMode = "start" | "current"
 
 /**
- * Represents file system events that can be observed when watching files or directories.
+ * Represents file system events emitted when watching files or directories.
  *
- * @category model
+ * **When to use**
+ *
+ * Use when consuming file system watch streams and pattern matching on `_tag`
+ * to handle created, updated, or removed paths.
+ *
+ * **Details**
+ *
+ * The union covers create, update, and remove events. Each event carries the
+ * reported `path`.
+ *
+ * @see {@link FileSystem} for the service interface whose `watch` operation emits these events
+ *
+ * @category models
  * @since 4.0.0
  */
 export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remove
@@ -1205,17 +1297,18 @@ export type WatchEvent = WatchEvent.Create | WatchEvent.Update | WatchEvent.Remo
 /**
  * Namespace containing the concrete event shapes emitted by `FileSystem.watch`.
  *
- * @category model
  * @since 4.0.0
  */
 export declare namespace WatchEvent {
   /**
    * Event representing the creation of a new file or directory.
    *
+   * **Details**
+   *
    * This event is triggered when a new file or directory is created
    * in the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Create {
@@ -1226,10 +1319,12 @@ export declare namespace WatchEvent {
   /**
    * Event representing the modification of an existing file or directory.
    *
+   * **Details**
+   *
    * This event is triggered when an existing file or directory is
    * modified in the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Update {
@@ -1240,10 +1335,12 @@ export declare namespace WatchEvent {
   /**
    * Event representing the deletion of a file or directory.
    *
+   * **Details**
+   *
    * This event is triggered when a file or directory is deleted
    * from the watched location.
    *
-   * @category model
+   * @category models
    * @since 4.0.0
    */
   export interface Remove {
@@ -1254,6 +1351,8 @@ export declare namespace WatchEvent {
 
 /**
  * Service key for file system watch backend implementations.
+ *
+ * **Details**
  *
  * This service provides the low-level file watching capabilities that can be
  * implemented differently on various platforms (e.g., inotify on Linux,

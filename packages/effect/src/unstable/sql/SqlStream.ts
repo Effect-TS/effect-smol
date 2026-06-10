@@ -9,16 +9,6 @@
  * `Connection.executeStream`, so callers can process large result sets
  * incrementally instead of materializing every row in memory.
  *
- * The adapter is scoped: driver cursors, query streams, or reserved
- * connections should be acquired in the registration effect and released with
- * finalizers. The internal queue is bounded and calls the producer's
- * `onPause`/`onResume` hooks when downstream consumption falls behind, but the
- * underlying driver still has to honor those hooks for backpressure to be
- * effective. Slow consumers may keep a database cursor and connection open for
- * the lifetime of the stream, so integrations should close or destroy driver
- * resources on interruption, failure, or normal completion and should signal
- * terminal events with `fail` or `end` exactly once.
- *
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
@@ -31,6 +21,7 @@ import * as Stream from "../../Stream.ts"
  * Creates a stream from a callback-style producer with pause and resume
  * callbacks that are triggered when the internal queue applies backpressure.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export const asyncPauseResume = <A, E = never, R = never>(

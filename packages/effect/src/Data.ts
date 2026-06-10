@@ -1,73 +1,10 @@
 /**
- * Immutable data constructors with discriminated-union support.
+ * Defines helpers for small immutable data models.
  *
- * The `Data` module provides base classes and factory functions for creating
- * immutable value types with a `_tag` field for discriminated unions.
- * It is the recommended way to define domain models, error types, and
- * lightweight ADTs in Effect applications.
- *
- * ## Mental model
- *
- * - **`Class`** — base class for plain immutable data. Extend it with a type
- *   parameter to declare the fields. Instances are `Pipeable`.
- * - **`TaggedClass`** — like `Class` but automatically adds a `readonly _tag`
- *   string literal field. Useful for single-variant types or ad-hoc tagged
- *   values.
- * - **`TaggedEnum`** (type) + **`taggedEnum`** (value) — define a multi-variant
- *   discriminated union from a simple record. `taggedEnum()` returns per-variant
- *   constructors plus `$is` / `$match` helpers.
- * - **`Error`** — like `Class` but extends `Cause.YieldableError`, so instances
- *   can be yielded inside `Effect.gen` to fail the effect.
- * - **`TaggedError`** — like `TaggedClass` but extends `Cause.YieldableError`.
- *   Works with `Effect.catchTag` for tag-based error recovery.
- *
- * ## Common tasks
- *
- * - Define a simple value class → {@link Class}
- * - Define a value class with a `_tag` → {@link TaggedClass}
- * - Define a discriminated union with constructors → {@link TaggedEnum} + {@link taggedEnum}
- * - Define a yieldable error → {@link Error}
- * - Define a yieldable tagged error → {@link TaggedError}
- * - Type-guard a tagged value → `$is` from {@link taggedEnum}
- * - Pattern-match on a tagged union → `$match` from {@link taggedEnum}
- *
- * ## Gotchas
- *
- * - Variant records passed to `TaggedEnum` must **not** contain a `_tag` key;
- *   the `_tag` is added automatically from the record key.
- * - When a class has no fields, the constructor argument is optional (`void`).
- * - `taggedEnum()` creates **plain objects**, not class instances. If you need
- *   class-based variants, use `TaggedClass` or `TaggedError` instead.
- * - `TaggedEnum.WithGenerics` supports up to 4 generic type parameters.
- *
- * ## Quickstart
- *
- * **Example** (tagged union with pattern matching)
- *
- * ```ts
- * import { Data } from "effect"
- *
- * type Shape = Data.TaggedEnum<{
- *   Circle: { readonly radius: number }
- *   Rect: { readonly width: number; readonly height: number }
- * }>
- * const { Circle, Rect, $match } = Data.taggedEnum<Shape>()
- *
- * const area = $match({
- *   Circle: ({ radius }) => Math.PI * radius ** 2,
- *   Rect: ({ width, height }) => width * height
- * })
- *
- * console.log(area(Circle({ radius: 5 })))
- * // 78.53981633974483
- * console.log(area(Rect({ width: 3, height: 4 })))
- * // 12
- * ```
- *
- * @see {@link Class} — plain immutable data class
- * @see {@link TaggedEnum} — discriminated union type
- * @see {@link taggedEnum} — discriminated union constructors
- * @see {@link TaggedError} — yieldable tagged error class
+ * This module helps create plain classes, tagged classes, tagged unions, and
+ * typed errors with readonly fields. Tagged values carry a `_tag` field, which
+ * makes them easy to narrow with pattern matching or simple checks. These
+ * helpers are commonly used for domain values and errors in Effect programs.
  *
  * @since 2.0.0
  */
@@ -79,18 +16,19 @@ import type * as Types from "./Types.ts"
 import type { Unify } from "./Unify.ts"
 
 /**
- * Base class for immutable data types.
+ * Provides a base class for immutable data types.
+ *
+ * **When to use**
+ *
+ * Use when you need a lightweight immutable value type with `.pipe()` support.
+ *
+ * **Details**
  *
  * Extend `Class` with a type parameter to declare fields. The constructor
  * accepts those fields as a single object argument. When there are no fields
- * the argument is optional.
+ * the argument is optional. Instances are `Readonly` and `Pipeable`.
  *
- * - Use when you need a lightweight immutable value type with `.pipe()` support.
- * - Instances are `Readonly` and `Pipeable`.
- * - If you also need a `_tag` discriminator, use {@link TaggedClass} instead.
- * - If you need a yieldable error, use {@link Error} or {@link TaggedError}.
- *
- * **Example** (defining a value class)
+ * **Example** (Defining a value class)
  *
  * ```ts
  * import { Data, Equal } from "effect"
@@ -122,17 +60,19 @@ export const Class: new<A extends Record<string, any> = {}>(
 } as any
 
 /**
- * Base class for immutable data types with a `_tag` discriminator.
+ * Provides a base class for immutable data types with a `_tag` discriminator.
+ *
+ * **When to use**
+ *
+ * Use when you need a single-variant tagged type or an ad-hoc discriminator.
+ *
+ * **Details**
  *
  * Like {@link Class}, but the resulting instances also carry a
  * `readonly _tag: Tag` property. The `_tag` is excluded from the constructor
  * argument.
  *
- * - Use when you need a single-variant tagged type or an ad-hoc discriminator.
- * - For multi-variant unions, prefer {@link TaggedEnum} + {@link taggedEnum}.
- * - For yieldable errors, use {@link TaggedError}.
- *
- * **Example** (defining a tagged class)
+ * **Example** (Defining a tagged class)
  *
  * ```ts
  * import { Data } from "effect"
@@ -165,17 +105,20 @@ export const TaggedClass = <Tag extends string>(
 /**
  * Transforms a record of variant definitions into a discriminated union type.
  *
+ * **When to use**
+ *
+ * Use when you have two or more variants that share a common `_tag` discriminator.
+ *
+ * **Details**
+ *
  * Each key in the record becomes a variant with `readonly _tag` set to that
- * key. Use with {@link taggedEnum} to get runtime constructors, type guards,
- * and pattern matching.
+ * key. Use with {@link taggedEnum} to get constructors and matchers.
  *
- * - Use when you have two or more variants that share a common `_tag`
- *   discriminator.
- * - Variant records must **not** include a `_tag` property — it is added
- *   automatically.
- * - For generic tagged enums, see {@link TaggedEnum.WithGenerics}.
+ * **Gotchas**
  *
- * **Example** (defining a tagged enum)
+ * Variant records must **not** include a `_tag` property; it is added automatically.
+ *
+ * **Example** (Defining a tagged enum)
  *
  * ```ts
  * import { Data } from "effect"
@@ -196,7 +139,7 @@ export const TaggedClass = <Tag extends string>(
  * // "BadRequest"
  * ```
  *
- * @see {@link taggedEnum} — runtime constructors for a `TaggedEnum`
+ * @see {@link taggedEnum} — constructors and matchers for a `TaggedEnum`
  * @see {@link TaggedEnum.WithGenerics} — generic tagged enums
  * @see {@link TaggedEnum.Constructor} — the constructor object type
  *
@@ -223,28 +166,36 @@ type UntaggedChildren<A> = true extends ChildrenAreTagged<A>
 /**
  * Namespace for `TaggedEnum` utility types.
  *
+ * **When to use**
+ *
+ * Use to reference utility types for constructing, extracting, and matching
+ * `TaggedEnum` variants.
+ *
+ * **Details**
+ *
  * Provides helper types for:
  * - Generic tagged enums ({@link TaggedEnum.WithGenerics}, {@link TaggedEnum.Kind})
  * - Extracting constructor arguments ({@link TaggedEnum.Args}) and variant
  *   values ({@link TaggedEnum.Value})
  * - Full constructor objects ({@link TaggedEnum.Constructor})
  *
- * @category types
  * @since 2.0.0
  */
 export declare namespace TaggedEnum {
   /**
    * Defines a tagged enum shape that accepts generic type parameters.
    *
+   * **When to use**
+   *
+   * Use when variant payloads need to be parameterized, such as `Result<E, A>`.
+   *
+   * **Details**
+   *
    * Extend this interface and set `taggedEnum` to your union type, using
    * `this["A"]`, `this["B"]`, etc. as placeholders for the generics. The
    * `Count` parameter declares how many generics are used (up to 4).
    *
-   * - Use when variant payloads need to be parameterized (e.g., `Result<E, A>`).
-   * - Pass the interface (not the type alias) to {@link taggedEnum} to get
-   *   generic-aware constructors.
-   *
-   * **Example** (generic tagged enum)
+   * **Example** (Generic tagged enum)
    *
    * ```ts
    * import { Data } from "effect"
@@ -265,8 +216,9 @@ export declare namespace TaggedEnum {
    * ```
    *
    * @see {@link Kind} — apply concrete types to a `WithGenerics` definition
-   * @see {@link taggedEnum} — runtime constructors
+   * @see {@link taggedEnum} — constructors and matchers
    *
+   * @category models
    * @since 2.0.0
    */
   export interface WithGenerics<Count extends number> {
@@ -283,10 +235,11 @@ export declare namespace TaggedEnum {
    * Applies concrete type arguments to a `WithGenerics` definition, producing
    * the resulting tagged union type.
    *
-   * - Use to refer to a specific instantiation of a generic tagged enum in
-   *   type signatures.
+   * **When to use**
    *
-   * **Example** (applying generics)
+   * Use to refer to a specific instantiation of a generic tagged enum in type signatures.
+   *
+   * **Example** (Applying generics)
    *
    * ```ts
    * import type { Data } from "effect"
@@ -306,6 +259,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link WithGenerics} — define the generic shape
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Kind<
@@ -325,9 +279,16 @@ export declare namespace TaggedEnum {
    * Extracts the constructor argument type for a specific variant of a tagged
    * union.
    *
+   * **When to use**
+   *
+   * Use to derive the argument object expected by a constructor for one tagged
+   * union variant.
+   *
+   * **Details**
+   *
    * Returns `void` if the variant has no fields beyond `_tag`.
    *
-   * **Example** (extracting variant args)
+   * **Example** (Extracting variant args)
    *
    * ```ts
    * import type { Data } from "effect"
@@ -345,6 +306,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link Value} — extracts the full variant type (including `_tag`)
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Args<
@@ -358,6 +320,10 @@ export declare namespace TaggedEnum {
 
   /**
    * Extracts the full variant type (including `_tag`) for a specific tag.
+   *
+   * **When to use**
+   *
+   * Use to select one full tagged-union variant by its `_tag` value.
    *
    * **Example** (extracting a variant type)
    *
@@ -374,6 +340,7 @@ export declare namespace TaggedEnum {
    *
    * @see {@link Args} — extracts fields without `_tag`
    *
+   * @category utility types
    * @since 2.0.0
    */
   export type Value<
@@ -382,14 +349,23 @@ export declare namespace TaggedEnum {
   > = Extract<A, { readonly _tag: K }>
 
   /**
-   * The full constructor-object type returned by {@link taggedEnum}.
+   * The full constructors-and-matchers object type returned by {@link taggedEnum}.
+   *
+   * **When to use**
+   *
+   * Use when you want to annotate an exported constructor bundle so downstream
+   * code keeps exact variant constructors and exhaustive matching.
+   *
+   * **Details**
    *
    * Includes:
    * - A constructor function for each variant (keyed by tag name)
-   * - `$is(tag)` — returns a type-guard for the given variant
+   * - `$is(tag)` — returns a type-guard that checks only the `_tag` field;
+   *   safe when the tag is globally unique and the value was produced by your
+   *   constructors. For untrusted input, validate with the `Schema` module first.
    * - `$match` — exhaustive pattern matching (data-last or data-first)
    *
-   * **Example** (using the constructor object)
+   * **Example** (Using the constructor object)
    *
    * ```ts
    * import { Data } from "effect"
@@ -414,7 +390,7 @@ export declare namespace TaggedEnum {
    * })
    * ```
    *
-   * @see {@link taggedEnum} — creates a `Constructor`
+   * @see {@link taggedEnum} — creates constructors and matchers
    *
    * @category types
    * @since 3.1.0
@@ -457,9 +433,16 @@ export declare namespace TaggedEnum {
    * Function type that constructs a tagged-union variant from its fields,
    * excluding the keys listed in `Tag`.
    *
+   * **When to use**
+   *
+   * Use to type an individual constructor for one tagged-union variant.
+   *
+   * **Details**
+   *
    * The constructor returns the full variant type `A`. If no fields remain
    * after excluding `Tag` keys, the constructor argument type becomes `void`.
    *
+   * @category utility types
    * @since 4.0.0
    */
   export type ConstructorFrom<A, Tag extends keyof A = never> = (
@@ -469,11 +452,18 @@ export declare namespace TaggedEnum {
   /**
    * Type-guard and pattern-matching interface for generic tagged enums.
    *
+   * **When to use**
+   *
+   * Use to type the `$is` and `$match` helpers for generic tagged enums.
+   *
+   * **Details**
+   *
    * This is the `$is` / `$match` portion of the object returned by
    * {@link taggedEnum} when used with a {@link WithGenerics} definition.
    *
    * @see {@link Constructor} — the non-generic equivalent
    *
+   * @category models
    * @since 3.2.0
    */
   export interface GenericMatchers<Z extends WithGenerics<number>> {
@@ -526,19 +516,28 @@ export declare namespace TaggedEnum {
 }
 
 /**
- * Creates runtime constructors, type guards, and pattern matching for a
- * {@link TaggedEnum} type.
+ * Creates constructors and matchers for a `TaggedEnum` type.
+ *
+ * **When to use**
+ *
+ * Use when you model a closed union with plain data objects and want
+ * construction, tag checks, and exhaustive matching from the same definition.
+ *
+ * **Details**
  *
  * Returns an object with:
  * - One constructor per variant (keyed by tag name)
- * - `$is(tag)` — returns a type-guard function
+ * - `$is(tag)` — returns a type-guard function that checks only the `_tag` field
  * - `$match` — exhaustive pattern matching (data-first or data-last)
  *
- * - Use when you have a `TaggedEnum` type and need to construct/inspect values.
- * - Constructors produce **plain objects** (not class instances).
- * - For generic enums, pass a {@link TaggedEnum.WithGenerics} interface.
+ * **Gotchas**
  *
- * **Example** (basic usage)
+ * - Constructors produce **plain objects**, not class instances.
+ * - `$is(tag)` only checks the `_tag` field, not the full structure. It relies
+ *   on the tag being globally unique and the value being produced by your
+ *   constructors. For untrusted input, validate with the `Schema` module first.
+ *
+ * **Example** (Basic usage)
  *
  * ```ts
  * import { Data } from "effect"
@@ -563,7 +562,7 @@ export declare namespace TaggedEnum {
  * console.log(msg) // "/missing not found"
  * ```
  *
- * **Example** (generic tagged enum)
+ * **Example** (Generic tagged enum)
  *
  * ```ts
  * import { Data } from "effect"
@@ -683,17 +682,21 @@ function taggedMatch<
 }
 
 /**
- * Base class for yieldable errors.
+ * Provides a base class for yieldable errors.
+ *
+ * **When to use**
+ *
+ * Use when you need yieldable errors that do **not** need tag-based
+ * discrimination.
+ *
+ * **Details**
  *
  * Extends `Cause.YieldableError`, so instances can be yielded inside
  * `Effect.gen` to fail the enclosing effect. Fields are passed as a single
- * object; when there are no fields the argument is optional.
+ * object; when there are no fields the argument is optional. If a `message`
+ * field is provided, it becomes the error's `.message`.
  *
- * - Use for errors that do **not** need tag-based discrimination.
- * - If you need `Effect.catchTag` support, use {@link TaggedError} instead.
- * - If a `message` field is provided, it becomes the error's `.message`.
- *
- * **Example** (defining a yieldable error)
+ * **Example** (Defining a yieldable error)
  *
  * ```ts
  * import { Data, Effect } from "effect"
@@ -724,15 +727,18 @@ export const Error: new<A extends Record<string, any> = {}>(
 /**
  * Creates a tagged error class with a `_tag` discriminator.
  *
+ * **When to use**
+ *
+ * Use when you need domain errors with discriminated-union handling.
+ *
+ * **Details**
+ *
  * Like {@link Error}, but instances also carry a `readonly _tag` property,
  * enabling `Effect.catchTag` and `Effect.catchTags` for tag-based recovery.
- * The `_tag` is excluded from the constructor argument.
+ * The `_tag` is excluded from the constructor argument. Yielding an instance
+ * inside `Effect.gen` fails the effect with this error.
  *
- * - Use for domain errors in Effect applications where you want
- *   discriminated-union error handling.
- * - Yielding an instance inside `Effect.gen` fails the effect with this error.
- *
- * **Example** (tag-based error recovery)
+ * **Example** (Tag-based error recovery)
  *
  * ```ts
  * import { Data, Effect } from "effect"

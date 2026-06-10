@@ -1,22 +1,13 @@
 /**
- * Composable HTTP client service for executing `HttpClientRequest` values and
- * receiving `HttpClientResponse` values inside Effect programs.
+ * Provides the service used to run outgoing HTTP requests.
  *
- * This module provides the `HttpClient` service tag, method-specific accessors,
- * constructors for low-level runtimes, and middleware-style combinators for
- * common client concerns such as request rewriting, response filtering, retries,
- * redirects, cookies, rate limiting, and tracing. It is intended for code that
- * needs dependency-injected outbound HTTP calls, reusable clients customized for
- * an API, or cross-cutting behavior layered around a concrete platform client.
- *
- * Responses are successful Effects even for non-2xx status codes unless a
- * filter such as `filterStatus` or `filterStatusOk` is applied. Request
- * middleware is ordered by whether it prepends to or appends after the existing
- * preprocessing pipeline, so use `mapRequestInput` for transformations that
- * should run before previously installed request middleware and `mapRequest`
- * for transformations that should run after it. Non-scoped responses are tied to
- * an abort controller for interruption cleanup; use `withScope` when the request
- * lifetime should instead be controlled by a surrounding `Scope`.
+ * `HttpClient` executes immutable `HttpClientRequest` values and returns
+ * `HttpClientResponse` values. Keeping HTTP behind this service lets programs,
+ * tests, and generated API clients use the same request model without depending
+ * on one concrete platform transport. This module includes request accessors,
+ * constructors and layers, request and response transformations, status
+ * filtering, retries, rate limiting, cookies, redirect handling, scoped request
+ * abortion, and tracing support.
  *
  * @since 4.0.0
  */
@@ -56,7 +47,7 @@ const TypeId = "~effect/http/HttpClient"
 /**
  * Returns `true` if the provided value is an `HttpClient`.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isHttpClient = (u: unknown): u is HttpClient => Predicate.hasProperty(u, TypeId)
@@ -77,6 +68,8 @@ export interface HttpClient extends HttpClient.With<Error.HttpClientError> {}
 export declare namespace HttpClient {
   /**
    * Parameterized HTTP client that may fail with `E` and require environment `R`.
+   *
+   * **Details**
    *
    * It exposes preprocessing, postprocessing, direct request execution, and method-specific helpers.
    *
@@ -143,9 +136,14 @@ export declare namespace HttpClient {
 }
 
 /**
- * Service tag for the default `HttpClient` used by HTTP client accessors.
+ * Service tag for the default outgoing HTTP client service.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to provide the default outgoing HTTP client service used by request
+ * accessors such as `execute`, `get`, and `post`.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const HttpClient: Context.Service<HttpClient, HttpClient> = Context.Service<HttpClient, HttpClient>(
@@ -255,6 +253,8 @@ export const options: (url: string | URL, options?: HttpClientRequest.Options.No
 /**
  * Transforms a client by wrapping the response effect for each request.
  *
+ * **Details**
+ *
  * The transformation receives both the response effect and the original request, allowing it to change success, error, and environment behavior.
  *
  * @category mapping & sequencing
@@ -329,6 +329,8 @@ const catch_: {
 
 export {
   /**
+   * Handles all client failures with an effectful recovery function and returns a transformed client.
+   *
    * @category error handling
    * @since 4.0.0
    */
@@ -366,7 +368,15 @@ export const catchTag: {
       e: ExtractTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>
     ) => Effect.Effect<HttpClientResponse.HttpClientResponse, E1, R1>
   ): HttpClient.With<E1 | ExcludeTag<E, K extends NonEmptyReadonlyArray<string> ? K[number] : K>, R1 | R> =>
-    transformResponse(self, Effect.catchTag(tag, f))
+    transformResponse(
+      self,
+      (effect) =>
+        Effect.catchTag<HttpClientResponse.HttpClientResponse, E, R, K, R1, E1, HttpClientResponse.HttpClientResponse>(
+          effect,
+          tag,
+          f
+        )
+    )
 )
 
 /**
@@ -562,6 +572,8 @@ export const filterStatusOk: <E, R>(self: HttpClient.With<E, R>) => HttpClient.W
 /**
  * Constructs an `HttpClient.With` from a preprocessing function and a postprocessing function.
  *
+ * **Details**
+ *
  * `execute` applies preprocessing to the request and then passes the resulting request effect to postprocessing.
  *
  * @category constructors
@@ -604,6 +616,8 @@ const Proto = {
 
 /**
  * Constructs an `HttpClient` from a low-level request runner.
+ *
+ * **Details**
  *
  * The runner receives the request, resolved URL, abort signal, and current fiber. The client wrapper handles URL construction failures, tracing and propagation, header redaction, and aborting non-scoped requests on interruption.
  *
@@ -800,12 +814,13 @@ export const mapRequestInputEffect: {
 /**
  * Namespace containing type-level helpers for retrying HTTP clients.
  *
- * @category error handling
  * @since 4.0.0
  */
 export declare namespace Retry {
   /**
    * Computes the client type returned by `retry` for a given set of retry options.
+   *
+   * **Details**
    *
    * The result includes errors and requirements introduced by schedules and effectful retry predicates.
    *
@@ -858,7 +873,11 @@ export const retry: {
 /**
  * Retries common transient errors, such as rate limiting, timeouts or network issues.
  *
- * Use `retryOn` to focus on retrying errors, transient responses, or both.
+ * **When to use**
+ *
+ * Use to focus on retrying errors, transient responses, or both.
+ *
+ * **Details**
  *
  * Specifying a `while` predicate allows you to consider other errors as
  * transient, and is ignored in "response-only" mode.
@@ -961,12 +980,13 @@ export const retryTransient: {
 /**
  * Namespace containing configuration types for `withRateLimiter`.
  *
- * @category rate limiting
  * @since 4.0.0
  */
 export declare namespace WithRateLimiter {
   /**
    * Options used to configure `withRateLimiter`.
+   *
+   * **Details**
    *
    * They define the backing limiter, initial limit window, keying strategy, algorithm, token cost, and whether response headers update future limits.
    *
@@ -1009,6 +1029,8 @@ export declare namespace WithRateLimiter {
 
 /**
  * Applies request rate limiting using the `RateLimiter` service.
+ *
+ * **Details**
  *
  * It can update limits by inspecting common rate limit response headers and
  * automatically retries HTTP `429` responses (or `HttpClientError` values
@@ -1310,7 +1332,12 @@ export const tapRequest: {
 )
 
 /**
- * Associates a `Ref` of cookies with the client for handling cookies across requests.
+ * Adds a `Ref` of cookies to the client for handling cookies across requests.
+ *
+ * **When to use**
+ *
+ * Use to add shared cookie storage to a client so response cookies are retained
+ * and sent by later requests.
  *
  * @category cookies
  * @since 4.0.0
@@ -1343,9 +1370,9 @@ export const withCookiesRef: {
 )
 
 /**
- * Ties the lifetime of the `HttpClientRequest` to a `Scope`.
+ * Attaches the lifetime of the `HttpClientRequest` to a `Scope`.
  *
- * @category Scope
+ * @category resource management
  * @since 4.0.0
  */
 export const withScope = <E, R>(
@@ -1364,7 +1391,7 @@ export const withScope = <E, R>(
   )
 
 /**
- * Follows HTTP redirects up to a specified number of times.
+ * Enables following HTTP redirects up to a specified number of times.
  *
  * @category redirects
  * @since 4.0.0
@@ -1404,7 +1431,7 @@ export const followRedirects: {
 /**
  * Context reference for a predicate that disables client-side tracing for matching outgoing requests.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const TracerDisabledWhen = Context.Reference<
@@ -1416,7 +1443,7 @@ export const TracerDisabledWhen = Context.Reference<
 /**
  * Context reference that controls whether outgoing client spans are propagated to request headers.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpClient/TracerPropagationEnabled", {
@@ -1426,7 +1453,7 @@ export const TracerPropagationEnabled = Context.Reference<boolean>("effect/HttpC
 /**
  * Context reference for generating the span name used for outgoing client request spans.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const SpanNameGenerator = Context.Reference<
@@ -1438,6 +1465,7 @@ export const SpanNameGenerator = Context.Reference<
 /**
  * Creates an `HttpClient` layer and merges the layer construction context into client response effects.
  *
+ * @category layers
  * @since 4.0.0
  */
 export const layerMergedContext = <E, R>(

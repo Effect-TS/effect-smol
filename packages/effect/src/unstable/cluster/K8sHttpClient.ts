@@ -1,21 +1,8 @@
 /**
- * The `K8sHttpClient` module provides an HTTP client service for talking to the
- * Kubernetes API from code running inside a cluster.
- *
- * It configures requests for the in-cluster service endpoint, attaches the
- * mounted service-account token when present, and exposes helpers for common
- * cluster tasks such as discovering running pods by namespace or label selector
- * and creating scoped pods that are cleaned up automatically.
- *
- * **Gotchas**
- *
- * - The default layer targets `https://kubernetes.default.svc/api`, so it is
- *   intended for workloads with Kubernetes DNS and service-account mounts.
- * - Pod discovery is keyed by pod IP address and only includes pods whose phase
- *   is `Running`; callers should choose selectors that match the intended
- *   service topology.
- * - Network policies, RBAC, and service-account token availability can all
- *   prevent the client from reaching or authorizing with the Kubernetes API.
+ * HTTP client support for talking to the Kubernetes API from code running
+ * inside a cluster. The module builds a `K8sHttpClient` service on top of the
+ * shared HTTP client, points requests at the in-cluster API endpoint, and uses
+ * the mounted service-account token when one is available.
  *
  * @since 4.0.0
  */
@@ -37,7 +24,7 @@ import * as HttpClientResponse from "../http/HttpClientResponse.ts"
 /**
  * Service tag for the HTTP client used to call the Kubernetes API.
  *
- * @category Tags
+ * @category services
  * @since 4.0.0
  */
 export class K8sHttpClient extends Context.Service<
@@ -48,11 +35,13 @@ export class K8sHttpClient extends Context.Service<
 /**
  * Layer that configures `K8sHttpClient` for the in-cluster Kubernetes API.
  *
+ * **Details**
+ *
  * It targets `https://kubernetes.default.svc/api`, adds the service-account
  * bearer token when available, requires successful HTTP statuses, and retries
  * transient failures.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -80,10 +69,12 @@ export const layer: Layer.Layer<
 /**
  * Creates a cached effect that fetches running Kubernetes pods.
  *
+ * **Details**
+ *
  * The request can be limited by namespace and label selector, and the result is a
  * map keyed by pod IP address.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeGetPods: (
@@ -127,10 +118,12 @@ export const makeGetPods: (
  * Creates a scoped function that ensures a Kubernetes pod exists and waits until
  * it is ready.
  *
+ * **Details**
+ *
  * The pod defaults to the `default` namespace and is deleted when the surrounding
  * scope closes.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const makeCreatePod = Effect.gen(function*() {
@@ -234,7 +227,7 @@ export const makeCreatePod = Effect.gen(function*() {
 /**
  * Schema for the subset of Kubernetes Pod status used by cluster helpers.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpClient/PodStatus")({
@@ -251,9 +244,11 @@ export class PodStatus extends Schema.Class<PodStatus>("@effect/cluster/K8sHttpC
 /**
  * Schema for Kubernetes Pod values used by cluster helpers.
  *
+ * **Details**
+ *
  * The model exposes readiness helpers derived from the pod status conditions.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export class Pod extends Schema.Class<Pod>("@effect/cluster/K8sHttpClient/Pod")({

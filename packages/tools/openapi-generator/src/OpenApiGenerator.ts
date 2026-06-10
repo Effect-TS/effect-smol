@@ -27,6 +27,9 @@ import * as Utils from "./Utils.ts"
 /**
  * Service for turning OpenAPI or Swagger specifications into generated Effect
  * HTTP client or HttpApi source code.
+ *
+ * @category services
+ * @since 4.0.0
  */
 export class OpenApiGenerator extends Context.Service<
   OpenApiGenerator,
@@ -35,11 +38,17 @@ export class OpenApiGenerator extends Context.Service<
 
 /**
  * Output targets supported by the OpenAPI generator.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export type OpenApiGeneratorFormat = "httpclient" | "httpclient-type-only" | "httpapi"
 
 /**
  * Stable identifiers for non-fatal OpenAPI generation warnings.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export type OpenApiGeneratorWarningCode =
   | "cookie-parameter-dropped"
@@ -55,6 +64,9 @@ export type OpenApiGeneratorWarningCode =
 /**
  * Describes a non-fatal issue encountered while mapping an OpenAPI operation to
  * generated Effect source.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export interface OpenApiGeneratorWarning {
   readonly code: OpenApiGeneratorWarningCode
@@ -66,6 +78,9 @@ export interface OpenApiGeneratorWarning {
 
 /**
  * Options that control one OpenAPI generation run.
+ *
+ * @category options
+ * @since 4.0.0
  */
 export interface OpenApiGenerateOptions {
   /**
@@ -104,6 +119,9 @@ const methodNames: ReadonlyArray<OpenAPISpecMethodName> = [
 
 /**
  * Constructs the OpenAPI generator service implementation.
+ *
+ * @category constructors
+ * @since 4.0.0
  */
 export const make = Effect.gen(function*() {
   const generate = Effect.fn(
@@ -936,7 +954,7 @@ const parseSecuritySchemes = (
       continue
     }
 
-    if (scheme.type === "http") {
+    if (scheme.type === "http" && typeof scheme.scheme === "string") {
       const normalizedScheme = scheme.scheme.toLowerCase()
       if (normalizedScheme === "basic") {
         parsed.push({
@@ -944,6 +962,7 @@ const parseSecuritySchemes = (
           type: "basic",
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: undefined,
+          scheme: undefined,
           key: undefined,
           in: undefined
         })
@@ -953,6 +972,17 @@ const parseSecuritySchemes = (
           type: "bearer",
           description: Utils.nonEmptyString(scheme.description),
           bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
+          scheme: undefined,
+          key: undefined,
+          in: undefined
+        })
+      } else {
+        parsed.push({
+          name,
+          type: "http",
+          description: Utils.nonEmptyString(scheme.description),
+          bearerFormat: Utils.nonEmptyString(scheme.bearerFormat),
+          scheme: scheme.scheme,
           key: undefined,
           in: undefined
         })
@@ -970,6 +1000,7 @@ const parseSecuritySchemes = (
         type: "apiKey",
         description: Utils.nonEmptyString(scheme.description),
         bearerFormat: undefined,
+        scheme: undefined,
         key: scheme.name,
         in: scheme.in
       })
@@ -1052,11 +1083,17 @@ function getDialect(spec: OpenAPISpec): "openapi-3.0" | "openapi-3.1" {
 
 /**
  * Layer providing an OpenAPI generator for Schema-backed HTTP client and HttpApi output.
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layerTransformerSchema: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 
 /**
  * Layer providing an OpenAPI generator for type-only HTTP client output.
+ *
+ * @category layers
+ * @since 4.0.0
  */
 export const layerTransformerTs: Layer.Layer<OpenApiGenerator> = Layer.effect(OpenApiGenerator, make)
 

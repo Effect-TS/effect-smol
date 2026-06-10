@@ -1,22 +1,10 @@
 /**
- * Helpers and data types for describing the OTLP resource attached to exported
- * logs, metrics, and traces.
+ * Builds OTLP resource metadata shared by exported telemetry.
  *
- * A resource identifies the service that produced telemetry and carries
- * process- or deployment-level attributes that should be shared across every
- * signal sent by the Effect OTLP logger, metrics exporter, and tracer. Use this
- * module when building explicit resource metadata, reading the standard OTEL
- * resource environment variables, or converting application metadata into OTLP
- * `KeyValue` / `AnyValue` shapes before serialization.
- *
- * `service.name` is required because the signal exporters also use it as the
- * instrumentation scope name. Explicit resource options take precedence over
- * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
- * `OTEL_SERVICE_VERSION`; `service.name` and `service.version` are normalized
- * through the service metadata inputs and re-added as canonical OTLP
- * attributes rather than left in the custom attribute map. Attribute values are
- * converted to OTLP scalar or array values where possible, with unsupported
- * runtime values formatted as strings.
+ * An OTLP resource describes the service and other attributes attached to every
+ * exported log, metric, or trace. This module builds resources from explicit
+ * options or OpenTelemetry environment variables and converts JavaScript values
+ * into OTLP attribute values.
  *
  * @since 4.0.0
  */
@@ -28,7 +16,7 @@ import * as Schema from "../../Schema.ts"
 /**
  * OTLP resource metadata attached to exported logs, metrics, and traces.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Resource {
@@ -41,10 +29,12 @@ export interface Resource {
 /**
  * Creates an OTLP resource from service metadata and additional attributes.
  *
+ * **Details**
+ *
  * The resource always includes `service.name`, includes `service.version` when
  * provided, and converts custom attributes into OTLP attribute values.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (options: {
@@ -80,11 +70,13 @@ export const make = (options: {
  * Creates an OTLP resource from explicit options and OpenTelemetry
  * configuration.
  *
- * Explicit options override `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`,
- * and `OTEL_SERVICE_VERSION`; missing required configuration is converted to a
- * defect.
+ * **Details**
  *
- * @category Constructors
+ * `OTEL_RESOURCE_ATTRIBUTES`, `OTEL_SERVICE_NAME`, and
+ * `OTEL_SERVICE_VERSION` override explicit options; missing required
+ * configuration is converted to a defect.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const fromConfig: (
@@ -98,19 +90,30 @@ export const fromConfig: (
   readonly serviceVersion?: string | undefined
   readonly attributes?: Record<string, unknown> | undefined
 }) {
+  const env = yield* Config.schema(
+    Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
+    "OTEL_RESOURCE_ATTRIBUTES"
+  )
+
+  const serviceName = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_NAME"))
+    ?? env?.["service.name"] as string | undefined
+    ?? options?.attributes?.["service.name"] as string | undefined
+    ?? options?.serviceName
+    ?? (yield* Config.string("OTEL_SERVICE_NAME"))
+
+  const serviceVersion = (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
+    ?? env?.["service.version"] as string | undefined
+    ?? options?.attributes?.["service.version"] as string | undefined
+    ?? options?.serviceVersion
+
   const attributes = {
-    ...(yield* Config.schema(
-      Schema.UndefinedOr(Config.Record(Schema.String, Schema.String)),
-      "OTEL_RESOURCE_ATTRIBUTES"
-    )),
-    ...options?.attributes
+    ...options?.attributes,
+    ...env
   }
-  const serviceName = options?.serviceName ?? attributes["service.name"] as string ??
-    (yield* Config.schema(Schema.String, "OTEL_SERVICE_NAME"))
+
   delete attributes["service.name"]
-  const serviceVersion = options?.serviceVersion ?? attributes["service.version"] as string ??
-    (yield* Config.schema(Schema.UndefinedOr(Schema.String), "OTEL_SERVICE_VERSION"))
   delete attributes["service.version"]
+
   return make({
     serviceName,
     serviceVersion,
@@ -120,6 +123,13 @@ export const fromConfig: (
 
 /**
  * Returns the `service.name` attribute from an OTLP resource.
+ *
+ * **When to use**
+ *
+ * Use when an OTLP resource is known to contain a string `service.name` and
+ * throwing is acceptable if that invariant is broken.
+ *
+ * **Gotchas**
  *
  * Throws if the resource does not contain a string `service.name` attribute.
  *
@@ -155,6 +165,8 @@ export const entriesToAttributes = (entries: Iterable<[string, unknown]>): Array
 
 /**
  * Converts an arbitrary JavaScript value into an OTLP `AnyValue`.
+ *
+ * **Details**
  *
  * Arrays are converted recursively, primitive values use their matching OTLP
  * fields, and unsupported values are formatted as strings.
@@ -201,7 +213,7 @@ export const unknownToAttributeValue = (value: unknown): AnyValue => {
 /**
  * An OTLP attribute represented as a string key and typed value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValue {
@@ -214,7 +226,7 @@ export interface KeyValue {
 /**
  * OTLP `AnyValue` payload for scalar, array, key/value-list, or byte values.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyValue {
@@ -237,7 +249,7 @@ export interface AnyValue {
 /**
  * OTLP array value containing nested `AnyValue` entries.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface ArrayValue {
@@ -248,7 +260,7 @@ export interface ArrayValue {
 /**
  * OTLP key/value-list value containing nested attributes.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface KeyValueList {
@@ -259,7 +271,7 @@ export interface KeyValueList {
 /**
  * Low and high 32-bit parts of a 64-bit integer value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface LongBits {
@@ -270,7 +282,7 @@ export interface LongBits {
 /**
  * Accepted runtime representations for an OTLP/protobuf fixed 64-bit value.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type Fixed64 = LongBits | string | number

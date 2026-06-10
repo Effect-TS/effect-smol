@@ -1,95 +1,13 @@
 /**
- * Composable, immutable accessors for reading and updating nested data
- * structures without mutation.
+ * Reads and updates focused parts of values without mutating the original
+ * value.
  *
- * **Mental model**
- *
- * - **Optic** — a first-class reference to a piece inside a larger structure.
- *   Compose optics to reach deeply nested values.
- * - **Iso** — lossless two-way conversion (`get`/`set`) between `S` and `A`.
- *   Extends both {@link Lens} and {@link Prism}.
- * - **Lens** — focuses on exactly one part of `S`. `get` always succeeds;
- *   `replace` needs the original `S` to produce the updated whole.
- * - **Prism** — focuses on a part that may not be present (e.g. a union
- *   variant). `getResult` can fail; `set` builds a new `S` from `A` alone.
- * - **Optional** — the most general optic: both reading and writing can fail.
- * - **Traversal** — focuses on zero or more elements of an array-like
- *   structure. Technically `Optional<S, ReadonlyArray<A>>`.
- * - **Hierarchy** (strongest → weakest):
- *   `Iso > Lens | Prism > Optional`. Composing a weaker optic with any other
- *   produces the weaker kind.
- *
- * **Common tasks**
- *
- * - Start a chain → {@link id} (identity iso)
- * - Drill into a struct key → `.key("name")` / `.optionalKey("name")`
- * - Drill into a key that may not exist → `.at("name")`
- * - Narrow a tagged union → `.tag("MyVariant")`
- * - Narrow by type guard → `.refine(guard)`
- * - Add validation → `.check(Schema.isGreaterThan(0))`
- * - Filter out `undefined` → `.notUndefined()`
- * - Pick/omit struct keys → `.pick(["a","b"])` / `.omit(["c"])`
- * - Traverse array elements → `.forEach(el => el.key("field"))`
- * - Build an iso → {@link makeIso}
- * - Build a lens → {@link makeLens}
- * - Build a prism → {@link makePrism}, {@link fromChecks}
- * - Build an optional → {@link makeOptional}
- * - Focus into `Option.Some` → {@link some}
- * - Focus into `Result.Success`/`Failure` → {@link success}, {@link failure}
- * - Convert record ↔ entries → {@link entries}
- * - Extract all traversal elements → {@link getAll}
- *
- * **Gotchas**
- *
- * - Updates are structurally persistent: only nodes on the path are cloned.
- *   Unrelated branches keep referential identity. However, **no-op updates
- *   may still allocate** a new root — do not rely on reference identity to
- *   detect no-ops.
- * - `replace` silently returns the original `S` when the optic cannot focus
- *   (e.g. wrong tag). Use `replaceResult` for explicit failure.
- * - `modify` also returns the original `S` on focus failure — it never throws.
- * - `.key()` and `.optionalKey()` do not work on union types (compile error).
- * - Only plain objects (`Object.prototype` or `null` prototype) and arrays can
- *   be cloned. Class instances cause a runtime error on `replace`/`modify`.
- *
- * **Quickstart**
- *
- * **Example** (reading and updating nested state)
- *
- * ```ts
- * import { Optic } from "effect"
- *
- * type State = { user: { name: string; age: number } }
- *
- * const _age = Optic.id<State>().key("user").key("age")
- *
- * const s1: State = { user: { name: "Alice", age: 30 } }
- *
- * // Read
- * console.log(_age.get(s1))
- * // Output: 30
- *
- * // Update immutably
- * const s2 = _age.replace(31, s1)
- * console.log(s2)
- * // Output: { user: { name: "Alice", age: 31 } }
- *
- * // Modify with a function
- * const s3 = _age.modify((n) => n + 1)(s1)
- * console.log(s3)
- * // Output: { user: { name: "Alice", age: 31 } }
- *
- * // Referential identity is preserved for unrelated branches
- * console.log(s2.user !== s1.user)
- * // Output: true (on the path)
- * ```
- *
- * **See also**
- *
- * - {@link id} — entry point for optic chains
- * - {@link Lens} / {@link Prism} / {@link Optional} — core optic types
- * - {@link Traversal} / {@link getAll} — multi-focus optics
- * - {@link some} / {@link success} / {@link failure} — built-in prisms
+ * An optic describes where to look inside a value, such as a record field, a
+ * union variant, an optional value, or several values in a collection. Different
+ * optic types describe different kinds of focus: some always find a value,
+ * some may not, and some can find many. This module includes the optic types,
+ * constructors, focusing helpers, and operations for replacing, modifying, or
+ * collecting focused values.
  *
  * @since 4.0.0
  */
@@ -100,20 +18,22 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
 import type * as Schema from "./Schema.ts"
-import * as AST from "./SchemaAST.ts"
-import type * as Issue from "./SchemaIssue.ts"
+import * as SchemaAST from "./SchemaAST.ts"
+import type * as SchemaIssue from "./SchemaIssue.ts"
 import * as Struct from "./Struct.ts"
 import type { IsUnion } from "./Types.ts"
 
 /**
  * A lossless, reversible conversion between types `S` and `A`.
  *
- * When to use:
- * - You have a pair of functions that convert back and forth without losing
+ * **When to use**
+ *
+ * Use when you have a pair of functions that convert back and forth without losing
  *   information (e.g. `Record ↔ entries`, `Celsius ↔ Fahrenheit`).
  * - You want the strongest optic that can be composed with any other.
  *
- * Behavior:
+ * **Details**
+ *
  * - `get(s)` always succeeds and returns an `A`.
  * - `set(a)` always succeeds and returns an `S`.
  * - `get(set(a)) === a` and `set(get(s))` equals `s` (round-trip laws).
@@ -148,13 +68,14 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
 /**
  * Creates an {@link Iso} from a pair of conversion functions.
  *
- * When to use:
- * - You have two pure functions that form a lossless round-trip between `S`
- *   and `A`.
+ * **When to use**
  *
- * Behavior:
- * - Does not mutate inputs.
- * - The returned optic can be composed with any other optic.
+ * Use when you have two pure conversion functions that preserve all information
+ * between `S` and `A`.
+ *
+ * **Details**
+ *
+ * The returned optic can be composed with any other optic.
  *
  * **Example** (wrapping/unwrapping a branded type)
  *
@@ -177,7 +98,7 @@ export interface Iso<in out S, in out A> extends Lens<S, A>, Prism<S, A> {}
  * @see {@link Iso} — the type this function returns
  * @see {@link id} — identity iso (no conversion)
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
@@ -187,12 +108,13 @@ export function makeIso<S, A>(get: (s: S) => A, set: (a: A) => S): Iso<S, A> {
 /**
  * Focuses on exactly one part `A` inside a whole `S`.
  *
- * When to use:
- * - You always have a value to read (the part exists unconditionally).
- * - You need the original `S` to produce the updated whole (unlike
- *   {@link Iso}).
+ * **When to use**
  *
- * Behavior:
+ * Use when you always have a value to read and need the original `S` to produce
+ * the updated whole, unlike `Iso`.
+ *
+ * **Details**
+ *
  * - `get(s)` always succeeds and returns `A`.
  * - `replace(a, s)` returns a new `S` with the focused part replaced.
  * - Extends {@link Optional}.
@@ -226,12 +148,13 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
 /**
  * Creates a {@link Lens} from a getter and a replacer.
  *
- * When to use:
- * - You can always extract `A` from `S` and produce a new `S` by
+ * **When to use**
+ *
+ * Use when you can always extract `A` from `S` and produce a new `S` by
  *   substituting a new `A`.
  *
- * Behavior:
- * - Does not mutate inputs.
+ * **Details**
+ *
  * - `replace(a, s)` should return a structurally new `S` with `a` in place
  *   of the old focus.
  *
@@ -255,7 +178,7 @@ export interface Lens<in out S, in out A> extends Optional<S, A> {
  * @see {@link Lens} — the type this function returns
  * @see {@link makeIso} — when no original `S` is needed for `set`
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Lens<S, A> {
@@ -266,12 +189,14 @@ export function makeLens<S, A>(get: (s: S) => A, replace: (a: A, s: S) => S): Le
  * Focuses on a part `A` of `S` that may not be present (e.g. a union
  * variant or a validated subset).
  *
- * When to use:
- * - The focus is conditional — reading can fail (wrong variant, failed
+ * **When to use**
+ *
+ * Use when the focus is conditional — reading can fail (wrong variant, failed
  *   validation).
  * - Building a new `S` from `A` does **not** require the original `S`.
  *
- * Behavior:
+ * **Details**
+ *
  * - `getResult(s)` returns `Result.Success<A>` when the focus matches, or
  *   `Result.Failure<string>` with an error message.
  * - `set(a)` always succeeds and returns a new `S`.
@@ -311,12 +236,13 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
 /**
  * Creates a {@link Prism} from a fallible getter and an infallible setter.
  *
- * When to use:
- * - Reading can fail (the part may not exist in `S`), but building `S`
+ * **When to use**
+ *
+ * Use when reading can fail (the part may not exist in `S`), but building `S`
  *   from `A` always succeeds.
  *
- * Behavior:
- * - Does not mutate inputs.
+ * **Details**
+ *
  * - `getResult` should return `Result.fail(message)` on mismatch.
  *
  * **Example** (parsing a string to a number)
@@ -342,7 +268,7 @@ export interface Prism<in out S, in out A> extends Optional<S, A> {
  * @see {@link Prism} — the type this function returns
  * @see {@link fromChecks} — build from `Schema` checks instead
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, set: (a: A) => S): Prism<S, A> {
@@ -352,16 +278,17 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
 /**
  * Creates a {@link Prism} from one or more `Schema` validation checks.
  *
- * When to use:
- * - You want to narrow `T` to the subset that passes certain validation
+ * **When to use**
+ *
+ * Use when you want to narrow `T` to the subset that passes certain validation
  *   rules (e.g. positive integer).
  * - You already have `Schema.isGreaterThan`, `Schema.isInt`, etc.
  *
- * Behavior:
+ * **Details**
+ *
  * - `getResult` runs all checks; fails with a combined error message when
  *   any check fails.
  * - `set` is identity — the value passes through unchanged.
- * - Does not mutate inputs.
  *
  * **Example** (positive integer prism)
  *
@@ -383,10 +310,10 @@ export function makePrism<S, A>(getResult: (s: S) => Result.Result<A, string>, s
  * @see {@link makePrism} — constructor with custom getter/setter
  * @see {@link Prism} — the type this function returns
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
-export function fromChecks<T>(...checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]): Prism<T, T> {
+export function fromChecks<T>(...checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]): Prism<T, T> {
   return make(new CheckNode(checks))
 }
 
@@ -470,9 +397,9 @@ class PathNode {
 
 class CheckNode<T> {
   readonly _tag = "CheckNode"
-  readonly checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]
+  readonly checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]
 
-  constructor(checks: readonly [AST.Check<T>, ...Array<AST.Check<T>>]) {
+  constructor(checks: readonly [SchemaAST.Check<T>, ...Array<SchemaAST.Check<T>>]) {
     this.checks = checks
   }
 }
@@ -530,13 +457,15 @@ type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message
 /**
  * The most general optic — both reading and writing can fail.
  *
- * When to use:
- * - The focus may not exist in `S` **and** writing a new `A` back may also
- *   fail (e.g. the source no longer matches the expected shape).
- * - As the base type: every optic ({@link Iso}, {@link Lens}, {@link Prism},
- *   {@link Traversal}) extends `Optional`.
+ * **When to use**
  *
- * Behavior:
+ * Use when the focus may not exist in `S` and writing a new `A` back may also
+ * fail, for example when the source no longer matches the expected shape. This
+ * is the base type extended by {@link Iso}, {@link Lens}, {@link Prism}, and
+ * {@link Traversal}.
+ *
+ * **Details**
+ *
  * - `getResult(s)` returns `Result.Success<A>` or `Result.Failure<string>`.
  * - `replaceResult(a, s)` returns `Result.Success<S>` or
  *   `Result.Failure<string>`.
@@ -573,9 +502,8 @@ type ForbidUnion<A, Message extends string> = IsUnion<A> extends true ? [Message
 export interface Optional<in out S, in out A> {
   readonly node: Node
   /**
-   * Attempts to read the focus `A` from the whole `S`.
-   *
-   * Returns `Result.Success<A>` when the focus exists, or
+   * Attempts to read the focus `A` from the whole `S`. Returns
+   * `Result.Success<A>` when the focus exists, or
    * `Result.Failure<string>` with a descriptive error otherwise.
    */
   readonly getResult: (s: S) => Result.Result<A, string>
@@ -633,6 +561,8 @@ export interface Optional<in out S, in out A> {
   /**
    * Focuses on a property of the current struct/tuple focus.
    *
+   * **Details**
+   *
    * - On a {@link Lens}, returns a Lens.
    * - On an {@link Optional}, returns an Optional.
    * - Does **not** work on union types (compile error).
@@ -663,6 +593,8 @@ export interface Optional<in out S, in out A> {
   /**
    * Focuses on a key where setting `undefined` **removes** the key from the
    * struct (or splices the element from an array/tuple).
+   *
+   * **Details**
    *
    * - The focus type becomes `A[Key] | undefined`.
    * - Does **not** work on union types (compile error).
@@ -697,6 +629,8 @@ export interface Optional<in out S, in out A> {
    * Adds one or more `Schema` validation checks to the optic chain.
    * `getResult` fails when any check fails; `set` passes through unchanged.
    *
+   * **Details**
+   *
    * - On a {@link Prism}, returns a Prism.
    * - On an {@link Optional}, returns an Optional.
    *
@@ -716,11 +650,16 @@ export interface Optional<in out S, in out A> {
    *
    * @see {@link fromChecks} — standalone prism from checks
    */
-  check<S, A>(this: Prism<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Prism<S, A>
-  check<S, A>(this: Optional<S, A>, ...checks: readonly [AST.Check<A>, ...Array<AST.Check<A>>]): Optional<S, A>
+  check<S, A>(this: Prism<S, A>, ...checks: readonly [SchemaAST.Check<A>, ...Array<SchemaAST.Check<A>>]): Prism<S, A>
+  check<S, A>(
+    this: Optional<S, A>,
+    ...checks: readonly [SchemaAST.Check<A>, ...Array<SchemaAST.Check<A>>]
+  ): Optional<S, A>
 
   /**
    * Narrows the focus to a subtype `B` using a type guard.
+   *
+   * **Details**
    *
    * - On a {@link Prism}, returns a Prism.
    * - On an {@link Optional}, returns an Optional.
@@ -760,6 +699,8 @@ export interface Optional<in out S, in out A> {
    * Narrows the focus to the variant of a tagged union with the given
    * `_tag` value.
    *
+   * **Details**
+   *
    * - On a {@link Prism}, returns a Prism.
    * - On an {@link Optional}, returns an Optional.
    * - Shorthand for `.refine(s => s._tag === tag)`.
@@ -784,11 +725,11 @@ export interface Optional<in out S, in out A> {
    *
    * @see `.refine()` — for arbitrary type guards
    */
-  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: SchemaAST.LiteralValue }, Tag extends A["_tag"]>(
     this: Prism<S, A>,
     tag: Tag
   ): Prism<S, Extract<A, { readonly _tag: Tag }>>
-  tag<S, A extends { readonly _tag: AST.LiteralValue }, Tag extends A["_tag"]>(
+  tag<S, A extends { readonly _tag: SchemaAST.LiteralValue }, Tag extends A["_tag"]>(
     this: Optional<S, A>,
     tag: Tag
   ): Optional<S, Extract<A, { readonly _tag: Tag }>>
@@ -796,6 +737,8 @@ export interface Optional<in out S, in out A> {
   /**
    * Focuses on a key only if it exists (`Object.hasOwn`). Both
    * `getResult` and `replaceResult` fail when the key is absent.
+   *
+   * **Details**
    *
    * Unlike `.key()`, which always succeeds on the read side, `.at()` is
    * useful for Records or arrays where the key/index may not be present.
@@ -829,6 +772,8 @@ export interface Optional<in out S, in out A> {
   /**
    * Focuses on a subset of keys of the current struct focus.
    *
+   * **Details**
+   *
    * - On a {@link Lens}, returns a Lens.
    * - On an {@link Optional}, returns an Optional.
    * - Does **not** work on union types (compile error).
@@ -861,6 +806,8 @@ export interface Optional<in out S, in out A> {
 
   /**
    * Focuses on all keys **except** the specified ones.
+   *
+   * **Details**
    *
    * - On a {@link Lens}, returns a Lens.
    * - On an {@link Optional}, returns an Optional.
@@ -896,7 +843,6 @@ export interface Optional<in out S, in out A> {
 
   /**
    * Filters out `undefined` from the focus, producing a {@link Prism}.
-   *
    * `getResult` fails when the focus is `undefined`.
    *
    * **Example** (filtering undefined)
@@ -921,12 +867,12 @@ export interface Optional<in out S, in out A> {
   /**
    * Focuses **all elements** of an array-like focus and optionally narrows
    * to a subset using an element-level optic.
-   *
    * Available only on {@link Traversal} (i.e. when `A` is
    * `ReadonlyArray<Element>`). Returns a new Traversal focused on the
    * selected elements.
    *
-   * Behavior:
+   * **Details**
+   *
    * - **getResult** collects the values focused by `f(id<A>())` for each
    *   element. Non-focusable elements are skipped.
    * - **replaceResult** expects exactly as many values as were collected by
@@ -964,6 +910,8 @@ export interface Optional<in out S, in out A> {
   /**
    * Applies a function to **every** element focused by the traversal.
    *
+   * **Details**
+   *
    * Available only on {@link Traversal}. Returns a function `(s: S) => S`.
    * If the traversal cannot focus, the original `s` is returned unchanged.
    *
@@ -996,11 +944,13 @@ export interface Optional<in out S, in out A> {
 /**
  * Creates an {@link Optional} from a fallible getter and a fallible setter.
  *
- * When to use:
- * - Both reading and writing can fail.
+ * **When to use**
  *
- * Behavior:
- * - Does not mutate inputs.
+ * Use when you need an optic for a focus that may be missing on read and may
+ * reject updates on write.
+ *
+ * **Details**
+ *
  * - `getResult` should return `Result.fail(message)` on mismatch.
  * - `set` should return `Result.fail(message)` when the update cannot be
  *   applied.
@@ -1030,7 +980,7 @@ export interface Optional<in out S, in out A> {
  * @see {@link makeLens} — when reading always succeeds
  * @see {@link makePrism} — when writing always succeeds
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export function makeOptional<S, A>(
@@ -1043,11 +993,13 @@ export function makeOptional<S, A>(
 /**
  * An optic that focuses on **zero or more** elements of type `A` inside `S`.
  *
- * When to use:
- * - You want to read/update multiple elements at once (e.g. all items in
+ * **When to use**
+ *
+ * Use when you want to read/update multiple elements at once (e.g. all items in
  *   an array, or a filtered subset).
  *
- * Behavior:
+ * **Details**
+ *
  * - Technically `Optional<S, ReadonlyArray<A>>` — the focused value is an
  *   array of all matched elements.
  * - Use `.forEach()` to add per-element sub-optics (filtering, drilling
@@ -1128,11 +1080,11 @@ class OptionalImpl<S, A> implements Optional<S, A> {
       )
     )
   }
-  check(...checks: readonly [AST.Check<any>, ...Array<AST.Check<any>>]): any {
+  check(...checks: readonly [SchemaAST.Check<any>, ...Array<SchemaAST.Check<any>>]): any {
     return make(compose(this.node, new CheckNode(checks)))
   }
   refine<B extends A>(refinement: (a: A) => a is B, annotations?: Schema.Annotations.Filter): any {
-    return make(compose(this.node, new CheckNode([AST.makeFilterByGuard(refinement, annotations)])))
+    return make(compose(this.node, new CheckNode([SchemaAST.makeFilterByGuard(refinement, annotations)])))
   }
   tag(tag: string): any {
     return make(
@@ -1345,7 +1297,7 @@ const recur = memoize((node: Node): Op => {
     case "CheckNode":
       return {
         _tag: "PrismNode",
-        get: (s: any) => Result.mapError(AST.runChecks(node.checks, s), String),
+        get: (s: any) => Result.mapError(SchemaAST.runChecks(node.checks, s), String),
         set: identity
       }
     case "CompositionNode": {
@@ -1435,14 +1387,15 @@ function getCompositionTag(a: Op["_tag"], b: Op["_tag"]): Op["_tag"] {
  * Returns a function that extracts all elements focused by a
  * {@link Traversal} as a plain mutable array.
  *
- * When to use:
- * - You need the focused values as a simple `Array<A>` for further
+ * **When to use**
+ *
+ * Use when you need the focused values as a simple `Array<A>` for further
  *   processing.
  *
- * Behavior:
+ * **Details**
+ *
  * - Returns an empty array when the traversal cannot focus.
  * - Always returns a fresh array (safe to mutate).
- * - Does not mutate the source.
  *
  * **Example** (collecting positive numbers)
  *
@@ -1484,13 +1437,14 @@ export function getAll<S, A>(traversal: Traversal<S, A>): (s: S) => Array<A> {
 const identityIso = make(identityNode)
 
 /**
- * The identity {@link Iso}. Focuses on the whole value unchanged.
+ * Iso that focuses on the whole value unchanged.
  *
- * When to use:
- * - As the starting point of an optic chain: `Optic.id<S>().key("x")...`
- * - Anywhere an `Iso<S, S>` is needed.
+ * **When to use**
  *
- * Behavior:
+ * Use when you need to start an optic chain with a focus on the whole value.
+ *
+ * **Details**
+ *
  * - `get(s)` returns `s`.
  * - `set(a)` returns `a`.
  * - Singleton — every call returns the same instance.
@@ -1518,14 +1472,16 @@ export function id<S>(): Iso<S, S> {
 }
 
 /**
- * An {@link Iso} that converts a `Record<string, A>` to an array of
+ * Iso that converts a `Record<string, A>` to an array of
  * `[key, value]` entries and back.
  *
- * When to use:
- * - You want to traverse or manipulate record entries as an array (e.g.
+ * **When to use**
+ *
+ * Use when you want to traverse or manipulate record entries as an array (e.g.
  *   with `.forEach()`).
  *
- * Behavior:
+ * **Details**
+ *
  * - `get` uses `Object.entries`.
  * - `set` uses `Object.fromEntries`.
  * - Round-trip is lossless for `Record<string, A>`.
@@ -1555,13 +1511,15 @@ export function entries<A>(): Iso<Record<string, A>, ReadonlyArray<readonly [str
 }
 
 /**
- * A {@link Prism} that focuses on the value inside `Option.Some`.
+ * Prism that focuses on the value inside `Option.Some`.
  *
- * When to use:
- * - You have an `Option<A>` and want to read/update the inner value only
+ * **When to use**
+ *
+ * Use when you have an `Option<A>` and want to read/update the inner value only
  *   when it is `Some`.
  *
- * Behavior:
+ * **Details**
+ *
  * - `getResult` fails with an error message when the option is `None`.
  * - `set(a)` wraps `a` in `Option.some(a)`.
  *
@@ -1601,12 +1559,14 @@ export function some<A>(): Prism<Option.Option<A>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on `Option.None`, exposing `undefined`.
+ * Prism that focuses on `Option.None`, exposing `undefined`.
  *
- * When to use:
- * - You want to match or construct `None` values within an optic chain.
+ * **When to use**
  *
- * Behavior:
+ * Use when you want to match or construct `None` values within an optic chain.
+ *
+ * **Details**
+ *
  * - `getResult` succeeds with `undefined` when the option is `None`.
  * - `getResult` fails when the option is `Some`.
  * - `set(undefined)` produces `Option.none()`.
@@ -1644,13 +1604,15 @@ export function none<A>(): Prism<Option.Option<A>, undefined> {
 }
 
 /**
- * A {@link Prism} that focuses on the success value of a `Result`.
+ * Prism that focuses on the success value of a `Result`.
  *
- * When to use:
- * - You have a `Result<A, E>` and want to read/update `A` only when it
+ * **When to use**
+ *
+ * Use when you have a `Result<A, E>` and want to read/update `A` only when it
  *   is a `Success`.
  *
- * Behavior:
+ * **Details**
+ *
  * - `getResult` fails when the result is a `Failure`.
  * - `set(a)` produces `Result.succeed(a)`.
  *
@@ -1687,13 +1649,15 @@ export function success<A, E>(): Prism<Result.Result<A, E>, A> {
 }
 
 /**
- * A {@link Prism} that focuses on the failure value of a `Result`.
+ * Prism that focuses on the failure value of a `Result`.
  *
- * When to use:
- * - You have a `Result<A, E>` and want to read/update `E` only when it
+ * **When to use**
+ *
+ * Use when you have a `Result<A, E>` and want to read/update `E` only when it
  *   is a `Failure`.
  *
- * Behavior:
+ * **Details**
+ *
  * - `getResult` fails when the result is a `Success`.
  * - `set(e)` produces `Result.fail(e)`.
  *
@@ -1732,6 +1696,6 @@ export function failure<A, E>(): Prism<Result.Result<A, E>, E> {
 function runRefinement<T extends E, E>(
   refinement: (e: E) => e is T,
   annotations?: Schema.Annotations.Filter
-): (e: E) => Result.Result<T, Issue.Issue> {
-  return (e) => AST.runChecks([AST.makeFilterByGuard(refinement, annotations)], e) as any
+): (e: E) => Result.Result<T, SchemaIssue.Issue> {
+  return (e) => SchemaAST.runChecks([SchemaAST.makeFilterByGuard(refinement, annotations)], e) as any
 }

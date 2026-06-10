@@ -1,18 +1,13 @@
 /**
- * Provides a React Native SQLite `SqlClient` backed by `@op-engineering/op-sqlite`.
+ * Connects Effect SQL to SQLite in React Native using
+ * `@op-engineering/op-sqlite`.
  *
- * Use this module to open an on-device SQLite database, expose it as both the
- * React Native-specific `SqliteClient` and the generic Effect `SqlClient`, and
- * run application queries, migrations, and transactional reads or writes from
- * Effect services and layers.
- *
- * The client uses one serialized connection. Regular queries and transactions
- * share that handle, and a transaction holds it for the lifetime of its scope,
- * so keep mobile transactions short and wrap multi-statement writes in a
- * transaction to avoid partial updates. By default statements use the driver's
- * synchronous API, which can block the JavaScript thread; `withAsyncQuery`
- * switches a fiber to the asynchronous driver API when UI responsiveness is more
- * important than sync execution.
+ * This module opens an on-device SQLite database and exposes it as both
+ * `SqliteClient` and the generic Effect SQL client. It serializes access,
+ * supports normal and value-based queries, and uses the driver's synchronous
+ * query API by default. `AsyncQuery` and `withAsyncQuery` switch a scoped effect
+ * to the driver's asynchronous query API. Streaming queries and `updateValues`
+ * are not supported by this driver.
  *
  * @since 4.0.0
  */
@@ -40,7 +35,7 @@ const classifyError = (cause: unknown, message: string, operation: string) =>
 /**
  * Runtime identifier attached to SQLite React Native client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
@@ -48,7 +43,7 @@ export const TypeId: TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
 /**
  * Type-level identifier for SQLite React Native client values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-sqlite-react-native/SqliteClient"
@@ -68,9 +63,9 @@ export interface SqliteClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for the React Native SQLite client.
+ * Service tag for the React Native SQLite client.
  *
- * @category tags
+ * @category services
  * @since 4.0.0
  */
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-react-native/SqliteClient")
@@ -91,7 +86,12 @@ export interface SqliteClientConfig {
 }
 
 /**
- * Fiber-local flag that makes the React Native SQLite client run queries through the asynchronous `execute` API instead of `executeSync`.
+ * Fiber reference that makes the React Native SQLite client run queries through the asynchronous `execute` API instead of `executeSync`.
+ *
+ * **When to use**
+ *
+ * Use to switch React Native SQLite query execution to the asynchronous driver
+ * API for a scoped effect.
  *
  * @category fiber refs
  * @since 4.0.0
@@ -115,7 +115,7 @@ interface SqliteConnection extends Connection {}
 /**
  * Creates a scoped React Native SQLite client from the supplied configuration, using a single serialized connection and honoring `AsyncQuery` for query execution.
  *
- * @category constructor
+ * @category constructors
  * @since 4.0.0
  */
 export const make = (
@@ -280,10 +280,6 @@ interface DB {
    *
    * If you are writing to the database YOU SHOULD BE USING TRANSACTIONS!
    * Transactions protect you from partial writes and ensure that your data is always in a consistent state
-   *
-   * @param query
-   * @param params
-   * @returns QueryResult
    */
   executeSync: (query: string, params?: Array<any>) => QueryResult
   /**
@@ -301,10 +297,6 @@ interface DB {
    * Transactions protect you from partial writes and ensure that your data is always in a consistent state
    *
    * If you need a large amount of queries ran as fast as possible you should be using `executeBatch`, `executeRaw`, `loadFile` or `executeWithHostObjects`
-   *
-   * @param query string of your SQL query
-   * @param params a list of parameters to bind to the query, if any
-   * @returns Promise<QueryResult> with the result of the query
    */
   execute: (query: string, params?: Array<any>) => Promise<QueryResult>
   /**

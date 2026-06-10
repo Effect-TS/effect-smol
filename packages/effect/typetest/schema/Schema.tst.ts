@@ -1611,6 +1611,41 @@ describe("Schema", () => {
         >
       >()
     })
+
+    it("should support symbol keys", () => {
+      const decoded = Symbol.for("decoded")
+      const encoded = Symbol.for("encoded")
+
+      const source = Schema.Struct({
+        [decoded]: Schema.String
+      }).pipe(Schema.encodeKeys({ [decoded]: "decoded" }))
+
+      expect(source).type.toBe<
+        Schema.decodeTo<
+          Schema.Struct<{
+            readonly [decoded]: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly decoded: Schema.toEncoded<Schema.String>
+          }>
+        >
+      >()
+
+      const destination = Schema.Struct({
+        decoded: Schema.String
+      }).pipe(Schema.encodeKeys({ decoded: encoded }))
+
+      expect(destination).type.toBe<
+        Schema.decodeTo<
+          Schema.Struct<{
+            readonly decoded: Schema.String
+          }>,
+          Schema.Struct<{
+            readonly [encoded]: Schema.toEncoded<Schema.String>
+          }>
+        >
+      >()
+    })
   })
 
   it("tag", () => {

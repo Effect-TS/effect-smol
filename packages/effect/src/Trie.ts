@@ -1,17 +1,11 @@
 /**
- * A `Trie` is used for locating specific `string` keys from within a set.
+ * Stores string-keyed values in an immutable prefix tree.
  *
- * It works similar to `HashMap`, but with keys required to be `string`.
- * This constraint unlocks some performance optimizations and new methods to get string prefixes (e.g. `keysWithPrefix`, `longestPrefixOf`).
- *
- * Prefix search is also the main feature that makes a `Trie` more suited than `HashMap` for certain usecases.
- *
- * A `Trie` is often used to store a dictionary (list of words) that can be searched
- * in a manner that allows for efficient generation of completion lists
- * (e.g. predict the rest of a word a user is typing).
- *
- * A `Trie` has O(n) lookup time where `n` is the size of the key,
- * or even less than `n` on search misses.
+ * A `Trie<Value>` is similar to a map whose keys are strings, but it is built
+ * for looking up keys by prefix. It is useful for autocomplete, route tables,
+ * dictionaries, and command lookup. Updates return new tries, and the module
+ * includes exact lookup, prefix lookup, longest-prefix lookup, iteration,
+ * mapping, filtering, reducing, and traversal helpers.
  *
  * @since 2.0.0
  */
@@ -33,7 +27,7 @@ const TypeId = TR.TrieTypeId
  * **Example** (Using a trie for prefix search)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  *
  * // Create a trie with string-to-number mappings
  * const trie: Trie.Trie<number> = Trie.make(
@@ -79,7 +73,7 @@ export interface Trie<in out Value> extends Iterable<[string, Value]>, Equal, Pi
  * **Example** (Creating an empty trie)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<string>()
@@ -99,8 +93,7 @@ export const empty: <V = never>() => Trie<V> = TR.empty
  * **Example** (Creating a trie from entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const iterable: Array<readonly [string, number]> = [["call", 0], ["me", 1], [
@@ -134,8 +127,7 @@ export const fromIterable: <V>(entries: Iterable<readonly [string, V]>) => Trie<
  * **Example** (Constructing a trie from entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.make(["ca", 0], ["me", 1])
@@ -155,12 +147,12 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 ) => Trie<Entries[number] extends readonly [any, infer V] ? V : never> = TR.make
 
 /**
- * Insert a new entry in the `Trie`.
+ * Inserts a new entry in the `Trie`.
  *
  * **Example** (Inserting entries)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie1 = Trie.empty<number>().pipe(
@@ -190,12 +182,14 @@ export const insert: {
 /**
  * Returns an `IterableIterator` of the keys within the `Trie`.
  *
+ * **Details**
+ *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading keys in alphabetical order)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -216,12 +210,14 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 /**
  * Returns an `IterableIterator` of the values within the `Trie`.
  *
+ * **Details**
+ *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading values by key order)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -242,12 +238,14 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 /**
  * Returns an `IterableIterator` of the entries within the `Trie`.
  *
+ * **Details**
+ *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading entries in alphabetical order)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -267,12 +265,14 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
 /**
  * Returns an `Array<[string, V]>` of the entries within the `Trie`.
  *
+ * **Details**
+ *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
  * **Example** (Converting entries to an array)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -296,7 +296,7 @@ export const toEntries = <V>(self: Trie<V>): Array<[string, V]> => Array.from(en
  * **Example** (Finding keys with a prefix)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -325,7 +325,7 @@ export const keysWithPrefix: {
  * **Example** (Finding values with a prefix)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -356,7 +356,7 @@ export const valuesWithPrefix: {
  * **Example** (Finding entries with a prefix)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -385,7 +385,7 @@ export const entriesWithPrefix: {
  * **Example** (Converting prefixed entries to an array)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -414,7 +414,7 @@ export const toEntriesWithPrefix: {
  * **Example** (Finding the longest prefix)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -447,7 +447,7 @@ export const longestPrefixOf: {
  * **Example** (Getting the size)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -464,13 +464,12 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Safely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` safely.
  *
  * **Example** (Looking up values safely)
  *
  * ```ts
- * import * as Option from "effect/Option"
- * import * as Trie from "effect/Trie"
+ * import { Option, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -499,12 +498,12 @@ export const get: {
 } = TR.get
 
 /**
- * Check if the given key exists in the `Trie`.
+ * Checks whether the given key exists in the `Trie`.
  *
  * **Example** (Checking key membership)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -538,7 +537,7 @@ export const has: {
  * **Example** (Checking whether a trie is empty)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>()
@@ -554,15 +553,22 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` unsafely.
  *
- * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
- * get a value from the `Trie`.
+ * **When to use**
+ *
+ * Use when the trie key is known to exist and a missing key should be treated
+ * as a programming error.
+ *
+ * **Gotchas**
+ *
+ * `getUnsafe` throws if the key is not found. Use `get` instead to safely get
+ * a value from the `Trie`.
  *
  * **Example** (Looking up values unsafely)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -574,7 +580,7 @@ export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
  * ```
  *
  * @category unsafe
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const getUnsafe: {
   (key: string): <V>(self: Trie<V>) => V
@@ -582,13 +588,12 @@ export const getUnsafe: {
 } = TR.getUnsafe
 
 /**
- * Remove the entry for the specified key in the `Trie`.
+ * Removes the entry for the specified key in the `Trie`.
  *
  * **Example** (Removing entries)
  *
  * ```ts
- * import * as Option from "effect/Option"
- * import * as Trie from "effect/Trie"
+ * import { Option, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -615,12 +620,12 @@ export const remove: {
 } = TR.remove
 
 /**
- * Reduce a state over the entries of the `Trie`.
+ * Reduces a state over the entries of the `Trie`.
  *
  * **Example** (Reducing entries)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -663,8 +668,7 @@ export const reduce: {
  * **Example** (Mapping entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -703,8 +707,7 @@ export const map: {
  * **Example** (Filtering entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -746,9 +749,7 @@ export const filter: {
  * **Example** (Filtering and mapping entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Result from "effect/Result"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Result, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -799,9 +800,7 @@ export const filterMap: {
  * **Example** (Compacting optional values)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Option from "effect/Option"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Option, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<Option.Option<number>>().pipe(
@@ -829,7 +828,7 @@ export const compact: <A>(self: Trie<Option<A>>) => Trie<A> = TR.compact
  * **Example** (Iterating over entries)
  *
  * ```ts
- * import * as Trie from "effect/Trie"
+ * import { Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * let value = 0
@@ -860,9 +859,7 @@ export const forEach: {
  * **Example** (Modifying an existing value)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Option from "effect/Option"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Option, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -893,8 +890,7 @@ export const modify: {
  * **Example** (Removing multiple entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(
@@ -921,13 +917,12 @@ export const removeMany: {
 } = TR.removeMany
 
 /**
- * Insert multiple entries in the `Trie` at once.
+ * Inserts multiple entries in the `Trie` at once.
  *
  * **Example** (Inserting multiple entries)
  *
  * ```ts
- * import * as Equal from "effect/Equal"
- * import * as Trie from "effect/Trie"
+ * import { Equal, Trie } from "effect"
  * import * as assert from "node:assert"
  *
  * const trie = Trie.empty<number>().pipe(

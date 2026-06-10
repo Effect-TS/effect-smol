@@ -1,32 +1,11 @@
 /**
- * SQL-backed storage for Effect Cluster runner metadata and shard ownership.
+ * Stores cluster runner registration and shard ownership in SQL.
  *
- * The `SqlRunnerStorage` module builds a `RunnerStorage` implementation from a
- * `SqlClient`, creating the runner and lock tables it needs using the configured
- * table prefix. It is used by clustered applications that need runner
- * registration, health tracking, shard acquisition, refresh, and release to be
- * coordinated through an external database instead of in-memory state.
- *
- * **Common tasks**
- *
- * - Provide the default storage layer with {@link layer}
- * - Use {@link layerWith} when multiple clusters share the same database and
- *   need distinct table prefixes
- * - Create a storage implementation directly with {@link make} for custom layer
- *   composition
- *
- * **Gotchas**
- *
- * - Runner heartbeats and persisted shard locks expire according to
- *   `ShardingConfig.shardLockExpiration`; stale rows may be reused or cleaned up
- *   by later storage operations.
- * - PostgreSQL and MySQL use advisory locks by default, keeping shard ownership
- *   tied to a reserved database connection. Set
- *   `ShardingConfig.shardLockDisableAdvisory` when persisted lock rows should be
- *   used instead.
- * - The selected table prefix controls the generated `runners` and `locks`
- *   table names, so changing it points the cluster at a different storage
- *   namespace.
+ * The SQL-backed `RunnerStorage` records runners, health flags, machine ids,
+ * and shard locks so multiple processes can coordinate which runner owns each
+ * shard. This module creates the required runner and lock tables, supports an
+ * optional table prefix, uses advisory locks for PostgreSQL and MySQL when
+ * enabled, and provides constructors and layers for the storage service.
  *
  * @since 4.0.0
  */
@@ -51,13 +30,35 @@ const withTracerDisabled = Effect.withTracerEnabled(false)
  * shard locks, using the configured table prefix and advisory locks where
  * supported and enabled.
  *
- * @category Constructors
+ * **When to use**
+ *
+ * Use to create a SQL-backed `RunnerStorage` value directly when building
+ * custom service or layer composition around the storage implementation.
+ *
+ * **Details**
+ *
+ * When `prefix` is omitted, `make` uses the `cluster` prefix, creating
+ * `cluster_runners` and `cluster_locks`. PostgreSQL and MySQL use advisory
+ * locks unless `ShardingConfig.shardLockDisableAdvisory` is enabled; other
+ * dialects use rows in the locks table.
+ *
+ * **Gotchas**
+ *
+ * Changing `prefix` changes both generated table names, so runners using
+ * different prefixes do not share registrations or shard locks.
+ *
+ * @see {@link layer} for the default SQL-backed storage layer
+ * @see {@link layerWith} for a SQL-backed storage layer with a custom table prefix
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const make = Effect.fnUntraced(function*(options: {
   readonly prefix?: string | undefined
 }) {
   const config = yield* ShardingConfig.ShardingConfig
+  const shardGroups = ShardingConfig.shardGroupConfig(config)
+  const availableShardGroups = Array.from(shardGroups.available)
   const disableAdvisoryLocks = config.shardLockDisableAdvisory
   const sql = (yield* SqlClient.SqlClient).withoutTransforms()
   const prefix = options?.prefix ?? "cluster"
@@ -424,8 +425,8 @@ export const make = Effect.fnUntraced(function*(options: {
 
   const lockNumbers = new Map<string, number>()
   const lockNumbersReverse = new Map<number, string>()
-  for (let i = 0; i < config.shardGroups.length; i++) {
-    const group = config.shardGroups[i]
+  for (let i = 0; i < availableShardGroups.length; i++) {
+    const group = availableShardGroups[i]
     const base = (i + 1) * 1000000
     for (let shard = 1; shard <= config.shardsPerGroup; shard++) {
       const shardId = ShardId.make(group, shard).toString()
@@ -440,8 +441,8 @@ export const make = Effect.fnUntraced(function*(options: {
   const lockNamesReverse = new Map<string, string>()
   {
     let index = 0
-    for (let i = 0; i < config.shardGroups.length; i++) {
-      const group = config.shardGroups[i]
+    for (let i = 0; i < availableShardGroups.length; i++) {
+      const group = availableShardGroups[i]
       for (let shard = 1; shard <= config.shardsPerGroup; shard++) {
         const shardId = ShardId.make(group, shard).toString()
         const lockName = `${prefix}.${shardId}`
@@ -678,7 +679,7 @@ export const make = Effect.fnUntraced(function*(options: {
 /**
  * Layer that provides SQL-backed `RunnerStorage` using the default table prefix.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<
@@ -690,7 +691,7 @@ export const layer: Layer.Layer<
 /**
  * Layer that provides SQL-backed `RunnerStorage` using a custom table prefix.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerWith = (options: {

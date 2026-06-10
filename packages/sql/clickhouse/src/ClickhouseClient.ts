@@ -1,23 +1,13 @@
 /**
- * ClickHouse client implementation for Effect SQL, backed by
- * `@clickhouse/client`.
+ * ClickHouse driver for Effect SQL, backed by `@clickhouse/client`.
  *
- * This module exposes constructors and layers for providing both the
- * ClickHouse-specific `ClickhouseClient` service and the generic `SqlClient`
- * service. It is intended for analytical application queries, migrations,
- * background jobs, bulk inserts, and streaming reads that need Effect SQL query
- * compilation, scoped lifecycle management, interruption, and consistent
- * `SqlError` classification for ClickHouse failures.
- *
- * The client uses the ClickHouse HTTP client APIs for `query`, `command`, and
- * `insert` operations. Regular queries read JSON result sets, `executeValues`
- * requests `JSONCompact`, streams request `JSONEachRow`, and `insertQuery`
- * defaults inserts to `JSONEachRow`. Interrupting an operation aborts the
- * underlying HTTP request and attempts to kill the generated or supplied
- * `query_id`. The statement compiler emits ClickHouse typed placeholders such
- * as `{p1: Type}`; use `param` when the inferred type is too broad, and write
- * ClickHouse-specific clauses such as engines, `SETTINGS`, `FORMAT`, or
- * cluster directives explicitly.
+ * This module provides both the ClickHouse-specific {@link ClickhouseClient}
+ * service and the generic {@link Client.SqlClient} service. `make` creates a
+ * scoped client, checks the connection with `SELECT 1`, maps ClickHouse errors
+ * to `SqlError`, and aborts in-flight queries when interrupted. The
+ * ClickHouse-specific service adds typed parameters, command execution, insert
+ * queries, query id and settings helpers, a statement compiler, and direct or
+ * config-backed layers.
  *
  * @since 4.0.0
  */
@@ -96,7 +86,7 @@ const classifyError = (
 /**
  * Unique runtime identifier used to tag `ClickhouseClient` values.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
@@ -104,7 +94,7 @@ export const TypeId: TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
 /**
  * Type-level literal for the `ClickhouseClient` runtime identifier.
  *
- * @category type ids
+ * @category type IDs
  * @since 4.0.0
  */
 export type TypeId = "~@effect/sql-clickhouse/ClickhouseClient"
@@ -143,9 +133,13 @@ export interface ClickhouseClient extends Client.SqlClient {
 }
 
 /**
- * Context service tag for accessing the active `ClickhouseClient`.
+ * Service tag for the active ClickHouse SQL client.
  *
- * @category tags
+ * **When to use**
+ *
+ * Use to access or provide a ClickHouse SQL client through the Effect context.
+ *
+ * @category services
  * @since 4.0.0
  */
 export const ClickhouseClient = Context.Service<ClickhouseClient>("@effect/sql-clickhouse/ClickhouseClient")
@@ -402,7 +396,7 @@ export const make = (
  * Fiber reference read by the low-level ClickHouse connection to choose query
  * or command execution for statements; defaults to `query`.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
@@ -416,7 +410,7 @@ export const ClientMethod = Context.Reference<"query" | "command" | "insert">(
  * Fiber reference for the ClickHouse `query_id` applied to queries and
  * inserts; a random UUID is generated when no query ID is set.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const QueryId = Context.Reference<string | undefined>(
@@ -428,7 +422,7 @@ export const QueryId = Context.Reference<string | undefined>(
  * Fiber reference containing ClickHouse settings to attach to queries,
  * commands, and inserts.
  *
- * @category References
+ * @category references
  * @since 4.0.0
  */
 export const ClickhouseSettings: Context.Reference<

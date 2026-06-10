@@ -1,20 +1,10 @@
 /**
- * Bun layers for Effect's `Path` service.
+ * Bun-backed layers for Effect's {@link Path} service.
  *
- * Use this module when an Effect program running on Bun needs path
- * manipulation from the `Path` service, such as joining and normalizing local
- * filesystem locations, resolving configuration or static asset paths, handling
- * CLI path arguments, or converting between filesystem paths and `file:` URLs.
- *
- * Bun exposes Node-compatible path behavior, so these layers reuse the shared
- * Node path implementation. The default `layer` follows the host operating
- * system's path rules, including separators, absolute paths, drive letters, and
- * UNC paths where applicable. Use `layerPosix` or `layerWin32` when code needs
- * stable POSIX or Windows semantics regardless of where Bun is running. These
- * layers only manipulate path strings; they do not read the filesystem, validate
- * that paths exist, or turn request URLs into safe local paths. `BunServices`
- * already includes the default Bun path layer, so provide this module directly
- * when you need only `Path` or one of the platform-specific variants.
+ * This module provides the `Path` service for Bun programs by reusing the
+ * shared Node-compatible path implementation. Provide one of these layers when
+ * Bun code should receive path operations from the Effect environment instead
+ * of importing runtime path helpers directly.
  *
  * @since 4.0.0
  */
@@ -25,7 +15,7 @@ import type { Path } from "effect/Path"
 /**
  * Layer that provides the default `Path` service for Bun using the shared Node path implementation.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layer: Layer.Layer<Path> = NodePath.layer
@@ -33,7 +23,7 @@ export const layer: Layer.Layer<Path> = NodePath.layer
 /**
  * Layer that provides the POSIX `Path` service for Bun using the shared Node path implementation.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layerPosix: Layer.Layer<Path> = NodePath.layerPosix
@@ -41,7 +31,7 @@ export const layerPosix: Layer.Layer<Path> = NodePath.layerPosix
 /**
  * Layer that provides the Win32 `Path` service for Bun using the shared Node path implementation.
  *
- * @category layer
+ * @category layers
  * @since 4.0.0
  */
 export const layerWin32: Layer.Layer<Path> = NodePath.layerWin32

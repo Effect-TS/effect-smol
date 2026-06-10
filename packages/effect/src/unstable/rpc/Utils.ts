@@ -1,26 +1,10 @@
 /**
- * Internal helpers for constructing RPC protocol services whose receive loop is
- * installed separately from the operations that write to it.
+ * Helps RPC protocol services buffer messages until their receive loop starts.
  *
- * This module is used by the client and server `Protocol.make` constructors to
- * let transports expose a stable service immediately while buffering messages
- * until the protocol's `run` method has installed the active receiver. Buffered
- * writes keep the `Context` that was current at the time of the write, so
- * replaying early messages preserves fiber-local services such as tracing or
- * request metadata.
- *
- * The general `withRun` helper is for single receive-loop services, such as
- * server transports, while `withRunClient` specializes the same pattern for
- * client transports by tracking active client ids and keeping a separate buffer
- * per client. They are most useful when implementing custom RPC transports or
- * test protocols that need to send before the consumer fiber has started.
- *
- * These helpers intentionally work on `Omit<Service, "run">` and re-add `run`
- * so generated `Context.Service` static `make` members can preserve their
- * exact service shape. When using them from generated or type-helper-heavy
- * protocol code, keep the `run` signature aligned with the target service:
- * the server helper has one shared writer, but the client helper requires a
- * `clientId` because responses and buffered messages are routed per client.
+ * Client and server protocol constructors use these helpers to expose a stable
+ * service before the active receiver is installed. Writes made before `run`
+ * starts are buffered with their current `Context`, then replayed once the
+ * receiver is ready.
  *
  * @since 4.0.0
  */
@@ -35,6 +19,7 @@ import type { FromServerEncoded } from "./RpcMessage.ts"
  * a writer, replays buffered writes with their original contexts, and restores
  * the previous writer when the run ends.
  *
+ * @category services
  * @since 4.0.0
  */
 export const withRun = <
@@ -77,6 +62,7 @@ export const withRun = <
  * buffers server responses per client until that client's `run` handler is
  * installed.
  *
+ * @category services
  * @since 4.0.0
  */
 export const withRunClient = <EX, RX>(

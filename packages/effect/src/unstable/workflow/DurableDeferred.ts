@@ -1,23 +1,11 @@
 /**
- * Durable deferreds are named workflow wait points whose result is stored by
- * the workflow engine as an encoded `Exit`. A workflow can `await` one and
- * suspend until an activity, worker, timer, or external callback completes it
- * with `done`, `succeed`, `fail`, or `failCause`.
+ * Defines named wait points for durable workflow executions.
  *
- * Use this module to coordinate work that finishes outside the current
- * workflow turn: durable races, queues that report worker results, timers,
- * human approvals, webhooks, and other callback-style integrations. Tokens
- * encode the workflow name, execution ID, and deferred name so completion can
- * be routed back to the correct workflow execution without keeping an
- * in-memory handle.
- *
- * Deferred names are part of persisted workflow state, so keep them stable
- * across replays and unique for each logical wait. Completion is persisted as
- * an `Exit` and decoded through the success and error schemas when awaited
- * again; changing schemas or reusing a name for a different result type can
- * make old completions fail to decode or resume the wrong wait. Complete a
- * deferred once, and use `withActivityAttempt` when an activity retry needs an
- * attempt-scoped completion name.
+ * A `DurableDeferred` has a stable name and schemas for the value that will be
+ * recorded later. Workflows can await it, suspend when no result exists yet, and
+ * resume after its result is recorded. Tokens identify the workflow name,
+ * execution id, and deferred name so external code can complete the correct
+ * wait point later.
  *
  * @since 4.0.0
  */
@@ -33,7 +21,7 @@ import * as Filter from "../../Filter.ts"
 import { dual } from "../../Function.ts"
 import * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
-import * as Getter from "../../SchemaGetter.ts"
+import * as SchemaGetter from "../../SchemaGetter.ts"
 import type * as Activity from "./Activity.ts"
 import * as Workflow from "./Workflow.ts"
 import type { WorkflowEngine, WorkflowInstance } from "./WorkflowEngine.ts"
@@ -44,7 +32,7 @@ const TypeId = "~effect/workflow/DurableDeferred"
  * Named durable deferred value whose completion is persisted by the workflow
  * engine and encoded with success and error schemas.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface DurableDeferred<
@@ -63,7 +51,7 @@ export interface DurableDeferred<
  * Type-erased durable deferred shape for APIs that only need the deferred
  * identity and name.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface Any {
@@ -75,7 +63,7 @@ export interface Any {
  * Type-erased durable deferred shape that also exposes success, error, and
  * exit schemas.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export interface AnyWithProps {
@@ -90,7 +78,7 @@ export interface AnyWithProps {
  * Creates a named durable deferred with optional success and error schemas for
  * persisted completion.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const make = <
@@ -113,7 +101,7 @@ export const make = <
     exitSchema: Schema.Exit(
       Schema.toCodecJson(successSchema),
       Schema.toCodecJson(errorSchema),
-      Schema.toCodecJson(Schema.Defect)
+      Schema.toCodecJson(Schema.Defect())
     ) as any,
     withActivityAttempt: Effect.gen(function*() {
       const attempt = yield* CurrentAttempt
@@ -168,7 +156,10 @@ const await_: <Success extends Schema.Top, Error extends Schema.Top>(
 
 export {
   /**
-   * @category Combinators
+   * Waits for the durable deferred, suspending the current workflow when no
+   * persisted completion is available.
+   *
+   * @category combinators
    * @since 4.0.0
    */
   await_ as await
@@ -178,7 +169,7 @@ export {
  * Runs an effect and records its exit into the durable deferred, resuming
  * workflows that are waiting on that deferred.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const into: {
@@ -243,7 +234,7 @@ export const into: {
               }
             }
             yield* engine.deferredDone(self, {
-              workflowName: instance.workflow.name,
+              workflowName: instance.workflow._tag,
               executionId: instance.executionId,
               deferredName: self.name,
               exit
@@ -258,7 +249,7 @@ export const into: {
  * Runs effects as a durable race, returning a previously persisted result when
  * present or completing a named deferred with the first result.
  *
- * @category Racing
+ * @category racing
  * @since 4.0.0
  */
 export const raceAll = <
@@ -301,6 +292,7 @@ export const raceAll = <
 /**
  * Runtime brand identifier for durable deferred tokens.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
@@ -308,6 +300,7 @@ export const TokenTypeId = "~effect/workflow/DurableDeferred/Token"
 /**
  * Type-level brand identifier for `Token` values.
  *
+ * @category type IDs
  * @since 4.0.0
  */
 export type TokenTypeId = typeof TokenTypeId
@@ -316,7 +309,7 @@ export type TokenTypeId = typeof TokenTypeId
  * Branded string token identifying a durable deferred for a workflow
  * execution.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export type Token = Brand.Branded<string, TokenTypeId>
@@ -324,16 +317,16 @@ export type Token = Brand.Branded<string, TokenTypeId>
 /**
  * Schema for branded durable deferred tokens.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const Token: Schema.brand<Schema.String, TokenTypeId> = Schema.String.pipe(Schema.brand(TokenTypeId))
 
 /**
- * Decoded representation of a durable deferred token containing the workflow
+ * Schema for a decoded durable deferred token containing the workflow
  * name, execution ID, and deferred name.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export class TokenParsed extends Schema.Class<TokenParsed>(
@@ -365,12 +358,12 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
         Schema.Tuple([Schema.String, Schema.String, Schema.String])
       ),
       {
-        decode: Getter.decodeBase64UrlString(),
-        encode: Getter.encodeBase64Url()
+        decode: SchemaGetter.decodeBase64UrlString(),
+        encode: SchemaGetter.encodeBase64Url()
       }
     ),
     Schema.decodeTo(TokenParsed, {
-      decode: Getter.transform(
+      decode: SchemaGetter.transform(
         ([workflowName, executionId, deferredName]) =>
           new TokenParsed({
             workflowName,
@@ -378,7 +371,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
             deferredName
           })
       ),
-      encode: Getter.transform(
+      encode: SchemaGetter.transform(
         (parsed) =>
           [
             parsed.workflowName,
@@ -408,7 +401,7 @@ export class TokenParsed extends Schema.Class<TokenParsed>(
  * Creates a token for a durable deferred using the current workflow instance's
  * workflow name and execution ID.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const token: <Success extends Schema.Top, Error extends Schema.Top>(
@@ -426,7 +419,7 @@ export const token: <Success extends Schema.Top, Error extends Schema.Top>(
  * Creates a durable deferred token from an explicit workflow, execution ID,
  * and deferred name.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const tokenFromExecutionId: {
@@ -450,7 +443,7 @@ export const tokenFromExecutionId: {
     }
   ): Token =>
     new TokenParsed({
-      workflowName: options.workflow.name,
+      workflowName: options.workflow._tag,
       executionId: options.executionId,
       deferredName: self.name
     }).asToken
@@ -460,7 +453,7 @@ export const tokenFromExecutionId: {
  * Creates a durable deferred token by deriving the workflow execution ID from
  * the supplied workflow payload.
  *
- * @category Token
+ * @category token
  * @since 4.0.0
  */
 export const tokenFromPayload: {
@@ -505,7 +498,7 @@ export const tokenFromPayload: {
  * Completes the durable deferred identified by a token with the supplied exit,
  * encoding the result through the deferred schemas.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const done: {
@@ -557,7 +550,7 @@ export const done: {
  * Completes the durable deferred identified by a token with a successful
  * value.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const succeed: {
@@ -592,7 +585,7 @@ export const succeed: {
 /**
  * Completes the durable deferred identified by a token with a typed failure.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const fail: {
@@ -627,7 +620,7 @@ export const fail: {
 /**
  * Completes the durable deferred identified by a token with a failure cause.
  *
- * @category Combinators
+ * @category combinators
  * @since 4.0.0
  */
 export const failCause: {

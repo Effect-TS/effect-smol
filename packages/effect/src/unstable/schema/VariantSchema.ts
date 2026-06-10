@@ -1,22 +1,10 @@
 /**
- * Build families of related struct schemas from one field definition.
+ * Builds related schemas for named variants from shared field definitions.
  *
- * `VariantSchema` is useful when the same domain object needs several schema
- * views, such as database select / insert / update shapes, JSON read / write
- * shapes, public versus private API views, or constructor schemas with
- * generated defaults. {@link make} fixes a closed set of variant names and a
- * default variant, then returns helpers for defining shared `Struct` values,
- * per-variant `Field` values, schema classes, unions, and extracted
- * `Schema.Struct` projections.
- *
- * A plain schema in a variant struct is present in every variant, a `Field`
- * contributes a property only to the variants named in its config, and nested
- * variant structs are extracted recursively. Variants are projections, not
- * discriminated alternatives: this module does not add a tag field, so include
- * an explicit literal tag when a decoded union needs runtime discrimination.
- * Also remember that the default variant is the schema used by generated
- * classes and ordinary variant unions; per-variant schemas are exposed
- * separately on those generated values.
+ * `make` fixes the variant names and default variant, then lets callers define
+ * fields that are shared by all variants or specific to some variants. From
+ * those definitions it can create schema classes, unions, extracted struct
+ * schemas, and helpers for changing fields across variants.
  *
  * @since 4.0.0
  */
@@ -26,13 +14,13 @@ import { dual } from "../../Function.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
-import type * as AST from "../../SchemaAST.ts"
+import type * as SchemaAST from "../../SchemaAST.ts"
 import * as Struct_ from "../../Struct.ts"
 
 /**
  * Runtime type identifier attached to variant schema structs.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/schema/VariantSchema"
@@ -63,7 +51,6 @@ export const isStruct = (u: unknown): u is Struct<any> => Predicate.hasProperty(
 /**
  * Type-level helpers for variant schema structs.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Struct {
@@ -128,7 +115,6 @@ export const isField = (u: unknown): u is Field<any> => Predicate.hasProperty(u,
 /**
  * Type-level helpers for variant schema fields.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Field {
@@ -281,7 +267,7 @@ export interface Class<
     S["Encoded"],
     S["DecodingServices"],
     S["EncodingServices"],
-    AST.Declaration,
+    SchemaAST.Declaration,
     Schema.decodeTo<Schema.declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
     S["~type.make.in"],
     S["Iso"],
@@ -330,7 +316,6 @@ export interface Union<Members extends ReadonlyArray<Struct<any>>> extends
 /**
  * Type-level helpers for unions of variant schema structs.
  *
- * @category models
  * @since 4.0.0
  */
 export declare namespace Union {
@@ -528,7 +513,7 @@ export const make = <
 }
 
 /**
- * Brands a value as an explicit override for an `Overrideable` schema default.
+ * Marks a value as an explicit override for an `Overrideable` schema default.
  *
  * @category overrideable
  * @since 4.0.0

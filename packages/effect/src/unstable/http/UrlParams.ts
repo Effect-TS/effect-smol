@@ -1,23 +1,10 @@
 /**
- * Utilities for representing, transforming, and serializing URL query
- * parameters.
+ * Models URL query parameters as ordered string pairs.
  *
- * This module provides an immutable `UrlParams` collection backed by ordered
- * string key-value pairs. It is used for HTTP client request queries,
- * URL-encoded form bodies, and server-side decoding workflows where query
- * parameters need to be built from records, iterables, or native
- * `URLSearchParams`, then inspected, appended, replaced, removed, converted to a
- * URL, or decoded with schemas.
- *
- * Duplicate keys are preserved by the core representation and by append-style
- * operations; use `getAll` when all values matter, and note that `set` and
- * `setAll` replace existing values for matching keys. Serialization through
- * `toString` and `makeUrl` delegates to the platform `URLSearchParams` / `URL`
- * implementations, so provide decoded strings rather than pre-encoded query
- * fragments. Record-based and schema-based conversions intentionally collapse
- * repeated keys into string arrays and do not preserve the full global pair
- * ordering; `schemaJsonField` reads the first matching value for the selected
- * field.
+ * `UrlParams` is used for HTTP client query strings, URL-encoded form bodies,
+ * and server-side decoding. Values can be built from records, iterables, or
+ * native `URLSearchParams`, then updated, serialized, converted to a `URL`, or
+ * decoded with schemas.
  *
  * @since 4.0.0
  */
@@ -36,14 +23,16 @@ import { hasProperty } from "../../Predicate.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Tuple from "../../Tuple.ts"
 
 const TypeId = "~effect/http/UrlParams"
 
 /**
  * Immutable collection of URL query parameters.
+ *
+ * **Details**
  *
  * Parameters are stored as ordered string key-value pairs and can contain multiple
  * values for the same key.
@@ -59,13 +48,15 @@ export interface UrlParams extends Pipeable, Inspectable, Iterable<readonly [str
 /**
  * Returns `true` when a value is a `UrlParams` instance.
  *
- * @category Guards
+ * @category guards
  * @since 4.0.0
  */
 export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId)
 
 /**
  * Input accepted when constructing `UrlParams`.
+ *
+ * **Details**
  *
  * Values can be provided as a coercible record, an iterable of key-value pairs, or
  * a native `URLSearchParams` value.
@@ -85,6 +76,8 @@ type CoercibleRecordInput = CoercibleRecord & {
 /**
  * Primitive value that can be converted into a URL parameter string.
  *
+ * **Gotchas**
+ *
  * `undefined` values are skipped when constructing from input.
  *
  * @category models
@@ -103,6 +96,8 @@ type CoercibleRecordField<A> = A extends Coercible ? A
 
 /**
  * Record input whose fields can be coerced into URL parameter values.
+ *
+ * **Details**
  *
  * Nested records are rendered using bracket notation, and arrays produce repeated
  * parameters.
@@ -137,6 +132,8 @@ const Proto = {
 /**
  * Creates `UrlParams` from ordered string key-value pairs.
  *
+ * **Details**
+ *
  * The input pairs are used as-is and are not coerced or normalized.
  *
  * @category constructors
@@ -150,6 +147,8 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
 
 /**
  * Creates `UrlParams` from a supported input shape.
+ *
+ * **Details**
  *
  * Primitive values are converted to strings, arrays produce repeated parameters,
  * nested records use bracket notation, and `undefined` values are omitted.
@@ -196,12 +195,14 @@ const fromInputNested = (input: Input): Array<[string | Array<string>, any]> => 
 }
 
 /**
- * Order-sensitive equivalence for `UrlParams`.
+ * Provides an order-sensitive `Equivalence` instance for `UrlParams`.
+ *
+ * **Details**
  *
  * Two values are equivalent when they contain the same key-value pairs in the same
  * order.
  *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const Equivalence: Equ.Equivalence<UrlParams> = Equ.make<UrlParams>((a, b) =>
@@ -222,6 +223,8 @@ export interface UrlParamsSchema extends Schema.declare<UrlParams, ReadonlyArray
 
 /**
  * Schema for `UrlParams`.
+ *
+ * **Details**
  *
  * The encoded representation is an array of string key-value tuples.
  *
@@ -245,7 +248,7 @@ export const UrlParamsSchema: UrlParamsSchema = Schema.declare(
     toCodec: () =>
       Schema.link<UrlParams>()(
         Schema.Array(Schema.Tuple([Schema.String, Schema.String])),
-        Transformation.transform({
+        SchemaTransformation.transform({
           decode: make,
           encode: (self) => self.params
         })
@@ -263,6 +266,8 @@ export const empty: UrlParams = make([])
 
 /**
  * Returns all values for a query parameter key in insertion order.
+ *
+ * **Details**
  *
  * Returns an empty array when the key is absent.
  *
@@ -284,7 +289,14 @@ export const getAll: {
 )
 
 /**
- * Returns the first value for a query parameter key.
+ * Returns the first value for a query parameter key safely.
+ *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the first occurrence has
+ * precedence.
+ *
+ * **Details**
  *
  * Returns `Option.none` when the key is absent.
  *
@@ -303,7 +315,14 @@ export const getFirst: {
 )
 
 /**
- * Returns the last value for a query parameter key.
+ * Returns the last value for a query parameter key safely.
+ *
+ * **When to use**
+ *
+ * Use when duplicate query parameters are ordered and the last occurrence has
+ * precedence.
+ *
+ * **Details**
  *
  * Returns `Option.none` when the key is absent.
  *
@@ -320,6 +339,8 @@ export const getLast: {
 
 /**
  * Sets a query parameter to a single value.
+ *
+ * **Details**
  *
  * Existing values for the same key are removed, and the new value is appended to
  * the end.
@@ -341,6 +362,8 @@ export const set: {
 /**
  * Transforms the underlying ordered key-value pairs of `UrlParams`.
  *
+ * **Details**
+ *
  * The result is wrapped in a new `UrlParams` value.
  *
  * @category combinators
@@ -356,6 +379,8 @@ export const transform: {
 
 /**
  * Sets multiple query parameters from input.
+ *
+ * **Details**
  *
  * Keys present in the input replace existing values for those keys, while
  * unmentioned existing parameters are preserved.
@@ -398,6 +423,8 @@ export const append: {
 /**
  * Appends all query parameters produced from the supplied input.
  *
+ * **Details**
+ *
  * Existing parameters are preserved.
  *
  * @category combinators
@@ -422,7 +449,7 @@ export const remove: {
 /**
  * Error returned when constructing a `URL` from `UrlParams` fails.
  *
- * @category Errors
+ * @category errors
  * @since 4.0.0
  */
 export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
@@ -430,12 +457,14 @@ export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
 }> {}
 
 /**
- * Creates a `URL` by appending `UrlParams` and an optional hash to a URL string.
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
+ *
+ * **Details**
  *
  * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
  * constructed.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const makeUrl = (
@@ -463,7 +492,7 @@ export const makeUrl = (
 /**
  * Serializes `UrlParams` to a URL query string without a leading question mark.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
@@ -485,7 +514,7 @@ const baseUrl = (): string | undefined => {
  * as `string` (if only one value for a key) or a `NonEmptyArray<string>`
  * (when more than one value for a key)
  *
- * **Example**
+ * **Example** (Converting parameters to a record)
  *
  * ```ts
  * import { UrlParams } from "effect/unstable/http"
@@ -505,7 +534,7 @@ const baseUrl = (): string | undefined => {
  * )
  * ```
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyArray<string>> => {
@@ -526,10 +555,12 @@ export const toRecord = (self: UrlParams): Record<string, string | Arr.NonEmptyA
 /**
  * Builds a readonly record from `UrlParams`.
  *
+ * **Details**
+ *
  * Keys with one value map to a string, and keys with multiple values map to a
  * non-empty readonly array of strings.
  *
- * @category conversions
+ * @category converting
  * @since 4.0.0
  */
 export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, string | Arr.NonEmptyReadonlyArray<string>> =
@@ -538,14 +569,16 @@ export const toReadonlyRecord: (self: UrlParams) => ReadonlyRecord<string, strin
 /**
  * Schema type for decoding one URL parameter field as JSON.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonString, UrlParamsSchema> {}
 
 /**
- * Extract a JSON value from the first occurrence of the given `field` in the
+ * Extracts a JSON value from the first occurrence of the given `field` in the
  * `UrlParams`.
+ *
+ * **Example** (Decoding JSON parameter fields)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -566,17 +599,17 @@ export interface schemaJsonField extends Schema.decodeTo<Schema.UnknownFromJsonS
  * )
  * ```
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaJsonField = (field: string): schemaJsonField =>
   UrlParamsSchema.pipe(
     Schema.decodeTo(
       Schema.UnknownFromJsonString,
-      Transformation.transformOrFail({
+      SchemaTransformation.transformOrFail({
         decode: (params) =>
           Option.match(getFirst(params, field), {
-            onNone: () => Effect.fail(new Issue.Pointer([field], new Issue.MissingKey(undefined))),
+            onNone: () => Effect.fail(new SchemaIssue.Pointer([field], new SchemaIssue.MissingKey(undefined))),
             onSome: Effect.succeed
           }),
         encode: (value) => Effect.succeed(make([[field, value]]))
@@ -587,7 +620,7 @@ export const schemaJsonField = (field: string): schemaJsonField =>
 /**
  * Extract a record of key-value pairs from the `UrlParams`.
  *
- * @category Schemas
+ * @category schemas
  * @since 4.0.0
  */
 export interface schemaRecord extends
@@ -602,10 +635,12 @@ export interface schemaRecord extends
 /**
  * Schema that decodes `UrlParams` into a record of key-value pairs.
  *
+ * **Details**
+ *
  * Keys with one value decode to a string, and keys with multiple values decode to
  * a non-empty readonly array of strings.
  *
- * **Example**
+ * **Example** (Decoding URL parameters to a record)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -626,7 +661,7 @@ export interface schemaRecord extends
  * )
  * ```
  *
- * @category schema
+ * @category schemas
  * @since 4.0.0
  */
 export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
@@ -635,7 +670,7 @@ export const schemaRecord: schemaRecord = UrlParamsSchema.pipe(
       Schema.String,
       Schema.Union([Schema.String, Schema.NonEmptyArray(Schema.String)])
     ),
-    Transformation.transform({
+    SchemaTransformation.transform({
       decode: toReadonlyRecord,
       encode: fromInput
     })

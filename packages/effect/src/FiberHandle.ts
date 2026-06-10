@@ -1,42 +1,12 @@
 /**
- * The `FiberHandle` module provides a scoped handle for managing the lifecycle
- * of at most one fiber at a time. A `FiberHandle<A, E>` can hold one
- * `Fiber<A, E>`; when a new fiber is installed, the previous fiber is
- * interrupted unless the operation is configured with `onlyIfMissing`.
+ * Manages at most one fiber inside a scope.
  *
- * **Mental model**
- *
- * - A handle is either open with zero or one current fiber, or closed by its
- *   surrounding `Scope`
- * - Closing the scope interrupts the current fiber and prevents new work from
- *   being accepted
- * - Completed fibers remove themselves from the handle, so the handle can be
- *   reused for later work
- * - Replacing a fiber uses the handle's internal interruption id, allowing
- *   expected replacement interruptions to be distinguished from real failures
- *
- * **Common tasks**
- *
- * - Create a scoped handle: {@link make}
- * - Fork an effect into the handle: {@link run}
- * - Store an existing fiber: {@link set}
- * - Read or clear the current fiber: {@link get}, {@link clear}
- * - Capture runtime-specific runners: {@link makeRuntime}, {@link runtime}
- * - Run handled effects as Promises: {@link makeRuntimePromise},
- *   {@link runtimePromise}
- * - Wait for failure or closure: {@link join}
- * - Wait until the current fiber is gone: {@link awaitEmpty}
- *
- * **Gotchas**
- *
- * - The handle never contains more than one live fiber; starting or setting
- *   another fiber interrupts the previous one by default
- * - Use `onlyIfMissing` when a call should leave an already running fiber in
- *   place instead of replacing it
- * - `join` observes the handle's failure/close signal; successful fiber
- *   completion only empties the handle
- * - `awaitEmpty` waits for the fiber that is current when it starts; later
- *   calls to {@link run} or {@link set} can install new work
+ * A `FiberHandle<A, E>` can hold one `Fiber<A, E>`. Installing a new fiber
+ * interrupts the previous one unless the operation is configured with
+ * `onlyIfMissing`, and closing the owning scope interrupts the current fiber.
+ * This module includes constructors for handles and scoped runtimes, helpers
+ * for setting, reading, clearing, and running fibers, and operations for joining
+ * the current fiber or waiting until the handle is empty.
  *
  * @since 2.0.0
  */
@@ -59,10 +29,9 @@ import type * as Scope from "./Scope.ts"
 const TypeId = "~effect/FiberHandle"
 
 /**
- * Scoped handle that manages at most one fiber.
- *
- * The current fiber is interrupted when the handle's scope closes, and managed
- * fibers are removed from the handle when they complete.
+ * Scoped handle that manages at most one fiber, interrupts the current fiber
+ * when the handle's scope closes, and removes managed fibers from the handle
+ * when they complete.
  *
  * **Example** (Managing a single fiber)
  *
@@ -95,9 +64,8 @@ export interface FiberHandle<out A = unknown, out E = unknown> extends Pipeable,
 }
 
 /**
- * Returns `true` if a value is a `FiberHandle`.
- *
- * This is a type guard that checks for the `FiberHandle` runtime marker.
+ * Returns `true` if a value is a `FiberHandle` by checking for the
+ * `FiberHandle` runtime marker.
  *
  * **Example** (Checking fiber handles)
  *
@@ -136,11 +104,14 @@ const makeUnsafe = <A = unknown, E = unknown>(): FiberHandle<A, E> => {
 }
 
 /**
- * A FiberHandle can be used to store a single fiber.
- * When the associated Scope is closed, the contained fiber will be interrupted.
+ * Creates a scoped `FiberHandle` that can store a single fiber.
  *
- * You can add a fiber to the handle using `FiberHandle.run`, and the fiber will
- * be automatically removed from the FiberHandle when it completes.
+ * **Details**
+ *
+ * When the associated `Scope` is closed, the contained fiber will be
+ * interrupted. You can add a fiber to the handle using `FiberHandle.run`, and
+ * the fiber will be automatically removed from the `FiberHandle` when it
+ * completes.
  *
  * **Example** (Creating a scoped fiber handle)
  *
@@ -182,6 +153,8 @@ export const make = <A = unknown, E = unknown>(): Effect.Effect<FiberHandle<A, E
 
 /**
  * Creates a scoped run function that forks effects into a new `FiberHandle`.
+ *
+ * **Details**
  *
  * Each call returns the forked fiber, stores it in the handle, and interrupts
  * the previous fiber unless `onlyIfMissing` is set. The managed fiber is
@@ -232,6 +205,13 @@ export const makeRuntime = <R, E = unknown, A = unknown>(): Effect.Effect<
  * Creates a scoped run function that forks effects into a new `FiberHandle`
  * and returns a `Promise` for each effect result.
  *
+ * **When to use**
+ *
+ * Use when integrating a scoped `FiberHandle` runner with Promise-based APIs
+ * and Promise rejection from squashed failures is the desired boundary.
+ *
+ * **Details**
+ *
  * Each call stores the fiber in the handle and interrupts the previous fiber
  * unless `onlyIfMissing` is set. The returned Promise resolves with the
  * effect's success value or rejects with the squashed failure cause.
@@ -279,8 +259,13 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
 ))
 
 /**
- * Set the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
+ * Sets the fiber in a FiberHandle. When the fiber completes, it will be removed from the FiberHandle.
  * If a fiber is already running, it will be interrupted unless `options.onlyIfMissing` is set.
+ *
+ * **When to use**
+ *
+ * Use when an existing forked fiber must be installed synchronously into a
+ * handle and immediate interruption of replaced or closed fibers is acceptable.
  *
  * **Example** (Setting a fiber unsafely)
  *
@@ -301,7 +286,7 @@ const isInternalInterruption = Filter.toPredicate(Filter.compose(
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const setUnsafe: {
   <A, E, XE extends E, XA extends A>(
@@ -360,11 +345,13 @@ export const setUnsafe: {
 })
 
 /**
- * Set the fiber in the `FiberHandle`. When the fiber completes, it will be
- * removed from the `FiberHandle`.
+ * Sets the fiber in the `FiberHandle`.
  *
- * If a fiber already exists in the `FiberHandle`, it will be interrupted
- * unless `options.onlyIfMissing` is set.
+ * **Details**
+ *
+ * When the fiber completes, it will be removed from the `FiberHandle`. If a
+ * fiber already exists in the `FiberHandle`, it will be interrupted unless
+ * `options.onlyIfMissing` is set.
  *
  * **Example** (Setting a fiber safely)
  *
@@ -419,7 +406,12 @@ export const set: {
   ))
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle synchronously.
+ *
+ * **When to use**
+ *
+ * Use when synchronous inspection of the current fiber is needed and an
+ * `Option` result is enough outside the Effect workflow.
  *
  * **Example** (Reading the current fiber unsafely)
  *
@@ -441,14 +433,14 @@ export const set: {
  * ```
  *
  * @category combinators
- * @since 2.0.0
+ * @since 4.0.0
  */
 export function getUnsafe<A, E>(self: FiberHandle<A, E>): Option.Option<Fiber.Fiber<A, E>> {
   return self.state._tag === "Closed" ? Option.none() : Option.fromUndefinedOr(self.state.fiber)
 }
 
 /**
- * Retrieve the fiber from the FiberHandle.
+ * Retrieves the fiber from the FiberHandle effectfully.
  *
  * **Example** (Reading the current fiber)
  *
@@ -532,6 +524,8 @@ const constInterruptedFiber = (function() {
 /**
  * Forks an Effect and stores the resulting fiber in the `FiberHandle`.
  *
+ * **Details**
+ *
  * The handle manages only one fiber: running a new effect interrupts the
  * previous fiber unless `onlyIfMissing` is set. When the managed fiber
  * completes, it is removed from the handle.
@@ -610,13 +604,15 @@ const runImpl = <A, E, R, XE extends E, XA extends A>(
  * Captures the current runtime and returns a function for forking effects into
  * an existing `FiberHandle`.
  *
+ * **Details**
+ *
  * Each call returns the forked fiber, stores it in the handle, and interrupts
  * the previous fiber unless `onlyIfMissing` is set.
  *
  * **Example** (Capturing a runtime for fiber handles)
  *
  * ```ts
- * import { Effect, FiberHandle, Context } from "effect"
+ * import { Context, Effect, FiberHandle } from "effect"
  *
  * interface Users {
  *   readonly _: unique symbol
@@ -690,6 +686,8 @@ export const runtime: <A, E>(
  * Captures the current runtime and returns a function for running effects in
  * an existing `FiberHandle` as Promises.
  *
+ * **Details**
+ *
  * Each call stores the forked fiber in the handle and interrupts the previous
  * fiber unless `onlyIfMissing` is set. The Promise resolves with the effect's
  * success value or rejects with the squashed failure cause.
@@ -757,6 +755,8 @@ export const runtimePromise = <A, E>(self: FiberHandle<A, E>): <R = never>() => 
 /**
  * Waits for the `FiberHandle` to fail or close.
  *
+ * **Details**
+ *
  * The returned Effect fails with the first managed fiber failure that is not
  * ignored by the handle's interruption rules. Normal successful completion of
  * a managed fiber only removes it from the handle; use `awaitEmpty` to wait
@@ -783,7 +783,7 @@ export const join = <A, E>(self: FiberHandle<A, E>): Effect.Effect<void, E> =>
   Deferred.await(self.deferred as Deferred.Deferred<void, E>)
 
 /**
- * Wait for the fiber in the FiberHandle to complete.
+ * Waits for the fiber in the FiberHandle to complete.
  *
  * **Example** (Waiting for a fiber to complete)
  *

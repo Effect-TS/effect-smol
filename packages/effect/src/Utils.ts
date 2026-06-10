@@ -1,59 +1,12 @@
 /**
- * Internal utilities for the Effect ecosystem's generator-based syntax and
- * higher-kinded type machinery.
+ * Internal and advanced utilities used by Effect's generator-based syntax and
+ * higher-kinded type support. This is not a general-purpose utility module for
+ * application code.
  *
- * ## Mental model
- *
- * - **SingleShotGen** — an `IterableIterator` wrapper that yields its value
- *   exactly once. Used internally by `[Symbol.iterator]()` on Effect, Option,
- *   Result, and other yieldable types so they work inside generator functions.
- * - **Gen** — a type-level signature for generator-based monadic composition
- *   (`gen` functions). Parametric over any `TypeLambda` so each module
- *   (Effect, Option, Result, ...) can expose its own `gen` with correct types.
- * - **Variance** — a type-level marker that encodes the variance (covariant,
- *   contravariant, invariant) of a `TypeLambda`'s type parameters.
- *   Used by {@link Gen} for type inference.
- *
- * ## Common tasks
- *
- * - Make a type yieldable in generators -> implement `[Symbol.iterator]()` returning a {@link SingleShotGen}
- * - Define a generator-based API for a new TypeLambda -> type it as {@link Gen}`<MyTypeLambda>`
- * - Encode variance for a higher-kinded type -> use {@link Variance}
- *
- * ## Gotchas
- *
- * - {@link SingleShotGen} yields its value only on the first `.next()` call.
- *   Calling `.next()` again returns `{ done: true }`. Iterating the same
- *   instance twice will skip the value on the second pass; call
- *   `[Symbol.iterator]()` to get a fresh iterator.
- * - {@link Gen} and {@link Variance} are pure type-level constructs — they
- *   have no runtime representation.
- *
- * ## Quickstart
- *
- * **Example** (Using SingleShotGen to make a type yieldable)
- *
- * ```ts
- * import { Utils } from "effect"
- *
- * class MyWrapper<A> {
- *   constructor(readonly value: A) {}
- *   [Symbol.iterator]() {
- *     return new Utils.SingleShotGen<MyWrapper<A>, A>(this)
- *   }
- * }
- *
- * const w = new MyWrapper(42)
- * const iter = w[Symbol.iterator]()
- * console.log(iter.next(undefined as any))
- * // { value: MyWrapper { value: 42 }, done: false }
- * console.log(iter.next(42))
- * // { value: 42, done: true }
- * ```
- *
- * @see {@link SingleShotGen}
- * @see {@link Gen}
- * @see {@link Variance}
+ * `SingleShotGen` makes an Effect-style value work with `yield*` inside
+ * generator helpers. `Variance` and `Gen` provide the type-level signatures
+ * used by modules such as `Effect`, `Option`, and `Result` to type their
+ * `gen` APIs.
  *
  * @since 2.0.0
  */
@@ -61,23 +14,20 @@ import type { Kind, TypeLambda } from "./HKT.ts"
 import type * as Types from "./Types.ts"
 
 /**
- * An `IterableIterator` that yields its wrapped value exactly once.
+ * Yields its wrapped value exactly once through an `IterableIterator`.
  *
- * When to use:
+ * **When to use**
  *
- * - Implement `[Symbol.iterator]()` on Effect-like types so they can be
- *   `yield*`-ed inside generator functions (e.g. `Effect.gen`, `Option.gen`).
- * - You almost never construct this directly — it is created internally by
- *   yieldable types.
+ * Use to implement `[Symbol.iterator]()` on Effect-like types so they can be
+ * `yield*`-ed inside generator functions, such as `Effect.gen` and
+ * `Option.gen`.
  *
- * Behavior:
+ * **Details**
  *
- * - The first call to `next()` returns `{ value: self, done: false }`.
- * - Every subsequent call returns `{ value: a, done: true }` where `a` is
- *   the argument passed to `next()`.
- * - `[Symbol.iterator]()` returns a **new** `SingleShotGen` wrapping the same
- *   value, so the outer type can be iterated multiple times.
- * - Does not mutate the wrapped value.
+ * The first call to `next()` returns `{ value: self, done: false }`. Every
+ * subsequent call returns `{ value: a, done: true }` where `a` is the argument
+ * passed to `next()`. `[Symbol.iterator]()` returns a **new** `SingleShotGen`
+ * wrapping the same value, so the outer type can be iterated multiple times.
  *
  * **Example** (Yielding a wrapped value in a generator)
  *
@@ -95,8 +45,7 @@ import type * as Types from "./Types.ts"
  * // { value: 42, done: true }
  * ```
  *
- * @see {@link Gen} — the type-level signature that relies on `SingleShotGen`
- *
+ * @see {@link Gen} for the type-level signature that relies on `SingleShotGen`
  * @category constructors
  * @since 2.0.0
  */
@@ -110,6 +59,11 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
 
   /**
    * Yields the stored value once, then completes with the value sent back in.
+   *
+   * **When to use**
+   *
+   * Use to advance a `SingleShotGen` through its single yield and completion
+   * step.
    *
    * @since 2.0.0
    */
@@ -129,6 +83,11 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
   /**
    * Creates a fresh single-shot iterator over the stored value.
    *
+   * **When to use**
+   *
+   * Use to iterate the wrapped value again without reusing the consumed
+   * iterator state.
+   *
    * @since 2.0.0
    */
   [Symbol.iterator](): IterableIterator<T, A> {
@@ -140,25 +99,22 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  * Type-level marker encoding the variance of a `TypeLambda`'s type
  * parameters.
  *
- * When to use:
+ * **When to use**
  *
- * - Define variance constraints for a higher-kinded type so that
- *   {@link Gen} can correctly infer `R`, `O`, and `E` from yielded values.
- * - You typically don't construct values of this type — it exists purely for
- *   type inference.
+ * Use to define variance constraints for a higher-kinded type so that
+ * {@link Gen} can correctly infer `R`, `O`, and `E` from yielded values.
  *
- * Behavior:
+ * **Details**
  *
- * - `F` is invariant (must match exactly).
- * - `R` is contravariant (input / environment position).
- * - `O` and `E` are covariant (output / error position).
- * - Pure type-level construct — no runtime representation.
+ * `F` is invariant and must match exactly. `R` is contravariant in the input
+ * or environment position. `O` and `E` are covariant in the output and error
+ * positions. This is a pure type-level construct with no runtime
+ * representation.
  *
  * **Example** (Declaring variance for a TypeLambda)
  *
  * ```ts
- * import type { Utils } from "effect"
- * import type * as Option from "effect/Option"
+ * import type { Option, Utils } from "effect"
  *
  * declare const variance: Utils.Variance<
  *   Option.OptionTypeLambda,
@@ -168,8 +124,7 @@ export class SingleShotGen<T, A> implements IterableIterator<T, A> {
  * >
  * ```
  *
- * @see {@link Gen} — uses `Variance` for type parameter inference
- *
+ * @see {@link Gen} for the type-level signature that uses `Variance`
  * @category models
  * @since 2.0.0
  */
@@ -184,19 +139,16 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * Type-level signature for generator-based monadic composition over any
  * `TypeLambda`.
  *
- * When to use:
+ * **When to use**
  *
- * - Type the `gen` function of a module that supports generator syntax
- *   (e.g. `Option.gen`, `Result.gen`, `Effect.gen`).
- * - Accepts either `(body)` or `(self, body)` where `body` is a generator
- *   function. The `self` overload binds `this` inside the generator.
+ * Use to type the `gen` function of a module that supports generator syntax,
+ * such as `Option.gen`, `Result.gen`, and `Effect.gen`.
  *
- * Behavior:
+ * **Details**
  *
- * - Pure type alias — no runtime behavior.
- * - Infers `R`, `O`, `E` from the yielded values via {@link Variance} or
- *   `Kind` constraints.
- * - The generator's return type `A` becomes the output's `A` parameter.
+ * This is a pure type alias with no runtime behavior. It infers `R`, `O`, and
+ * `E` from the yielded values via {@link Variance} or `Kind` constraints. The
+ * generator's return type `A` becomes the output's `A` parameter.
  *
  * **Example** (Typing a gen function for Option)
  *
@@ -206,9 +158,8 @@ export interface Variance<in out F extends TypeLambda, in R, out O, out E> {
  * declare const gen: Utils.Gen<Option.OptionTypeLambda>
  * ```
  *
- * @see {@link Variance} — encodes the variance used for inference
- * @see {@link SingleShotGen} — the iterator protocol that makes yielding work
- *
+ * @see {@link Variance} for encoding the variance used for inference
+ * @see {@link SingleShotGen} for the iterator protocol that makes yielding work
  * @category models
  * @since 2.0.0
  */

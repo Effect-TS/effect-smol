@@ -10,8 +10,6 @@
 export * as Mime from "./Mime.ts"
 
 /**
- * Node.js implementation of `ChildProcessSpawner`.
- *
  * @since 4.0.0
  */
 export * as NodeChildProcessSpawner from "./NodeChildProcessSpawner.ts"
@@ -25,6 +23,11 @@ export * as NodeClusterHttp from "./NodeClusterHttp.ts"
  * @since 4.0.0
  */
 export * as NodeClusterSocket from "./NodeClusterSocket.ts"
+
+/**
+ * @since 1.0.0
+ */
+export * as NodeCrypto from "./NodeCrypto.ts"
 
 /**
  * @since 4.0.0

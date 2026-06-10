@@ -1,30 +1,10 @@
 /**
- * The `HttpApiBuilder` module connects declarative `HttpApi` definitions to
- * runnable HTTP server routes.
+ * Builds server routes from declarative `HttpApi` contracts.
  *
- * Use this module when you have described an API with `HttpApi`,
- * `HttpApiGroup`, and `HttpApiEndpoint` values and need to provide the
- * server-side implementation. `group` creates a layer for implementing every
- * endpoint in one API group, `layer` registers the implemented groups with an
- * `HttpRouter` and can expose the generated OpenAPI specification, and
- * `endpoint` builds the effect for a single endpoint when custom composition is
- * needed.
- *
- * The builder performs the runtime work implied by endpoint metadata: it decodes
- * path parameters, headers, query parameters, and request payloads with
- * `Schema`, applies endpoint middleware and security middleware, invokes the
- * registered handler, and encodes successful or declared error results into
- * `HttpServerResponse` values. Handlers can return an `HttpServerResponse`
- * directly to bypass success encoding, and `handleRaw` can be used when payload
- * decoding should be handled manually.
- *
- * A few implementation details are worth keeping in mind. Every group in the
- * API must be provided with `HttpApiBuilder.group` before `layer` is evaluated,
- * otherwise registration fails with a defect that names the missing group and
- * the available group services. Payload decoding is selected by request media type;
- * unsupported content types produce a `415` response before the handler runs.
- * Schema failures are wrapped as `HttpApiSchemaError`, while ordinary handler
- * failures are encoded with the endpoint's declared error schemas.
+ * This module turns an `HttpApi` description plus group handlers into
+ * `HttpRouter` routes. At runtime it decodes request parts with schemas, runs
+ * middleware and security handlers, invokes the registered endpoint handler, and
+ * encodes successes or declared errors into `HttpServerResponse` values.
  *
  * @since 4.0.0
  */
@@ -42,9 +22,9 @@ import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import * as AST from "../../SchemaAST.ts"
-import * as Issue from "../../SchemaIssue.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaAST from "../../SchemaAST.ts"
+import * as SchemaIssue from "../../SchemaIssue.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
@@ -71,7 +51,7 @@ import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
- * Register an `HttpApi` with a `HttpRouter`.
+ * Registers an `HttpApi` with a `HttpRouter`.
  *
  * @category constructors
  * @since 4.0.0
@@ -121,12 +101,13 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
   }))
 
 /**
- * Create a `Layer` that will implement all the endpoints in an `HttpApi`.
+ * Create a `Layer` that implements all endpoints in an `HttpApi` group.
  *
- * An unimplemented `Handlers` instance is passed to the `build` function, which
- * you can use to add handlers to the group.
+ * **Details**
  *
- * You can implement endpoints using the `handlers.handle` api.
+ * The `build` function receives an unimplemented `Handlers` instance that can
+ * be used to add handlers to the group. Implement endpoints with
+ * `handlers.handle`.
  *
  * @category handlers
  * @since 4.0.0
@@ -171,7 +152,7 @@ export const group = <
 /**
  * Type identifier symbol used to brand `Handlers` values.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
@@ -179,13 +160,15 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
 /**
  * Type of the `Handlers` type identifier symbol.
  *
- * @category handlers
+ * @category type IDs
  * @since 4.0.0
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
 /**
  * Mutable handler collection for one `HttpApi` group.
+ *
+ * **Details**
  *
  * Each call to `handle` or `handleRaw` registers an endpoint implementation and
  * removes that endpoint from the type-level set of endpoints still requiring
@@ -247,7 +230,6 @@ export interface Handlers<
 /**
  * Namespace containing helper types for `HttpApiBuilder` handler collections.
  *
- * @category handlers
  * @since 4.0.0
  */
 export declare namespace Handlers {
@@ -263,6 +245,8 @@ export declare namespace Handlers {
 
   /**
    * Record stored for a registered endpoint handler.
+   *
+   * **Details**
    *
    * It keeps the endpoint metadata, handler function, whether raw request handling
    * is used, and whether the handler should run uninterruptibly.
@@ -425,10 +409,11 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
   HttpServerRequest | Request.ParsedSearchParams
 > => {
   switch (self._tag) {
-    case "Bearer": {
+    case "Http": {
       return Effect.map(
         HttpServerRequest,
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(bearerLen)) as any
+        // schemeLength + space
+        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength + 1)) as any
       )
     }
     case "ApiKey": {
@@ -503,7 +488,6 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const bearerLen = `Bearer `.length
 const basicLen = `Basic `.length
 
 const HandlersProto = {
@@ -579,7 +563,7 @@ function buildPayloadDecoders(
       result.set(contentType, {
         _tag: encoding._tag,
         decode,
-        nullOnEmpty: schemas.some((s) => AST.isNull(AST.toEncoded(s.ast)))
+        nullOnEmpty: schemas.some((s) => SchemaAST.isNull(SchemaAST.toEncoded(s.ast)))
       })
     }
   })
@@ -811,8 +795,8 @@ function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function toResponseSchema(getStatus: (ast: AST.AST) => number) {
-  const cache = new WeakMap<AST.AST, Schema.Top>()
+function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
+  const cache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
   return (schema: Schema.Top): Schema.Encoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)
@@ -828,9 +812,9 @@ function toResponseSchema(getStatus: (ast: AST.AST) => number) {
 }
 
 function getResponseTransformation(
-  getStatus: (ast: AST.AST) => number,
+  getStatus: (ast: SchemaAST.AST) => number,
   schema: Schema.Top
-): Transformation.Transformation<unknown, Response.HttpServerResponse> {
+): SchemaTransformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
   const encode = getResponseEncode(
     getStatus(ast),
@@ -838,8 +822,8 @@ function getResponseTransformation(
     HttpApiSchema.isNoContent(ast)
   )
 
-  return Transformation.transformOrFail({
-    decode: (res) => Effect.fail(new Issue.Forbidden(Option.some(res), { message: "Encode only schema" })),
+  return SchemaTransformation.transformOrFail({
+    decode: (res) => Effect.fail(new SchemaIssue.Forbidden(Option.some(res), { message: "Encode only schema" })),
     encode
   })
 }
@@ -848,7 +832,7 @@ function getResponseEncode<E>(
   status: number,
   encoding: HttpApiSchema.ResponseEncoding,
   isNoContent: boolean
-): (e: E) => Effect.Effect<Response.HttpServerResponse, Issue.InvalidValue, never> {
+): (e: E) => Effect.Effect<Response.HttpServerResponse, SchemaIssue.InvalidValue, never> {
   switch (encoding._tag) {
     case "Json": {
       return ((e) => {
@@ -859,7 +843,7 @@ function getResponseEncode<E>(
           const s = JSON.stringify(e)
           return Effect.succeed(Response.text(s, { status, contentType: encoding.contentType }))
         } catch (error) {
-          return Effect.fail(new Issue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
+          return Effect.fail(new SchemaIssue.InvalidValue(Option.some(e), { message: globalThis.String(error) }))
         }
       })
     }

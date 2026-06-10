@@ -1,8 +1,10 @@
 /**
- * OpenAI Language Model implementation.
- *
- * Provides a LanguageModel implementation for OpenAI's responses API,
- * supporting text generation, structured output, tool calling, and streaming.
+ * The `OpenAiLanguageModel` module provides the OpenAI Responses API
+ * implementation of Effect AI's `LanguageModel` service. It translates Effect
+ * AI prompts, files, tools, structured output requests, reasoning metadata, and
+ * provider options into OpenAI response requests, then converts OpenAI
+ * non-streaming or streaming response results back into Effect AI response
+ * content and metadata.
  *
  * @since 4.0.0
  */
@@ -58,7 +60,19 @@ type ImageDetail = "auto" | "low" | "high"
 // =============================================================================
 
 /**
- * Service definition for OpenAI language model configuration.
+ * Context service for OpenAI language model configuration.
+ *
+ * **When to use**
+ *
+ * Use when you need to provide OpenAI Responses API request defaults through
+ * Effect context for language model operations.
+ *
+ * **Details**
+ *
+ * Config values are merged with the config object passed to `model`, `make`, or
+ * `layer`, with scoped context values taking precedence.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
  *
  * @category services
  * @since 4.0.0
@@ -112,6 +126,9 @@ export class Config extends Context.Service<
 declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenAI-specific options for file prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
    */
   export interface FilePartOptions extends ProviderOptions {
     /**
@@ -127,6 +144,9 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenAI-specific options for reasoning prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
    */
   export interface ReasoningPartOptions extends ProviderOptions {
     /**
@@ -148,6 +168,9 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenAI-specific options for assistant tool-call prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
    */
   export interface ToolCallPartOptions extends ProviderOptions {
     /**
@@ -171,6 +194,9 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenAI-specific options for tool-result prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
    */
   export interface ToolResultPartOptions extends ProviderOptions {
     /**
@@ -194,6 +220,9 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenAI-specific options for text prompt parts.
+   *
+   * @category request
+   * @since 4.0.0
    */
   export interface TextPartOptions extends ProviderOptions {
     /**
@@ -219,6 +248,9 @@ declare module "effect/unstable/ai/Prompt" {
 declare module "effect/unstable/ai/Response" {
   /**
    * OpenAI metadata attached to a complete text response part.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface TextPartMetadata extends ProviderMetadata {
     /**
@@ -248,6 +280,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata emitted when a streamed text part starts.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface TextStartPartMetadata extends ProviderMetadata {
     /**
@@ -263,6 +298,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata emitted when a streamed text part ends.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface TextEndPartMetadata extends ProviderMetadata {
     /**
@@ -282,6 +320,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata attached to a complete reasoning response part.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface ReasoningPartMetadata extends ProviderMetadata {
     /**
@@ -301,6 +342,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata emitted when a streamed reasoning part starts.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface ReasoningStartPartMetadata extends ProviderMetadata {
     /**
@@ -320,6 +364,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata emitted for a streamed reasoning delta.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface ReasoningDeltaPartMetadata extends ProviderMetadata {
     /**
@@ -335,6 +382,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata emitted when a streamed reasoning part ends.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface ReasoningEndPartMetadata extends ProviderMetadata {
     /**
@@ -354,6 +404,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata attached to tool-call response parts.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface ToolCallPartMetadata extends ProviderMetadata {
     /**
@@ -369,6 +422,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata attached to document source citations.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface DocumentSourcePartMetadata extends ProviderMetadata {
     /**
@@ -422,6 +478,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata attached to URL source citations.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface UrlSourcePartMetadata extends ProviderMetadata {
     /**
@@ -445,6 +504,9 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenAI metadata attached to finish response parts.
+   *
+   * @category response
+   * @since 4.0.0
    */
   export interface FinishPartMetadata extends ProviderMetadata {
     /**
@@ -464,7 +526,16 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * Creates an OpenAI language model that can be used with `AiModel.provide`.
+ * Creates an OpenAI model descriptor that can be provided with
+ * `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenAI language model value that carries provider and
+ * model metadata and can be supplied directly to an Effect program.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
  *
  * @category constructors
  * @since 4.0.0
@@ -487,7 +558,23 @@ export const model = (
 //   AiModel.make("openai", model, layerWithTokenizer({ model, config }))
 
 /**
- * Creates an OpenAI language model service.
+ * Creates an OpenAI `LanguageModel` service from a model identifier and
+ * optional request defaults.
+ *
+ * **When to use**
+ *
+ * Use to construct an OpenAI Responses API language model service backed by
+ * `OpenAiClient`.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenAiClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText`
+ * and `streamText`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
  *
  * @category constructors
  * @since 4.0.0
@@ -590,7 +677,24 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 })
 
 /**
- * Creates a layer for the OpenAI language model.
+ * Creates a layer that provides the OpenAI `LanguageModel.LanguageModel`
+ * service.
+ *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenAI to satisfy
+ * `LanguageModel.LanguageModel` while supplying `OpenAiClient` from another
+ * layer.
+ *
+ * **Details**
+ *
+ * The `config` option supplies request defaults for the selected model. Scoped
+ * values from `withConfigOverride` are merged when each request is built and
+ * take precedence over these defaults.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ * @see {@link withConfigOverride} for scoped request configuration overrides
  *
  * @category layers
  * @since 4.0.0
@@ -602,7 +706,22 @@ export const layer = (options: {
   Layer.effect(LanguageModel.LanguageModel, make(options))
 
 /**
- * Provides config overrides for OpenAI language model operations.
+ * Provides scoped config overrides for OpenAI language model operations.
+ *
+ * **When to use**
+ *
+ * Use to apply OpenAI Responses API config overrides around one or more
+ * language model operations without changing the defaults passed to `model`,
+ * `make`, or `layer`.
+ *
+ * **Details**
+ *
+ * The override is dual, so it can be used in pipe form or as
+ * `withConfigOverride(effect, overrides)`. Overrides are merged with any
+ * existing `Config` service in the current context, and the override values take
+ * precedence.
+ *
+ * @see {@link Config} for the scoped configuration service consumed by this function
  *
  * @category configuration
  * @since 4.0.0

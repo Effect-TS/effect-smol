@@ -45,11 +45,13 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `RateLimitError` values.
    *
+   * **Details**
+   *
    * Captures OpenRouter error details together with rate limit header
    * information from responses where the provider rejected the request because
    * a limit was reached.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface RateLimitErrorMetadata {
@@ -62,10 +64,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `QuotaExhaustedError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for failures caused by exhausted account,
    * billing, or usage quota.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface QuotaExhaustedErrorMetadata {
@@ -78,10 +82,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `AuthenticationError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for failed API key, authorization, or
    * permission checks.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface AuthenticationErrorMetadata {
@@ -94,10 +100,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `ContentPolicyError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenRouter rejects input or output
    * because it violates a content policy.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface ContentPolicyErrorMetadata {
@@ -110,10 +118,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `InvalidRequestError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for malformed requests, unsupported
    * parameters, or other request validation failures reported by OpenRouter.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface InvalidRequestErrorMetadata {
@@ -126,10 +136,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `InternalProviderError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for OpenRouter-side failures such as
    * transient server errors or overload responses.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface InternalProviderErrorMetadata {
@@ -142,10 +154,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `InvalidOutputError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when an OpenRouter response cannot be
    * parsed or validated as the expected output.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface InvalidOutputErrorMetadata {
@@ -158,10 +172,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `StructuredOutputError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenRouter returns content that does
    * not satisfy the requested structured output schema.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface StructuredOutputErrorMetadata {
@@ -174,10 +190,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `UnsupportedSchemaError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when an unsupported schema failure is
    * associated with an OpenRouter response.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface UnsupportedSchemaErrorMetadata {
@@ -190,10 +208,12 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `UnknownError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for OpenRouter failures that do not map
    * cleanly to a more specific AI error category.
    *
-   * @category provider options
+   * @category configuration
    * @since 4.0.0
    */
   export interface UnknownErrorMetadata {

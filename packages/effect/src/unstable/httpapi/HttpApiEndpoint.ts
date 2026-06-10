@@ -1,27 +1,13 @@
 /**
- * The `HttpApiEndpoint` module defines the per-route contracts used inside an
- * `HttpApiGroup`.
+ * Defines endpoint declarations used inside an HTTP API group.
  *
- * An endpoint couples a stable name with an HTTP method and `HttpRouter` path,
- * plus schemas for path parameters, query parameters, headers, request payloads,
- * success responses, and declared errors. Server builders, generated clients,
- * and OpenAPI generation all read this metadata to decode requests, encode
- * responses, type handler inputs, and derive client call signatures.
- *
- * Use this module to declare individual operations such as `get`, `post`, `put`,
- * `patch`, `delete`, `head`, and `options`; attach endpoint-specific middleware
- * or annotations; and model alternatives for payloads, successes, and errors
- * with arrays of schemas.
- *
- * A few declaration details are worth keeping in mind. Paths use
- * `HttpRouter.PathInput`, so route parameters come from the router and are
- * decoded with the optional `params` schema. When codecs are enabled, params,
- * query, and headers are transformed through string-tree codecs; body methods
- * use JSON payload codecs by default, while no-body methods encode payloads as
- * query-style values. `HttpApiSchema` annotations can change payload or response
- * encodings and status codes, multipart payloads cannot be combined under the
- * same content type, and endpoint errors are merged with middleware errors for
- * server encoding and client decoding.
+ * An endpoint records a stable name, HTTP method, router path, request schemas,
+ * response schemas, declared errors, middleware, and annotations. Endpoint
+ * values are declarations, not handlers: builders use them to decode requests,
+ * type handler input, encode responses, generate OpenAPI metadata, and derive
+ * generated-client call signatures. This module also includes HTTP method
+ * constructors, payload and response schema helpers, and type utilities used by
+ * builders and generated clients.
  *
  * @since 4.0.0
  */
@@ -1343,6 +1329,8 @@ const del = make("DELETE")
 
 export {
   /**
+   * Creates a `DELETE` endpoint declaration.
+   *
    * @category constructors
    * @since 4.0.0
    */

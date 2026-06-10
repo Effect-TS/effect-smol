@@ -1,40 +1,11 @@
 /**
- * The `HashSet` module provides an immutable set data structure for storing
- * unique values with efficient membership checks, additions, removals, and set
- * operations. A `HashSet<A>` contains at most one value for each equality class
- * as determined by Effect's `Equal` / `Hash` semantics.
+ * Stores unique values in an immutable hash set.
  *
- * **Mental model**
- *
- * - `HashSet<A>` is an immutable collection of unique values of type `A`
- * - Operations such as {@link add}, {@link remove}, {@link union}, and
- *   {@link difference} return new sets; the input set is never mutated
- * - Membership is checked with {@link has}, using Effect equality and hashing
- *   rather than array-style linear scanning
- * - Duplicate values are collapsed when using {@link make}, {@link fromIterable},
- *   {@link add}, or {@link map}
- * - `HashSet` is iterable, but iteration order is not a sorting guarantee
- *
- * **Common tasks**
- *
- * - Create sets: {@link empty}, {@link make}, {@link fromIterable}
- * - Check membership and size: {@link has}, {@link size}, {@link isEmpty}
- * - Add or remove values: {@link add}, {@link remove}
- * - Combine sets: {@link union}, {@link intersection}, {@link difference}
- * - Compare sets: {@link isSubset}
- * - Transform or select values: {@link map}, {@link filter}
- * - Test values: {@link some}, {@link every}
- * - Fold values: {@link reduce}
- *
- * **Gotchas**
- *
- * - Values that should compare structurally should implement compatible
- *   `Equal` and `Hash` behavior; otherwise object identity may affect whether
- *   values are considered distinct
- * - {@link map} may reduce the set size when multiple input values map to the
- *   same output value
- * - Do not rely on iteration order for deterministic presentation; sort the
- *   values after converting to an array when order matters
+ * A `HashSet<A>` contains at most one value for each equality class according
+ * to Effect's `Equal` and `Hash` rules. Membership checks, additions, removals,
+ * and set operations return new sets. This module also includes constructors,
+ * union, intersection, difference, subset checks, mapping, filtering, and
+ * reducing helpers.
  *
  * @since 2.0.0
  */
@@ -56,7 +27,7 @@ const TypeId = internal.HashSetTypeId
  * **Example** (Creating and updating a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * // Create a HashSet
  * const set = HashSet.make("apple", "banana", "cherry")
@@ -88,7 +59,7 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * **Example** (Extracting value types from a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * // Create a concrete HashSet for type extraction
  * const fruits = HashSet.make("apple", "banana", "cherry")
@@ -102,19 +73,20 @@ export interface HashSet<out Value> extends Iterable<Value>, Equal, Pipeable, In
  * }
  * ```
  *
- * @category namespace
  * @since 2.0.0
  */
 export declare namespace HashSet {
   /**
    * Extracts the element type from a `HashSet`.
    *
+   * **Details**
+   *
    * For `HashSet.HashSet<A>`, `HashSet.Value<...>` resolves to `A`.
    *
    * **Example** (Extracting a HashSet value type)
    *
    * ```ts
-   * import * as HashSet from "effect/HashSet"
+   * import { HashSet } from "effect"
    *
    * const numbers = HashSet.make(1, 2, 3, 4, 5)
    *
@@ -124,8 +96,8 @@ export declare namespace HashSet {
    * const processNumber = (n: NumberType) => n * 2
    * ```
    *
-   * @category type-level
-   * @since 2.0.0
+   * @category utility types
+   * @since 4.0.0
    */
   export type Value<T> = T extends HashSet<infer V> ? V : never
 }
@@ -136,7 +108,7 @@ export declare namespace HashSet {
  * **Example** (Creating an empty HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.empty<string>()
  *
@@ -159,7 +131,7 @@ export const empty: <V = never>() => HashSet<V> = internal.empty
  * **Example** (Creating a HashSet from values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const fruits = HashSet.make("apple", "banana", "cherry")
  * console.log(HashSet.size(fruits)) // 3
@@ -184,7 +156,7 @@ export const make: <Values extends ReadonlyArray<any>>(
  * **Example** (Creating a HashSet from an iterable)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const fromArray = HashSet.fromIterable(["a", "b", "c", "b", "a"])
  * console.log(HashSet.size(fromArray)) // 3
@@ -202,12 +174,12 @@ export const make: <Values extends ReadonlyArray<any>>(
 export const fromIterable: <V>(values: Iterable<V>) => HashSet<V> = internal.fromIterable
 
 /**
- * Checks if a value is a HashSet.
+ * Checks whether a value is a HashSet.
  *
  * **Example** (Checking for a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make(1, 2, 3)
  * const array = [1, 2, 3]
@@ -231,7 +203,7 @@ export const isHashSet: {
  * **Example** (Adding values to a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make("a", "b")
  * const withC = HashSet.add(set, "c")
@@ -257,15 +229,14 @@ export const add: {
 >(2, internal.add)
 
 /**
- * Checks if the HashSet contains the specified value.
+ * Checks whether the HashSet contains the specified value.
  *
  * **Example** (Checking HashSet membership)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { Equal, Hash, HashSet } from "effect"
  *
  * // Works with any type that implements Equal
- * import { Equal, Hash } from "effect"
  *
  * const set = HashSet.make("apple", "banana", "cherry")
  *
@@ -305,7 +276,7 @@ export const has: {
  * **Example** (Removing values from a HashSet)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set = HashSet.make("a", "b", "c")
  * const withoutB = HashSet.remove(set, "b")
@@ -336,7 +307,7 @@ export const remove: {
  * **Example** (Getting the HashSet size)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.size(empty)) // 0
@@ -354,12 +325,12 @@ export const remove: {
 export const size: <V>(self: HashSet<V>) => number = internal.size
 
 /**
- * Checks if the HashSet is empty.
+ * Checks whether the HashSet is empty.
  *
  * **Example** (Checking whether a HashSet is empty)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const empty = HashSet.empty<string>()
  * console.log(HashSet.isEmpty(empty)) // true
@@ -369,7 +340,7 @@ export const size: <V>(self: HashSet<V>) => number = internal.size
  * ```
  *
  * @category getters
- * @since 2.0.0
+ * @since 4.0.0
  */
 export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
 
@@ -379,7 +350,7 @@ export const isEmpty: <V>(self: HashSet<V>) => boolean = internal.isEmpty
  * **Example** (Combining HashSets)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b")
  * const set2 = HashSet.make("b", "c")
@@ -406,7 +377,7 @@ export const union: {
  * **Example** (Finding common HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "c", "d")
@@ -433,7 +404,7 @@ export const intersection: {
  * **Example** (Finding HashSet differences)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const set1 = HashSet.make("a", "b", "c")
  * const set2 = HashSet.make("b", "d")
@@ -455,12 +426,12 @@ export const difference: {
 >(2, internal.difference)
 
 /**
- * Checks if a HashSet is a subset of another HashSet.
+ * Checks whether a HashSet is a subset of another HashSet.
  *
  * **Example** (Checking subset relationships)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const small = HashSet.make("a", "b")
  * const large = HashSet.make("a", "b", "c", "d")
@@ -489,7 +460,7 @@ export const isSubset: {
  * **Example** (Mapping HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3)
  * const doubled = HashSet.map(numbers, (n) => n * 2)
@@ -520,7 +491,7 @@ export const map: {
  * **Example** (Filtering HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5, 6)
  * const evens = HashSet.filter(numbers, (n) => n % 2 === 0)
@@ -549,12 +520,12 @@ export const filter: {
 >(2, internal.filter)
 
 /**
- * Tests whether at least one value in the HashSet satisfies the predicate.
+ * Checks whether at least one value in the HashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  *
@@ -577,12 +548,12 @@ export const some: {
 >(2, internal.some)
 
 /**
- * Tests whether all values in the HashSet satisfy the predicate.
+ * Checks whether all values in the HashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(2, 4, 6, 8)
  *
@@ -610,7 +581,7 @@ export const every: {
  * **Example** (Reducing HashSet values)
  *
  * ```ts
- * import * as HashSet from "effect/HashSet"
+ * import { HashSet } from "effect"
  *
  * const numbers = HashSet.make(1, 2, 3, 4, 5)
  * const sum = HashSet.reduce(numbers, 0, (acc, n) => acc + n)

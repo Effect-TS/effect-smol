@@ -5,6 +5,11 @@
 // @barrel: Auto-generated exports. Do not edit manually.
 
 /**
+ * @since 1.0.0
+ */
+export * as BrowserCrypto from "./BrowserCrypto.ts"
+
+/**
  * @since 4.0.0
  */
 export * as BrowserHttpClient from "./BrowserHttpClient.ts"

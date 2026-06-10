@@ -1,18 +1,12 @@
 /**
- * The `ShardingConfig` module defines the configuration used by a cluster
- * runner to participate in Effect Cluster sharding. It describes how a runner is
- * addressed by other runners, which shard groups it can host, how many shards
- * are assigned per group, and the timing settings used for locks, assignment
- * refreshes, health checks, entity lifecycle, and message polling.
+ * Configures how an Effect Cluster runner participates in sharding.
  *
- * Use this module when wiring a sharded application locally with
- * {@link layer}, loading deployment settings from environment variables with
- * {@link layerFromEnv}, or overriding selected defaults for tests and
- * single-node development. In production, keep cluster-wide values such as
- * `shardsPerGroup` and shard groups consistent across runners, choose stable
- * externally reachable runner addresses, and tune lock expiration and refresh
- * intervals to match the storage backend and shutdown behavior of the
- * deployment platform.
+ * `ShardingConfig` describes the runner address, shard group membership, shard
+ * counts and weights, lock timing, entity mailbox and lifecycle limits, polling
+ * intervals, health checks, and local serialization simulation. This module
+ * includes the service, default values, programmatic and environment-based
+ * layers, a `Config` description for loading values, and helpers for normalizing
+ * assigned shard groups.
  *
  * @since 4.0.0
  */
@@ -58,11 +52,17 @@ export class ShardingConfig extends Context.Service<ShardingConfig, {
    */
   readonly runnerShardWeight: number
   /**
+   * The shard groups available across all runners.
+   *
+   * Defaults to `["default"]`.
+   */
+  readonly availableShardGroups: ReadonlyArray<string>
+  /**
    * The shard groups that are assigned to this runner.
    *
    * Defaults to `["default"]`.
    */
-  readonly shardGroups: ReadonlyArray<string>
+  readonly assignedShardGroups: ReadonlyArray<string>
   /**
    * The number of shards to allocate per shard group.
    *
@@ -152,7 +152,8 @@ export const defaults: ShardingConfig["Service"] = {
   runnerListenAddress: Option.none(),
   runnerShardWeight: 1,
   shardsPerGroup: 300,
-  shardGroups: ["default"],
+  availableShardGroups: ["default"],
+  assignedShardGroups: ["default"],
   preemptiveShutdown: true,
   shardLockRefreshInterval: Duration.seconds(10),
   shardLockExpiration: Duration.seconds(35),
@@ -173,7 +174,30 @@ export const defaults: ShardingConfig["Service"] = {
  * Creates a `ShardingConfig` layer by merging the provided partial options over
  * `defaults`.
  *
- * @category Layers
+ * **When to use**
+ *
+ * Use when you need to wire a cluster runner with explicit `ShardingConfig`
+ * values, especially in tests, local development, or code paths where
+ * configuration should be provided programmatically instead of loaded from
+ * environment variables.
+ *
+ * **Details**
+ *
+ * The merge is shallow: omitted fields use `defaults`, and provided fields
+ * replace the corresponding default value.
+ *
+ * **Gotchas**
+ *
+ * This layer only merges and provides configuration; it does not check that
+ * cluster-wide settings are consistent across runners. Keep values such as
+ * `shardsPerGroup` and `availableShardGroups` aligned for runners that should
+ * share shard assignments.
+ *
+ * @see {@link defaults} for the values used when an option is omitted
+ * @see {@link layerDefaults} for a layer with no overrides
+ * @see {@link layerFromEnv} for loading configuration from environment variables before applying explicit overrides
+ *
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer<ShardingConfig> =>
@@ -188,10 +212,10 @@ export const layer = (options?: Partial<ShardingConfig["Service"]>): Layer.Layer
 export const layerDefaults: Layer.Layer<ShardingConfig> = layer()
 
 /**
- * Config descriptor for loading `ShardingConfig` values, applying the same
+ * Describes how to load `ShardingConfig` values, applying the same
  * defaults used by the in-memory `defaults` object.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
@@ -217,7 +241,11 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
     Config.withDefault(defaults.runnerShardWeight)
     // Config.withDescription("A number that determines how many shards this runner will be assigned relative to other runners.")
   ),
-  shardGroups: Config.schema(Schema.Array(Schema.String), "shardGroups").pipe(
+  availableShardGroups: Config.schema(Schema.Array(Schema.String), "availableShardGroups").pipe(
+    Config.withDefault(["default"])
+    // Config.withDescription("The shard groups available across all runners.")
+  ),
+  assignedShardGroups: Config.schema(Schema.Array(Schema.String), "shardGroups").pipe(
     Config.withDefault(["default"])
     // Config.withDescription("The shard groups that are assigned to this runner.")
   ),
@@ -290,7 +318,7 @@ export const config: Config.Config<ShardingConfig["Service"]> = Config.all({
  * Effect that loads `ShardingConfig` from environment variables using the
  * constant-case config provider.
  *
- * @category Config
+ * @category configuration
  * @since 4.0.0
  */
 export const configFromEnv = config.pipe(
@@ -306,7 +334,7 @@ export const configFromEnv = config.pipe(
  * Layer that loads `ShardingConfig` from environment variables and, when options
  * are provided, overlays those options on top of the loaded values.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | undefined): Layer.Layer<
@@ -316,3 +344,24 @@ export const layerFromEnv = (options?: Partial<ShardingConfig["Service"]> | unde
   Layer.effect(ShardingConfig)(
     options ? Effect.map(configFromEnv, (config) => ({ ...config, ...options })) : configFromEnv
   )
+
+/**
+ * Normalizes the provided `ShardingConfig` to calculate the `available` and
+ * `assigned` shard groups.
+ *
+ * @category Shard groups
+ * @since 4.0.0
+ */
+export const shardGroupConfig = (config: ShardingConfig["Service"]): {
+  readonly available: ReadonlySet<string>
+  readonly assigned: ReadonlySet<string>
+} => {
+  const available = new Set(config.availableShardGroups.slice().sort())
+  const assigned = new Set<string>()
+  available.forEach((group) => {
+    if (config.assignedShardGroups.includes(group)) {
+      assigned.add(group)
+    }
+  })
+  return { available, assigned }
+}

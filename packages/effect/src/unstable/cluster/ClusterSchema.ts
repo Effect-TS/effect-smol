@@ -1,29 +1,8 @@
 /**
- * The `ClusterSchema` module defines the schema annotations used by Effect
- * Cluster protocols. These annotations attach cluster-specific behavior to
- * RPCs and entities without changing the request or response schemas
- * themselves.
- *
- * **Common tasks**
- *
- * - Mark requests as persisted so mailbox storage can replay them after
- *   interruption or restart
- * - Run server-side handling inside a storage transaction when durable state
- *   and SQL updates must commit together
- * - Control whether client sending, server handling, or both are treated as
- *   uninterruptible
- * - Route entity ids into shard groups
- * - Disable client tracing for internal protocols such as cron dispatch
- * - Derive per-request annotations from the encoded request with {@link Dynamic}
- *
- * **Protocol notes**
- *
- * Cluster transports serialize the RPC payloads, not arbitrary runtime
- * annotation values. Prefer static, deterministic annotations, and use
- * {@link Dynamic} when a persisted or transactional decision depends on the
- * request value that is already part of the protocol. Persisted requests require
- * message storage support, and shard group selection must remain stable for a
- * given entity id so routing is consistent across cluster members.
+ * The `ClusterSchema` module collects the annotations that add cluster behavior
+ * to RPC protocols and entity definitions. These annotations describe how
+ * requests are persisted, handled in transactions, interrupted, traced, and
+ * routed to shard groups without changing the request or response schema.
  *
  * @since 4.0.0
  */
@@ -37,9 +16,11 @@ import type { Request } from "./Envelope.ts"
  * Annotation that marks whether a cluster request should be persisted in mailbox
  * storage.
  *
+ * **Details**
+ *
  * The default value is `false`.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchema/Persisted", {
@@ -47,10 +28,25 @@ export const Persisted = Context.Reference<boolean>("effect/cluster/ClusterSchem
 })
 
 /**
- * Whether to wrap the request with a storage transaction, so sql queries are
- * committed atomically.
+ * Annotation that marks whether request handling should be wrapped in the
+ * configured message storage transaction.
  *
- * @category Annotations
+ * **When to use**
+ *
+ * Use when you need server-side request handling or storage work wrapped in the
+ * storage transaction.
+ *
+ * **Details**
+ *
+ * The default value is `false`. When `true`, entity handling wraps server
+ * writes with the configured storage transaction.
+ *
+ * **Gotchas**
+ *
+ * This annotation has transactional behavior only when the configured
+ * `MessageStorage` implements it.
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const WithTransaction = Context.Reference<boolean>(
@@ -62,11 +58,13 @@ export const WithTransaction = Context.Reference<boolean>(
  * Annotation that controls whether a cluster request is treated as
  * uninterruptible.
  *
+ * **Details**
+ *
  * Use `true` for both client and server handling, `"client"` for client-side
  * handling only, `"server"` for server-side handling only, or `false` to allow
  * interruption.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
@@ -78,7 +76,14 @@ export const Uninterruptible = Context.Reference<boolean | "client" | "server">(
  * Returns whether the `Uninterruptible` annotation applies to server-side
  * request handling for the provided context.
  *
- * @category Annotations
+ * **Details**
+ *
+ * Returns `true` only when `Uninterruptible` is `true` or `"server"`.
+ *
+ * @see {@link Uninterruptible} for the annotation values interpreted by this helper
+ * @see {@link isUninterruptibleForClient} for the client-side counterpart
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const isUninterruptibleForServer = (context: Context.Context<never>): boolean => {
@@ -90,7 +95,20 @@ export const isUninterruptibleForServer = (context: Context.Context<never>): boo
  * Returns whether the `Uninterruptible` annotation applies to client-side
  * request handling for the provided context.
  *
- * @category Annotations
+ * **When to use**
+ *
+ * Use when you need client-side cluster request handling to decide whether to
+ * ignore an interrupt.
+ *
+ * **Details**
+ *
+ * Returns `true` when `Uninterruptible` is `true` or `"client"`, and `false`
+ * for `"server"` or the default `false`.
+ *
+ * @see {@link Uninterruptible} for the annotation values interpreted by this helper
+ * @see {@link isUninterruptibleForServer} for the server-side counterpart
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const isUninterruptibleForClient = (context: Context.Context<never>): boolean => {
@@ -101,9 +119,11 @@ export const isUninterruptibleForClient = (context: Context.Context<never>): boo
 /**
  * Annotation that selects the shard group for an entity id.
  *
+ * **Details**
+ *
  * By default, every entity id is assigned to the `"default"` shard group.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
@@ -115,9 +135,11 @@ export const ShardGroup = Context.Reference<(entityId: EntityId) => string>(
  * Annotation that controls whether client-side cluster request tracing is
  * enabled.
  *
+ * **Details**
+ *
  * The default value is `true`.
  *
- * @category Annotations
+ * @category annotations
  * @since 4.0.0
  */
 export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/ClusterSchema/ClientTracingEnabled", {
@@ -125,10 +147,19 @@ export const ClientTracingEnabled = Context.Reference<boolean>("effect/cluster/C
 })
 
 /**
- * Dynamically transform the request annotations based on the request.
- * This only applies to the requests handled by the Entity, not the client.
+ * Context reference for deriving request annotations from a cluster request.
  *
- * @category Annotations
+ * **When to use**
+ *
+ * Use to customize server-side request annotations based on the decoded
+ * request value.
+ *
+ * **Gotchas**
+ *
+ * This only applies to requests handled by the entity, not to the generated
+ * client.
+ *
+ * @category annotations
  * @since 4.0.0
  */
 export const Dynamic = Context.Reference<

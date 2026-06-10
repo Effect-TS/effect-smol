@@ -1,29 +1,12 @@
 /**
- * This module provides small, allocation-free utilities for working with values of type
- * `A | undefined`, where `undefined` means "no value".
+ * Works with values that may be `undefined`.
  *
- * Why not `Option<A>`?
- * In TypeScript, `Option<A>` is often unnecessary. If `undefined` already models absence
- * in your domain, using `A | undefined` keeps types simple, avoids extra wrappers, and
- * reduces overhead. The key is that `A` itself must not include `undefined`; in this
- * module `undefined` is reserved to mean "no value".
- *
- * When to use `A | undefined`:
- * - Absence can be represented by `undefined` in your domain model.
- * - You do not need to distinguish between "no value" and "value is undefined".
- * - You want straightforward ergonomics and zero extra allocations.
- *
- * When to prefer `Option<A>`:
- * - You must distinguish `None` from `Some(undefined)` (that is, `undefined` is a valid
- *   payload and carries meaning on its own).
- * - You need a tagged representation for serialization or pattern matching across
- *   boundaries where `undefined` would be ambiguous.
- * - You want the richer `Option` API and are comfortable with the extra wrapper.
- *
- * Lawfulness note:
- * All helpers treat `undefined` as absence. Do not use these utilities with payloads
- * where `A` can itself be `undefined`, or you will lose information. If you need to
- * carry `undefined` as a valid payload, use `Option<A>` instead.
+ * Use this module for plain TypeScript values of type `A | undefined` when
+ * `undefined` is the only absence marker. It is a small alternative to wrapping
+ * values in `Option` when your data already uses `undefined` to mean "no
+ * value". The module includes helpers for mapping defined values, matching both
+ * cases, throwing when a value is missing, adapting throwing functions, and
+ * building reducers or combiners.
  *
  * @since 4.0.0
  */
@@ -35,6 +18,14 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Maps a defined value with `f`, or returns `undefined` unchanged.
  *
+ * **When to use**
+ *
+ * Use to apply a pure transformation to an `A | undefined` value while
+ * preserving `undefined` as absence.
+ *
+ * @see {@link match} when you need to handle the `undefined` case explicitly
+ *
+ * @category mapping
  * @since 4.0.0
  */
 export const map: {
@@ -43,11 +34,18 @@ export const map: {
 } = dual(2, (self, f) => (self === undefined ? undefined : f(self)))
 
 /**
- * Pattern matches on an `A | undefined` value.
+ * Pattern matches on an `A | undefined` value, running `onDefined` when the
+ * value is present or evaluating `onUndefined` when the value is `undefined`.
  *
- * Runs `onDefined` with the value when it is present, or evaluates
- * `onUndefined` when the value is `undefined`.
+ * **When to use**
  *
+ * Use when you need to turn an `A | undefined` into a non-optional result by
+ * handling both the defined and undefined branches in one expression.
+ *
+ * @see {@link map} for transforming defined values while preserving `undefined`
+ * @see {@link getOrThrowWith} for throwing when the value is `undefined` instead of returning a fallback branch
+ *
+ * @category pattern matching
  * @since 4.0.0
  */
 export const match: {
@@ -71,6 +69,20 @@ export const match: {
  * Returns the defined value, or throws the value produced by `onUndefined`
  * when the input is `undefined`.
  *
+ * **When to use**
+ *
+ * Use when you need fail-fast unwrapping of an `A | undefined` value and want
+ * to provide the thrown error for the undefined case.
+ *
+ * **Details**
+ *
+ * Defined values are returned unchanged. When the input is `undefined`,
+ * `onUndefined` is called and its result is thrown.
+ *
+ * @see {@link getOrThrow} for the default-error sibling
+ * @see {@link match} for handling defined and undefined cases without throwing
+ *
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrowWith: {
@@ -87,6 +99,20 @@ export const getOrThrowWith: {
  * Returns the defined value, or throws a default `Error` when the input is
  * `undefined`.
  *
+ * **When to use**
+ *
+ * Use when you need to unwrap a value that should already be defined and a
+ * generic missing-value `Error` is acceptable.
+ *
+ * **Details**
+ *
+ * Defined inputs are returned unchanged. `undefined` throws
+ * `new Error("getOrThrow called on a undefined")`.
+ *
+ * @see {@link getOrThrowWith} for the sibling that lets callers choose the thrown value
+ * @see {@link match} for handling defined and undefined cases without throwing
+ *
+ * @category getters
  * @since 4.0.0
  */
 export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
@@ -94,12 +120,20 @@ export const getOrThrow: <A>(self: A | undefined) => A = getOrThrowWith(() =>
 )
 
 /**
- * Converts a throwing function into one that returns `undefined` when it
- * throws.
+ * Converts a throwing function into one that returns successful results
+ * unchanged and returns `undefined` when the function throws.
  *
- * The returned function passes through successful results and discards thrown
- * errors by representing them as `undefined`.
+ * **When to use**
  *
+ * Use to adapt exception-throwing functions when `undefined` is the absence
+ * value you want to return for failures.
+ *
+ * **Gotchas**
+ *
+ * Thrown values are discarded. If the wrapped function can successfully return
+ * `undefined`, that success is indistinguishable from a thrown failure.
+ *
+ * @category converting
  * @since 4.0.0
  */
 export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
@@ -117,19 +151,21 @@ export const liftThrowable = <A extends ReadonlyArray<unknown>, B>(
  * Creates a `Reducer` for `UndefinedOr<A>` that prioritizes the first non-`undefined`
  * value and combines values when both operands are present.
  *
- * This `Reducer` is useful for scenarios where you want to:
- * - Take the first available value (like a fallback chain)
- * - Combine values when both are present
- * - Maintain a `undefined` state only when all values are `undefined`
+ * **When to use**
  *
- * The `initialValue` of the `Reducer` is `undefined`.
+ * Use when you need to reduce values that may be `undefined`, keeping the
+ * first defined value as a fallback and combining only when both operands are
+ * defined.
  *
- * **Behavior:**
- * - `undefined` + `undefined` = `undefined`
- * - `a` + `undefined` = `a` (first value wins)
- * - `undefined` + `b` = `b` (second value wins)
- * - `a` + `b` = `a + b` (values combined)
+ * **Details**
  *
+ * Combining `undefined` with `undefined` returns `undefined`. Combining a
+ * defined value with `undefined` keeps the defined value, so the first defined
+ * value wins when only one side is present. When both values are defined, they
+ * are combined with `combiner.combine`. The reducer's initial value is
+ * `undefined`.
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<A | undefined> {
@@ -144,12 +180,21 @@ export function makeReducer<A>(combiner: Combiner.Combiner<A>): Reducer.Reducer<
  * Creates a `Combiner` for `A | undefined` that combines values only when both
  * operands are defined.
  *
- * If either operand is `undefined`, the combined result is `undefined`. When
- * both operands are defined, the wrapped combiner combines the two values.
+ * **When to use**
+ *
+ * Use to lift a `Combiner` so any `undefined` operand makes the combined result
+ * `undefined`.
+ *
+ * **Details**
+ *
+ * - `undefined` combined with any value returns `undefined`
+ * - Any value combined with `undefined` returns `undefined`
+ * - `a` combined with `b` returns `combiner.combine(a, b)`
  *
  * @see {@link makeReducerFailFast} if you have a `Reducer` and want to lift it
  * to `UndefinedOr` values.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combiner.Combiner<A | undefined> {
@@ -163,13 +208,21 @@ export function makeCombinerFailFast<A>(combiner: Combiner.Combiner<A>): Combine
  * Creates a `Reducer` for `A | undefined` by wrapping an existing reducer with
  * fail-fast semantics.
  *
- * The initial value is the wrapped reducer's `initialValue`. Combining two
- * defined values delegates to the wrapped reducer; if the accumulator or next
- * value is `undefined`, the reduction returns `undefined`.
+ * **When to use**
+ *
+ * Use to wrap an existing `Reducer` so any `undefined` value aborts the entire
+ * reduction result.
+ *
+ * **Details**
+ *
+ * - Initial value is the wrapped reducer's `initialValue`
+ * - Combining two defined values delegates to the wrapped reducer
+ * - If the accumulator or next value is `undefined`, the reduction returns `undefined`
  *
  * @see {@link makeCombinerFailFast} if you only have a `Combiner` and want to
  * lift it to `UndefinedOr` values.
  *
+ * @category constructors
  * @since 4.0.0
  */
 export function makeReducerFailFast<A>(reducer: Reducer.Reducer<A>): Reducer.Reducer<A | undefined> {

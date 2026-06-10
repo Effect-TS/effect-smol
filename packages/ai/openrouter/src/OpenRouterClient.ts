@@ -1,25 +1,8 @@
 /**
  * The `OpenRouterClient` module provides an Effect service for calling
  * OpenRouter's chat completions API. It wraps the generated OpenRouter HTTP
- * client with Effect-native constructors, layers, typed errors, and streaming
- * support.
- *
- * **Common tasks**
- *
- * - Build a client from explicit options with {@link make}
- * - Provide the client to an application with {@link layer} or {@link layerConfig}
- * - Create non-streaming chat completions with {@link Service.createChatCompletion}
- * - Create server-sent event chat completion streams with
- *   {@link Service.createChatCompletionStream}
- * - Customize authentication, base URL, OpenRouter ranking headers, or the
- *   underlying HTTP client through {@link Options}
- *
- * **Gotchas**
- *
- * - Streaming requests are sent directly to `/chat/completions` with `stream`
- *   and `stream_options.include_usage` enabled by this module.
- * - OpenRouter API failures, HTTP client failures, and schema decoding failures
- *   are mapped into `AiError` values for the exported service methods.
+ * client with Effect-native constructors, layers, authentication and optional
+ * site ranking headers, typed errors, and streaming support.
  *
  * @since 4.0.0
  */
@@ -48,6 +31,8 @@ import { OpenRouterConfig } from "./OpenRouterConfig.ts"
 
 /**
  * The OpenRouter client service interface.
+ *
+ * **Details**
  *
  * Provides methods for interacting with OpenRouter's Chat Completions API,
  * including both synchronous and streaming message creation.
@@ -84,7 +69,7 @@ export interface Service {
  * The payload contains streamed choices, model metadata, optional usage, and may
  * include an OpenRouter error object for a streamed response.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingResponseChunk.fields.data.Type
@@ -94,9 +79,18 @@ export type ChatStreamingResponseChunkData = typeof Generated.ChatStreamingRespo
 // =============================================================================
 
 /**
- * Service identifier for the OpenRouter client.
+ * Service tag for the OpenRouter client.
  *
- * @category service
+ * **When to use**
+ *
+ * Use when accessing or providing the OpenRouter client service through
+ * Effect's context.
+ *
+ * @see {@link make} for constructing an OpenRouter client effectfully
+ * @see {@link layer} for providing a client from explicit options
+ * @see {@link layerConfig} for providing a client from `Config`
+ *
+ * @category services
  * @since 4.0.0
  */
 export class OpenRouterClient extends Context.Service<
@@ -109,9 +103,9 @@ export class OpenRouterClient extends Context.Service<
 // =============================================================================
 
 /**
- * Configuration options for creating an OpenRouter client.
+ * Configuration for creating an OpenRouter client.
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export type Options = {
@@ -132,7 +126,9 @@ export type Options = {
   /**
    * Optional transformer for the underlying HTTP client.
    *
-   * Use this to add middleware, logging, or custom request/response handling.
+   * **When to use**
+   *
+   * Use to add middleware, logging, or custom request/response handling.
    */
   readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
 }
@@ -142,7 +138,27 @@ export type Options = {
 // =============================================================================
 
 /**
- * Creates an OpenRouter client service with the given options.
+ * Creates an OpenRouter client service from explicit options.
+ *
+ * **When to use**
+ *
+ * Use when you need the OpenRouter client service value inside an effect.
+ *
+ * **Details**
+ *
+ * The returned service uses the current `HttpClient`, prepends `apiUrl` or
+ * `https://openrouter.ai/api/v1`, adds the bearer token and optional
+ * `HTTP-Referer` and `X-Title` headers, accepts JSON responses, and applies
+ * `transformClient` when provided.
+ *
+ * **Gotchas**
+ *
+ * Scoped `OpenRouterConfig.withClientTransform` applies to generated client
+ * request methods. Streaming chat completion requests are sent directly by this
+ * module and do not read that scoped transform.
+ *
+ * @see {@link layer} for providing this client from explicit options
+ * @see {@link layerConfig} for loading client settings from `Config`
  *
  * @category constructors
  * @since 4.0.0
@@ -241,6 +257,14 @@ export const make = Effect.fnUntraced(
 /**
  * Creates a layer for the OpenRouter client with the given options.
  *
+ * **When to use**
+ *
+ * Use when you already have the OpenRouter client options in code and want to
+ * provide `OpenRouterClient` as a layer.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layerConfig} for loading client settings from `Config`
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -248,8 +272,21 @@ export const layer = (options: Options): Layer.Layer<OpenRouterClient, never, Ht
   Layer.effect(OpenRouterClient, make(options))
 
 /**
- * Creates a layer for the OpenRouter client, loading the requisite
- * configuration via Effect's `Config` module.
+ * Creates a layer for the OpenRouter client from provided `Config` values.
+ *
+ * **When to use**
+ *
+ * Use when you need client settings for OpenRouter to be read from Effect
+ * `Config` values while providing `OpenRouterClient` as a layer.
+ *
+ * **Details**
+ *
+ * Only config values supplied in `options` are loaded. Omitted fields are
+ * passed to `make` as `undefined`, and `transformClient` is forwarded as a
+ * plain option.
+ *
+ * @see {@link make} for constructing the client service effectfully
+ * @see {@link layer} for providing the client from already-resolved options
  *
  * @category layers
  * @since 4.0.0

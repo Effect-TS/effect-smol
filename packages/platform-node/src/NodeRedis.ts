@@ -1,22 +1,11 @@
 /**
  * Node.js Redis integration backed by `ioredis`.
  *
- * This module provides scoped layers that create an `ioredis` client and expose
- * both the low-level `Redis` service used by Effect persistence modules and the
- * `NodeRedis` service for direct access to the underlying client. It is useful
- * for Node applications that want Redis-backed persistence, persisted queues,
- * distributed rate limiting, or custom Redis commands alongside the Effect
- * services that build on Redis.
- *
- * The client is acquired when the layer is built and closed with `quit` when
- * the layer scope ends, so install the layer at the lifetime you want for the
- * connection and pass `ioredis` options, or `layerConfig`, for connection,
- * TLS, database, retry, and reconnect settings. Persistence and rate limiter
- * stores build their own keys and Lua scripts on top of this service; choose
- * stable prefixes and store ids to avoid collisions, account for persisted
- * values that may fail to decode after schema changes, and avoid unbounded
- * high-cardinality rate-limit keys unless you have a cleanup or bounding
- * strategy.
+ * This module creates a scoped `ioredis` client and exposes it in two forms:
+ * the generic `Redis` service and the {@link NodeRedis} service for direct
+ * access to the underlying client. `layer` accepts ioredis options directly,
+ * while `layerConfig` reads them from Effect config. Both layers close the
+ * client when the layer scope ends.
  *
  * @since 4.0.0
  */
@@ -34,7 +23,7 @@ import * as IoRedis from "ioredis"
  * `ioredis` client and a `use` helper that maps client failures to
  * `RedisError`.
  *
- * @category Service
+ * @category services
  * @since 4.0.0
  */
 export class NodeRedis extends Context.Service<NodeRedis, {
@@ -77,7 +66,7 @@ const make = Effect.fnUntraced(function*(
  * Provides `Redis` and `NodeRedis` services backed by an `ioredis` client
  * created with the supplied options and closed when the layer scope ends.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (
@@ -88,7 +77,7 @@ export const layer = (
  * Provides `Redis` and `NodeRedis` services from `Config`-backed ioredis
  * options, closing the client when the layer scope ends.
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layerConfig: (

@@ -1,26 +1,11 @@
 /**
- * The `Envelope` module defines the transport messages exchanged by Effect
- * cluster entities while processing RPC requests. Envelopes wrap decoded
- * request payloads with routing metadata, trace context, and request ids, and
- * also model delivery-control messages such as streamed-reply acknowledgements
- * and request interrupts.
+ * Defines the transport envelopes exchanged by cluster entities.
  *
- * **Common use cases**
- *
- * - Construct a runtime request envelope with {@link makeRequest}
- * - Decode or encode envelopes crossing a network or durable queue with {@link PartialJson}
- * - Batch encoded envelopes with {@link PartialArray}
- * - Detect envelope values at runtime with {@link isEnvelope}
- * - Build storage keys for keyed request payloads with {@link primaryKey}
- *
- * **Serialization and delivery notes**
- *
- * Request envelopes are decoded in two phases: the envelope metadata is parsed
- * first, while the RPC payload remains `unknown` until the receiving side knows
- * the target RPC schema. Snowflake identifiers are encoded as strings for JSON
- * transport, and acknowledgement / interrupt envelopes carry the original
- * request id so delivery protocols can correlate control messages with the
- * in-flight request.
+ * Request envelopes wrap decoded RPC payloads with the target entity address,
+ * RPC tag, request id, headers, and optional tracing context. The module also
+ * includes acknowledgement envelopes for streamed reply chunks, interrupt
+ * envelopes for in-flight requests, JSON codecs for partially decoded
+ * envelopes, guards, request constructors, and storage primary-key helpers.
  *
  * @since 4.0.0
  */
@@ -28,7 +13,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as PrimaryKey from "../../PrimaryKey.ts"
 import type { ReadonlyRecord } from "../../Record.ts"
 import * as Schema from "../../Schema.ts"
-import * as Transformation from "../../SchemaTransformation.ts"
+import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Headers from "../http/Headers.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import { EntityAddress } from "./EntityAddress.ts"
@@ -37,13 +22,15 @@ import { type Snowflake, SnowflakeFromBigInt } from "./Snowflake.ts"
 /**
  * Type identifier used to mark runtime cluster envelope values.
  *
- * @category Type IDs
+ * @category type IDs
  * @since 4.0.0
  */
 export const TypeId = "~effect/cluster/Envelope"
 
 /**
  * Union of cluster envelopes exchanged for an RPC request.
+ *
+ * **Details**
  *
  * An envelope is either a request, an acknowledgement for a streamed reply chunk,
  * or an interrupt signal.
@@ -79,6 +66,8 @@ export declare namespace Envelope {
 /**
  * Runtime envelope for an RPC request addressed to a specific entity.
  *
+ * **Details**
+ *
  * It carries the request ID, entity address, RPC tag, decoded payload, request
  * headers, and optional tracing context.
  *
@@ -101,6 +90,8 @@ export interface Request<in out Rpc extends Rpc.Any> {
 /**
  * Schema for a request envelope before its RPC payload has been decoded.
  *
+ * **Details**
+ *
  * The envelope metadata is decoded, while the payload remains `unknown` until it
  * is decoded with the target RPC payload schema.
  *
@@ -121,6 +112,8 @@ export class PartialRequest extends Schema.Opaque<PartialRequest>()(Schema.Struc
 
 /**
  * Serialized JSON shape of a request envelope.
+ *
+ * **Details**
  *
  * Identifiers are encoded as strings and the RPC payload remains unknown until
  * decoded with the RPC schema.
@@ -148,7 +141,10 @@ export interface PartialRequestEncoded {
 }
 
 /**
- * Envelope acknowledging receipt of a streamed reply chunk for a request.
+ * Represents an envelope acknowledging receipt of a streamed reply chunk for a
+ * request.
+ *
+ * **Details**
  *
  * The `replyId` identifies the chunk reply that has been received.
  *
@@ -204,7 +200,7 @@ export interface AckChunkEncoded {
 }
 
 /**
- * Envelope used to interrupt an in-flight entity request.
+ * Represents an envelope used to interrupt an in-flight entity request.
  *
  * @category models
  * @since 4.0.0
@@ -256,7 +252,9 @@ export interface InterruptEncoded {
 }
 
 /**
- * Schema union for partially decoded cluster envelopes.
+ * Schema for partially decoded cluster envelopes.
+ *
+ * **Details**
  *
  * It accepts `PartialRequest`, `AckChunk`, and `Interrupt` envelope values.
  *
@@ -291,7 +289,7 @@ export const PartialJson: Schema.Codec<
 > = Schema.toCodecJson(Partial) as any
 
 /**
- * Mutable array schema for JSON-encoded partial cluster envelopes.
+ * Schema for mutable arrays of JSON-encoded partial cluster envelopes.
  *
  * @category schemas
  * @since 4.0.0
@@ -318,6 +316,8 @@ export declare namespace Request {
 /**
  * Returns `true` when the supplied value is a runtime cluster envelope.
  *
+ * **Details**
+ *
  * The check is based on the envelope type identifier.
  *
  * @category refinements
@@ -327,6 +327,8 @@ export const isEnvelope = (u: unknown): u is Envelope<any> => Predicate.hasPrope
 
 /**
  * Constructs a runtime request envelope and attaches the envelope type identifier.
+ *
+ * **Details**
  *
  * Tracing fields are included only when a `traceId` is provided.
  *
@@ -362,10 +364,9 @@ export const makeRequest = <Rpc extends Rpc.Any>(
 })
 
 /**
- * Schema declaration that recognizes runtime `Envelope` values by their type
- * identifier.
+ * Schema for runtime cluster envelopes recognized by their type identifier.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Envelope = Schema.declare(isEnvelope, {
@@ -373,9 +374,9 @@ export const Envelope = Schema.declare(isEnvelope, {
 })
 
 /**
- * Schema declaration that recognizes runtime request envelopes.
+ * Schema for runtime request envelopes.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
 export const Request = Schema.declare(
@@ -384,16 +385,16 @@ export const Request = Schema.declare(
 )
 
 /**
- * Transformation that decodes plain request data with `makeRequest` and encodes
+ * Transforms plain request data with `makeRequest` and encodes
  * request envelopes back to their raw representation.
  *
- * @category serialization / deserialization
+ * @category serialization
  * @since 4.0.0
  */
-export const RequestTransform: Transformation.Transformation<
+export const RequestTransform: SchemaTransformation.Transformation<
   Request.Any,
   any
-> = Transformation.transform({
+> = SchemaTransformation.transform({
   decode: (u: any) => makeRequest(u),
   encode: (u) => u as any
 })

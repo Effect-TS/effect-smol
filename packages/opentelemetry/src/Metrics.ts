@@ -1,19 +1,11 @@
 /**
- * Bridges Effect metrics into OpenTelemetry by exposing the current Effect
- * metric snapshot as an OpenTelemetry `MetricProducer` and registering it with
- * one or more SDK `MetricReader`s. Use this module when an application already
- * records metrics with Effect and needs those counters, gauges, histograms,
- * frequencies, or summaries exported through OTLP, Prometheus, or another
- * OpenTelemetry-compatible reader/exporter.
+ * OpenTelemetry support for Effect metrics.
  *
- * The `layer` constructor is the usual entry point, and is also used by the
- * Node and Web SDK layers when `metricReader` configuration is supplied. Metric
- * readers are acquired inside the layer scope and shut down when the scope is
- * released, so periodic exporters need the runtime to stay alive long enough to
- * collect and export data. The exporter or backend determines whether
- * cumulative or delta aggregation is expected; this module defaults to
- * cumulative temporality and can be configured with `temporality: "delta"` for
- * backends that require interval-based values.
+ * This module exposes Effect metrics as an OpenTelemetry `MetricProducer`.
+ * `makeProducer` creates the producer, `registerProducer` attaches it to one
+ * or more SDK `MetricReader`s, and `layer` manages that setup in a scoped
+ * layer. The `TemporalityPreference` type lets callers choose cumulative or
+ * delta metric values.
  *
  * @since 4.0.0
  */
@@ -31,13 +23,14 @@ import { Resource } from "./Resource.ts"
  * Determines how metric values relate to the time interval over which they
  * are aggregated.
  *
- * - `cumulative`: Reports total since a fixed start time. Each data point
- *   depends on all previous measurements. This is the default behavior.
+ * **Details**
  *
- * - `delta`: Reports changes since the last export. Each interval is
- *   independent with no dependency on previous measurements.
+ * `cumulative` reports total since a fixed start time. Each data point depends
+ * on all previous measurements. This is the default behavior. `delta` reports
+ * changes since the last export. Each interval is independent with no
+ * dependency on previous measurements.
  *
- * @category Models
+ * @category models
  * @since 4.0.0
  */
 export type TemporalityPreference = "cumulative" | "delta"
@@ -45,7 +38,21 @@ export type TemporalityPreference = "cumulative" | "delta"
 /**
  * Creates an OpenTelemetry metric producer from Effect metrics.
  *
- * @category Constructors
+ * **When to use**
+ *
+ * Use when you need a `MetricProducer` for manually wiring Effect metrics into
+ * OpenTelemetry instead of using the scoped `layer` helper.
+ *
+ * **Details**
+ *
+ * Requires the current OpenTelemetry `Resource`, captures the current Effect
+ * context, and uses cumulative temporality by default. Pass `"delta"` for
+ * interval-based values.
+ *
+ * @see {@link registerProducer} for attaching a producer to metric readers
+ * @see {@link layer} for creating and registering a producer in a scoped layer
+ *
+ * @category constructors
  * @since 4.0.0
  */
 export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect<MetricProducer, never, Resource> =>
@@ -58,7 +65,7 @@ export const makeProducer = (temporality?: TemporalityPreference): Effect.Effect
 /**
  * Registers a metric producer with one or more metric readers.
  *
- * @category Constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const registerProducer = (
@@ -115,7 +122,7 @@ export const registerProducer = (
  * )
  * ```
  *
- * @category Layers
+ * @category layers
  * @since 4.0.0
  */
 export const layer = (

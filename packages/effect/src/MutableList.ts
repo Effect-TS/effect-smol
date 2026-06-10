@@ -1,53 +1,11 @@
 /**
- * The `MutableList` module provides a mutable linked list for accumulating,
- * ordering, inspecting, and draining values with efficient operations at both
- * ends of the list.
+ * Mutable lists for collecting ordered values and draining them from the front.
+ * A `MutableList<A>` can append values to the end, prepend values to the
+ * beginning, take one or more values from the front, inspect its contents as an
+ * array, filter values, remove values, and clear itself. All operations update
+ * the same list object in place and keep its `length` field current. Taking
+ * from an empty list returns the `Empty` symbol.
  *
- * A `MutableList<A>` stores values in linked buckets of arrays. Appending adds
- * values to the tail, prepending adds values to the head, and taking removes
- * values from the head. Unlike persistent collections, every mutation updates
- * the list object in place: operations such as {@link append}, {@link prepend},
- * {@link take}, {@link takeN}, {@link clear}, {@link filter}, and {@link remove}
- * change the same `MutableList` instance and update its `length`.
- *
- * **Mental model**
- *
- * - `MutableList<A>` is a stateful container with `head`, `tail`, and `length`
- * - Values are consumed from the head with {@link take}, {@link takeN}, or
- *   {@link takeAll}
- * - {@link append} and {@link appendAll} preserve FIFO queue order for normal
- *   producer-consumer use cases
- * - {@link prepend} and {@link prependAll} place values before the current
- *   contents, which is useful for priority work or restoring items to the front
- * - {@link toArray} and {@link toArrayN} copy values without modifying the list
- * - The `head` and `tail` bucket fields are exposed for advanced use, but most
- *   code should treat them as implementation details
- *
- * **Common tasks**
- *
- * - Create an empty list: {@link make}
- * - Add one value: {@link append}, {@link prepend}
- * - Add many values: {@link appendAll}, {@link prependAll}
- * - Drain one value: {@link take}
- * - Drain many values: {@link takeN}, {@link takeAll}
- * - Inspect without draining: {@link toArrayN}, {@link toArray}
- * - Reset the list: {@link clear}
- * - Mutate contents in place: {@link filter}, {@link remove}
- *
- * **Gotchas**
- *
- * - `MutableList` is intentionally mutable; sharing a list means sharing its
- *   changing state
- * - {@link take} returns the {@link Empty} symbol when the list has no value, so
- *   compare with `MutableList.Empty` instead of relying on falsy checks
- * - {@link appendAllUnsafe} and {@link prependAllUnsafe} may reuse the provided
- *   array when `mutable` is `true`; only enable that optimization when callers
- *   will not keep using the array independently
- * - {@link remove} uses JavaScript strict equality semantics, not structural
- *   equality
- *
- * @fileoverview
- * @category data-structures
  * @since 4.0.0
  */
 import * as Arr from "./Array.ts"
@@ -60,7 +18,7 @@ import * as Arr from "./Array.ts"
  * **Example** (Creating and consuming a mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * // Create a mutable list
  * const list: MutableList.MutableList<number> = MutableList.make()
@@ -82,7 +40,7 @@ import * as Arr from "./Array.ts"
  * ```
  *
  * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export interface MutableList<in out A> {
   head: MutableList.Bucket<A> | undefined
@@ -97,7 +55,7 @@ export interface MutableList<in out A> {
  * **Example** (Typing queue processors)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * // Type annotation using the namespace
  * const processQueue = (queue: MutableList.MutableList<string>) => {
@@ -124,13 +82,14 @@ export interface MutableList<in out A> {
  * }
  * ```
  *
- * @category models
- * @since 4.0.0
+ * @since 2.0.0
  */
 export declare namespace MutableList {
   /**
    * Storage node used by the exposed `head` and `tail` fields of a
    * `MutableList`.
+   *
+   * **Details**
    *
    * Most code should treat buckets as an implementation detail and use
    * `MutableList` operations such as `append`, `prepend`, and `take` instead
@@ -139,7 +98,7 @@ export declare namespace MutableList {
    * **Example** (Inspecting buckets)
    *
    * ```ts
-   * import * as MutableList from "effect/MutableList"
+   * import { MutableList } from "effect"
    *
    * const list = MutableList.make<number>()
    * MutableList.append(list, 1)
@@ -173,13 +132,18 @@ export declare namespace MutableList {
 }
 
 /**
- * A unique symbol used to represent an empty result when taking elements from a MutableList.
+ * Defines the unique symbol used to represent an empty result when taking elements from a MutableList.
  * This symbol is returned by `take` when the list is empty, allowing for safe type checking.
+ *
+ * **When to use**
+ *
+ * Use to detect that `take` returned no element before handling the result as a
+ * list item.
  *
  * **Example** (Checking for empty results)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -206,7 +170,7 @@ export declare namespace MutableList {
  * console.log(empty === MutableList.Empty) // true, list is empty
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
@@ -218,7 +182,7 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * **Example** (Handling empty results type-safely)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  *
@@ -256,7 +220,7 @@ export const Empty: unique symbol = Symbol.for("effect/MutableList/Empty")
  * }
  * ```
  *
- * @category Symbols
+ * @category symbols
  * @since 4.0.0
  */
 export type Empty = typeof Empty
@@ -267,7 +231,7 @@ export type Empty = typeof Empty
  * **Example** (Creating an empty mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -285,7 +249,7 @@ export type Empty = typeof Empty
  * ```
  *
  * @category constructors
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const make = <A>(): MutableList<A> => ({
   head: undefined,
@@ -307,7 +271,7 @@ const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
  * **Example** (Appending elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  *
@@ -330,7 +294,7 @@ const emptyBucket = <A = never>(): MutableList.Bucket<A> => ({
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const append = <A>(self: MutableList<A>, message: A): void => {
   if (!self.tail) {
@@ -350,7 +314,7 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * **Example** (Prepending elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  *
@@ -373,7 +337,7 @@ export const append = <A>(self: MutableList<A>, message: A): void => {
  * ```
  *
  * @category mutations
- * @since 4.0.0
+ * @since 2.0.0
  */
 export const prepend = <A>(self: MutableList<A>, message: A): void => {
   self.head = {
@@ -393,7 +357,7 @@ export const prepend = <A>(self: MutableList<A>, message: A): void => {
  * **Example** (Prepending multiple elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
@@ -423,13 +387,20 @@ export const prependAll = <A>(self: MutableList<A>, messages: Iterable<A>): void
  * Prepends all elements from a ReadonlyArray to the beginning of the MutableList.
  * This is an optimized version that can reuse the array when mutable=true.
  *
- * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
- * Only use mutable=true when you control the array lifecycle.
+ * **When to use**
+ *
+ * Use when prepending a trusted array directly is worth the optimized path and
+ * you control whether the input may be reused.
+ *
+ * **Gotchas**
+ *
+ * When mutable=true, the input array may be modified internally. Only use
+ * mutable=true when you control the array lifecycle.
  *
  * **Example** (Prepending arrays with optional mutation)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 4)
@@ -467,7 +438,7 @@ export const prependAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArra
  * **Example** (Appending multiple elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
@@ -506,13 +477,20 @@ export const appendAll = <A>(self: MutableList<A>, messages: Iterable<A>): numbe
  * This is an optimized version that can reuse the array when mutable=true.
  * Returns the number of elements added.
  *
- * ⚠️ **Warning**: When mutable=true, the input array may be modified internally.
- * Only use mutable=true when you control the array lifecycle.
+ * **When to use**
+ *
+ * Use when appending a trusted array directly is worth the optimized path and
+ * you control whether the input may be reused.
+ *
+ * **Gotchas**
+ *
+ * When mutable=true, the input array may be modified internally. Only use
+ * mutable=true when you control the array lifecycle.
  *
  * **Example** (Appending arrays with optional mutation)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.append(list, 1)
@@ -564,7 +542,7 @@ export const appendAllUnsafe = <A>(self: MutableList<A>, messages: ReadonlyArray
  * **Example** (Clearing a mutable list)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5])
@@ -604,7 +582,7 @@ export const clear = <A>(self: MutableList<A>): void => {
  * **Example** (Taking batches)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -671,9 +649,19 @@ export const takeN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * Removes up to `n` elements from the beginning of the `MutableList` without
  * returning them.
  *
+ * **When to use**
+ *
+ * Use to discard a bounded number of values from the head of a `MutableList`
+ * when the removed values are not needed.
+ *
+ * **Details**
+ *
  * If `n` is less than or equal to zero, or the list is empty, the list is left
  * unchanged. If `n` is greater than or equal to the current length, the list is
  * cleared.
+ *
+ * @see {@link takeN} for removing up to `n` values and returning them as an array
+ * @see {@link clear} for removing every value from the list
  *
  * @category elements
  * @since 4.0.0
@@ -709,7 +697,7 @@ export const takeNVoid = <A>(self: MutableList<A>, n: number): void => {
  * **Example** (Draining all elements)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "cherry"])
@@ -754,7 +742,7 @@ export const takeAll = <A>(self: MutableList<A>): Array<A> => takeN(self, self.l
  * **Example** (Taking one element)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["first", "second", "third"])
@@ -815,7 +803,12 @@ export const take = <A>(self: MutableList<A>): Empty | A => {
  * Copies up to `n` elements from the beginning of the `MutableList` into a new
  * array without modifying the list.
  *
- * Use `takeN` when the copied elements should also be removed from the list.
+ * **When to use**
+ *
+ * Use when you need to inspect or snapshot a bounded prefix of the list without
+ * consuming it.
+ *
+ * @see {@link takeN} for removing up to `n` values and returning them as an array
  *
  * @category elements
  * @since 4.0.0
@@ -839,8 +832,12 @@ export const toArrayN = <A>(self: MutableList<A>, n: number): Array<A> => {
  * Copies all current elements of the `MutableList` into a new array without
  * modifying the list.
  *
- * Use `takeAll` when the list should be emptied after converting it to an
- * array.
+ * **When to use**
+ *
+ * Use when you need a snapshot of all current elements while keeping the list
+ * unchanged.
+ *
+ * @see {@link takeAll} for converting all elements to an array and clearing the list
  *
  * @category elements
  * @since 4.0.0
@@ -854,7 +851,7 @@ export const toArray = <A>(self: MutableList<A>): Array<A> => toArrayN(self, sel
  * **Example** (Filtering in place)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<number>()
  * MutableList.appendAll(list, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
@@ -908,19 +905,31 @@ export const filter = <A>(self: MutableList<A>, f: (value: A, i: number) => bool
     offset: 0,
     next: undefined
   }
+  self.length = array.length
 }
 
 /**
  * Removes all occurrences of a value from the `MutableList` using JavaScript
  * strict equality semantics.
  *
- * The list is modified in place. Values are compared with `!==`, so this does
- * not use Effect structural equality.
+ * **When to use**
+ *
+ * Use when in-place removal should use JavaScript identity/strict equality
+ * rather than Effect structural equality.
+ *
+ * **Details**
+ *
+ * The list is modified in place.
+ *
+ * **Gotchas**
+ *
+ * Values are compared with `!==`, so this does not use Effect structural
+ * equality.
  *
  * **Example** (Removing matching values)
  *
  * ```ts
- * import * as MutableList from "effect/MutableList"
+ * import { MutableList } from "effect"
  *
  * const list = MutableList.make<string>()
  * MutableList.appendAll(list, ["apple", "banana", "apple", "cherry", "apple"])

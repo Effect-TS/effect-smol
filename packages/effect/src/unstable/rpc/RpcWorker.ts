@@ -1,20 +1,11 @@
 /**
- * Helpers for passing a schema-encoded bootstrap message to worker-backed RPC
- * protocols.
+ * Initial messages for worker-backed RPC protocols.
  *
- * Worker RPC protocols can send one initial message when each worker starts,
- * before ordinary RPC requests begin flowing. Use this module to build and
- * provide that message from the client side, and to decode it inside the
- * worker-side server. Common payloads include per-worker configuration,
- * credentials or session metadata, feature flags, preloaded data, or
- * transferable resources such as `ArrayBuffer` and `MessagePort` values.
- *
- * The initial message uses the supplied schema's JSON codec and is posted as a
- * worker message, so it is separate from the normal `RpcSerialization` used for
- * RPC request and response traffic. Values still need to be valid for the
- * worker transport's structured clone boundary. Transferable annotations can
- * collect objects for the `postMessage` transfer list, but transferring moves
- * ownership to the worker and may detach buffers from the sender.
+ * A worker-backed RPC client can send one schema-encoded value before normal RPC
+ * requests are handled. This module defines the `InitialMessage` service, a
+ * helper for encoding that value while collecting transferables, a layer for
+ * providing it to the client protocol, and a decoder for reading it from the
+ * worker server protocol.
  *
  * @since 4.0.0
  */
@@ -46,7 +37,6 @@ export class InitialMessage extends Context.Service<
 /**
  * Types related to the encoded initial message exchanged with an RPC worker.
  *
- * @category initial message
  * @since 4.0.0
  */
 export declare namespace InitialMessage {
@@ -63,7 +53,9 @@ export declare namespace InitialMessage {
   }
 }
 
-const ProtocolTag: typeof Protocol = Context.Service("@effect/rpc/RpcServer/Protocol") as any
+const ProtocolTag = Context.Service<Protocol, Protocol["Service"]>(
+  "effect/rpc/RpcServer/Protocol" satisfies Protocol["key"]
+)
 
 /**
  * Runs an effect, encodes its result with the schema's JSON codec, and returns
