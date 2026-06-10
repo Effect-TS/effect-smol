@@ -62,9 +62,10 @@ export interface Headers extends Redactable.Redactable {
   readonly [key: string]: string
 }
 
-const Proto = Object.create(null)
-
-Object.defineProperties(Proto, {
+// the properties are folded into the initializer (rather than a separate
+// `Object.defineProperties(Proto, ...)` statement) so the whole definition
+// is pure-annotated by the build and tree-shakable.
+const Proto = Object.defineProperties(Object.create(null), {
   [TypeId]: {
     value: TypeId
   },

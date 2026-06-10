@@ -190,25 +190,32 @@ export type Gen<F extends TypeLambda> = <
   A
 >
 
-const InternalTypeId = "~effect/Utils/internal"
+// the probe is wrapped in a single function call (rather than module-level
+// statements) so the whole selection is pure-annotated by the build and
+// tree-shakable when `internalCall` is unused.
+const pickInternalCall = (): <A>(body: () => A) => A => {
+  const InternalTypeId = "~effect/Utils/internal"
 
-const standard = {
-  [InternalTypeId]: <A>(body: () => A) => {
-    return body()
-  }
-}
-
-const forced = {
-  [InternalTypeId]: <A>(body: () => A) => {
-    try {
+  const standard = {
+    [InternalTypeId]: <A>(body: () => A) => {
       return body()
-    } finally {
-      //
     }
   }
+
+  const forced = {
+    [InternalTypeId]: <A>(body: () => A) => {
+      try {
+        return body()
+      } finally {
+        //
+      }
+    }
+  }
+
+  const isNotOptimizedAway = standard[InternalTypeId](() => new Error().stack)?.includes(InternalTypeId) === true
+
+  return isNotOptimizedAway ? standard[InternalTypeId] : forced[InternalTypeId]
 }
 
-const isNotOptimizedAway = standard[InternalTypeId](() => new Error().stack)?.includes(InternalTypeId) === true
-
 /** @internal */
-export const internalCall = isNotOptimizedAway ? standard[InternalTypeId] : forced[InternalTypeId]
+export const internalCall = pickInternalCall()

@@ -6168,20 +6168,21 @@ const defaultDateFormat = (date: Date): string =>
     date.getSeconds().toString().padStart(2, "0")
   }.${date.getMilliseconds().toString().padStart(3, "0")}`
 
-const hasProcessStdout = typeof process === "object" &&
-  process !== null &&
-  typeof process.stdout === "object" &&
-  process.stdout !== null
-const processStdoutIsTTY = hasProcessStdout &&
-  process.stdout.isTTY === true
-const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
-
 /** @internal */
 export const consolePretty = (options?: {
   readonly colors?: "auto" | boolean | undefined
   readonly formatDate?: ((date: Date) => string) | undefined
   readonly mode?: "browser" | "tty" | "auto" | undefined
 }) => {
+  // evaluated lazily so the module-level bundle stays free of `process`
+  // property accesses, which bundlers must retain as possible side effects
+  const hasProcessStdout = typeof process === "object" &&
+    process !== null &&
+    typeof process.stdout === "object" &&
+    process.stdout !== null
+  const processStdoutIsTTY = hasProcessStdout &&
+    process.stdout.isTTY === true
+  const hasProcessStdoutOrDeno = hasProcessStdout || "Deno" in globalThis
   const mode_ = options?.mode ?? "auto"
   const mode = mode_ === "auto" ? (hasProcessStdoutOrDeno ? "tty" : "browser") : mode_
   const isBrowser = mode === "browser"
