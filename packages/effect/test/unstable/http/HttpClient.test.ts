@@ -263,6 +263,139 @@ describe("HttpClient", () => {
         strictEqual(yield* Ref.get(attempts), 2)
       }).pipe(Effect.provide(RateLimiterTestLayer)))
 
+    it.effect("applies Retry-After to already queued requests", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 2
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "Retry-After": "0.2" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 1,
+            window: "100 millis"
+          })
+        )
+
+        const fiber = yield* Effect.forEach([1, 2, 3], (n) => client.get(`http://test/${n}`), {
+          concurrency: "unbounded",
+          discard: true
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        strictEqual(yield* Ref.get(attempts), 1)
+
+        // The second request is allowed by the base 100ms limiter and returns Retry-After: 200ms.
+        yield* TestClock.adjust("100 millis")
+        strictEqual(yield* Ref.get(attempts), 2)
+
+        // The third request was already queued, but must still wait for the observed Retry-After.
+        yield* TestClock.adjust("149 millis")
+        strictEqual(yield* Ref.get(attempts), 2)
+
+        // Once Retry-After elapses, the queued third request may run.
+        yield* TestClock.adjust("51 millis")
+        strictEqual(yield* Ref.get(attempts), 3)
+
+        yield* TestClock.adjust("200 millis")
+        yield* Fiber.join(fiber)
+        strictEqual(yield* Ref.get(attempts), 4)
+      }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("ignores Retry-After for queued requests when response inspection is disabled", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 2
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "Retry-After": "0.2" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 1,
+            window: "100 millis",
+            disableResponseInspection: true
+          })
+        )
+
+        const fiber = yield* Effect.forEach([1, 2, 3], (n) => client.get(`http://test/${n}`), {
+          concurrency: "unbounded",
+          discard: true
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        // With inspection disabled, Retry-After does not delay already queued requests.
+        yield* TestClock.adjust("200 millis")
+        strictEqual(yield* Ref.get(attempts), 3)
+        yield* Fiber.interrupt(fiber)
+      }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("applies Retry-After to already queued requests after HttpClientError 429 failures", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 2
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "Retry-After": "0.2" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.filterStatusOk,
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 1,
+            window: "100 millis"
+          })
+        )
+
+        const fiber = yield* Effect.forEach([1, 2, 3], (n) => client.get(`http://test/${n}`), {
+          concurrency: "unbounded",
+          discard: true
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        // The 429 failure path should also update the shared Retry-After block.
+        yield* TestClock.adjust("249 millis")
+        strictEqual(yield* Ref.get(attempts), 2)
+
+        // After the block expires, the queued third request runs and the 429 retry can complete.
+        yield* TestClock.adjust("251 millis")
+        yield* Fiber.join(fiber)
+        strictEqual(yield* Ref.get(attempts), 4)
+      }).pipe(Effect.provide(RateLimiterTestLayer)))
+
     it.effect("retries HttpClientError 429 failures through the limiter", () =>
       Effect.gen(function*() {
         const attempts = yield* Ref.make(0)
