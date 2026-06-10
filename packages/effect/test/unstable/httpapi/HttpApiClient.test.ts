@@ -70,6 +70,32 @@ describe("HttpApiClient", () => {
       )
     })
 
+    it("omits missing optional path parameters", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("files")
+            .add(
+              HttpApiEndpoint.get("download", "/files/:path?", {
+                params: {
+                  path: Schema.optional(Schema.String)
+                }
+              })
+            )
+        )
+      const builder = HttpApiClient.urlBuilder(Api, {
+        baseUrl: "https://api.example.com"
+      })
+
+      strictEqual(
+        builder.files.download({ params: {} }),
+        "https://api.example.com/files"
+      )
+      strictEqual(
+        builder.files.download({ params: { path: "a/b" } }),
+        "https://api.example.com/files/a%2Fb"
+      )
+    })
+
     it("returns relative urls when baseUrl is omitted", () => {
       const builder = HttpApiClient.urlBuilder(Api)
 
