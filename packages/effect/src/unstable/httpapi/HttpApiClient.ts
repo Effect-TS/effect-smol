@@ -635,7 +635,10 @@ const compilePath = (path: string) => {
         url += segments[i]
       } else {
         const value = params[segments[i]]
-        url += value === undefined ? value : encodeURIComponent(value)
+        if (value === undefined) {
+          throw new Error(`Missing path parameter: ${segments[i]}`)
+        }
+        url += encodeURIComponent(value)
       }
     }
     return url
