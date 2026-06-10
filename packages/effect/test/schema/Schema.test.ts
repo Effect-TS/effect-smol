@@ -1139,35 +1139,14 @@ Expected a string including "c", got "ab"`
         await encoding.succeed({ a: 1 }, { a: "1" })
       })
 
-      it("suspended checks are validated against the decoded value when encoding", async () => {
-        const schema = Schema.suspend(() => Schema.Struct({ a: Schema.FiniteFromString })).check(
-          Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
-        )
-        const asserts = new TestSchema.Asserts(schema)
-
-        const decoding = asserts.decoding()
-        await decoding.succeed({ a: "1" }, { a: 1 })
-
-        const encoding = asserts.encoding()
-        await encoding.succeed({ a: 1 }, { a: "1" })
-      })
-
-      it("toEncoded drops suspended type-side checks only when the encoded side differs", async () => {
-        const transformed = Schema.toEncoded(
-          Schema.suspend(() => Schema.Struct({ a: Schema.FiniteFromString })).check(
-            Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
-          )
-        )
-        const transformedAsserts = new TestSchema.Asserts(transformed)
-        await transformedAsserts.decoding().succeed({ a: "1" })
-
-        const unchanged = Schema.toEncoded(
-          Schema.suspend(() => Schema.String).check(Schema.isMinLength(2))
-        )
-        const unchangedAsserts = new TestSchema.Asserts(unchanged)
-        await unchangedAsserts.decoding().fail(
-          "a",
-          `Expected a value with a length of at least 2, got "a"`
+      it("suspended checks are not supported", () => {
+        throws(
+          () => {
+            Schema.suspend(() => Schema.Struct({ a: Schema.FiniteFromString })).check(
+              Schema.makeFilter((o) => typeof o.a === "number", { expected: "a is a number" })
+            )
+          },
+          "Cannot add checks to Suspend"
         )
       })
     })

@@ -2748,19 +2748,19 @@ export function memoizeThunk<A>(f: () => A): () => A {
 export class Suspend extends Base {
   readonly _tag = "Suspend"
   readonly thunk: () => AST
-  readonly encodingChecks: Checks | undefined
 
   constructor(
     thunk: () => AST,
     annotations?: Schema.Annotations.Annotations,
     checks?: Checks,
     encoding?: Encoding,
-    context?: Context,
-    encodingChecks?: Checks
+    context?: Context
   ) {
-    super(annotations, checks, encoding, context)
+    if (checks !== undefined) {
+      throw new Error("Cannot add checks to Suspend")
+    }
+    super(annotations, undefined, encoding, context)
     this.thunk = memoizeThunk(thunk)
-    this.encodingChecks = encodingChecks
   }
   /** @internal */
   getParser(recur: (ast: AST) => SchemaParser.Parser): SchemaParser.Parser {
@@ -2771,22 +2771,9 @@ export class Suspend extends Base {
     return new Suspend(
       () => recur(this.thunk()),
       this.annotations,
-      this.checks,
       undefined,
-      this.context,
-      this.encodingChecks
-    )
-  }
-  /** @internal */
-  flip(recur: (ast: AST) => AST) {
-    const flipChecks = hasNestedEncoding(this)
-    return new Suspend(
-      () => recur(this.thunk()),
-      this.annotations,
-      flipChecks ? this.encodingChecks : this.checks,
       undefined,
-      this.context,
-      flipChecks ? this.checks : this.encodingChecks
+      this.context
     )
   }
   /** @internal */
@@ -2802,7 +2789,6 @@ export function getEncodingChecks(ast: AST): Checks | undefined {
     case "Arrays":
     case "Objects":
     case "Union":
-    case "Suspend":
       return ast.encodingChecks
     default:
       return undefined
@@ -3045,6 +3031,9 @@ export function annotate<A extends AST>(ast: A, annotations: Schema.Annotations.
 
 /** @internal */
 export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined): A {
+  if (ast._tag === "Suspend" && checks !== undefined) {
+    throw new Error("Cannot add checks to Suspend")
+  }
   if (ast.checks === checks) {
     return ast
   }
@@ -3405,28 +3394,6 @@ export const flip = memoize((ast: AST): AST => {
   const out: any = ast
   return out.flip?.(flip) ?? out.recur?.(flip) ?? out
 })
-
-function hasNestedEncoding(ast: AST, seen: Set<AST> = new Set()): boolean {
-  if (ast.encoding) return true
-  if (seen.has(ast)) return false
-  seen.add(ast)
-  switch (ast._tag) {
-    case "Declaration":
-      return ast.typeParameters.some((tp) => hasNestedEncoding(tp, seen))
-    case "Arrays":
-      return ast.elements.some((element) => hasNestedEncoding(element, seen)) ||
-        ast.rest.some((rest) => hasNestedEncoding(rest, seen))
-    case "Objects":
-      return ast.propertySignatures.some((ps) => hasNestedEncoding(ps.type, seen)) ||
-        ast.indexSignatures.some((is) => hasNestedEncoding(is.parameter, seen) || hasNestedEncoding(is.type, seen))
-    case "Union":
-      return ast.types.some((type) => hasNestedEncoding(type, seen))
-    case "Suspend":
-      return hasNestedEncoding(ast.thunk(), seen)
-    default:
-      return false
-  }
-}
 
 /** @internal */
 export function containsUndefined(ast: AST): boolean {

@@ -291,8 +291,8 @@ function recurOpenAI(ast: SchemaAST.AST): SchemaAST.AST {
     case "Suspend": {
       const cached = cache.get(ast)
       if (cached) return cached
-      const { annotations, filters } = get(ast)
-      const out = new SchemaAST.Suspend(() => recurOpenAI(ast.thunk()), annotations, filters)
+      const { annotations } = get(ast)
+      const out = new SchemaAST.Suspend(() => recurOpenAI(ast.thunk()), annotations)
       cache.set(ast, out)
       return out
     }
