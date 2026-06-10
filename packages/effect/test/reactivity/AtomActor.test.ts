@@ -33,7 +33,7 @@ class Multiplier extends Context.Service<Multiplier, {
   readonly multiply: (value: number) => number
 }>()("test/AtomActor/Multiplier") {}
 
-const StateMachineInitial = StateMachine.defineStates({ Count }).initial
+const StateMachineInitial = StateMachine.defineStates({ Count, Done, ValueRead }).initial
 
 const makeRegistry = Effect.acquireRelease(
   Effect.sync(() => AtomRegistry.make()),
@@ -162,7 +162,7 @@ describe("AtomActor", () => {
       })
         .handle("Count", {
           on: {
-            Finish: ({ state, event }) => new Done({ value: state.value + event.by })
+            Finish: ({ state, event }) => StateMachineInitial.Done(new Done({ value: state.value + event.by }))
           }
         })
         .handle("Done", {
@@ -198,7 +198,7 @@ describe("AtomActor", () => {
           on: {
             ReadValue: Effect.fn(function*() {
               const value = yield* Atom.get(valueAtom)
-              return new ValueRead({ value })
+              return StateMachineInitial.ValueRead(new ValueRead({ value }))
             })
           }
         })
@@ -234,7 +234,7 @@ describe("AtomActor", () => {
         on: {
           Finish: Effect.fn(function*({ event }) {
             const multiplier = yield* Multiplier
-            return new Count({ value: multiplier.multiply(event.by) })
+            return StateMachineInitial.Count(new Count({ value: multiplier.multiply(event.by) }))
           })
         }
       })

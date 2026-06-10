@@ -134,18 +134,6 @@ export const isTarget = (u: unknown): u is Machine.Target<any, any> => hasProper
 export const isSnapshot = (u: unknown): u is Machine.AtomicSnapshot<string, unknown> =>
   hasProperty(u, "path") && hasProperty(u, "value")
 
-export const findStateNode = (
-  machine: Machine.Any,
-  value: { readonly _tag: PropertyKey }
-): Machine.StateNode | undefined => {
-  for (const node of machine.stateNodes.byPath.values()) {
-    if (Schema.is(node.schema)(value)) {
-      return node
-    }
-  }
-  return typeof value._tag === "string" ? machine.stateNodes.byPath.get(value._tag) : undefined
-}
-
 export interface ActiveConfiguration {
   readonly active: ReadonlySet<string>
   readonly values: ReadonlyMap<string, unknown>
@@ -360,33 +348,10 @@ export const configurationFromSnapshot = (
   return { active, values, outputs }
 }
 
-export const configurationFromValue = (
-  machine: Machine.Any,
-  value: { readonly _tag: PropertyKey }
-): ActiveConfiguration => {
-  const node = findStateNode(machine, value)
-  if (node === undefined) {
-    throw new Error(`StateMachine expected state "${String(value._tag)}" to match a state node`)
-  }
-  if (node.parent !== undefined || node.type === "compound" || node.type === "parallel") {
-    throw new Error(`StateMachine expected state "${node.path}" to be provided as a snapshot with ancestor values`)
-  }
-  return {
-    active: new Set([node.path]),
-    values: new Map([[node.path, value]]),
-    outputs: new Map()
-  }
-}
-
 export const normalizeConfiguration = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
-  state: Machine.StateLike<States>
-): ActiveConfiguration => {
-  if (isSnapshot(state)) {
-    return configurationFromSnapshot(machine, state)
-  }
-  return configurationFromValue(machine, state)
-}
+  state: Machine.Snapshot<States>
+): ActiveConfiguration => configurationFromSnapshot(machine, state)
 
 export const validateInitialConfiguration = (machine: Machine.Any, configuration: ActiveConfiguration): void => {
   for (const path of configuration.active) {
@@ -466,7 +431,7 @@ export const configurationFromTargetPath = (
 export const normalizeTargetConfiguration = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   current: ActiveConfiguration,
-  target: Machine.StateOf<States> | Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+  target: Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
 ): ActiveConfiguration => {
   if (isTarget(target)) {
     return configurationFromTargetPath(
@@ -480,11 +445,7 @@ export const normalizeTargetConfiguration = <const States extends Machine.StateS
   if (isSnapshot(target)) {
     return configurationFromSnapshot(machine, target)
   }
-  const node = findStateNode(machine, target as { readonly _tag: PropertyKey })
-  if (node === undefined) {
-    throw new Error(`StateMachine expected target state "${String((target as any)._tag)}" to match a state node`)
-  }
-  return configurationFromTargetPath(machine, current, node.path, target as { readonly _tag: PropertyKey }, undefined)
+  throw new Error("StateMachine expected transition target to be a snapshot or target builder result")
 }
 
 export const getStateConfigByPath = (

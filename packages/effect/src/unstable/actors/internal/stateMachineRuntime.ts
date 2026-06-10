@@ -16,7 +16,6 @@ import {
   type ActiveConfiguration,
   compareDocumentOrder,
   completeConfiguration,
-  findStateNode,
   getActiveLeafPathFrom,
   getActiveLeafPaths,
   getActiveValue,
@@ -288,7 +287,6 @@ export type SelectedTransition<States extends Machine.StateSchemas, E, R, Contex
 export type EvaluatedTransition<States extends Machine.StateSchemas, Event, E, R, Context> = {
   readonly selection: SelectedTransition<States, E, R, Context>
   readonly target:
-    | Machine.StateOf<States>
     | Machine.Snapshot<States>
     | Machine.Target<States, Machine.StateIdentifier<States>>
     | undefined
@@ -459,7 +457,12 @@ export const selectAlwaysTransitions = <
           selected.push({
             sourcePath: path,
             leafPath: leaf,
-            transition: { reenter: false, transition: always },
+            transition: { reenter: false, transition: always } as MicrostepTransition<
+              States,
+              E,
+              R,
+              Machine.AlwaysContext<States, Events, Emits, Machine.StateIdentifier<States>>
+            >,
             context: {
               state: getActiveValue(configuration, path) as Machine.StateByIdentifier<
                 States,
@@ -553,8 +556,7 @@ export const selectEventTransitions = <
 }
 
 export const getTargetNodePath = <const States extends Machine.StateSchemas>(
-  machine: Machine.Any,
-  target: Machine.StateOf<States> | Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+  target: Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
 ): string => {
   if (isTarget(target)) {
     return String(target.path)
@@ -562,11 +564,7 @@ export const getTargetNodePath = <const States extends Machine.StateSchemas>(
   if (isSnapshot(target)) {
     return String(target.path)
   }
-  const node = findStateNode(machine, target as { readonly _tag: PropertyKey })
-  if (node === undefined) {
-    throw new Error(`StateMachine expected target state "${String((target as any)._tag)}" to match a state node`)
-  }
-  return node.path
+  throw new Error("StateMachine expected transition target to be a snapshot or target builder result")
 }
 
 export const hasPathIntersection = (left: ReadonlyArray<string>, right: ReadonlyArray<string>): boolean => {
@@ -647,10 +645,9 @@ export const collectEvaluatedTransition = Effect.fnUntraced(function*<
   const target = transitionResult.state === undefined
     ? undefined
     : transitionResult.state as
-      | Machine.StateOf<States>
       | Machine.Snapshot<States>
       | Machine.Target<States, Machine.StateIdentifier<States>>
-  const targetPath = target === undefined ? undefined : getTargetNodePath(machine, target)
+  const targetPath = target === undefined ? undefined : getTargetNodePath(target)
   const stateAfterTransition = target === undefined
     ? state
     : normalizeTargetConfiguration<States>(machine, state, target)
@@ -697,7 +694,7 @@ export const catchStartup = <A>(
 
 export const isFinalState = (
   machine: Machine.Any,
-  state: Machine.StateLike<any>
+  state: Machine.Snapshot<any>
 ): boolean => isActiveFinalConfiguration(machine, normalizeConfiguration(machine, state))
 
 export const getFinalOutputFromConfiguration = <
@@ -718,7 +715,7 @@ export const getFinalOutput = <
   Output
 >(
   machine: Machine.Any,
-  state: Machine.StateLike<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>
 ): Output | undefined =>
   getFinalOutputFromConfiguration<Events, Output>(
@@ -739,11 +736,8 @@ export const isFinal = <
   FinalStates extends Machine.StateIdentifier<States> = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates>,
-  state: Machine.StateLike<States>
-): state is Extract<
-  Machine.StateLike<States>,
-  Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotContainingFinal<States, FinalStates>
-> => isFinalState(machine, state)
+  state: Machine.Snapshot<States>
+): state is Machine.SnapshotContainingFinal<States, FinalStates> => isFinalState(machine, state)
 
 export const planInitial: <
   const States extends Machine.StateSchemas,
@@ -831,7 +825,7 @@ export const enabled = <
   R = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
-  state: Machine.StateLike<States>
+  state: Machine.Snapshot<States>
 ): ReadonlyArray<Machine.TagOf<Events[number]>> => {
   if (isFinalState(machine, state)) {
     return []
@@ -1097,7 +1091,7 @@ export const macrostep: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateLike<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>
 ) => Effect.Effect<
   MacrostepPlan<Machine.Snapshot<States>, Machine.EventOf<Events>, E, R, Output>,
@@ -1117,7 +1111,7 @@ export const macrostep: <
   Output = never
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
-  state: Machine.StateLike<States>,
+  state: Machine.Snapshot<States>,
   event: Machine.EventOf<Events>
 ) {
   const configuration = normalizeConfiguration<States>(machine, state)

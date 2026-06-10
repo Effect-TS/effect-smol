@@ -134,6 +134,47 @@ describe("StateMachine", () => {
     expect(machine.states).type.toBe<typeof UpStates.states>()
   })
 
+  it("plan and getters require snapshots", () => {
+    const machine = StateMachine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    expect(StateMachine.plan).type.toBeCallableWith(
+      machine,
+      UpStates.initial.down(new Down({})),
+      new SignIn({
+        userId: "user-1"
+      })
+    )
+    expect(StateMachine.enabled).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
+    expect(StateMachine.isFinal).type.toBeCallableWith(machine, UpStates.initial.down(new Down({})))
+
+    expect(StateMachine.plan).type.not.toBeCallableWith(machine, new Down({}), new SignIn({ userId: "user-1" }))
+    expect(StateMachine.enabled).type.not.toBeCallableWith(machine, new Down({}))
+    expect(StateMachine.isFinal).type.not.toBeCallableWith(machine, new Down({}))
+  })
+
+  it("handlers reject raw decoded state returns", () => {
+    const machine = StateMachine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    expect(machine.handle).type.not.toBeCallableWith("down", {
+      on: {
+        SignIn: () => new Down({})
+      }
+    })
+    expect(machine.handle).type.not.toBeCallableWith("down", {
+      on: {
+        SignIn: () => Effect.succeed(new Down({}))
+      }
+    })
+  })
+
   it("initial builder constructs typed initial snapshots", () => {
     const snapshot = UpStates.initial.up(
       new Up({ id: "up-1" }),

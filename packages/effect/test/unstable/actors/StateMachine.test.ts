@@ -228,8 +228,8 @@ describe("StateMachine", () => {
       initial: (input) => states.initial.Idle(new Idle({ userId: input.userId }))
     }).handle("Idle", {
       on: {
-        Submit: Effect.fn(function*() {
-          return new Loading({ requestId: "request-1" })
+        Submit: Effect.fn(function*({ target }) {
+          return target.full.Loading(new Loading({ requestId: "request-1" }))
         })
       }
     })
@@ -387,19 +387,22 @@ describe("StateMachine", () => {
         initial: (input) => LowercaseInitial.idle(new Idle({ userId: input.userId }))
       }).handle("idle", {
         on: {
-          Submit: ({ event, state }) => new Loading({ requestId: `${state.userId}:${event.value}` })
+          Submit: ({ event, state, target }) =>
+            target.full.loading(new Loading({ requestId: `${state.userId}:${event.value}` }))
         }
       })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        LowercaseInitial.idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "request-1" })
       )
 
       assert.deepStrictEqual(planned.next.value, new Loading({ requestId: "user-1:request-1" }))
       assert.strictEqual(planned.next.path, "loading")
-      assert.deepStrictEqual(StateMachine.enabled(machine, new Idle({ userId: "user-1" })), ["Submit"])
+      assert.deepStrictEqual(StateMachine.enabled(machine, LowercaseInitial.idle(new Idle({ userId: "user-1" }))), [
+        "Submit"
+      ])
     }))
 
   it.effect("uses path identity for duplicate decoded state tags", () =>
@@ -482,13 +485,13 @@ describe("StateMachine", () => {
         initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
       }).handle("idle", {
         on: {
-          Submit: ({ event }) => new Success({ requestId: event.value })
+          Submit: ({ event, target }) => target.full.success(new Success({ requestId: event.value }))
         }
       })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        LowercaseInitial.idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "request-1" })
       )
 
@@ -577,12 +580,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Authorize: () => new Failed({ message: "parent" })
+            Authorize: ({ target }) => target.full.failed(new Failed({ message: "parent" }))
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
 
@@ -622,7 +625,7 @@ describe("StateMachine", () => {
         })
       }).handle("payment", {
         on: {
-          Reset: () => new Idle({ userId: "user-1" })
+          Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
         }
       })
 
@@ -675,7 +678,7 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:payment"))
           }),
           on: {
-            Reset: () => new Idle({ userId: "user-1" })
+            Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
           }
         })
         .handle("payment.entering", {
@@ -748,7 +751,7 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:entering"))
           }),
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
         .handle("payment.authorized", {
@@ -1340,12 +1343,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: () => new EnteringPayment({ amount: 0 })
+            Reset: ({ target }) => target.local.entering(new EnteringPayment({ amount: 0 }))
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
         .handle("payment.authorized", {
@@ -1437,12 +1440,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: () => new Idle({ userId: "user-1" })
+            Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
         .handle("payment.authorized", {
@@ -1500,12 +1503,12 @@ describe("StateMachine", () => {
       })
         .handle("payment", {
           on: {
-            Reset: () => new Failed({ message: "raised" })
+            Reset: ({ target }) => target.full.failed(new Failed({ message: "raised" }))
           }
         })
         .handle("payment.entering", {
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
         .handle("payment.authorized", {
@@ -1708,7 +1711,8 @@ describe("StateMachine", () => {
         })
       }).handle("fulfillment.inventory.checking", {
         on: {
-          ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
+          ReserveInventory: ({ event, target }) =>
+            target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
         }
       })
 
@@ -1806,7 +1810,8 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
           }
         })
         .handle("fulfillment.inventory.reserved", {
@@ -1815,7 +1820,8 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -1926,7 +1932,8 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
           }
         })
         .handle("fulfillment.inventory.reserved", {
@@ -1935,7 +1942,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            Resolve: () => new ShippingQuoted({ quoteId: "quote-1" })
+            Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "quote-1" }))
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -2041,17 +2048,19 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment", {
           on: {
-            Reset: () => new Failed({ message: "raised" })
+            Reset: ({ target }) => target.full.failed(new Failed({ message: "raised" }))
           }
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
           }
         })
         .handle("fulfillment.shipping.quoted", {
@@ -2141,12 +2150,14 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: ({ event }) => new InventoryReserved({ reservationId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            ReserveInventory: ({ event }) => new ShippingQuoted({ quoteId: event.reservationId })
+            ReserveInventory: ({ event, target }) =>
+              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
           }
         })
 
@@ -2233,21 +2244,23 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment", {
           on: {
-            ReserveInventory: Effect.fn(function*() {
+            ReserveInventory: Effect.fn(function*({ target }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:parent"))
-              return new Failed({ message: "parent" })
+              return target.full.failed(new Failed({ message: "parent" }))
             })
           }
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: Effect.fn(function*({ event }) {
+            ReserveInventory: Effect.fn(function*({ event, target }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:child"))
-              return new InventoryReserved({
-                reservationId: event.reservationId
-              })
+              return target.local.reserved(
+                new InventoryReserved({
+                  reservationId: event.reservationId
+                })
+              )
             })
           }
         })
@@ -2347,12 +2360,14 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:inventory.checking"))
           }),
           on: {
-            ReserveInventory: Effect.fn(function*({ event }) {
+            ReserveInventory: Effect.fn(function*({ event, target }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:inventory"))
-              return new InventoryReserved({
-                reservationId: event.reservationId
-              })
+              return target.local.reserved(
+                new InventoryReserved({
+                  reservationId: event.reservationId
+                })
+              )
             })
           }
         })
@@ -2368,10 +2383,10 @@ describe("StateMachine", () => {
             yield* StateMachine.action(deferredLog.push("exit:shipping.quoting"))
           }),
           on: {
-            ReserveInventory: Effect.fn(function*({ event }) {
+            ReserveInventory: Effect.fn(function*({ event, target }) {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition:shipping"))
-              return new ShippingQuoted({ quoteId: event.reservationId })
+              return target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
             })
           }
         })
@@ -2462,18 +2477,20 @@ describe("StateMachine", () => {
       })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: Effect.fn(function*({ event, runtime }) {
+            ReserveInventory: Effect.fn(function*({ event, runtime, target }) {
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Resolve({}))
-              return new InventoryReserved({
-                reservationId: event.reservationId
-              })
+              return target.local.reserved(
+                new InventoryReserved({
+                  reservationId: event.reservationId
+                })
+              )
             })
           }
         })
         .handle("fulfillment.shipping.quoting", {
           on: {
-            Resolve: () => new ShippingQuoted({ quoteId: "raised" })
+            Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "raised" }))
           }
         })
 
@@ -2633,7 +2650,7 @@ describe("StateMachine", () => {
           always: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push("always"))
-            return new Loading({ requestId: "request-1" })
+            return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           })
         })
         .handle("Loading", {
@@ -2671,7 +2688,7 @@ describe("StateMachine", () => {
             Resolve: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("resolve"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -2773,7 +2790,7 @@ describe("StateMachine", () => {
       on: {
         Submit: Effect.fn(function*() {
           yield* StateMachine.action(effect)
-          return new Loading({ requestId: "request-1" })
+          return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         })
       }
     })
@@ -2782,7 +2799,7 @@ describe("StateMachine", () => {
     assert.strictEqual("Submit" in (machine.handlers.Idle.on ?? {}), true)
   })
 
-  it.effect("handlers can return states directly", () =>
+  it.effect("handlers can return snapshots directly", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({
         states: { Idle, Loading },
@@ -2791,7 +2808,7 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
 
@@ -2818,17 +2835,20 @@ describe("StateMachine", () => {
     })
       .handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
       .handle("Loading", {
         on: {
-          Reset: () => new Idle({ userId: "user-1" })
+          Reset: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
         }
       })
 
-    assert.deepStrictEqual(StateMachine.enabled(machine, new Idle({ userId: "user-1" })), ["Submit"])
-    assert.deepStrictEqual(StateMachine.enabled(machine, new Loading({ requestId: "request-1" })), ["Reset"])
+    assert.deepStrictEqual(StateMachine.enabled(machine, FlatInitial.Idle(new Idle({ userId: "user-1" }))), ["Submit"])
+    assert.deepStrictEqual(
+      StateMachine.enabled(machine, FlatInitial.Loading(new Loading({ requestId: "request-1" }))),
+      ["Reset"]
+    )
   })
 
   it("enabled returns no event tags for final states", () => {
@@ -2840,14 +2860,17 @@ describe("StateMachine", () => {
     })
       .handle("Idle", {
         on: {
-          Submit: () => new Success({ requestId: "request-1" })
+          Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
         }
       })
       .handle("Success", {
         type: "final"
       })
 
-    assert.deepStrictEqual(StateMachine.enabled(machine, new Success({ requestId: "request-1" })), [])
+    assert.deepStrictEqual(
+      StateMachine.enabled(machine, FlatInitial.Success(new Success({ requestId: "request-1" }))),
+      []
+    )
   })
 
   it.effect("runs final state entry actions when entering a final state", () =>
@@ -2861,7 +2884,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -2897,7 +2920,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -2927,7 +2950,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -2937,7 +2960,7 @@ describe("StateMachine", () => {
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       )
 
@@ -2977,7 +3000,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3005,8 +3028,8 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" }),
-            Reset: () => new Idle({ userId: "user-2" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
+            Reset: () => FlatInitial.Idle(new Idle({ userId: "user-2" }))
           }
         })
         .handle("Success", {
@@ -3034,7 +3057,7 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
       const actor = yield* StateMachine.start(machine, { userId: "user-1" })
@@ -3059,10 +3082,10 @@ describe("StateMachine", () => {
         type: "final"
       })
 
-      const state = new Success({ requestId: "request-1" })
+      const state = FlatInitial.Success(new Success({ requestId: "request-1" }))
       const planned = yield* StateMachine.plan(machine, state, new Submit({ value: "hello" }))
 
-      assert.deepStrictEqual(planned.next.value, state)
+      assert.deepStrictEqual(planned.next.value, state.value)
       assert.deepStrictEqual(planned.actions, [])
       assert.deepStrictEqual(planned.microsteps, [])
     }))
@@ -3077,8 +3100,8 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" }),
-            Reset: () => new Idle({ userId: "user-2" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
+            Reset: () => FlatInitial.Idle(new Idle({ userId: "user-2" }))
           }
         })
         .handle("Success", {
@@ -3110,14 +3133,14 @@ describe("StateMachine", () => {
           Submit: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push("submitted"))
-            return new Loading({ requestId: "request-1" })
+            return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           })
         }
       })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       ).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -3191,7 +3214,7 @@ describe("StateMachine", () => {
       on: {
         Submit: Effect.fn(function*() {
           yield* StateMachine.action(effect)
-          return new Loading({ requestId: "request-1" })
+          return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         })
       }
     })
@@ -3199,7 +3222,7 @@ describe("StateMachine", () => {
     const machine2 = machine.handle("Idle", {
       on: {
         Reset: Effect.fn(function*() {
-          return new Idle({ userId: "user-1" })
+          return FlatInitial.Idle(new Idle({ userId: "user-1" }))
         })
       }
     })
@@ -3221,13 +3244,13 @@ describe("StateMachine", () => {
           on: {
             Submit: Effect.fn(function*() {
               yield* StateMachine.action(Effect.succeed("submitted"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Reset: () => Effect.succeed(new Idle({ userId: "user-1" }))
+            Reset: () => Effect.succeed(FlatInitial.Idle(new Idle({ userId: "user-1" })))
           }
         })
 
@@ -3256,7 +3279,7 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
 
@@ -3299,7 +3322,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3329,7 +3352,7 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
 
@@ -3390,7 +3413,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -3401,7 +3424,7 @@ describe("StateMachine", () => {
               outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
           }),
           on: {
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -3430,7 +3453,7 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       }).handle("Idle", {
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
 
@@ -3477,7 +3500,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3507,7 +3530,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Success({ requestId: "request-1" })
+            Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3568,13 +3591,13 @@ describe("StateMachine", () => {
                   yield* self.send(new Resolve({}))
                 })
               )
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Resolve: () => new Success({ requestId: "request-1" })
+            Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3671,7 +3694,8 @@ describe("StateMachine", () => {
                 )
               )
             }),
-            ParentRequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.loaded}` })
+            ParentRequestProgress: ({ event }) =>
+              FlatInitial.Success(new Success({ requestId: `${event.id}:${event.loaded}` }))
           }
         })
         .handle("Success", {
@@ -3709,7 +3733,7 @@ describe("StateMachine", () => {
               })
             ),
           on: {
-            ParentRequestProgress: () => new Success({ requestId: "unexpected" })
+            ParentRequestProgress: () => FlatInitial.Success(new Success({ requestId: "unexpected" }))
           }
         })
         .handle("Success", {
@@ -3744,7 +3768,7 @@ describe("StateMachine", () => {
               })
             ),
           on: {
-            Resolve: ({ state }) => new Success({ requestId: state.userId })
+            Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.userId }))
           }
         })
         .handle("Success", {
@@ -3782,7 +3806,7 @@ describe("StateMachine", () => {
         .handle("Idle", {
           entry: () => StateMachine.action(notifyWorkerDone),
           on: {
-            Resolve: ({ state }) => new Success({ requestId: state.userId })
+            Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.userId }))
           }
         })
         .handle("Success", {
@@ -3810,7 +3834,8 @@ describe("StateMachine", () => {
                 )
               )
             }),
-            ParentRequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.loaded}` })
+            ParentRequestProgress: ({ event }) =>
+              FlatInitial.Success(new Success({ requestId: `${event.id}:${event.loaded}` }))
           }
         })
         .handle("Success", {
@@ -3894,13 +3919,13 @@ describe("StateMachine", () => {
                   yield* Deferred.await(reply)
                 })
               )
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Resolve: () => new Success({ requestId: "request-1" })
+            Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -3952,13 +3977,13 @@ describe("StateMachine", () => {
                   yield* Deferred.await(reply)
                 })
               )
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Resolve: () => new Success({ requestId: "request-1" })
+            Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -4009,13 +4034,13 @@ describe("StateMachine", () => {
                   yield* Deferred.await(reply)
                 })
               )
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Resolve: () => new Success({ requestId: "request-1" })
+            Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
         })
         .handle("Success", {
@@ -4055,7 +4080,7 @@ describe("StateMachine", () => {
                   yield* StateMachine.spawn(childLogic, { id: "worker" })
                 })
               )
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -4084,7 +4109,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4095,7 +4120,7 @@ describe("StateMachine", () => {
               outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
           }),
           on: {
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -4130,7 +4155,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4141,7 +4166,7 @@ describe("StateMachine", () => {
               outcome._tag === "Done" ? new RequestSucceeded({ value: outcome.output }) : undefined
           }),
           on: {
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -4172,7 +4197,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4185,7 +4210,7 @@ describe("StateMachine", () => {
                 : undefined
           }),
           on: {
-            RequestFailed: ({ event }) => new Failed({ message: event.error.message })
+            RequestFailed: ({ event }) => FlatInitial.Failed(new Failed({ message: event.error.message }))
           }
         })
         .handle("Failed", {
@@ -4215,7 +4240,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4225,7 +4250,8 @@ describe("StateMachine", () => {
             snapshot: ({ id, snapshot }) => new RequestProgress({ id, childState: snapshot.state })
           }),
           on: {
-            RequestProgress: ({ event }) => new Success({ requestId: `${event.id}:${event.childState}` })
+            RequestProgress: ({ event }) =>
+              FlatInitial.Success(new Success({ requestId: `${event.id}:${event.childState}` }))
           }
         })
         .handle("Success", {
@@ -4257,7 +4283,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4274,7 +4300,7 @@ describe("StateMachine", () => {
               snapshot.state === "ready" ? new RequestProgress({ id, childState: snapshot.state }) : undefined
           }),
           on: {
-            RequestProgress: ({ event }) => new Success({ requestId: event.childState })
+            RequestProgress: ({ event }) => FlatInitial.Success(new Success({ requestId: event.childState }))
           }
         })
         .handle("Success", {
@@ -4313,7 +4339,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4349,7 +4375,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4368,9 +4394,9 @@ describe("StateMachine", () => {
           on: {
             Reset: Effect.fn(function*() {
               yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
-              return new Idle({ userId: "user-1" })
+              return FlatInitial.Idle(new Idle({ userId: "user-1" }))
             }),
-            RequestProgress: ({ event }) => new Success({ requestId: event.childState })
+            RequestProgress: ({ event }) => FlatInitial.Success(new Success({ requestId: event.childState }))
           }
         })
         .handle("Success", {
@@ -4407,7 +4433,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4425,9 +4451,9 @@ describe("StateMachine", () => {
           on: {
             Reset: Effect.fn(function*() {
               yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
-              return new Idle({ userId: "user-1" })
+              return FlatInitial.Idle(new Idle({ userId: "user-1" }))
             }),
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -4475,7 +4501,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4493,9 +4519,9 @@ describe("StateMachine", () => {
           on: {
             Reset: Effect.fn(function*() {
               yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
-              return new Idle({ userId: "user-1" })
+              return FlatInitial.Idle(new Idle({ userId: "user-1" }))
             }),
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -4551,7 +4577,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4567,8 +4593,8 @@ describe("StateMachine", () => {
             }
           }),
           on: {
-            Resolve: () => new Success({ requestId: "request-1" }),
-            RequestSucceeded: ({ event }) => new Success({ requestId: event.value })
+            Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
+            RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
         })
         .handle("Success", {
@@ -4629,7 +4655,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -4647,7 +4673,7 @@ describe("StateMachine", () => {
               reenter: true,
               transition: Effect.fn(function*() {
                 yield* StateMachine.action(Deferred.succeed(resetHandled, void 0))
-                return new Loading({ requestId: "request-2" })
+                return FlatInitial.Loading(new Loading({ requestId: "request-2" }))
               })
             }
           }
@@ -4723,7 +4749,7 @@ describe("StateMachine", () => {
             src: () => makeInvokeLogic("entering", enteringStarted)
           }),
           on: {
-            Authorize: ({ event }) => new AuthorizedPayment({ code: event.code })
+            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
           }
         })
         .handle("payment.authorized", {
@@ -4849,7 +4875,7 @@ describe("StateMachine", () => {
         })
         .handle("fulfillment.inventory.checking", {
           on: {
-            ReserveInventory: () => new Success({ requestId: "done" })
+            ReserveInventory: ({ target }) => target.full.success(new Success({ requestId: "done" }))
           }
         })
         .handle("success", {
@@ -4965,7 +4991,7 @@ describe("StateMachine", () => {
           on: {
             Submit: Effect.fn(function*() {
               yield* StateMachine.action(Effect.succeed("submitted"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5008,7 +5034,7 @@ describe("StateMachine", () => {
                 })
               )
 
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5051,7 +5077,7 @@ describe("StateMachine", () => {
                 })
               )
 
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5092,7 +5118,7 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5139,7 +5165,7 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5152,7 +5178,7 @@ describe("StateMachine", () => {
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       ).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -5175,7 +5201,7 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("submit"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5183,13 +5209,13 @@ describe("StateMachine", () => {
           always: Effect.fn(function*({ event, state }) {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push(`always:${event._tag}`))
-            return new Success({ requestId: state.requestId })
+            return FlatInitial.Success(new Success({ requestId: state.requestId }))
           })
         })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       ).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -5213,7 +5239,7 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("submit"))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5221,7 +5247,7 @@ describe("StateMachine", () => {
           always: Effect.fn(function*({ state }) {
             const deferredLog = yield* DeferredLog
             yield* StateMachine.action(deferredLog.push("always"))
-            return new Success({ requestId: state.requestId })
+            return FlatInitial.Success(new Success({ requestId: state.requestId }))
           })
         })
 
@@ -5256,19 +5282,19 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*({ runtime }) {
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Resolve({}))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Resolve: ({ state }) => new Success({ requestId: state.requestId })
+            Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
         })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       )
 
@@ -5286,13 +5312,13 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
           entry: ({ runtime }) => Effect.flatMap(runtime, (stateMachine) => stateMachine.raise(new Resolve({}))),
           on: {
-            Resolve: ({ state }) => new Success({ requestId: state.requestId })
+            Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
         })
 
@@ -5324,24 +5350,24 @@ describe("StateMachine", () => {
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Reset({}))
               yield* stateMachine.raise(new Resolve({}))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
           on: {
-            Reset: ({ state }) => new Success({ requestId: state.requestId })
+            Reset: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
         })
         .handle("Success", {
           on: {
-            Resolve: () => new Loading({ requestId: "request-2" })
+            Resolve: () => FlatInitial.Loading(new Loading({ requestId: "request-2" }))
           }
         })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       )
 
@@ -5371,7 +5397,7 @@ describe("StateMachine", () => {
               yield* StateMachine.action(deferredLog.push("transition"))
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Resolve({}))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
@@ -5419,25 +5445,25 @@ describe("StateMachine", () => {
             Submit: Effect.fn(function*({ runtime }) {
               const stateMachine = yield* runtime
               yield* stateMachine.raise(new Reset({}))
-              return new Loading({ requestId: "request-1" })
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
         })
         .handle("Loading", {
-          always: ({ state }) => new Success({ requestId: state.requestId }),
+          always: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId })),
           on: {
-            Reset: () => new Idle({ userId: "wrong" })
+            Reset: () => FlatInitial.Idle(new Idle({ userId: "wrong" }))
           }
         })
         .handle("Success", {
           on: {
-            Reset: () => new Loading({ requestId: "request-2" })
+            Reset: () => FlatInitial.Loading(new Loading({ requestId: "request-2" }))
           }
         })
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       )
 
@@ -5456,7 +5482,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -5468,7 +5494,7 @@ describe("StateMachine", () => {
 
       const planned = yield* StateMachine.plan(
         machine,
-        new Idle({ userId: "user-1" }),
+        FlatInitial.Idle(new Idle({ userId: "user-1" })),
         new Submit({ value: "hello" })
       ).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -5487,17 +5513,17 @@ describe("StateMachine", () => {
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
       })
         .handle("Idle", {
-          always: () => new Loading({ requestId: "request-1" }),
+          always: () => FlatInitial.Loading(new Loading({ requestId: "request-1" })),
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
-          always: () => new Idle({ userId: "user-1" })
+          always: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
         })
 
       const error = yield* Effect.flip(
-        StateMachine.plan(machine, new Idle({ userId: "user-1" }), new Submit({ value: "hello" }))
+        StateMachine.plan(machine, FlatInitial.Idle(new Idle({ userId: "user-1" })), new Submit({ value: "hello" }))
       )
 
       assert.instanceOf(error, StateMachine.InfiniteTransitionError)
@@ -5565,7 +5591,7 @@ describe("StateMachine", () => {
             transition: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
               yield* StateMachine.action(deferredLog.push("transition"))
-              return new Idle({ userId: "user-2" })
+              return FlatInitial.Idle(new Idle({ userId: "user-2" }))
             })
           }
         }
@@ -5657,7 +5683,7 @@ describe("StateMachine", () => {
               )
             ),
           on: {
-            Submit: (): Loading => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -5701,7 +5727,7 @@ describe("StateMachine", () => {
       })
         .handle("Idle", {
           on: {
-            Submit: () => new Loading({ requestId: "request-1" })
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
         })
         .handle("Loading", {
@@ -5727,7 +5753,7 @@ describe("StateMachine", () => {
       }).handle("Idle", {
         exit: ({ state }) => StateMachine.action(Effect.fail(new ExitError({ state: state._tag }))),
         on: {
-          Submit: () => new Loading({ requestId: "request-1" })
+          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
       })
 
