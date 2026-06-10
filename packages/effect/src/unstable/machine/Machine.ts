@@ -260,6 +260,23 @@ type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.Ta
     : StateDefinitionError<"State node type must be active, final, or parallel">
   : unknown
 
+type DefineStateTreeInput<States extends Machine.StateSchemas> = {
+  readonly [Key in keyof States]: DefineStateNodeInput<States[Key]>
+}
+
+type DefineStateNodeInput<Node> = Node extends Machine.TaggedSchema ? Node
+  : Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ?
+    Omit<Node, "states"> & { readonly states: DefineStateTreeInput<Children> }
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ? Omit<Node, "initial" | "states"> & {
+      readonly initial: Extract<keyof Children, string>
+      readonly states: DefineStateTreeInput<Children>
+    }
+  : Node
+
+type ValidateDefinedStates<States extends Machine.StateSchemas> = [States] extends
+  [Machine.ValidateStateSchemas<States>] ? []
+  : [validation: Machine.ValidateStateSchemas<States>]
+
 const SnapshotBuilderStateTypeId: unique symbol = Symbol("effect/Machine/SnapshotBuilderState")
 
 type SnapshotBuilderComplete<Regions> = {
@@ -2186,10 +2203,11 @@ const makeTargetBuilder = <const States extends Machine.StateSchemas>(
 export const defineStates = <
   const States extends Machine.StateSchemas
 >(
-  states: States & Machine.ValidateStateSchemas<States>
+  states: DefineStateTreeInput<States>,
+  ..._validation: ValidateDefinedStates<States>
 ): Machine.DefinedStates<States> => ({
-  states,
-  initial: makeSnapshotBuilder(states, { mode: "initial", prefix: "" }) as Machine.InitialBuilder<States>
+  states: states as States,
+  initial: makeSnapshotBuilder(states as States, { mode: "initial", prefix: "" }) as Machine.InitialBuilder<States>
 })
 
 /**

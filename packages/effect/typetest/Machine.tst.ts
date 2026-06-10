@@ -106,6 +106,11 @@ describe("Machine", () => {
     >()
   })
 
+  it("defineStates preserves declared compound initial keys", () => {
+    expect<typeof UpStates.states.up.states.auth.initial>().type.toBe<"signedOut">()
+    expect<typeof UpStates.states.up.states.sync.initial>().type.toBe<"idle">()
+  })
+
   it("make accepts defined states", () => {
     const machine = Machine.make({
       states: UpStates.states,
