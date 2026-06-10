@@ -1076,6 +1076,241 @@ describe("StateMachine", () => {
       })
     }))
 
+  it.effect("uses target.branch to replace one parallel region while preserving siblings", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const nextInventory = new Inventory({ warehouse: "warehouse-2" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.fulfillment(
+            fulfillment,
+            (fulfillment) =>
+              fulfillment
+                .inventory(
+                  inventory,
+                  (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
+                )
+                .shipping(
+                  shipping,
+                  (shipping) => shipping.quoting(quoting)
+                )
+          )
+      }).handle("fulfillment.inventory.checking", {
+        on: {
+          ReserveInventory: ({ event, target }) =>
+            target.branch.fulfillment.inventory(
+              nextInventory,
+              (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+            )
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: nextInventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoting",
+            value: quoting
+          }
+        }
+      })
+    }))
+
+  it.effect("uses target.branch to replace root and nested region values", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const nextFulfillment = new Fulfillment({ id: "fulfillment-2" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const nextInventory = new Inventory({ warehouse: "warehouse-2" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.fulfillment(
+            fulfillment,
+            (fulfillment) =>
+              fulfillment
+                .inventory(
+                  inventory,
+                  (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
+                )
+                .shipping(
+                  shipping,
+                  (shipping) => shipping.quoting(quoting)
+                )
+          )
+      }).handle("fulfillment.inventory.checking", {
+        on: {
+          ReserveInventory: ({ event, target }) =>
+            target.branch.fulfillment(
+              nextFulfillment,
+              (fulfillment) =>
+                fulfillment.inventory(
+                  nextInventory,
+                  (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                )
+            )
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", nextFulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: nextInventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoting",
+            value: quoting
+          }
+        }
+      })
+    }))
+
+  it.effect("uses target.branch from a compound descendant to a sibling descendant", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        payment: {
+          schema: Payment,
+          initial: "inventory",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const payment = new Payment({ id: "payment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.payment(
+            payment,
+            (payment) =>
+              payment.inventory(
+                inventory,
+                (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
+              )
+          )
+      }).handle("payment.inventory.checking", {
+        on: {
+          ReserveInventory: ({ event, target }) =>
+            target.branch.payment.shipping(
+              shipping,
+              (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+            )
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(
+        machine,
+        initial.state,
+        new ReserveInventory({ reservationId: "quote-1" })
+      )
+
+      assertCompoundStateSnapshot(planned.next as any, "payment", payment, {
+        path: "payment.shipping",
+        value: shipping,
+        state: {
+          path: "payment.shipping.quoted",
+          value: new ShippingQuoted({ quoteId: "quote-1" })
+        }
+      })
+    }))
+
   it.effect("treats compound states as final when their active child is final", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })

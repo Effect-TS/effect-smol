@@ -316,6 +316,57 @@ describe("StateMachine", () => {
     expect(context.target.local).type.not.toHaveProperty("with")
   })
 
+  it("target.branch exposes only the source root", () => {
+    const context = null as unknown as SignedOutContext
+    const downContext = null as unknown as SignInContext
+
+    expect(context.target.branch).type.toHaveProperty("up")
+    expect(context.target.branch).type.not.toHaveProperty("down")
+    expect(downContext.target.branch).type.toHaveProperty("down")
+    expect(downContext.target.branch).type.not.toHaveProperty("up")
+  })
+
+  it("target.branch constructs typed partial branch targets", () => {
+    const context = null as unknown as SignedOutContext
+    const target = context.target.branch.up.sync(
+      new Sync({ enabled: true }),
+      (sync) => sync.syncing(new Syncing({ requestId: "sync-1" }))
+    )
+
+    expect(target).type.toBeAssignableTo<
+      StateMachine.Machine.Target<typeof UpStates.states, "up.sync.syncing">
+    >()
+    expect(target.path).type.toBe<"up.sync.syncing">()
+    expect(target.value).type.toBe<Syncing>()
+  })
+
+  it("target.branch can replace ancestors before selecting a leaf", () => {
+    const context = null as unknown as SignedOutContext
+    const target = context.target.branch.up(
+      new Up({ id: "up-2" }),
+      (up) =>
+        up.auth(
+          new Auth({ userId: "user-1" }),
+          (auth) => auth.signedIn(new SignedIn({ userId: "user-1" }))
+        )
+    )
+
+    expect(target.path).type.toBe<"up.auth.signedIn">()
+    expect(target.value).type.toBe<SignedIn>()
+  })
+
+  it("target.branch rejects non-leaf targets and wrong values", () => {
+    const context = null as unknown as SignedOutContext
+
+    expect(context.target.branch.up).type.not.toBeCallableWith(new Up({ id: "up-1" }))
+    expect(context.target.branch.up.sync).type.not.toBeCallableWith(new Sync({ enabled: true }))
+    expect(context.target.branch.up.sync).type.not.toBeCallableWith(
+      new Auth({ userId: "user-1" }),
+      (sync: ChildBuilder<typeof context.target.branch.up.sync>) => sync.syncing(new Syncing({ requestId: "sync-1" }))
+    )
+    expect(context.target.branch.up.auth.signedIn).type.not.toBeCallableWith(new SignedOut({}))
+  })
+
   it("target is not callable", () => {
     const context = null as unknown as SignInContext
 

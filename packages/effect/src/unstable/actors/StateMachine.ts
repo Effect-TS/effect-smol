@@ -494,6 +494,57 @@ type LocalTargetBuilderForScope<
     }
   : {}
 
+type BranchTargetResult<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas } ?
+  BranchTargetResultWithPrefix<AllStates, Children, Path>
+  : Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
+
+type BranchTargetResultWithPrefix<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  Prefix extends string
+> = {
+  readonly [Key in Extract<keyof States, string>]: BranchTargetResult<AllStates, States, Key, Prefix>
+}[Extract<keyof States, string>]
+
+type BranchTargetBuilderWithPrefix<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  Prefix extends string
+> = {
+  readonly [Key in Extract<keyof States, string>]: BranchTargetMethod<AllStates, States, Key, Prefix>
+}
+
+type BranchTargetMethod<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends infer Node ?
+  Node extends { readonly states: infer Children extends Machine.StateSchemas } ?
+      & (<Result extends BranchTargetResultWithPrefix<AllStates, Children, Path>>(
+        value: Machine.NodeSchema<Node>["Type"],
+        state: (
+          builder: BranchTargetBuilderWithPrefix<AllStates, Children, Path>
+        ) => Result
+      ) => Result)
+      & BranchTargetBuilderWithPrefix<AllStates, Children, Path>
+  : (value: Machine.NodeSchema<Node>["Type"]) => Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
+  : never
+
+type BranchTargetBuilderForRoot<
+  States extends Machine.StateSchemas,
+  Root extends Extract<keyof States, string>
+> = {
+  readonly [Key in Root]: BranchTargetMethod<States, States, Key, "">
+}
+
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption
 } ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
@@ -1050,7 +1101,7 @@ export declare namespace Machine {
   export type BranchTargetBuilder<
     States extends StateSchemas,
     Source extends StateIdentifier<States>
-  > = {}
+  > = BranchTargetBuilderForRoot<States, Extract<RootStateIdentifier<Source>, Extract<keyof States, string>>>
 
   /**
    * Machine-bound target builders available in transition contexts.
@@ -1882,6 +1933,51 @@ const makeLocalTargetBuilder = (
   return builder
 }
 
+const addBranchTargetChildren = (
+  builder: Record<string, unknown>,
+  stateNodes: Machine.StateNodes,
+  parentPath: string,
+  values: Readonly<Record<string, unknown>> | undefined
+): void => {
+  const parent = getTargetBuilderNode(stateNodes, parentPath)
+  for (const childPath of parent.children) {
+    const child = getTargetBuilderNode(stateNodes, childPath)
+    builder[child.key] = makeBranchTargetNodeBuilder(stateNodes, child.path, values)
+  }
+}
+
+const makeBranchTargetNodeBuilder = (
+  stateNodes: Machine.StateNodes,
+  path: string,
+  values: Readonly<Record<string, unknown>> | undefined
+): unknown => {
+  const node = getTargetBuilderNode(stateNodes, path)
+  if (node.type === "atomic" || node.type === "final") {
+    return (value: unknown) => makeTargetWithValues(node.path, value, values)
+  }
+  const builder = ((value: unknown, selector?: (builder: unknown) => unknown) => {
+    if (selector === undefined) {
+      throw new Error(`StateMachine expected target "${node.path}" builder to provide an active child state`)
+    }
+    const nextBuilder: Record<string, unknown> = {}
+    addBranchTargetChildren(nextBuilder, stateNodes, node.path, extendTargetValues(values, node.path, value))
+    return selector(nextBuilder)
+  }) as unknown as Record<string, unknown>
+  addBranchTargetChildren(builder, stateNodes, node.path, values)
+  return builder
+}
+
+const makeBranchTargetBuilder = (
+  stateNodes: Machine.StateNodes,
+  source: string
+): unknown => {
+  const rootPath = source.split(".")[0]!
+  const root = getTargetBuilderNode(stateNodes, rootPath)
+  return {
+    [root.key]: makeBranchTargetNodeBuilder(stateNodes, root.path, undefined)
+  }
+}
+
 const makeTargetBuilder = <const States extends Machine.StateSchemas>(
   states: States,
   stateNodes: Machine.StateNodes
@@ -1890,7 +1986,7 @@ const makeTargetBuilder = <const States extends Machine.StateSchemas>(
   return <Source extends Machine.StateIdentifier<States>>(source: Source): Machine.TargetBuilder<States, Source> =>
     ({
       local: makeLocalTargetBuilder(stateNodes, source),
-      branch: {},
+      branch: makeBranchTargetBuilder(stateNodes, source),
       full
     }) as Machine.TargetBuilder<States, Source>
 }
