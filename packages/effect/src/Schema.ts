@@ -3125,6 +3125,9 @@ export interface encodeKeys<
   >
 {}
 
+const canonicalPropertyKey = (key: PropertyKey): string | symbol =>
+  typeof key === "symbol" ? key : globalThis.String(key)
+
 /**
  * Renames struct keys in the encoded form without changing the decoded type.
  *
@@ -3133,6 +3136,8 @@ export interface encodeKeys<
  * Takes a partial mapping `{ decodedKey: encodedKey }` and produces a
  * transformation schema that decodes from the renamed keys and encodes back to
  * the renamed keys. Keys not present in the mapping are left unchanged.
+ * If two existing fields would produce the same encoded key, construction
+ * fails.
  *
  * **Example** (Rename `name` to `full_name` in the encoded form)
  *
@@ -3157,21 +3162,29 @@ export function encodeKeys<
 >(mapping: M) {
   return function(self: S): encodeKeys<S, M> {
     const fields: any = {}
+    const appliedMapping: any = {}
     const reverseMapping: any = {}
-    for (const k in self.fields) {
+    const seenEncodedKeys = new Set<string | symbol>()
+    for (const k of Reflect.ownKeys(self.fields)) {
       const encoded = toEncoded(self.fields[k])
-      if (Object.hasOwn(mapping, k)) {
-        fields[mapping[k]!] = encoded
-        reverseMapping[mapping[k]!] = k
-      } else {
-        fields[k] = encoded
+      const hasMapping = Object.hasOwn(mapping, k)
+      const encodedKey = hasMapping ? (mapping as any)[k] as PropertyKey : k
+      const canonical = canonicalPropertyKey(encodedKey)
+      if (seenEncodedKeys.has(canonical)) {
+        throw new globalThis.Error(`Duplicate encoded keys: ${formatPropertyKey(encodedKey)}`)
+      }
+      seenEncodedKeys.add(canonical)
+      fields[encodedKey] = encoded
+      if (hasMapping) {
+        appliedMapping[k] = encodedKey
+        reverseMapping[encodedKey] = k
       }
     }
     return Struct(fields).pipe(decodeTo(
       self,
       SchemaTransformation.transform<any, any>({
         decode: Struct_.renameKeys(reverseMapping),
-        encode: Struct_.renameKeys(mapping)
+        encode: Struct_.renameKeys(appliedMapping)
       })
     )) as any
   }

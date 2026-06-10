@@ -7355,6 +7355,65 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const encoding = asserts.encoding()
       await encoding.succeed(new A({ a: 1, b: "b" }), { c: "1", b: "b" })
     })
+
+    it("supports symbol source keys", () => {
+      const field = Symbol("field")
+      const schema = Schema.Struct({
+        [field]: Schema.String
+      }).pipe(Schema.encodeKeys({ [field]: "field" }))
+
+      deepStrictEqual(Schema.decodeUnknownSync(schema)({ field: "a" }), { [field]: "a" })
+      deepStrictEqual(Schema.encodeSync(schema)({ [field]: "a" }), { field: "a" })
+    })
+
+    it("supports symbol destination keys", () => {
+      const field = Symbol("field")
+      const schema = Schema.Struct({
+        field: Schema.String
+      }).pipe(Schema.encodeKeys({ field }))
+
+      deepStrictEqual(Schema.decodeUnknownSync(schema)({ [field]: "a" }), { field: "a" })
+      deepStrictEqual(Schema.encodeSync(schema)({ field: "a" }), { [field]: "a" })
+    })
+
+    it("rejects duplicate destination keys", () => {
+      throws(
+        () =>
+          Schema.Struct({
+            a: Schema.String,
+            b: Schema.String
+          }).pipe(Schema.encodeKeys({ a: "c", b: "c" })),
+        (e) => {
+          assertInclude(String(e), "Duplicate encoded keys")
+        }
+      )
+    })
+
+    it("rejects destination keys that collide with unmapped fields", () => {
+      throws(
+        () =>
+          Schema.Struct({
+            a: Schema.String,
+            b: Schema.String
+          }).pipe(Schema.encodeKeys({ a: "b" })),
+        (e) => {
+          assertInclude(String(e), "Duplicate encoded keys")
+        }
+      )
+    })
+
+    it("rejects canonical number and string destination key collisions", () => {
+      throws(
+        () =>
+          Schema.Struct({
+            a: Schema.String,
+            b: Schema.String
+          }).pipe(Schema.encodeKeys({ a: 1, b: "1" })),
+        (e) => {
+          assertInclude(String(e), "Duplicate encoded keys")
+        }
+      )
+    })
   })
 
   describe("Schema.makeFilter", () => {

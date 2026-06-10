@@ -831,7 +831,8 @@ function buildStruct<
   f: f
 ): any {
   const out: Record<PropertyKey, unknown> = {}
-  for (const k in source) {
+  for (const k of Reflect.ownKeys(source) as Array<keyof S>) {
+    if (!Object.prototype.propertyIsEnumerable.call(source, k)) continue
     const res = f(k, source[k])
     if (res) {
       const [nk, nv] = res
