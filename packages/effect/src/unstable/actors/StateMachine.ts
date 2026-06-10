@@ -403,6 +403,97 @@ type FullParallelBuilder<
     >
   }
 
+type ParentPath<Path extends string> = Path extends `${infer Parent}.${infer Child}`
+  ? Child extends `${string}.${string}` ? `${Parent}.${ParentPath<Child>}` : Parent
+  : never
+
+type IsCompoundNode<Node> = Node extends { readonly type: "parallel" } ? false
+  : Node extends { readonly states: Machine.StateSchemas } ? true
+  : false
+
+type NearestCompoundScope<
+  States extends Machine.StateSchemas,
+  Source extends Machine.StateIdentifier<States>
+> = IsCompoundNode<Machine.NodeByIdentifier<States, Source>> extends true ? Source
+  : ParentPath<Source> extends infer Parent extends Machine.StateIdentifier<States> ?
+    NearestCompoundScope<States, Parent>
+  : never
+
+type ChildrenOf<
+  States extends Machine.StateSchemas,
+  Path extends Machine.StateIdentifier<States>
+> = Machine.NodeByIdentifier<States, Path> extends { readonly states: infer Children extends Machine.StateSchemas } ?
+  Children
+  : never
+
+type StateIdentifierFromPath<
+  States extends Machine.StateSchemas,
+  Path extends string
+> = Extract<Path, Machine.StateIdentifier<States>>
+
+type LocalTargetResult<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas } ?
+  LocalTargetResultWithPrefix<AllStates, Children, Path>
+  : Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
+
+type LocalTargetResultWithPrefix<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  Prefix extends string
+> = {
+  readonly [Key in Extract<keyof States, string>]: LocalTargetResult<AllStates, States, Key, Prefix>
+}[Extract<keyof States, string>]
+
+type LocalTargetBuilderWithPrefix<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  Prefix extends string
+> = {
+  readonly [Key in Extract<keyof States, string>]: LocalTargetMethod<AllStates, States, Key, Prefix>
+}
+
+type LocalTargetMethod<
+  AllStates extends Machine.StateSchemas,
+  States extends Machine.StateSchemas,
+  StateId extends Extract<keyof States, string>,
+  Prefix extends string,
+  Path extends string = Machine.JoinPath<Prefix, StateId>
+> = States[StateId] extends infer Node ?
+  Node extends { readonly states: infer Children extends Machine.StateSchemas } ? <
+      Result extends LocalTargetResultWithPrefix<
+        AllStates,
+        Children,
+        Path
+      >
+    >(
+      value: Machine.NodeSchema<Node>["Type"],
+      state: (
+        builder: LocalTargetBuilderWithPrefix<AllStates, Children, Path>
+      ) => Result
+    ) => Result
+  : (value: Machine.NodeSchema<Node>["Type"]) => Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
+  : never
+
+type LocalTargetBuilderForScope<
+  States extends Machine.StateSchemas,
+  Scope extends Machine.StateIdentifier<States>
+> = ChildrenOf<States, Scope> extends infer Children extends Machine.StateSchemas ?
+    & LocalTargetBuilderWithPrefix<States, Children, Scope>
+    & {
+      readonly with: <Result extends LocalTargetResultWithPrefix<States, Children, Scope>>(
+        value: Machine.StateByIdentifier<States, Scope>,
+        state: (
+          builder: LocalTargetBuilderWithPrefix<States, Children, Scope>
+        ) => Result
+      ) => Result
+    }
+  : {}
+
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption
 } ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
@@ -945,7 +1036,10 @@ export declare namespace Machine {
   export type LocalTargetBuilder<
     States extends StateSchemas,
     Source extends StateIdentifier<States>
-  > = {}
+  > = NearestCompoundScope<States, Source> extends infer Scope ? [Scope] extends [never] ? {}
+    : Scope extends StateIdentifier<States> ? LocalTargetBuilderForScope<States, Scope>
+    : {}
+    : {}
 
   /**
    * Builder for targets within the active source branch.
@@ -1687,13 +1781,115 @@ const makeSnapshotForNode = (
   return snapshot
 }
 
+const getTargetBuilderNode = (
+  stateNodes: Machine.StateNodes,
+  path: string
+): Machine.StateNode => {
+  const node = stateNodes.byPath.get(path)
+  if (node === undefined) {
+    throw new Error(`StateMachine expected state path "${path}" to exist`)
+  }
+  return node
+}
+
+const getLocalTargetScope = (
+  stateNodes: Machine.StateNodes,
+  source: string
+): string | undefined => {
+  let current: string | undefined = source
+  while (current !== undefined) {
+    const node = stateNodes.byPath.get(current)
+    if (node === undefined) {
+      return undefined
+    }
+    if (node.type === "compound") {
+      return node.path
+    }
+    current = node.parent
+  }
+  return undefined
+}
+
+const hasTargetValues = (
+  values: Readonly<Record<string, unknown>> | undefined
+): values is Readonly<Record<string, unknown>> => values !== undefined && Object.keys(values).length > 0
+
+const makeTargetWithValues = (
+  path: string,
+  value: unknown,
+  values: Readonly<Record<string, unknown>> | undefined
+): Machine.Target<any, any> =>
+  hasTargetValues(values)
+    ? Model.makeTarget(path as any, value as any, { values: values as any })
+    : Model.makeTarget(path as any, value as any)
+
+const extendTargetValues = (
+  values: Readonly<Record<string, unknown>> | undefined,
+  path: string,
+  value: unknown
+): Readonly<Record<string, unknown>> => {
+  const next: Record<string, unknown> = {}
+  if (values !== undefined) {
+    for (const key of Object.keys(values)) {
+      next[key] = values[key]
+    }
+  }
+  next[path] = value
+  return next
+}
+
+const makeLocalTargetChildBuilder = (
+  stateNodes: Machine.StateNodes,
+  parentPath: string,
+  values: Readonly<Record<string, unknown>> | undefined
+): unknown => {
+  const parent = getTargetBuilderNode(stateNodes, parentPath)
+  const builder: Record<string, unknown> = {}
+  for (const childPath of parent.children) {
+    const child = getTargetBuilderNode(stateNodes, childPath)
+    builder[child.key] = (value: unknown, selector?: (builder: unknown) => unknown) => {
+      if (child.type === "atomic" || child.type === "final") {
+        return makeTargetWithValues(child.path, value, values)
+      }
+      if (selector === undefined) {
+        throw new Error(`StateMachine expected target "${child.path}" builder to provide an active child state`)
+      }
+      return selector(makeLocalTargetChildBuilder(
+        stateNodes,
+        child.path,
+        extendTargetValues(values, child.path, value)
+      ))
+    }
+  }
+  return builder
+}
+
+const makeLocalTargetBuilder = (
+  stateNodes: Machine.StateNodes,
+  source: string
+): unknown => {
+  const scope = getLocalTargetScope(stateNodes, source)
+  if (scope === undefined) {
+    return {}
+  }
+  const builder = makeLocalTargetChildBuilder(stateNodes, scope, undefined) as Record<string, unknown>
+  builder.with = (value: unknown, selector?: (builder: unknown) => unknown) => {
+    if (selector === undefined) {
+      throw new Error(`StateMachine expected target "${scope}" builder to provide an active child state`)
+    }
+    return selector(makeLocalTargetChildBuilder(stateNodes, scope, { [scope]: value }))
+  }
+  return builder
+}
+
 const makeTargetBuilder = <const States extends Machine.StateSchemas>(
-  states: States
+  states: States,
+  stateNodes: Machine.StateNodes
 ) => {
   const full = makeSnapshotBuilder(states, { mode: "full", prefix: "" }) as Machine.FullTargetBuilder<States>
-  return <Source extends Machine.StateIdentifier<States>>(_source: Source): Machine.TargetBuilder<States, Source> =>
+  return <Source extends Machine.StateIdentifier<States>>(source: Source): Machine.TargetBuilder<States, Source> =>
     ({
-      local: {},
+      local: makeLocalTargetBuilder(stateNodes, source),
       branch: {},
       full
     }) as Machine.TargetBuilder<States, Source>
@@ -1757,7 +1953,7 @@ export const make = <
   self.id = config.id
   self.initial = config.initial
   self.stateNodes = Model.compileStateNodes(config.states)
-  self.makeTargetBuilder = makeTargetBuilder(config.states)
+  self.makeTargetBuilder = makeTargetBuilder(config.states, self.stateNodes)
   self.handlers = {}
   return self
 }

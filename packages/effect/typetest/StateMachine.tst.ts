@@ -73,6 +73,26 @@ describe("StateMachine", () => {
     never
   >
 
+  type SignedOutContext = StateMachine.Machine.HandlerContext<
+    typeof UpStates.states,
+    readonly [typeof SignIn],
+    [],
+    "up.auth.signedOut",
+    "SignIn",
+    never,
+    never
+  >
+
+  type AuthContext = StateMachine.Machine.HandlerContext<
+    typeof UpStates.states,
+    readonly [typeof SignIn],
+    [],
+    "up.auth",
+    "SignIn",
+    never,
+    never
+  >
+
   it("defineStates preserves literal state paths", () => {
     expect<StateMachine.Machine.StateIdentifier<typeof UpStates.states>>().type.toBe<
       | "up"
@@ -245,6 +265,55 @@ describe("StateMachine", () => {
 
     expect(auth.signedOut).type.toBeCallableWith(new SignedOut({}))
     expect(auth.signedIn).type.toBeCallableWith(new SignedIn({ userId: "user-1" }))
+  })
+
+  it("target.local constructs typed local leaf targets", () => {
+    const context = null as unknown as SignedOutContext
+    const target = context.target.local.signedIn(new SignedIn({ userId: "user-1" }))
+
+    expect(target).type.toBeAssignableTo<
+      StateMachine.Machine.Target<typeof UpStates.states, "up.auth.signedIn">
+    >()
+    expect(target.path).type.toBe<"up.auth.signedIn">()
+    expect(target.value).type.toBe<SignedIn>()
+  })
+
+  it("target.local exposes the source compound children when the source is compound", () => {
+    const context = null as unknown as AuthContext
+
+    expect(context.target.local.signedOut).type.toBeCallableWith(new SignedOut({}))
+    expect(context.target.local.signedIn).type.toBeCallableWith(new SignedIn({ userId: "user-1" }))
+  })
+
+  it("target.local.with checks the local compound value", () => {
+    const context = null as unknown as SignedOutContext
+    const target = context.target.local.with(
+      new Auth({ userId: "user-1" }),
+      (auth) => auth.signedIn(new SignedIn({ userId: "user-1" }))
+    )
+
+    expect(target.path).type.toBe<"up.auth.signedIn">()
+    expect(context.target.local.with).type.not.toBeCallableWith(
+      new Up({ id: "up-1" }),
+      (auth: ChildBuilder<typeof context.target.local.with>) => auth.signedIn(new SignedIn({ userId: "user-1" }))
+    )
+  })
+
+  it("target.local rejects unrelated children and wrong values", () => {
+    const context = null as unknown as SignedOutContext
+
+    expect(context.target.local).type.not.toHaveProperty("sync")
+    expect(context.target.local).type.not.toHaveProperty("down")
+    expect(context.target.local).type.not.toHaveProperty("idle")
+    expect(context.target.local.signedIn).type.not.toBeCallableWith(new SignedOut({}))
+  })
+
+  it("target.local exposes no methods outside a compound scope", () => {
+    const context = null as unknown as SignInContext
+
+    expect(context.target.local).type.not.toHaveProperty("up")
+    expect(context.target.local).type.not.toHaveProperty("down")
+    expect(context.target.local).type.not.toHaveProperty("with")
   })
 
   it("target is not callable", () => {

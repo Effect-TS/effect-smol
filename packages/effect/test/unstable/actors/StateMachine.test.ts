@@ -919,6 +919,163 @@ describe("StateMachine", () => {
       })
     }))
 
+  it.effect("uses target.local to preserve parent and sibling parallel region values", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.fulfillment(
+            fulfillment,
+            (fulfillment) =>
+              fulfillment
+                .inventory(
+                  inventory,
+                  (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
+                )
+                .shipping(
+                  shipping,
+                  (shipping) => shipping.quoting(quoting)
+                )
+          )
+      }).handle("fulfillment.inventory.checking", {
+        on: {
+          ReserveInventory: ({ event, target }) =>
+            target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: inventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoting",
+            value: quoting
+          }
+        }
+      })
+    }))
+
+  it.effect("uses target.local.with to replace the local compound value", () =>
+    Effect.gen(function*() {
+      const states = StateMachine.defineStates({
+        fulfillment: {
+          schema: Fulfillment,
+          type: "parallel",
+          states: {
+            inventory: {
+              schema: Inventory,
+              initial: "checking",
+              states: {
+                checking: CheckingInventory,
+                reserved: InventoryReserved
+              }
+            },
+            shipping: {
+              schema: Shipping,
+              initial: "quoting",
+              states: {
+                quoting: QuotingShipping,
+                quoted: ShippingQuoted
+              }
+            }
+          }
+        }
+      })
+      const fulfillment = new Fulfillment({ id: "fulfillment-1" })
+      const shipping = new Shipping({ address: "Main Street" })
+      const quoting = new QuotingShipping({ postalCode: "12345" })
+      const nextInventory = new Inventory({ warehouse: "warehouse-2" })
+      const machine = StateMachine.make({
+        states: states.states,
+        events: [ReserveInventory],
+        initial: () =>
+          states.initial.fulfillment(
+            fulfillment,
+            (fulfillment) =>
+              fulfillment
+                .inventory(
+                  new Inventory({ warehouse: "warehouse-1" }),
+                  (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
+                )
+                .shipping(
+                  shipping,
+                  (shipping) => shipping.quoting(quoting)
+                )
+          )
+      }).handle("fulfillment.inventory.checking", {
+        on: {
+          ReserveInventory: ({ event, target }) =>
+            target.local.with(
+              nextInventory,
+              (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+            )
+        }
+      })
+
+      const initial = yield* StateMachine.planInitial(machine)
+      const planned = yield* StateMachine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertParallelStateSnapshot(planned.next as any, "fulfillment", fulfillment, {
+        inventory: {
+          path: "fulfillment.inventory",
+          value: nextInventory,
+          state: {
+            path: "fulfillment.inventory.reserved",
+            value: new InventoryReserved({ reservationId: "res-1" })
+          }
+        },
+        shipping: {
+          path: "fulfillment.shipping",
+          value: shipping,
+          state: {
+            path: "fulfillment.shipping.quoting",
+            value: quoting
+          }
+        }
+      })
+    }))
+
   it.effect("treats compound states as final when their active child is final", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
