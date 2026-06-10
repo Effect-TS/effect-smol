@@ -231,6 +231,23 @@ describe("StateMachine", () => {
     assert.strictEqual(machine.id, "UserMachine")
   })
 
+  it.effect("defineStates returns states accepted by make", () =>
+    Effect.gen(function*() {
+      const states = { idle: Idle, loading: Loading }
+      const defined = StateMachine.defineStates(states)
+      const machine = StateMachine.make({
+        states: defined.states,
+        events: [Submit],
+        initial: () => new Idle({ userId: "user-1" })
+      })
+
+      const planned = yield* StateMachine.planInitial(machine)
+
+      assert.strictEqual(defined.states, states)
+      assert.strictEqual(planned.state.path, "idle")
+      assert.deepStrictEqual(planned.state.value, new Idle({ userId: "user-1" }))
+    }))
+
   it.effect("supports flat object states with path-aware handlers", () =>
     Effect.gen(function*() {
       const machine = StateMachine.make({

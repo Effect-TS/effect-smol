@@ -204,6 +204,48 @@ type EnsureCompatibleRuntime<Requirements, Events, Emits> = [IncompatibleRuntime
   readonly [RuntimeCompatibilityErrorTypeId]: IncompatibleRuntime<Requirements, Events, Emits>
 }
 
+type StateDefinitionError<Message extends string> = {
+  readonly "~effect/StateMachine/DefinitionError": Message
+}
+
+type ValidateStateTree<States extends Machine.StateSchemas> = {
+  readonly [Key in keyof States]: ValidateStateNode<States[Key]>
+}
+
+type ValidateStateNode<Node> = Node extends Machine.TaggedSchema ? unknown
+  : Node extends { readonly schema: Machine.TaggedSchema } ? ValidateStateNodeConfig<Node>
+  : StateDefinitionError<"State nodes must be tagged schemas or state node configs">
+
+type ValidateStateNodeConfig<Node extends { readonly schema: Machine.TaggedSchema }> = Node extends
+  { readonly states: infer Children } ? ValidateStateNodeWithChildren<Node, Children>
+  : ValidateStateNodeWithoutChildren<Node>
+
+type ValidateStateNodeWithChildren<
+  Node extends { readonly schema: Machine.TaggedSchema },
+  Children
+> = Children extends Machine.StateSchemas ?
+  Node extends { readonly type: "final" } ? StateDefinitionError<"Final states cannot declare child states">
+  : Node extends { readonly type: "parallel" } ?
+    "initial" extends keyof Node ? StateDefinitionError<"Parallel states cannot declare an initial child">
+    : { readonly states: ValidateStateTree<Children> }
+  : ValidateCompoundStateNode<Node, Children>
+  : StateDefinitionError<"Child states must be a state tree">
+
+type ValidateCompoundStateNode<
+  Node extends { readonly schema: Machine.TaggedSchema },
+  Children extends Machine.StateSchemas
+> = Node extends { readonly initial: infer Initial } ? Initial extends Extract<keyof Children, string> ? {
+      readonly states: ValidateStateTree<Children>
+    }
+  : StateDefinitionError<"Compound initial must be one of its direct child keys">
+  : StateDefinitionError<"Compound states must declare an initial child">
+
+type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.TaggedSchema }> = "initial" extends
+  keyof Node ? StateDefinitionError<"Atomic states cannot declare an initial child">
+  : Node extends { readonly type: infer Type } ? Type extends "active" | "final" | undefined ? unknown
+    : StateDefinitionError<"State node type must be active, final, or parallel">
+  : unknown
+
 type SupervisionRequirements<Options> = Options extends {
   readonly supervision?: infer SupervisionOption
 } ? SupervisionOption extends { readonly _tag: "Restart" } & ActorModule.Supervision<infer Requirements> ? Requirements
@@ -321,6 +363,33 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type StateSchemas = StateTree
+
+  /**
+   * Initial snapshot builder generated for a defined state tree.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type InitialBuilder<States extends StateSchemas> = any
+
+  /**
+   * State definitions returned by {@link defineStates}.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface DefinedStates<States extends StateSchemas> {
+    readonly states: States
+    readonly initial: InitialBuilder<States>
+  }
+
+  /**
+   * Validates the nested shape of state schema definitions.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ValidateStateSchemas<States extends StateSchemas> = ValidateStateTree<States>
 
   /**
    * Runtime metadata for a compiled state node.
@@ -1342,6 +1411,21 @@ export const isFinal = <
   Machine.StateLike<States>,
   Machine.StateByIdentifier<States, FinalStates> | Machine.SnapshotContainingFinal<States, FinalStates>
 > => internalRuntime.isFinal(machine, state)
+
+/**
+ * Defines state schema definitions while preserving literal state keys.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const defineStates = <
+  const States extends Machine.StateSchemas
+>(
+  states: States & Machine.ValidateStateSchemas<States>
+): Machine.DefinedStates<States> => ({
+  states,
+  initial: {} as Machine.InitialBuilder<States>
+})
 
 /**
  * Creates a schema-first state machine definition.
