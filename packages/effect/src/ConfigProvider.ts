@@ -413,6 +413,11 @@ export function make(
  * The fallback only runs when the path is not found (`undefined`). A
  * `SourceError` from `self` is not caught; it propagates immediately.
  *
+ * Lookups go through each operand's `load`, so a prefix added on top of the
+ * combined provider via {@link nested} passes through each operand's own
+ * `mapInput`. This differs from applying {@link nested} directly to an
+ * operand, where the prefix is prepended after that operand's `mapInput` runs.
+ *
  * **Example** (Falling back to a default provider)
  *
  * ```ts
@@ -437,7 +442,7 @@ export const orElse: {
 } = dual(
   2,
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+    make((path) => Effect.flatMap(self.load(path), (node) => node ? Effect.succeed(node) : that.load(path)))
 )
 
 /**

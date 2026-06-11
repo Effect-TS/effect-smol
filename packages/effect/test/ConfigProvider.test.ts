@@ -37,6 +37,22 @@ describe("ConfigProvider", () => {
     await assertSuccess(provider, ["B"], ConfigProvider.makeValue("value2"))
   })
 
+  it("orElse applies each operand's transformations", async () => {
+    const primary = ConfigProvider.fromEnv({
+      env: {
+        "DATABASE_HOST": "from-env"
+      }
+    }).pipe(ConfigProvider.constantCase)
+    const fallback = ConfigProvider.fromEnv({
+      env: {
+        "APP_PORT": "3000"
+      }
+    }).pipe(ConfigProvider.nested("APP"))
+    const provider = primary.pipe(ConfigProvider.orElse(fallback))
+    await assertSuccess(provider, ["databaseHost"], ConfigProvider.makeValue("from-env"))
+    await assertSuccess(provider, ["PORT"], ConfigProvider.makeValue("3000"))
+  })
+
   it("constantCase", async () => {
     const provider = ConfigProvider.constantCase(ConfigProvider.fromEnv({
       env: {
