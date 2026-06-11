@@ -241,9 +241,6 @@ describe("Stream", () => {
 
     it.effect("fromReadableStream - errored streams fail with the mapped error, not a finalizer defect", () =>
       Effect.gen(function*() {
-        // Cancelling the reader of an already-errored ReadableStream rejects
-        // with the stored error. The cancel in the finalizer must swallow that
-        // rejection so the typed `onError` failure is the only cause.
         const exit = yield* Stream.fromReadableStream({
           evaluate: () =>
             new ReadableStream<number>({

@@ -1416,9 +1416,6 @@ export const fromReadableStream = <A, E>(
       scope,
       options.releaseLockOnEnd
         ? Effect.sync(() => reader.releaseLock())
-        // Cancelling the reader of an already-errored stream rejects with the
-        // stored error - swallow it so the finalizer does not die with a
-        // defect after the error was already surfaced through `onError`.
         : Effect.promise(() => reader.cancel().catch(constVoid))
     )
     return Effect.flatMap(
