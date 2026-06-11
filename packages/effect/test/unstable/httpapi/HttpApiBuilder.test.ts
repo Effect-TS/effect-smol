@@ -136,42 +136,6 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.deepStrictEqual(cause, Cause.fail({ reason: "boom" }))
     }))
 
-  it.effect("rejects successful StreamSse user events that use the reserved failure event name", () =>
-    Effect.gen(function*() {
-      const Events = Schema.Struct({
-        event: Schema.String,
-        data: Schema.String
-      })
-
-      const Api = HttpApi.make("Api").add(
-        HttpApiGroup.make("test").add(
-          HttpApiEndpoint.get("events", "/test", {
-            success: HttpApiSchema.StreamSse({ events: Events, error: StreamError })
-          })
-        )
-      )
-
-      const GroupLive = HttpApiBuilder.group(
-        Api,
-        "test",
-        (handlers) =>
-          handlers.handle("events", () =>
-            Effect.succeed(Stream.make({
-              event: "effect/httpapi/stream/failure",
-              data: "not allowed"
-            })))
-      )
-
-      const client = yield* HttpApiTest.groups(Api, ["test"]).pipe(Effect.provide(GroupLive))
-      const response = yield* client.test.events({ responseMode: "response-only" })
-      const error = yield* Effect.flip(Stream.runCollect(response.stream))
-
-      assert.strictEqual(
-        error.cause?.toString(),
-        "SchemaError(The server sent event name 'effect/httpapi/stream/failure' is reserved for internal use)"
-      )
-    }))
-
   it.effect("supports buffered and stream successes with the same status", () =>
     Effect.gen(function*() {
       const Buffered = Schema.Struct({ message: Schema.String })

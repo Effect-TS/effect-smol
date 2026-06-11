@@ -8,6 +8,7 @@
  *
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
@@ -863,7 +864,9 @@ function expectedStreamResponse(response: unknown) {
 
 interface SseStreamEncoder {
   readonly sseMode: HttpApiSchema.StreamSseMode
-  readonly encodeEvent: (input: unknown) => Effect.Effect<Sse.EventEncoded, Schema.SchemaError, unknown>
+  readonly encodeEvents: (
+    input: NonEmptyReadonlyArray<unknown>
+  ) => Effect.Effect<NonEmptyReadonlyArray<Sse.EventEncoded>, Schema.SchemaError, unknown>
   readonly encodeCause: (input: unknown) => Effect.Effect<string, Schema.SchemaError, unknown>
 }
 
@@ -873,7 +876,7 @@ function makeSseEncoder<Events extends HttpApiSchema.SseEventSchema, Error exten
   const CauseSchema = Schema.toCodecJson(Schema.Cause(streamSchema.error, Schema.Defect()))
   return {
     sseMode: streamSchema.sseMode,
-    encodeEvent: Schema.encodeUnknownEffect(streamSchema.events),
+    encodeEvents: Schema.encodeUnknownEffect(Schema.Array(streamSchema.events)) as any,
     encodeCause: Schema.encodeUnknownEffect(Schema.fromJsonString(CauseSchema))
   }
 }
@@ -883,49 +886,32 @@ function encodeSseStream(
   encoder: SseStreamEncoder
 ): Stream.Stream<Uint8Array, unknown, unknown> {
   return stream.pipe(
-    Stream.map((value) => encodeSuccessEvent(value, encoder)),
-    Stream.catchCause((cause) => Stream.succeed(encodeFailureEvent(cause, encoder))),
-    Stream.mapEffect(identity),
+    encoder.sseMode === "data" ?
+      Stream.map((value) => ({
+        id: undefined,
+        event: "message",
+        data: value
+      })) :
+      identity,
+    Stream.mapArrayEffect((chunk) => Effect.orDie(encoder.encodeEvents(chunk))),
+    Stream.catchCause((cause) => Stream.fromEffect(encodeFailureEvent(cause, encoder))),
     Stream.map(renderSseEvent),
     Stream.encodeText
   )
 }
 
-type SseEventEffect = Effect.Effect<Sse.EventEncoded, Schema.SchemaError, unknown>
-
-const defaultDataStreamEvent = "message"
-
-function encodeSuccessEvent(value: unknown, encoder: SseStreamEncoder): SseEventEffect {
-  const event = encoder.sseMode === "data"
-    ? { id: undefined, event: defaultDataStreamEvent, data: value }
-    : value
-
-  return encoder.encodeEvent(event).pipe(
-    Effect.flatMap(validateSseEvent)
-  )
-}
-
-function encodeFailureEvent(cause: Cause.Cause<unknown>, encoder: SseStreamEncoder): SseEventEffect {
+function encodeFailureEvent(cause: Cause.Cause<unknown>, encoder: SseStreamEncoder) {
   return encoder.encodeCause(cause).pipe(
-    Effect.map((encodedCause) => makeSentinelErrorEvent(encodedCause))
+    Effect.orDie,
+    Effect.map((encodedCause) => ({
+      id: undefined,
+      event: reservedStreamFailureEvent,
+      data: encodedCause
+    }))
   )
 }
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
-
-function makeSentinelErrorEvent(cause: string) {
-  return { id: undefined, event: reservedStreamFailureEvent, data: cause } as const
-}
-
-function validateSseEvent(event: Sse.EventEncoded) {
-  return event.event === reservedStreamFailureEvent
-    ? Effect.fail(makeSchemaError(
-      new SchemaIssue.InvalidValue(Option.some(event), {
-        message: `The server sent event name '${reservedStreamFailureEvent}' is reserved for internal use`
-      })
-    ))
-    : Effect.succeed(event)
-}
 
 function renderSseEvent(event: Sse.EventEncoded) {
   return Sse.encoder.write({
