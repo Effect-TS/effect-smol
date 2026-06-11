@@ -1100,10 +1100,10 @@ const ChatCompletionToolCallDelta = Schema.Struct({
 
 const ChatCompletionMessage = Schema.Struct({
   role: Schema.optionalKey(Schema.String),
-content: Schema.optionalKey(Schema.NullOr(Schema.String)),
+  content: Schema.optionalKey(Schema.NullOr(Schema.String)),
   reasoning: Schema.optionalKey(Schema.NullOr(Schema.String)),
   reasoning_content: Schema.optionalKey(Schema.NullOr(Schema.String)),
-tool_calls: Schema.optionalKey(Schema.Array(ChatCompletionToolCall))
+  tool_calls: Schema.optionalKey(Schema.Array(ChatCompletionToolCall))
 })
 
 const ChatCompletionDelta = Schema.Struct({
