@@ -226,11 +226,13 @@ describe("Machine", () => {
       events: [Submit],
       input: Input,
       initial: (input) => states.initial.Idle(new Idle({ userId: input.userId }))
-    }).handle.Idle({
-      on: {
-        Submit: Effect.fn(function*({ target }) {
-          return target.full.Loading(new Loading({ requestId: "request-1" }))
-        })
+    }).handle({
+      Idle: {
+        on: {
+          Submit: Effect.fn(function*({ target }) {
+            return target.full.Loading(new Loading({ requestId: "request-1" }))
+          })
+        }
       }
     })
 
@@ -385,10 +387,12 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => LowercaseInitial.idle(new Idle({ userId: input.userId }))
-      }).handle.idle({
-        on: {
-          Submit: ({ event, state, target }) =>
-            target.full.loading(new Loading({ requestId: `${state.userId}:${event.value}` }))
+      }).handle({
+        idle: {
+          on: {
+            Submit: ({ event, state, target }) =>
+              target.full.loading(new Loading({ requestId: `${state.userId}:${event.value}` }))
+          }
         }
       })
 
@@ -414,17 +418,18 @@ describe("Machine", () => {
         },
         events: [Submit, Reset],
         initial: () => DuplicateInitial.a(new Duplicate({ value: "a" }))
-      })
-        .handle.a({
+      }).handle({
+        a: {
           on: {
             Submit: ({ event, target }) => target.full.b(new Duplicate({ value: event.value }))
           }
-        })
-        .handle.b({
+        },
+        b: {
           on: {
             Reset: ({ target }) => target.full.a(new Duplicate({ value: "reset" }))
           }
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       assertStateSnapshot(initial.state, "a", new Duplicate({ value: "a" }))
@@ -453,9 +458,11 @@ describe("Machine", () => {
         },
         events: [Submit],
         initial: () => DuplicateInitial.a(new Duplicate({ value: "a" }))
-      }).handle.a({
-        on: {
-          Submit: ({ event, target }) => target.full.b(new Duplicate({ value: event.value }))
+      }).handle({
+        a: {
+          on: {
+            Submit: ({ event, target }) => target.full.b(new Duplicate({ value: event.value }))
+          }
         }
       })
 
@@ -483,9 +490,11 @@ describe("Machine", () => {
         },
         events: [Submit],
         initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
-      }).handle.idle({
-        on: {
-          Submit: ({ event, target }) => target.full.success(new Success({ requestId: event.value }))
+      }).handle({
+        idle: {
+          on: {
+            Submit: ({ event, target }) => target.full.success(new Success({ requestId: event.value }))
+          }
         }
       })
 
@@ -529,19 +538,22 @@ describe("Machine", () => {
             value: initialEntering
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:payment"))
-          })
-        })
-        .handle.payment.entering({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:entering"))
-          })
-        })
+          }),
+          states: {
+            entering: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:entering"))
+              })
+            }
+          }
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -577,17 +589,20 @@ describe("Machine", () => {
             value: entering
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           on: {
             Authorize: ({ target }) => target.full.failed(new Failed({ message: "parent" }))
+          },
+          states: {
+            entering: {
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            }
           }
-        })
-        .handle.payment.entering({
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
-          }
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
@@ -598,7 +613,7 @@ describe("Machine", () => {
       })
     }))
 
-  it.effect("handles nested states inside parent callbacks", () =>
+  it.effect("handles parent config and nested states in the same object", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
       const entering = new EnteringPayment({ amount: 100 })
@@ -626,24 +641,24 @@ describe("Machine", () => {
             value: entering
           }
         })
-      }).handle.payment(
-        {
+      }).handle({
+        payment: {
           on: {
             Reset: ({ target }) => target.full.failed(new Failed({ message: "reset" }))
-          }
-        },
-        (handle) =>
-          handle
-            .entering({
+          },
+          states: {
+            entering: {
               on: {
                 Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
               }
-            })
-            .authorized({
+            },
+            authorized: {
               type: "final",
               output: ({ state }) => state.code
-            })
-      )
+            }
+          }
+        }
+      })
 
       assert.strictEqual("payment" in machine.handlers, true)
       assert.strictEqual("payment.entering" in machine.handlers, true)
@@ -685,9 +700,11 @@ describe("Machine", () => {
             value: entering
           }
         })
-      }).handle.payment({
-        on: {
-          Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
+      }).handle({
+        payment: {
+          on: {
+            Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
+          }
         }
       })
 
@@ -723,14 +740,14 @@ describe("Machine", () => {
             value: new EnteringPayment({ amount: 100 })
           }
         })
-      })
-        .handle.idle({
+      }).handle({
+        idle: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:idle"))
           })
-        })
-        .handle.payment({
+        },
+        payment: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:payment"))
@@ -741,18 +758,21 @@ describe("Machine", () => {
           }),
           on: {
             Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
+          },
+          states: {
+            entering: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:entering"))
+              }),
+              exit: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("exit:entering"))
+              })
+            }
           }
-        })
-        .handle.payment.entering({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:entering"))
-          }),
-          exit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("exit:entering"))
-          })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -796,8 +816,8 @@ describe("Machine", () => {
             value: new EnteringPayment({ amount: 100 })
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:payment"))
@@ -805,23 +825,26 @@ describe("Machine", () => {
           exit: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("exit:payment"))
-          })
-        })
-        .handle.payment.entering({
-          exit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("exit:entering"))
           }),
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+          states: {
+            entering: {
+              exit: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("exit:entering"))
+              }),
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            },
+            authorized: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:authorized"))
+              })
+            }
           }
-        })
-        .handle.payment.authorized({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:authorized"))
-          })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
       const snapshot = yield* sendAndWaitForSnapshot(
@@ -863,8 +886,8 @@ describe("Machine", () => {
         },
         events: [Submit],
         initial: () => LowercaseInitial.idle(new Idle({ userId: "user-1" }))
-      })
-        .handle.idle({
+      }).handle({
+        idle: {
           on: {
             Submit: ({ event, target }) =>
               target.full.payment(
@@ -872,19 +895,22 @@ describe("Machine", () => {
                 (payment) => payment.entering(new EnteringPayment({ amount: event.value.length }))
               )
           }
-        })
-        .handle.payment({
+        },
+        payment: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:payment"))
-          })
-        })
-        .handle.payment.entering({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:entering"))
-          })
-        })
+          }),
+          states: {
+            entering: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:entering"))
+              })
+            }
+          }
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
       const snapshot = yield* sendAndWaitForSnapshot(
@@ -939,22 +965,24 @@ describe("Machine", () => {
         states: states.states,
         events: [Submit],
         initial: () => states.initial.idle(new Idle({ userId: "user-1" }))
-      }).handle.idle({
-        on: {
-          Submit: ({ event, target }) =>
-            target.full.fulfillment(
-              new Fulfillment({ id: event.value }),
-              (fulfillment) =>
-                fulfillment
-                  .inventory(
-                    new Inventory({ warehouse: "warehouse-1" }),
-                    (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.value }))
-                  )
-                  .shipping(
-                    new Shipping({ address: "Main Street" }),
-                    (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.value }))
-                  )
-            )
+      }).handle({
+        idle: {
+          on: {
+            Submit: ({ event, target }) =>
+              target.full.fulfillment(
+                new Fulfillment({ id: event.value }),
+                (fulfillment) =>
+                  fulfillment
+                    .inventory(
+                      new Inventory({ warehouse: "warehouse-1" }),
+                      (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.value }))
+                    )
+                    .shipping(
+                      new Shipping({ address: "Main Street" }),
+                      (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.value }))
+                    )
+              )
+          }
         }
       })
 
@@ -1031,10 +1059,20 @@ describe("Machine", () => {
                   (shipping) => shipping.quoting(quoting)
                 )
           )
-      }).handle.fulfillment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1108,13 +1146,23 @@ describe("Machine", () => {
                   (shipping) => shipping.quoting(quoting)
                 )
           )
-      }).handle.fulfillment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.local.with(
-              nextInventory,
-              (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-            )
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.with(
+                        nextInventory,
+                        (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                      )
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1189,13 +1237,23 @@ describe("Machine", () => {
                   (shipping) => shipping.quoting(quoting)
                 )
           )
-      }).handle.fulfillment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.branch.fulfillment.inventory(
-              nextInventory,
-              (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-            )
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.branch.fulfillment.inventory(
+                        nextInventory,
+                        (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                      )
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1271,17 +1329,28 @@ describe("Machine", () => {
                   (shipping) => shipping.quoting(quoting)
                 )
           )
-      }).handle.fulfillment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.branch.fulfillment(
-              nextFulfillment,
-              (fulfillment) =>
-                fulfillment.inventory(
-                  nextInventory,
-                  (inventory) => inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-                )
-            )
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.branch.fulfillment(
+                        nextFulfillment,
+                        (fulfillment) =>
+                          fulfillment.inventory(
+                            nextInventory,
+                            (inventory) =>
+                              inventory.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                          )
+                      )
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1349,13 +1418,23 @@ describe("Machine", () => {
                 (inventory) => inventory.checking(new CheckingInventory({ sku: "sku-1" }))
               )
           )
-      }).handle.payment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.branch.payment.shipping(
-              shipping,
-              (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
-            )
+      }).handle({
+        payment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.branch.payment.shipping(
+                        shipping,
+                        (shipping) => shipping.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+                      )
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1402,21 +1481,24 @@ describe("Machine", () => {
             value: new EnteringPayment({ amount: 100 })
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           on: {
             Reset: ({ target }) => target.local.entering(new EnteringPayment({ amount: 0 }))
+          },
+          states: {
+            entering: {
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            },
+            authorized: {
+              type: "final",
+              output: ({ state }) => state.code
+            }
           }
-        })
-        .handle.payment.entering({
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
-          }
-        })
-        .handle.payment.authorized({
-          type: "final",
-          output: ({ state }) => state.code
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
@@ -1456,9 +1538,15 @@ describe("Machine", () => {
             value: authorized
           }
         })
-      }).handle.payment.authorized({
-        type: "final",
-        output: ({ state }) => state.code
+      }).handle({
+        payment: {
+          states: {
+            authorized: {
+              type: "final",
+              output: ({ state }) => state.code
+            }
+          }
+        }
       })
 
       const planned = yield* Machine.planInitial(machine)
@@ -1499,21 +1587,24 @@ describe("Machine", () => {
             value: new EnteringPayment({ amount: 100 })
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           on: {
             Reset: ({ target }) => target.full.idle(new Idle({ userId: "user-1" }))
+          },
+          states: {
+            entering: {
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            },
+            authorized: {
+              type: "final",
+              output: ({ state }) => state.code
+            }
           }
-        })
-        .handle.payment.entering({
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
-          }
-        })
-        .handle.payment.authorized({
-          type: "final",
-          output: ({ state }) => state.code
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine)
 
@@ -1562,21 +1653,24 @@ describe("Machine", () => {
             value: new EnteringPayment({ amount: 100 })
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           on: {
             Reset: ({ target }) => target.full.failed(new Failed({ message: "raised" }))
+          },
+          states: {
+            entering: {
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            },
+            authorized: {
+              type: "final",
+              entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
+            }
           }
-        })
-        .handle.payment.entering({
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
-          }
-        })
-        .handle.payment.authorized({
-          type: "final",
-          entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new Authorize({ code: "auth-1" }))
@@ -1650,37 +1744,44 @@ describe("Machine", () => {
             }
           }
         })
-      })
-        .handle.fulfillment({
+      }).handle({
+        fulfillment: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry:fulfillment"))
-          })
-        })
-        .handle.fulfillment.inventory({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:inventory"))
-          })
-        })
-        .handle.fulfillment.inventory.checking({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:checking"))
-          })
-        })
-        .handle.fulfillment.shipping({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:shipping"))
-          })
-        })
-        .handle.fulfillment.shipping.quoting({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:quoting"))
-          })
-        })
+          }),
+          states: {
+            inventory: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:inventory"))
+              }),
+              states: {
+                checking: {
+                  entry: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("entry:checking"))
+                  })
+                }
+              }
+            },
+            shipping: {
+              entry: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("entry:shipping"))
+              }),
+              states: {
+                quoting: {
+                  entry: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("entry:quoting"))
+                  })
+                }
+              }
+            }
+          }
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
 
@@ -1771,10 +1872,20 @@ describe("Machine", () => {
             }
           }
         })
-      }).handle.fulfillment.inventory.checking({
-        on: {
-          ReserveInventory: ({ event, target }) =>
-            target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                }
+              }
+            }
+          }
         }
       })
 
@@ -1863,33 +1974,44 @@ describe("Machine", () => {
             }
           }
         })
-      })
-        .handle.fulfillment({
+      }).handle({
+        fulfillment: {
           output: ({ outputs }) => ({
             inventory: outputs.inventory,
             shipping: outputs.shipping
-          })
-        })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+          }),
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                },
+                reserved: {
+                  type: "final",
+                  output: ({ state }) => state.reservationId
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+                  }
+                },
+                quoted: {
+                  type: "final",
+                  output: ({ state }) => state.quoteId
+                }
+              }
+            }
           }
-        })
-        .handle.fulfillment.inventory.reserved({
-          type: "final",
-          output: ({ state }) => state.reservationId
-        })
-        .handle.fulfillment.shipping.quoting({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
-          }
-        })
-        .handle.fulfillment.shipping.quoted({
-          type: "final",
-          output: ({ state }) => state.quoteId
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
@@ -1988,29 +2110,40 @@ describe("Machine", () => {
             }
           }
         })
+      }).handle({
+        fulfillment: {
+          output: ({ outputs }) => outputs,
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                },
+                reserved: {
+                  type: "final",
+                  output: ({ event, state }) => `${state.reservationId}:${String(event._tag)}`
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  on: {
+                    Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "quote-1" }))
+                  }
+                },
+                quoted: {
+                  type: "final",
+                  output: ({ event, state }) => `${state.quoteId}:${String(event._tag)}`
+                }
+              }
+            }
+          }
+        }
       })
-        .handle.fulfillment({
-          output: ({ outputs }) => outputs
-        })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-          }
-        })
-        .handle.fulfillment.inventory.reserved({
-          type: "final",
-          output: ({ event, state }) => `${state.reservationId}:${String(event._tag)}`
-        })
-        .handle.fulfillment.shipping.quoting({
-          on: {
-            Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "quote-1" }))
-          }
-        })
-        .handle.fulfillment.shipping.quoted({
-          type: "final",
-          output: ({ event, state }) => `${state.quoteId}:${String(event._tag)}`
-        })
 
       const initial = yield* Machine.planInitial(machine)
       const reserved = yield* Machine.plan(
@@ -2107,28 +2240,39 @@ describe("Machine", () => {
             }
           }
         })
-      })
-        .handle.fulfillment({
+      }).handle({
+        fulfillment: {
           on: {
             Reset: ({ target }) => target.full.failed(new Failed({ message: "raised" }))
+          },
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+                  }
+                },
+                quoted: {
+                  type: "final",
+                  entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
+                }
+              }
+            }
           }
-        })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-          }
-        })
-        .handle.fulfillment.shipping.quoting({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
-          }
-        })
-        .handle.fulfillment.shipping.quoted({
-          type: "final",
-          entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
-        })
+        }
+      })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
@@ -2209,19 +2353,32 @@ describe("Machine", () => {
             }
           }
         })
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+                  }
+                }
+              }
+            }
+          }
+        }
       })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
-          }
-        })
-        .handle.fulfillment.shipping.quoting({
-          on: {
-            ReserveInventory: ({ event, target }) =>
-              target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
-          }
-        })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
@@ -2303,29 +2460,36 @@ describe("Machine", () => {
             }
           }
         })
-      })
-        .handle.fulfillment({
+      }).handle({
+        fulfillment: {
           on: {
             ReserveInventory: Effect.fn(function*({ target }) {
               const deferredLog = yield* DeferredLog
               yield* Machine.action(deferredLog.push("transition:parent"))
               return target.full.failed(new Failed({ message: "parent" }))
             })
+          },
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: Effect.fn(function*({ event, target }) {
+                      const deferredLog = yield* DeferredLog
+                      yield* Machine.action(deferredLog.push("transition:child"))
+                      return target.local.reserved(
+                        new InventoryReserved({
+                          reservationId: event.reservationId
+                        })
+                      )
+                    })
+                  }
+                }
+              }
+            }
           }
-        })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
-              const deferredLog = yield* DeferredLog
-              yield* Machine.action(deferredLog.push("transition:child"))
-              return target.local.reserved(
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
-            })
-          }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
       const snapshot = yield* sendAndWaitForSnapshot(
@@ -2415,49 +2579,62 @@ describe("Machine", () => {
             }
           }
         })
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  exit: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("exit:inventory.checking"))
+                  }),
+                  on: {
+                    ReserveInventory: Effect.fn(function*({ event, target }) {
+                      const deferredLog = yield* DeferredLog
+                      yield* Machine.action(deferredLog.push("transition:inventory"))
+                      return target.local.reserved(
+                        new InventoryReserved({
+                          reservationId: event.reservationId
+                        })
+                      )
+                    })
+                  }
+                },
+                reserved: {
+                  entry: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("entry:inventory.reserved"))
+                  })
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  exit: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("exit:shipping.quoting"))
+                  }),
+                  on: {
+                    ReserveInventory: Effect.fn(function*({ event, target }) {
+                      const deferredLog = yield* DeferredLog
+                      yield* Machine.action(deferredLog.push("transition:shipping"))
+                      return target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
+                    })
+                  }
+                },
+                quoted: {
+                  entry: Effect.fn(function*() {
+                    const deferredLog = yield* DeferredLog
+                    yield* Machine.action(deferredLog.push("entry:shipping.quoted"))
+                  })
+                }
+              }
+            }
+          }
+        }
       })
-        .handle.fulfillment.inventory.checking({
-          exit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("exit:inventory.checking"))
-          }),
-          on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
-              const deferredLog = yield* DeferredLog
-              yield* Machine.action(deferredLog.push("transition:inventory"))
-              return target.local.reserved(
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
-            })
-          }
-        })
-        .handle.fulfillment.inventory.reserved({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:inventory.reserved"))
-          })
-        })
-        .handle.fulfillment.shipping.quoting({
-          exit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("exit:shipping.quoting"))
-          }),
-          on: {
-            ReserveInventory: Effect.fn(function*({ event, target }) {
-              const deferredLog = yield* DeferredLog
-              yield* Machine.action(deferredLog.push("transition:shipping"))
-              return target.local.quoted(new ShippingQuoted({ quoteId: event.reservationId }))
-            })
-          }
-        })
-        .handle.fulfillment.shipping.quoted({
-          entry: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("entry:shipping.quoted"))
-          })
-        })
 
       const actor = yield* Machine.start(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
       yield* sendAndWaitForSnapshot(
@@ -2536,25 +2713,38 @@ describe("Machine", () => {
             }
           }
         })
+      }).handle({
+        fulfillment: {
+          states: {
+            inventory: {
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: Effect.fn(function*({ event, runtime, target }) {
+                      const machine = yield* runtime
+                      yield* machine.raise(new Resolve({}))
+                      return target.local.reserved(
+                        new InventoryReserved({
+                          reservationId: event.reservationId
+                        })
+                      )
+                    })
+                  }
+                }
+              }
+            },
+            shipping: {
+              states: {
+                quoting: {
+                  on: {
+                    Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "raised" }))
+                  }
+                }
+              }
+            }
+          }
+        }
       })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: Effect.fn(function*({ event, runtime, target }) {
-              const machine = yield* runtime
-              yield* machine.raise(new Resolve({}))
-              return target.local.reserved(
-                new InventoryReserved({
-                  reservationId: event.reservationId
-                })
-              )
-            })
-          }
-        })
-        .handle.fulfillment.shipping.quoting({
-          on: {
-            Resolve: ({ target }) => target.local.quoted(new ShippingQuoted({ quoteId: "raised" }))
-          }
-        })
 
       const initial = yield* Machine.planInitial(machine)
       const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
@@ -2652,11 +2842,13 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
-        })
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
+          })
+        }
       })
 
       const planned = yield* Machine.planInitial(machine, { userId: "user-1" }).pipe(
@@ -2680,11 +2872,13 @@ describe("Machine", () => {
           yield* Machine.action(deferredLog.push("initial"))
           return FlatInitial.Idle(new Idle({ userId }))
         })
-      }).handle.Idle({
-        entry: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
-        })
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
+          })
+        }
       })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
@@ -2703,8 +2897,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry"))
@@ -2714,13 +2908,14 @@ describe("Machine", () => {
             yield* Machine.action(deferredLog.push("always"))
             return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           })
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("loading-entry"))
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -2738,8 +2933,8 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           entry: Effect.fn(function*({ runtime }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry"))
@@ -2753,13 +2948,14 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("loading-entry"))
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -2824,8 +3020,10 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: ({ state }) => Machine.action(Effect.fail(new EntryError({ state: state._tag })))
+      }).handle({
+        Idle: {
+          entry: ({ state }) => Machine.action(Effect.fail(new EntryError({ state: state._tag })))
+        }
       })
 
       const error = yield* Effect.flip(Machine.start(machine, { userId: "user-1" }))
@@ -2848,12 +3046,14 @@ describe("Machine", () => {
       events: [Submit],
       input: Input,
       initial: (input) => FlatInitial.Idle(Idle.make({ userId: input.userId }))
-    }).handle.Idle({
-      on: {
-        Submit: Effect.fn(function*() {
-          yield* Machine.action(effect)
-          return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
-        })
+    }).handle({
+      Idle: {
+        on: {
+          Submit: Effect.fn(function*() {
+            yield* Machine.action(effect)
+            return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          })
+        }
       }
     })
 
@@ -2868,9 +3068,11 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+      }).handle({
+        Idle: {
+          on: {
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          }
         }
       })
 
@@ -2894,17 +3096,18 @@ describe("Machine", () => {
       events: [Submit, Reset],
       input: Input,
       initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-    })
-      .handle.Idle({
+    }).handle({
+      Idle: {
         on: {
           Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
         }
-      })
-      .handle.Loading({
+      },
+      Loading: {
         on: {
           Reset: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
         }
-      })
+      }
+    })
 
     assert.deepStrictEqual(Machine.enabled(machine, FlatInitial.Idle(new Idle({ userId: "user-1" }))), ["Submit"])
     assert.deepStrictEqual(
@@ -2919,15 +3122,16 @@ describe("Machine", () => {
       events: [Submit],
       input: Input,
       initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-    })
-      .handle.Idle({
+    }).handle({
+      Idle: {
         on: {
           Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
         }
-      })
-      .handle.Success({
+      },
+      Success: {
         type: "final"
-      })
+      }
+    })
 
     assert.deepStrictEqual(
       Machine.enabled(machine, FlatInitial.Success(new Success({ requestId: "request-1" }))),
@@ -2943,19 +3147,20 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("success"))
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -2979,16 +3184,17 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ event, state }) => `${state.requestId}:${event._tag}`
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3009,16 +3215,17 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -3035,9 +3242,11 @@ describe("Machine", () => {
         states: { Success },
         events: [Submit],
         initial: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
-      }).handle.Success({
-        type: "final",
-        output: ({ state }) => state.requestId
+      }).handle({
+        Success: {
+          type: "final",
+          output: ({ state }) => state.requestId
+        }
       })
 
       const planned = yield* Machine.planInitial(machine)
@@ -3059,15 +3268,16 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final"
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3087,16 +3297,17 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
             Reset: () => FlatInitial.Idle(new Idle({ userId: "user-2" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final"
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3117,9 +3328,11 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+      }).handle({
+        Idle: {
+          on: {
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          }
         }
       })
       const actor = yield* Machine.start(machine, { userId: "user-1" })
@@ -3140,8 +3353,10 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Success({
-        type: "final"
+      }).handle({
+        Success: {
+          type: "final"
+        }
       })
 
       const state = FlatInitial.Success(new Success({ requestId: "request-1" }))
@@ -3159,17 +3374,18 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
             Reset: () => FlatInitial.Idle(new Idle({ userId: "user-2" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3190,13 +3406,15 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: Effect.fn(function*() {
-            const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("submitted"))
-            return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
-          })
+      }).handle({
+        Idle: {
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* Machine.action(deferredLog.push("submitted"))
+              return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+            })
+          }
         }
       })
 
@@ -3217,9 +3435,11 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: () => {}
+      }).handle({
+        Idle: {
+          on: {
+            Submit: () => {}
+          }
         }
       })
 
@@ -3239,16 +3459,18 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: Effect.fn(function*() {
-            yield* Machine.action(
-              Effect.gen(function*() {
-                const deferredLog = yield* DeferredLog
-                yield* deferredLog.push("submitted")
-              })
-            )
-          })
+      }).handle({
+        Idle: {
+          on: {
+            Submit: Effect.fn(function*() {
+              yield* Machine.action(
+                Effect.gen(function*() {
+                  const deferredLog = yield* DeferredLog
+                  yield* deferredLog.push("submitted")
+                })
+              )
+            })
+          }
         }
       })
 
@@ -3272,20 +3494,24 @@ describe("Machine", () => {
       initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
     })
 
-    const machine1 = machine.handle.Idle({
-      on: {
-        Submit: Effect.fn(function*() {
-          yield* Machine.action(effect)
-          return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
-        })
+    const machine1 = machine.handle({
+      Idle: {
+        on: {
+          Submit: Effect.fn(function*() {
+            yield* Machine.action(effect)
+            return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          })
+        }
       }
     })
 
-    const machine2 = machine.handle.Idle({
-      on: {
-        Reset: Effect.fn(function*() {
-          return FlatInitial.Idle(new Idle({ userId: "user-1" }))
-        })
+    const machine2 = machine.handle({
+      Idle: {
+        on: {
+          Reset: Effect.fn(function*() {
+            return FlatInitial.Idle(new Idle({ userId: "user-1" }))
+          })
+        }
       }
     })
 
@@ -3301,20 +3527,21 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(Effect.succeed("submitted"))
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Reset: () => Effect.succeed(FlatInitial.Idle(new Idle({ userId: "user-1" })))
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3339,9 +3566,11 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+      }).handle({
+        Idle: {
+          on: {
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          }
         }
       })
 
@@ -3381,16 +3610,17 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3412,9 +3642,11 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        on: {
-          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+      }).handle({
+        Idle: {
+          on: {
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          }
         }
       })
 
@@ -3449,13 +3681,13 @@ describe("Machine", () => {
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: ({ state }) =>
@@ -3469,11 +3701,12 @@ describe("Machine", () => {
           on: {
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3498,8 +3731,8 @@ describe("Machine", () => {
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3509,11 +3742,12 @@ describe("Machine", () => {
             ParentRequestProgress: ({ event }) =>
               FlatInitial.Success(new Success({ requestId: `${event.id}:${event.loaded}` }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(parentMachine, { userId: "parent-user" })
 
@@ -3535,8 +3769,8 @@ describe("Machine", () => {
         emits: [ParentRequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           entry: ({ runtime }) =>
             Machine.action(
               Effect.gen(function*() {
@@ -3547,11 +3781,12 @@ describe("Machine", () => {
           on: {
             ParentRequestProgress: () => FlatInitial.Success(new Success({ requestId: "unexpected" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3570,8 +3805,8 @@ describe("Machine", () => {
         states: { Idle, Success },
         events: [Resolve],
         initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           entry: ({ runtime }) =>
             Machine.action(
               Effect.gen(function*() {
@@ -3582,11 +3817,12 @@ describe("Machine", () => {
           on: {
             Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.userId }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine)
 
@@ -3612,8 +3848,8 @@ describe("Machine", () => {
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3623,11 +3859,12 @@ describe("Machine", () => {
             ParentRequestProgress: ({ event }) =>
               FlatInitial.Success(new Success({ requestId: `${event.id}:${event.loaded}` }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(parentMachine, { userId: "parent-user" })
 
@@ -3657,8 +3894,8 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3673,17 +3910,18 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           entry: () => Machine.action(Machine.stopChild("child")),
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3715,8 +3953,8 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3731,17 +3969,18 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           entry: () => Machine.action(Machine.stopChild(Child)),
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3772,8 +4011,8 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3788,17 +4027,18 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           entry: () => Machine.action(Machine.stopChild("child")),
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -3821,8 +4061,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -3834,8 +4074,9 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({})
+        },
+        Loading: {}
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3857,13 +4098,13 @@ describe("Machine", () => {
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: ({ state }) =>
@@ -3877,11 +4118,12 @@ describe("Machine", () => {
           on: {
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3907,13 +4149,13 @@ describe("Machine", () => {
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: Request,
             src: () => childLogic,
@@ -3923,11 +4165,12 @@ describe("Machine", () => {
           on: {
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3949,13 +4192,13 @@ describe("Machine", () => {
         events: [Submit, RequestFailed],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () =>
@@ -3971,11 +4214,12 @@ describe("Machine", () => {
           on: {
             RequestFailed: ({ event }) => FlatInitial.Failed(new Failed({ message: event.error.message }))
           }
-        })
-        .handle.Failed({
+        },
+        Failed: {
           type: "final",
           output: ({ state }) => state.message
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -3996,13 +4240,13 @@ describe("Machine", () => {
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () => Machine.effect({ initial: "pending", run: () => Effect.never }),
@@ -4012,11 +4256,12 @@ describe("Machine", () => {
             RequestProgress: ({ event }) =>
               FlatInitial.Success(new Success({ requestId: `${event.id}:${event.childState}` }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4039,13 +4284,13 @@ describe("Machine", () => {
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () =>
@@ -4064,11 +4309,12 @@ describe("Machine", () => {
           on: {
             RequestProgress: ({ event }) => FlatInitial.Success(new Success({ requestId: event.childState }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4098,13 +4344,13 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () =>
@@ -4113,7 +4359,8 @@ describe("Machine", () => {
                 run: () => Effect.succeed("done")
               })
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4138,13 +4385,13 @@ describe("Machine", () => {
         events: [Submit, Reset, RequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () =>
@@ -4167,10 +4414,11 @@ describe("Machine", () => {
             }),
             RequestProgress: ({ event }) => FlatInitial.Success(new Success({ requestId: event.childState }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final"
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4199,13 +4447,13 @@ describe("Machine", () => {
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () =>
@@ -4227,10 +4475,11 @@ describe("Machine", () => {
             }),
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final"
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4273,13 +4522,13 @@ describe("Machine", () => {
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () => childLogic,
@@ -4298,10 +4547,11 @@ describe("Machine", () => {
             }),
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final"
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4352,13 +4602,13 @@ describe("Machine", () => {
         events: [Submit, Resolve, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () => childLogic,
@@ -4374,11 +4624,12 @@ describe("Machine", () => {
             Resolve: () => FlatInitial.Success(new Success({ requestId: "request-1" })),
             RequestSucceeded: ({ event }) => FlatInitial.Success(new Success({ requestId: event.value }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       const joinFiber = yield* actor.join.pipe(
@@ -4433,13 +4684,13 @@ describe("Machine", () => {
         events: [Submit, Reset, Resolve, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           invoke: Machine.invoke({
             id: "request",
             src: () => childLogic,
@@ -4458,7 +4709,8 @@ describe("Machine", () => {
               })
             }
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4520,28 +4772,31 @@ describe("Machine", () => {
             value: entering
           }
         })
-      })
-        .handle.payment({
+      }).handle({
+        payment: {
           invoke: Machine.invoke({
             id: "request",
             src: () => makeInvokeLogic("parent", parentStarted)
-          })
-        })
-        .handle.payment.entering({
-          invoke: Machine.invoke({
-            id: "request",
-            src: () => makeInvokeLogic("entering", enteringStarted)
           }),
-          on: {
-            Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+          states: {
+            entering: {
+              invoke: Machine.invoke({
+                id: "request",
+                src: () => makeInvokeLogic("entering", enteringStarted)
+              }),
+              on: {
+                Authorize: ({ event, target }) => target.local.authorized(new AuthorizedPayment({ code: event.code }))
+              }
+            },
+            authorized: {
+              invoke: Machine.invoke({
+                id: "request",
+                src: () => makeInvokeLogic("authorized", authorizedStarted)
+              })
+            }
           }
-        })
-        .handle.payment.authorized({
-          invoke: Machine.invoke({
-            id: "request",
-            src: () => makeInvokeLogic("authorized", authorizedStarted)
-          })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine)
       yield* Deferred.await(parentStarted)
@@ -4641,34 +4896,39 @@ describe("Machine", () => {
             }
           }
         })
-      })
-        .handle.fulfillment({
+      }).handle({
+        fulfillment: {
           invoke: Machine.invoke({
             id: "request",
             src: () => makeInvokeLogic(parentStarted, parentStopping)
-          })
-        })
-        .handle.fulfillment.inventory({
-          invoke: Machine.invoke({
-            id: "request",
-            src: () => makeInvokeLogic(inventoryStarted, inventoryStopping)
-          })
-        })
-        .handle.fulfillment.shipping({
-          invoke: Machine.invoke({
-            id: "request",
-            src: () => makeInvokeLogic(shippingStarted, shippingStopping)
-          })
-        })
-        .handle.fulfillment.inventory.checking({
-          on: {
-            ReserveInventory: ({ target }) => target.full.success(new Success({ requestId: "done" }))
+          }),
+          states: {
+            inventory: {
+              invoke: Machine.invoke({
+                id: "request",
+                src: () => makeInvokeLogic(inventoryStarted, inventoryStopping)
+              }),
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ target }) => target.full.success(new Success({ requestId: "done" }))
+                  }
+                }
+              }
+            },
+            shipping: {
+              invoke: Machine.invoke({
+                id: "request",
+                src: () => makeInvokeLogic(shippingStarted, shippingStopping)
+              })
+            }
           }
-        })
-        .handle.success({
+        },
+        success: {
           type: "final",
           output: ({ state }) => state.requestId
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine)
       const joinFiber = yield* actor.join.pipe(
@@ -4721,19 +4981,21 @@ describe("Machine", () => {
         events: [Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: () =>
-          Machine.action(
-            Machine.spawn(spawnedLogic, { id: "worker" }).pipe(
-              Effect.asVoid
-            )
-          ),
-        invoke: Machine.invoke({
-          id: "worker",
-          src: () => invokeLogic
-        }),
-        on: {
-          Resolve: () => Machine.action(Machine.stopChild("worker"))
+      }).handle({
+        Idle: {
+          entry: () =>
+            Machine.action(
+              Machine.spawn(spawnedLogic, { id: "worker" }).pipe(
+                Effect.asVoid
+              )
+            ),
+          invoke: Machine.invoke({
+            id: "worker",
+            src: () => invokeLogic
+          }),
+          on: {
+            Resolve: () => Machine.action(Machine.stopChild("worker"))
+          }
         }
       })
 
@@ -4779,15 +5041,16 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(Effect.succeed("submitted"))
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -4816,8 +5079,8 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -4830,7 +5093,8 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -4858,8 +5122,8 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               yield* Machine.action(
@@ -4873,7 +5137,8 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -4901,8 +5166,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           exit: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
@@ -4914,13 +5179,14 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push(`entry:${event._tag}`))
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -4948,8 +5214,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           exit: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("exit"))
@@ -4961,13 +5227,14 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("entry"))
           })
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -4988,8 +5255,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
@@ -4997,14 +5264,15 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           always: Effect.fn(function*({ event, state }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push(`always:${event._tag}`))
             return FlatInitial.Success(new Success({ requestId: state.requestId }))
           })
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -5026,8 +5294,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
@@ -5035,14 +5303,15 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           always: Effect.fn(function*({ state }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("always"))
             return FlatInitial.Success(new Success({ requestId: state.requestId }))
           })
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -5069,8 +5338,8 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*({ runtime }) {
               const machine = yield* runtime
@@ -5078,12 +5347,13 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -5102,18 +5372,19 @@ describe("Machine", () => {
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Resolve({}))),
           on: {
             Resolve: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
 
@@ -5136,8 +5407,8 @@ describe("Machine", () => {
         events: [Submit, Reset, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*({ runtime }) {
               const machine = yield* runtime
@@ -5146,17 +5417,18 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Reset: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           on: {
             Resolve: () => FlatInitial.Loading(new Loading({ requestId: "request-2" }))
           }
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -5176,8 +5448,8 @@ describe("Machine", () => {
         events: [Submit, Reset, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           exit: Effect.fn(function*({ runtime }) {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("exit"))
@@ -5193,8 +5465,8 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           on: {
             Reset: Effect.fn(function*() {
               const deferredLog = yield* DeferredLog
@@ -5205,7 +5477,8 @@ describe("Machine", () => {
               yield* Machine.action(deferredLog.push("resolve"))
             })
           }
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(DeferredLog, deferredLog)
@@ -5232,8 +5505,8 @@ describe("Machine", () => {
         events: [Submit, Reset],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: Effect.fn(function*({ runtime }) {
               const machine = yield* runtime
@@ -5241,18 +5514,19 @@ describe("Machine", () => {
               return FlatInitial.Loading(new Loading({ requestId: "request-1" }))
             })
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           always: ({ state }) => FlatInitial.Success(new Success({ requestId: state.requestId })),
           on: {
             Reset: () => FlatInitial.Idle(new Idle({ userId: "wrong" }))
           }
-        })
-        .handle.Success({
+        },
+        Success: {
           on: {
             Reset: () => FlatInitial.Loading(new Loading({ requestId: "request-2" }))
           }
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -5272,18 +5546,19 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           always: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
             yield* Machine.action(deferredLog.push("always"))
           })
-        })
+        }
+      })
 
       const planned = yield* Machine.plan(
         machine,
@@ -5304,16 +5579,17 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           always: () => FlatInitial.Loading(new Loading({ requestId: "request-1" })),
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           always: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
-        })
+        }
+      })
 
       const error = yield* Effect.flip(
         Machine.plan(machine, FlatInitial.Idle(new Idle({ userId: "user-1" })), new Submit({ value: "hello" }))
@@ -5333,20 +5609,22 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: Effect.fn(function*() {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push("entry"))
-        }),
-        exit: Effect.fn(function*() {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push("exit"))
-        }),
-        on: {
-          Submit: Effect.fn(function*() {
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*() {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push("transition"))
-          })
+            yield* Machine.action(deferredLog.push("entry"))
+          }),
+          exit: Effect.fn(function*() {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push("exit"))
+          }),
+          on: {
+            Submit: Effect.fn(function*() {
+              const deferredLog = yield* DeferredLog
+              yield* Machine.action(deferredLog.push("transition"))
+            })
+          }
         }
       })
 
@@ -5369,23 +5647,25 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
-        }),
-        exit: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
-        }),
-        on: {
-          Submit: {
-            reenter: true,
-            transition: Effect.fn(function*() {
-              const deferredLog = yield* DeferredLog
-              yield* Machine.action(deferredLog.push("transition"))
-              return FlatInitial.Idle(new Idle({ userId: "user-2" }))
-            })
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
+          }),
+          exit: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
+          }),
+          on: {
+            Submit: {
+              reenter: true,
+              transition: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("transition"))
+                return FlatInitial.Idle(new Idle({ userId: "user-2" }))
+              })
+            }
           }
         }
       })
@@ -5421,22 +5701,24 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        entry: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
-        }),
-        exit: Effect.fn(function*({ event }) {
-          const deferredLog = yield* DeferredLog
-          yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
-        }),
-        on: {
-          Submit: {
-            reenter: true,
-            transition: Effect.fn(function*() {
-              const deferredLog = yield* DeferredLog
-              yield* Machine.action(deferredLog.push("transition"))
-            })
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
+          }),
+          exit: Effect.fn(function*({ event }) {
+            const deferredLog = yield* DeferredLog
+            yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
+          }),
+          on: {
+            Submit: {
+              reenter: true,
+              transition: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* Machine.action(deferredLog.push("transition"))
+              })
+            }
           }
         }
       })
@@ -5465,8 +5747,8 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           exit: () =>
             ExitRequirement.pipe(
               Effect.flatMap((requirement) =>
@@ -5478,8 +5760,8 @@ describe("Machine", () => {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: () =>
             EntryRequirement.pipe(
               Effect.flatMap((requirement) =>
@@ -5488,7 +5770,8 @@ describe("Machine", () => {
                 )
               )
             )
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" }).pipe(
         Effect.provideService(EntryRequirement, EntryRequirement.of({ entryMessage: "entry" })),
@@ -5517,15 +5800,16 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      })
-        .handle.Idle({
+      }).handle({
+        Idle: {
           on: {
             Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
           }
-        })
-        .handle.Loading({
+        },
+        Loading: {
           entry: ({ state }) => Machine.action(Effect.fail(new EntryError({ state: state._tag })))
-        })
+        }
+      })
 
       const actor = yield* Machine.start(machine, { userId: "user-1" })
       yield* actor.send(new Submit({ value: "hello" }))
@@ -5543,10 +5827,12 @@ describe("Machine", () => {
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
-      }).handle.Idle({
-        exit: ({ state }) => Machine.action(Effect.fail(new ExitError({ state: state._tag }))),
-        on: {
-          Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+      }).handle({
+        Idle: {
+          exit: ({ state }) => Machine.action(Effect.fail(new ExitError({ state: state._tag }))),
+          on: {
+            Submit: () => FlatInitial.Loading(new Loading({ requestId: "request-1" }))
+          }
         }
       })
 

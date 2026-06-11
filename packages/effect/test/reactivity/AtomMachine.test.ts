@@ -59,15 +59,16 @@ const makeCounterMachine = () =>
     states: { Count, Done },
     events: [Finish],
     initial: () => MachineInitial.Count(new Count({ value: 0 }))
-  })
-    .handle.Count({
+  }).handle({
+    Count: {
       on: {
         Finish: ({ state, event }) => MachineInitial.Count(new Count({ value: state.value + event.by }))
       }
-    })
-    .handle.Done({
+    },
+    Done: {
       type: "final"
-    })
+    }
+  })
 
 describe("AtomMachine", () => {
   it.effect("exposes snapshots and sends events", () =>
@@ -144,7 +145,9 @@ describe("AtomMachine", () => {
           }
           return MachineInitial.Count(new Count({ value: 0 }))
         })
-      }).handle.Count({})
+      }).handle({
+        Count: {}
+      })
       const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
@@ -182,16 +185,17 @@ describe("AtomMachine", () => {
         states: { Count, Done },
         events: [Finish],
         initial: () => MachineInitial.Count(new Count({ value: 1 }))
-      })
-        .handle.Count({
+      }).handle({
+        Count: {
           on: {
             Finish: ({ state, event }) => MachineInitial.Done(new Done({ value: state.value + event.by }))
           }
-        })
-        .handle.Done({
+        },
+        Done: {
           type: "final",
           output: ({ state }) => state.value
-        })
+        }
+      })
       const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
@@ -216,18 +220,19 @@ describe("AtomMachine", () => {
         states: { Count, ValueRead },
         events: [ReadValue],
         initial: () => MachineInitial.Count(new Count({ value: 0 }))
-      })
-        .handle.Count({
+      }).handle({
+        Count: {
           on: {
             ReadValue: Effect.fn(function*() {
               const value = yield* Atom.get(valueAtom)
               return MachineInitial.ValueRead(new ValueRead({ value }))
             })
           }
-        })
-        .handle.ValueRead({
+        },
+        ValueRead: {
           type: "final"
-        })
+        }
+      })
       const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
@@ -253,12 +258,14 @@ describe("AtomMachine", () => {
         states: { Count },
         events: [Finish],
         initial: () => MachineInitial.Count(new Count({ value: 0 }))
-      }).handle.Count({
-        on: {
-          Finish: Effect.fn(function*({ event }) {
-            const multiplier = yield* Multiplier
-            return MachineInitial.Count(new Count({ value: multiplier.multiply(event.by) }))
-          })
+      }).handle({
+        Count: {
+          on: {
+            Finish: Effect.fn(function*({ event }) {
+              const multiplier = yield* Multiplier
+              return MachineInitial.Count(new Count({ value: multiplier.multiply(event.by) }))
+            })
+          }
         }
       })
       const bridge = AtomMachine.make(runtime, machine)
