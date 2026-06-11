@@ -1,5 +1,75 @@
 # effect
 
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- [#2364](https://github.com/Effect-TS/effect-smol/pull/2364) [`b9704dc`](https://github.com/Effect-TS/effect-smol/commit/b9704dc9de9f1649ad502371014fe869b69a49a3) Thanks @mikearnaldi! - Fix module-level side effects that defeated bundler tree-shaking.
+
+  Bare top-level statements cannot be `#__PURE__`-annotated by the build, so
+  bundlers must retain them and everything they reference, even in bundles that
+  never use the code:
+  - `Option`: the standalone `Object.defineProperty(SomeProto, "valueOrUndefined", ...)`
+    statement anchored the whole `Option` proto chain into every bundle. It is
+    now folded into the `SomeProto` initializer.
+  - `Headers`: same pattern with `Object.defineProperties(Proto, ...)`, folded
+    into the initializer.
+  - `Logger`: module-level `process.stdout.isTTY` property reads (potential
+    getters, never droppable) moved inside `consolePretty`.
+  - `Utils`: when `internalCall` was unused, its dropped binding left behind a
+    retained initializer tail (`standard`/`forced` probe with computed property
+    reads). The selection is now wrapped in a single pure-annotated call.
+
+  A minimal `Effect.succeed(123).pipe(Effect.runFork)` bundle shrinks by ~1.3%
+  gzipped; bundles that don't use `Option` or `Headers` no longer pay for them.
+
+- [#2339](https://github.com/Effect-TS/effect-smol/pull/2339) [`a207113`](https://github.com/Effect-TS/effect-smol/commit/a207113f66837bb54416926718a9a7d66774d079) Thanks @tim-smart! - Fix EntityManager defect restarts so in-flight requests are replayed instead of being dropped when the old entity scope is interrupted.
+
+- [#2362](https://github.com/Effect-TS/effect-smol/pull/2362) [`5e9b9e2`](https://github.com/Effect-TS/effect-smol/commit/5e9b9e217b164ebfd4a002dd4380b3b1563200c3) Thanks @fubhy! - Fix Graph traversal and shortest-path algorithms to traverse undirected edges independently of their stored source/target orientation.
+
+- [#2366](https://github.com/Effect-TS/effect-smol/pull/2366) [`7c128ae`](https://github.com/Effect-TS/effect-smol/commit/7c128aef458a1e2d224712e51c483c9badad1d44) Thanks @IMax153! - Fix string seed encoding in Random.withSeed so short, trailing, and astral UTF-8 bytes affect deterministic streams.
+
+- [#2352](https://github.com/Effect-TS/effect-smol/pull/2352) [`0ada457`](https://github.com/Effect-TS/effect-smol/commit/0ada457c0513d8d908254ab77ebb7d29d2b523d6) Thanks @alvarosevilla95! - Fix the Redis `RateLimiterStore` token-bucket failing with opaque errors under memory pressure: it now writes its keys with a TTL and guards against a missing refill timestamp.
+
+- [#2359](https://github.com/Effect-TS/effect-smol/pull/2359) [`d7cc5a2`](https://github.com/Effect-TS/effect-smol/commit/d7cc5a2bede3de10943aa0c6bdb4f26836a91efd) Thanks @gcanti! - Fix `Struct` key renaming and `Schema.encodeKeys` to support symbol keys, and reject duplicate encoded keys.
+
+- [#2365](https://github.com/Effect-TS/effect-smol/pull/2365) [`aad63be`](https://github.com/Effect-TS/effect-smol/commit/aad63becf65e0a6b076e94f8973be7bbe7fbd46f) Thanks @gcanti! - Fix `Schema` encoding so container-level checks are validated against the decoded value instead of the encoded output.
+
+  Disallow adding checks directly to `Schema.suspend(...)`; add the checks to the suspended schema instead.
+
+  Fix `StructWithRest` so index signatures do not re-parse or overwrite fixed properties.
+
+- [#2342](https://github.com/Effect-TS/effect-smol/pull/2342) [`09809f6`](https://github.com/Effect-TS/effect-smol/commit/09809f60f19ec98232f98b33e33e02ecb7e4fbd6) Thanks @gcanti! - Use generic ordered constraints for schema arbitrary derivation.
+
+  Range checks such as `isGreaterThan`, `isLessThan`, and `isBetween` now populate `ctx.constraints.ordered`
+  instead of type-specific range fields on `number`, `date`, or `bigint` constraints. Custom `toArbitrary`
+  annotations that read range constraints should migrate to `ctx.constraints.ordered`.
+
+  This also fixes BigDecimal arbitrary generation by adapting decimal bounds to the generated scale, avoiding
+  invalid fast-check bigint ranges for narrow decimal intervals.
+
+- [#2368](https://github.com/Effect-TS/effect-smol/pull/2368) [`2fddda5`](https://github.com/Effect-TS/effect-smol/commit/2fddda5311929f46b61e503f0ade4fc749e8c77d) Thanks @IMax153! - Encode HTTP API client path parameters when building request URLs.
+
+- [#2348](https://github.com/Effect-TS/effect-smol/pull/2348) [`5f21768`](https://github.com/Effect-TS/effect-smol/commit/5f2176833399757c4500d8875b7f2fba0393de75) Thanks @gcanti! - Update Schema arbitrary derivation to use the new filter metadata, candidate generation, optional derivation reports, recursion-aware generation, and the renamed `OrderedConstraint<T>` model.
+
+  Migration from the previous v4 API:
+  - Replace filter annotations from `toArbitraryConstraint: constraint` to `arbitrary: { constraint }`. When a filter cannot be described as a constraint, use `arbitrary: { candidate }` to add a weighted source that is still checked by the filter.
+  - Replace bucketed constraints with the flat `Schema.Annotations.ToArbitrary.Constraint` shape:
+    - `string.minLength`, `array.minLength`, object property counts, collection sizes -> `minLength`
+    - `string.maxLength`, `array.maxLength`, object property counts, collection sizes -> `maxLength`
+    - `string.patterns` -> `patterns`
+    - `number.isInteger` -> `integer`
+    - `number.noNaN` -> `noNaN`
+    - `number.noDefaultInfinity` -> `noInfinity`
+    - `date.noInvalidDate` -> `valid`
+    - `array.comparator` for uniqueness -> `unique` using Effect equality
+    - `ordered.min` / `minExcluded` / `max` / `maxExcluded` -> `ordered.minimum` / `exclusiveMinimum` / `maximum` / `exclusiveMaximum`
+  - In arbitrary hooks, read `context.constraint` instead of `context.constraints`. Replace `context.isSuspend` with `context.recursion`; when combining finite and recursive branches, pass `context.recursion` to `fc.oneof` with the finite branch first.
+  - Generic declaration hooks now receive type parameters as `{ arbitrary, terminal }`. Atomic declarations may still return a bare `FastCheck.Arbitrary<T>`, but generic declarations should return `{ arbitrary, terminal }` when they can preserve a finite terminal branch.
+  - `Schema.toArbitrary(schema, { report: true })` now returns `{ value, report }`; without `{ report: true }`, it keeps returning the arbitrary directly. `Schema.toArbitraryLazy` always returns a lazy arbitrary.
+
+- [#2343](https://github.com/Effect-TS/effect-smol/pull/2343) [`f27003e`](https://github.com/Effect-TS/effect-smol/commit/f27003e00524ff83f20dd9909f62b2f8795efe03) Thanks @MohanedMashaly! - Add meta-var that shows log level and bash options in command line.
+
 ## 4.0.0-beta.78
 
 ### Patch Changes

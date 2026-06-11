@@ -1,5 +1,14 @@
 # @effect/ai-anthropic
 
+## 4.0.0-beta.79
+
+### Patch Changes
+
+- [#2357](https://github.com/Effect-TS/effect-smol/pull/2357) [`3efe308`](https://github.com/Effect-TS/effect-smol/commit/3efe308fcc6ac642c65560efbd1b3afc68052553) Thanks @jbmusso! - Mark the Claude 4-6 generation as supporting native structured output in `getModelCapabilities`. `claude-opus-4-6` and `claude-sonnet-4-6` support Anthropic's constrained-decoding structured output (verified against the live API), but were classified as `supportsStructuredOutput: false`, so `generateObject` fell back to a forced JSON tool instead of requesting `output_config.format` (`json_schema`). `claude-opus-4-7` / `claude-opus-4-8` are classified the same way for when the generated `Model` enum picks them up.
+
+- Updated dependencies [[`b9704dc`](https://github.com/Effect-TS/effect-smol/commit/b9704dc9de9f1649ad502371014fe869b69a49a3), [`a207113`](https://github.com/Effect-TS/effect-smol/commit/a207113f66837bb54416926718a9a7d66774d079), [`5e9b9e2`](https://github.com/Effect-TS/effect-smol/commit/5e9b9e217b164ebfd4a002dd4380b3b1563200c3), [`7c128ae`](https://github.com/Effect-TS/effect-smol/commit/7c128aef458a1e2d224712e51c483c9badad1d44), [`0ada457`](https://github.com/Effect-TS/effect-smol/commit/0ada457c0513d8d908254ab77ebb7d29d2b523d6), [`d7cc5a2`](https://github.com/Effect-TS/effect-smol/commit/d7cc5a2bede3de10943aa0c6bdb4f26836a91efd), [`aad63be`](https://github.com/Effect-TS/effect-smol/commit/aad63becf65e0a6b076e94f8973be7bbe7fbd46f), [`09809f6`](https://github.com/Effect-TS/effect-smol/commit/09809f60f19ec98232f98b33e33e02ecb7e4fbd6), [`2fddda5`](https://github.com/Effect-TS/effect-smol/commit/2fddda5311929f46b61e503f0ade4fc749e8c77d), [`5f21768`](https://github.com/Effect-TS/effect-smol/commit/5f2176833399757c4500d8875b7f2fba0393de75), [`f27003e`](https://github.com/Effect-TS/effect-smol/commit/f27003e00524ff83f20dd9909f62b2f8795efe03)]:
+  - effect@4.0.0-beta.79
+
 ## 4.0.0-beta.78
 
 ### Patch Changes
