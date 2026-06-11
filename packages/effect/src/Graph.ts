@@ -1065,6 +1065,31 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
 }
 
 /**
+ * @internal
+ */
+const rebuildAdjacency = <N, E, T extends Kind = "directed">(
+  mutable: MutableGraph<N, E, T>
+): void => {
+  mutable.adjacency.clear()
+  mutable.reverseAdjacency.clear()
+
+  for (const nodeIndex of mutable.nodes.keys()) {
+    mutable.adjacency.set(nodeIndex, [])
+    mutable.reverseAdjacency.set(nodeIndex, [])
+  }
+
+  for (const [edgeIndex, edgeData] of mutable.edges) {
+    mutable.adjacency.get(edgeData.source)!.push(edgeIndex)
+    mutable.reverseAdjacency.get(edgeData.target)!.push(edgeIndex)
+
+    if (mutable.type === "undirected") {
+      mutable.adjacency.get(edgeData.target)!.push(edgeIndex)
+      mutable.reverseAdjacency.get(edgeData.source)!.push(edgeIndex)
+    }
+  }
+}
+
+/**
  * Swaps source and target nodes for every edge in a mutable graph.
  *
  * **Example** (Reversing edge directions)
@@ -1091,6 +1116,10 @@ export const mapEdges = <N, E, T extends Kind = "directed">(
 export const reverse = <N, E, T extends Kind = "directed">(
   mutable: MutableGraph<N, E, T>
 ): void => {
+  if (mutable.type === "undirected") {
+    return
+  }
+
   // Reverse all edges by swapping source and target
   for (const [index, edgeData] of mutable.edges) {
     mutable.edges.set(
@@ -1103,22 +1132,7 @@ export const reverse = <N, E, T extends Kind = "directed">(
     )
   }
 
-  // Clear and rebuild adjacency lists with reversed directions
-  mutable.adjacency.clear()
-  mutable.reverseAdjacency.clear()
-
-  // Rebuild adjacency lists with reversed directions
-  for (const [edgeIndex, edgeData] of mutable.edges) {
-    // Add to forward adjacency (source -> target)
-    const sourceEdges = mutable.adjacency.get(edgeData.source) || []
-    sourceEdges.push(edgeIndex)
-    mutable.adjacency.set(edgeData.source, sourceEdges)
-
-    // Add to reverse adjacency (target <- source)
-    const targetEdges = mutable.reverseAdjacency.get(edgeData.target) || []
-    targetEdges.push(edgeIndex)
-    mutable.reverseAdjacency.set(edgeData.target, targetEdges)
-  }
+  rebuildAdjacency(mutable)
 
   // Invalidate cycle flag since edge directions changed
   mutable.acyclic = Option.none()
@@ -1697,8 +1711,11 @@ export const hasEdge: {
   // Check if any edge in the adjacency list connects to the target
   for (const edgeIndex of adjacencyList) {
     const edge = graph.edges.get(edgeIndex)
-    if (edge !== undefined && edge.target === target) {
-      return true
+    if (edge !== undefined) {
+      const neighbor = graph.type === "undirected" && edge.target === source ? edge.source : edge.target
+      if (neighbor === target) {
+        return true
+      }
     }
   }
 
@@ -1734,6 +1751,31 @@ export const hasEdge: {
 export const edgeCount = <N, E, T extends Kind = "directed">(
   graph: Graph<N, E, T> | MutableGraph<N, E, T>
 ): number => graph.edges.size
+
+const getDirectedNeighbors = <N, E>(
+  graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
+  nodeIndex: NodeIndex,
+  direction: Direction
+): Array<NodeIndex> => {
+  const adjacencyMap = direction === "incoming"
+    ? graph.reverseAdjacency
+    : graph.adjacency
+
+  const adjacencyList = adjacencyMap.get(nodeIndex)
+  if (adjacencyList === undefined) {
+    return []
+  }
+
+  const result: Array<NodeIndex> = []
+  for (const edgeIndex of adjacencyList) {
+    const edge = graph.edges.get(edgeIndex)
+    if (edge !== undefined) {
+      result.push(direction === "incoming" ? edge.source : edge.target)
+    }
+  }
+
+  return result
+}
 
 /**
  * Returns the neighboring node indices for a node.
@@ -1787,24 +1829,92 @@ export const neighbors: {
     return getUndirectedNeighbors(graph as any, nodeIndex)
   }
 
-  const adjacencyList = graph.adjacency.get(nodeIndex)
-  if (adjacencyList === undefined) {
-    return []
-  }
-
-  const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList) {
-    const edge = graph.edges.get(edgeIndex)
-    if (edge !== undefined) {
-      result.push(edge.target)
-    }
-  }
-
-  return result
+  return getDirectedNeighbors(graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">, nodeIndex, "outgoing")
 })
 
 /**
- * Gets neighbors of a node in a specific direction for bidirectional traversal.
+ * Returns the outgoing neighbor node indices for a node in a directed graph.
+ *
+ * **When to use**
+ *
+ * Use when you need the nodes reached by following outgoing edges from a node in
+ * a directed graph.
+ *
+ * **Gotchas**
+ *
+ * Throws a `GraphError` when used with an undirected graph.
+ *
+ * @see {@link predecessors} for incoming neighbors in a directed graph
+ * @see {@link neighbors} for generic neighbor lookup across graph kinds
+ *
+ * @category queries
+ * @since 4.0.0
+ */
+export const successors: {
+  (
+    nodeIndex: NodeIndex
+  ): <N, E>(graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">) => Array<NodeIndex>
+  <N, E>(
+    graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
+    nodeIndex: NodeIndex
+  ): Array<NodeIndex>
+} = dual(2, <N, E, T extends Kind = "directed">(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): Array<NodeIndex> => {
+  if (graph.type === "undirected") {
+    throw new GraphError({ message: "Cannot get successors of undirected graph" })
+  }
+  return getDirectedNeighbors(graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">, nodeIndex, "outgoing")
+})
+
+/**
+ * Returns the incoming neighbor node indices for a node in a directed graph.
+ *
+ * **When to use**
+ *
+ * Use when you need the nodes that reach a node by following incoming edges in a
+ * directed graph.
+ *
+ * **Gotchas**
+ *
+ * Throws a `GraphError` when used with an undirected graph.
+ *
+ * @see {@link successors} for outgoing neighbors in a directed graph
+ * @see {@link neighbors} for generic neighbor lookup across graph kinds
+ *
+ * @category queries
+ * @since 4.0.0
+ */
+export const predecessors: {
+  (
+    nodeIndex: NodeIndex
+  ): <N, E>(graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">) => Array<NodeIndex>
+  <N, E>(
+    graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
+    nodeIndex: NodeIndex
+  ): Array<NodeIndex>
+} = dual(2, <N, E, T extends Kind = "directed">(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  nodeIndex: NodeIndex
+): Array<NodeIndex> => {
+  if (graph.type === "undirected") {
+    throw new GraphError({ message: "Cannot get predecessors of undirected graph" })
+  }
+  return getDirectedNeighbors(graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">, nodeIndex, "incoming")
+})
+
+/**
+ * Gets directed neighbors of a node in a specific direction.
+ *
+ * **When to use**
+ *
+ * Use when maintaining existing code that already passes an explicit traversal
+ * direction. New code should prefer `successors` or `predecessors`.
+ *
+ * **Gotchas**
+ *
+ * Throws a `GraphError` when used with an undirected graph.
  *
  * **Example** (Traversing directed neighbors)
  *
@@ -1827,6 +1937,9 @@ export const neighbors: {
  * const incoming = Graph.neighborsDirected(graph, nodeB, "incoming")
  * ```
  *
+ * @deprecated Use {@link successors} for outgoing neighbors or {@link predecessors} for incoming neighbors.
+ * @see {@link successors} for outgoing neighbors in a directed graph
+ * @see {@link predecessors} for incoming neighbors in a directed graph
  * @category queries
  * @since 3.18.0
  */
@@ -1834,9 +1947,9 @@ export const neighborsDirected: {
   (
     nodeIndex: NodeIndex,
     direction: Direction
-  ): <N, E, T extends Kind = "directed">(graph: Graph<N, E, T> | MutableGraph<N, E, T>) => Array<NodeIndex>
-  <N, E, T extends Kind = "directed">(
-    graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  ): <N, E>(graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">) => Array<NodeIndex>
+  <N, E>(
+    graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
     nodeIndex: NodeIndex,
     direction: Direction
   ): Array<NodeIndex>
@@ -1845,28 +1958,10 @@ export const neighborsDirected: {
   nodeIndex: NodeIndex,
   direction: Direction
 ): Array<NodeIndex> => {
-  const adjacencyMap = direction === "incoming"
-    ? graph.reverseAdjacency
-    : graph.adjacency
-
-  const adjacencyList = adjacencyMap.get(nodeIndex)
-  if (adjacencyList === undefined) {
-    return []
+  if (graph.type === "undirected") {
+    throw new GraphError({ message: "Cannot get directed neighbors of undirected graph" })
   }
-
-  const result: Array<NodeIndex> = []
-  for (const edgeIndex of adjacencyList) {
-    const edge = graph.edges.get(edgeIndex)
-    if (edge !== undefined) {
-      // For incoming direction, we want the source node instead of target
-      const neighborNode = direction === "incoming"
-        ? edge.source
-        : edge.target
-      result.push(neighborNode)
-    }
-  }
-
-  return result
+  return getDirectedNeighbors(graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">, nodeIndex, direction)
 })
 
 // =============================================================================
@@ -2635,7 +2730,11 @@ export const isAcyclic = <N, E, T extends Kind = "directed">(
         recursionStack.add(node)
 
         // Get neighbors for this node
-        const nodeNeighbors = Array.from(neighborsDirected(graph, node, "outgoing"))
+        const nodeNeighbors = getDirectedNeighbors(
+          graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
+          node,
+          "outgoing"
+        )
         stack[stack.length - 1] = [node, nodeNeighbors, 0, false]
         continue
       }
@@ -2789,7 +2888,7 @@ const getTraversalNeighbors = <N, E, T extends Kind>(
 ): Array<NodeIndex> =>
   graph.type === "undirected"
     ? getUndirectedNeighbors(graph as any, nodeIndex)
-    : neighborsDirected(graph, nodeIndex, direction)
+    : getDirectedNeighbors(graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">, nodeIndex, direction)
 
 const getTraversableNeighbor = <E, T extends Kind>(
   graph: Graph<unknown, E, T> | MutableGraph<unknown, E, T>,
@@ -2860,6 +2959,10 @@ export const connectedComponents = <N, E>(
  * Finds strongly connected components in a directed graph using Kosaraju's algorithm.
  * Each SCC is represented as an array of node indices.
  *
+ * **Gotchas**
+ *
+ * Throws a `GraphError` when used with an undirected graph.
+ *
  * **Example** (Finding strongly connected components)
  *
  * ```ts
@@ -2881,9 +2984,13 @@ export const connectedComponents = <N, E>(
  * @category algorithms
  * @since 3.18.0
  */
-export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
-  graph: Graph<N, E, T> | MutableGraph<N, E, T>
+export const stronglyConnectedComponents = <N, E>(
+  graph: Graph<N, E, "directed"> | MutableGraph<N, E, "directed">
 ): Array<Array<NodeIndex>> => {
+  if ((graph as Graph<N, E, Kind> | MutableGraph<N, E, Kind>).type === "undirected") {
+    throw new GraphError({ message: "Cannot find strongly connected components of undirected graph" })
+  }
+
   const visited = new Set<NodeIndex>()
   const finishOrder: Array<NodeIndex> = []
   // Iterate directly over node keys
@@ -2909,7 +3016,7 @@ export const stronglyConnectedComponents = <N, E, T extends Kind = "directed">(
         }
 
         visited.add(node)
-        const nodeNeighborsList = neighbors(graph, node)
+        const nodeNeighborsList = getDirectedNeighbors(graph, node, "outgoing")
         stack[stack.length - 1] = [node, nodeNeighborsList, 0, false]
         continue
       }
@@ -3042,6 +3149,22 @@ export interface DijkstraConfig<E> {
   cost: (edgeData: E) => number
 }
 
+const validateNonNegativeEdgeWeights = <N, E, T extends Kind = "directed">(
+  graph: Graph<N, E, T> | MutableGraph<N, E, T>,
+  cost: (edgeData: E) => number,
+  algorithm: string
+): Map<EdgeIndex, number> => {
+  const edgeWeights = new Map<EdgeIndex, number>()
+  for (const [edgeIndex, edgeData] of graph.edges) {
+    const weight = cost(edgeData.data)
+    if (weight < 0 || Number.isNaN(weight)) {
+      throw new GraphError({ message: `${algorithm} requires non-negative edge weights` })
+    }
+    edgeWeights.set(edgeIndex, weight)
+  }
+  return edgeWeights
+}
+
 /**
  * Finds the shortest path from the configured source node to the target node
  * using Dijkstra's algorithm.
@@ -3100,6 +3223,8 @@ export const dijkstra: {
   if (!graph.nodes.has(config.target)) {
     throw missingNode(config.target)
   }
+
+  const edgeWeights = validateNonNegativeEdgeWeights(graph, config.cost, "Dijkstra's algorithm")
 
   // Early return if source equals target
   if (config.source === config.target) {
@@ -3161,12 +3286,7 @@ export const dijkstra: {
         const edge = graph.edges.get(edgeIndex)
         if (edge !== undefined) {
           const neighbor = getTraversableNeighbor(graph, currentNode, edge)
-          const cost = config.cost(edge.data)
-
-          // Validate non-negative weights
-          if (cost < 0) {
-            throw new GraphError({ message: "Dijkstra's algorithm requires non-negative edge weights" })
-          }
+          const cost = edgeWeights.get(edgeIndex)!
 
           const newDistance = currentDistance + cost
           const neighborDistance = distances.get(neighbor)!
@@ -3435,7 +3555,7 @@ export interface AstarConfig<E, N> {
  * **Details**
  *
  * The edge-cost function must return non-negative weights, and the heuristic
- * should be admissible to preserve shortest-path guarantees. Returns
+ * should be consistent to preserve shortest-path guarantees. Returns
  * `Option.none()` when the target is not reachable, and throws a `GraphError`
  * when either endpoint is missing or a negative edge cost is encountered.
  *
@@ -3493,6 +3613,8 @@ export const astar: {
   if (!graph.nodes.has(config.target)) {
     throw missingNode(config.target)
   }
+
+  const edgeWeights = validateNonNegativeEdgeWeights(graph, config.cost, "A* algorithm")
 
   // Early return if source equals target
   if (config.source === config.target) {
@@ -3569,12 +3691,7 @@ export const astar: {
         const edge = graph.edges.get(edgeIndex)
         if (edge !== undefined) {
           const neighbor = getTraversableNeighbor(graph, currentNode, edge)
-          const weight = config.cost(edge.data)
-
-          // Validate non-negative weights
-          if (weight < 0) {
-            throw new GraphError({ message: "A* algorithm requires non-negative edge weights" })
-          }
+          const weight = edgeWeights.get(edgeIndex)!
 
           const tentativeGScore = currentGScore + weight
           const neighborGScore = gScore.get(neighbor)!
@@ -4293,14 +4410,17 @@ export const bfs: {
  *
  * **When to use**
  *
- * Use to seed a topological sort with specific initial node indices instead of
- * starting from every zero in-degree node.
+ * Use to prioritize specific zero in-degree nodes in a topological sort.
  *
  * **Details**
  *
- * `initials` optionally supplies the node indices used as initial queue
- * entries. When omitted, topological sorting starts from all nodes with zero
- * in-degree.
+ * `initials` optionally supplies zero in-degree node indices used as
+ * prioritized initial queue entries. Topological sorting still includes the
+ * other zero in-degree nodes and produces a complete topological order.
+ *
+ * **Gotchas**
+ *
+ * Throws a `GraphError` when any initial node has incoming edges.
  *
  * @see {@link topo} for the iterator that consumes this configuration
  *
@@ -4388,6 +4508,7 @@ export const topo: {
     [Symbol.iterator]: () => {
       const inDegree = new Map<NodeIndex, number>()
       const remaining = new Set<NodeIndex>()
+      const initialSet = new Set(initials)
       const queue = [...initials]
 
       // Initialize in-degree counts
@@ -4402,12 +4523,16 @@ export const topo: {
         inDegree.set(edgeData.target, currentInDegree + 1)
       }
 
-      // Add nodes with zero in-degree to queue if no initials provided
-      if (initials.length === 0) {
-        for (const [nodeIndex, degree] of inDegree) {
-          if (degree === 0) {
-            queue.push(nodeIndex)
-          }
+      for (const nodeIndex of initials) {
+        if (inDegree.get(nodeIndex)! !== 0) {
+          throw new GraphError({ message: `Initial node ${nodeIndex} has incoming edges` })
+        }
+      }
+
+      // Add remaining zero in-degree nodes after prioritized initials.
+      for (const [nodeIndex, degree] of inDegree) {
+        if (degree === 0 && !initialSet.has(nodeIndex)) {
+          queue.push(nodeIndex)
         }
       }
 
@@ -4419,7 +4544,11 @@ export const topo: {
             remaining.delete(current)
 
             // Process outgoing edges, reducing in-degree of targets
-            const neighbors = neighborsDirected(graph, current, "outgoing")
+            const neighbors = getDirectedNeighbors(
+              graph as Graph<N, E, "directed"> | MutableGraph<N, E, "directed">,
+              current,
+              "outgoing"
+            )
             for (const neighbor of neighbors) {
               if (remaining.has(neighbor)) {
                 const currentInDegree = inDegree.get(neighbor) || 0
