@@ -2179,6 +2179,13 @@ export function toSchema<S extends Schema.Top = Schema.Top>(document: Document, 
  * Use when you need to produce a standard JSON Schema document from a schema
  * representation `Document`.
  *
+ * **Gotchas**
+ *
+ * JSON Schema generation is best-effort. Some Effect schema representation
+ * semantics cannot be represented exactly in JSON Schema, and importing an
+ * emitted JSON Schema may produce an equivalent approximation rather than the
+ * original representation shape.
+ *
  * **Example** (Generating JSON Schema)
  *
  * ```ts
@@ -2210,6 +2217,13 @@ export const toJsonSchemaDocument: (
  *
  * Use when you need to export related schema representation documents together
  * so shared definitions stay in multi-document JSON Schema form.
+ *
+ * **Gotchas**
+ *
+ * JSON Schema generation is best-effort. Some Effect schema representation
+ * semantics cannot be represented exactly in JSON Schema, and importing an
+ * emitted JSON Schema may produce equivalent approximations rather than the
+ * original representation shapes.
  *
  * @see {@link MultiDocument}
  * @see {@link toJsonSchemaDocument}
@@ -2962,6 +2976,11 @@ function toRuntimeRegExp(regExp: RegExp): string {
  *
  * **Gotchas**
  *
+ * JSON Schema import is best-effort. Some JSON Schema constructs do not map
+ * exactly to Effect schema representations, and importing a schema previously
+ * emitted by `toJsonSchemaDocument` may produce an equivalent approximation
+ * rather than the original representation shape.
+ *
  * This throws if a `$ref` cannot be resolved within the document's definitions.
  * Circular `$ref`s are detected and cause an error.
  *
@@ -3001,6 +3020,11 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
  * processing.
  *
  * **Gotchas**
+ *
+ * JSON Schema import is best-effort. Some JSON Schema constructs do not map
+ * exactly to Effect schema representations, and importing schemas previously
+ * emitted by `toJsonSchemaMultiDocument` may produce equivalent approximations
+ * rather than the original representation shapes.
  *
  * This throws if a `$ref` cannot be resolved.
  *

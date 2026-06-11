@@ -362,8 +362,9 @@ export function toJsonSchemaMultiDocument(
     switch (schema._tag) {
       case "Any":
       case "Unknown":
-      case "ObjectKeyword":
         return {}
+      case "ObjectKeyword":
+        return { anyOf: [{ type: "object" }, { type: "array" }] }
       case "Void":
       case "Undefined":
         return { type: "null" }

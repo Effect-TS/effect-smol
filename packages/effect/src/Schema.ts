@@ -12850,6 +12850,13 @@ export interface ToJsonSchemaOptions {
  * properties and synthesized check descriptions; it does not change the draft
  * target.
  *
+ * **Gotchas**
+ *
+ * JSON Schema generation is best-effort. Some Effect schema semantics cannot
+ * be represented exactly in JSON Schema, and importing an emitted JSON Schema
+ * may produce an equivalent approximation rather than the original schema
+ * shape.
+ *
  * @category converting
  * @since 4.0.0
  */

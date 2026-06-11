@@ -1639,13 +1639,17 @@ describe("toJsonSchemaDocument", () => {
     assertJsonSchemaDocument(
       schema,
       {
-        schema: {}
+        schema: { anyOf: [{ type: "object" }, { type: "array" }] }
       }
     )
     assertJsonSchemaDocument(
       schema.annotate({ description: "a" }),
       {
         schema: {
+          "anyOf": [
+            { "type": "object" },
+            { "type": "array" }
+          ],
           "description": "a"
         }
       }
