@@ -4,6 +4,105 @@ import { TestClock } from "effect/testing"
 import { RateLimiter } from "effect/unstable/persistence"
 
 describe(`RateLimiter`, () => {
+  describe("retry-after", () => {
+    it.effect("stores, extends, and expires retry-after delays", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.zero)
+
+        yield* store.setRetryAfter({ key: "a", duration: Duration.minutes(1) })
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.minutes(1))
+
+        yield* TestClock.adjust(Duration.seconds(10))
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.seconds(50))
+
+        yield* store.setRetryAfter({ key: "a", duration: Duration.seconds(5) })
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.seconds(50))
+
+        yield* store.setRetryAfter({ key: "a", duration: Duration.minutes(2) })
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.minutes(2))
+
+        yield* TestClock.adjust(Duration.minutes(2))
+        assert.deepStrictEqual(yield* store.getRetryAfter({ key: "a" }), Duration.zero)
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("makes consume fail or delay while retry-after is active", () =>
+      Effect.gen(function*() {
+        const limiter = yield* RateLimiter.make
+        const store = yield* RateLimiter.RateLimiterStore
+        const consumeFail = limiter.consume({
+          algorithm: "fixed-window",
+          onExceeded: "fail",
+          window: "1 minute",
+          limit: 1,
+          key: "a"
+        })
+        const consumeDelay = limiter.consume({
+          algorithm: "fixed-window",
+          onExceeded: "delay",
+          window: "1 minute",
+          limit: 1,
+          key: "a"
+        })
+
+        yield* store.setRetryAfter({ key: "a", duration: Duration.millis(100) })
+
+        const error = yield* Effect.flip(consumeFail)
+        if (error.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(error.reason.retryAfter, Duration.millis(100))
+
+        const delayed = yield* consumeDelay
+        assert.deepStrictEqual(delayed.delay, Duration.millis(100))
+
+        yield* TestClock.adjust(Duration.millis(100))
+        const result = yield* consumeFail
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.remaining, 0)
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("shares retry-after state across limiters backed by the same store", () =>
+      Effect.gen(function*() {
+        const limiterA = yield* RateLimiter.make
+        const limiterB = yield* RateLimiter.make
+        const store = yield* RateLimiter.RateLimiterStore
+
+        yield* store.setRetryAfter({ key: "a", duration: Duration.millis(100) })
+
+        const errorA = yield* Effect.flip(limiterA.consume({
+          algorithm: "fixed-window",
+          onExceeded: "fail",
+          window: "1 minute",
+          limit: 1,
+          key: "a"
+        }))
+        if (errorA.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(errorA.reason.retryAfter, Duration.millis(100))
+
+        const error = yield* Effect.flip(limiterB.consume({
+          algorithm: "fixed-window",
+          onExceeded: "fail",
+          window: "1 minute",
+          limit: 1,
+          key: "a"
+        }))
+        if (error.reason._tag !== "RateLimitExceeded") {
+          throw new Error("Expected RateLimitExceeded")
+        }
+        assert.deepStrictEqual(error.reason.retryAfter, Duration.millis(100))
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+  })
+
   describe("fixed-window", () => {
     it.effect("returns accumulated delays after the fixed window is exceeded", () =>
       Effect.gen(function*() {
