@@ -3048,6 +3048,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   }
 
   const slots = new Map<string, Slot>()
+  let jsonRepresentation: Declaration | undefined
 
   function getSlot(identifier: string): Slot {
     const existing = slots.get(identifier)
@@ -3091,11 +3092,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
   Object.entries(document.definitions).forEach(([identifier, definition]) => {
     visited = new Set<string>([identifier])
-    references[identifier] = recur(definition)
+    references[identifier] = unknownToJson(recur(definition))
   })
 
   visited = new Set<string>()
-  const representations = Arr.map(document.schemas, recur)
+  const representations = Arr.map(document.schemas, (schema) => unknownToJson(recur(schema)))
   return {
     representations,
     references
@@ -3528,6 +3529,86 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
       }
     }
     return out
+  }
+
+  function getJsonRepresentation(): Declaration {
+    return jsonRepresentation ??= fromAST(Schema.Json.ast).representation as Declaration
+  }
+
+  function makeJson(annotations: Schema.Annotations.Annotations | undefined): Representation {
+    const json = getJsonRepresentation()
+    return annotations === undefined
+      ? json
+      : {
+        ...json,
+        annotations: {
+          ...("annotations" in json ? json.annotations : undefined),
+          ...annotations
+        }
+      }
+  }
+
+  function unknownToJson(representation: Representation): Representation {
+    switch (representation._tag) {
+      case "Unknown":
+        return makeJson(representation.annotations)
+      case "Declaration":
+      case "Reference":
+        return representation
+      case "Suspend": {
+        const thunk = unknownToJson(representation.thunk)
+        return thunk === representation.thunk ? representation : { ...representation, thunk }
+      }
+      case "String": {
+        if (representation.contentSchema === undefined) return representation
+        const contentSchema = unknownToJson(representation.contentSchema)
+        return contentSchema === representation.contentSchema ? representation : { ...representation, contentSchema }
+      }
+      case "Arrays": {
+        let changed = false
+        const elements = representation.elements.map((element) => {
+          const type = unknownToJson(element.type)
+          if (type === element.type) return element
+          changed = true
+          return { ...element, type }
+        })
+        const rest = representation.rest.map((schema) => {
+          const type = unknownToJson(schema)
+          if (type === schema) return schema
+          changed = true
+          return type
+        })
+        return changed ? { ...representation, elements, rest } : representation
+      }
+      case "Objects": {
+        let changed = false
+        const propertySignatures = representation.propertySignatures.map((propertySignature) => {
+          const type = unknownToJson(propertySignature.type)
+          if (type === propertySignature.type) return propertySignature
+          changed = true
+          return { ...propertySignature, type }
+        })
+        const indexSignatures = representation.indexSignatures.map((indexSignature) => {
+          const type = unknownToJson(indexSignature.type)
+          if (type === indexSignature.type) return indexSignature
+          changed = true
+          return { ...indexSignature, type }
+        })
+        return changed ? { ...representation, propertySignatures, indexSignatures } : representation
+      }
+      case "Union": {
+        let changed = false
+        const types = representation.types.map((schema) => {
+          const type = unknownToJson(schema)
+          if (type === schema) return schema
+          changed = true
+          return type
+        })
+        return changed ? { ...representation, types } : representation
+      }
+      default:
+        return representation
+    }
   }
 }
 
