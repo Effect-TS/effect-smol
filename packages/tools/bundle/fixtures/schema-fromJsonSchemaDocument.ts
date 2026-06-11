@@ -1,4 +1,4 @@
-import { SchemaRepresentation } from "effect"
+import * as SchemaRepresentation from "effect/SchemaRepresentation"
 
 const doc = SchemaRepresentation.fromJsonSchemaDocument({
   "dialect": "draft-2020-12",
