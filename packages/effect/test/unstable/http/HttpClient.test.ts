@@ -16,7 +16,7 @@ const makeStatusClient = Effect.fnUntraced(function*(status: number) {
   return { attempts, client } as const
 })
 
-const RateLimiterTestLayer = RateLimiter.layer.pipe(Layer.provide(RateLimiter.layerStoreMemory))
+const RateLimiterTestLayer = RateLimiter.layer.pipe(Layer.provideMerge(RateLimiter.layerStoreMemory))
 
 describe("HttpClient", () => {
   describe("retryTransient", () => {
@@ -395,6 +395,125 @@ describe("HttpClient", () => {
         yield* Fiber.join(fiber)
         strictEqual(yield* Ref.get(attempts), 4)
       }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("shares Retry-After across separate rate-limited clients", () =>
+      Effect.gen(function*() {
+        const attemptsA = yield* Ref.make(0)
+        const attemptsB = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.RateLimiter
+        const options = {
+          limiter,
+          key: "test",
+          limit: 1,
+          window: "100 millis"
+        } as const
+
+        const clientA = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attemptsA, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 2
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "Retry-After": "0.2" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(HttpClient.withRateLimiter(options))
+
+        const clientB = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attemptsB, (n) => n + 1),
+            () => HttpClientResponse.fromWeb(request, new Response(null, { status: 200 }))
+          )
+        ).pipe(HttpClient.withRateLimiter(options))
+
+        const fiberA = yield* Effect.forEach([1, 2], (n) => clientA.get(`http://test/a/${n}`), {
+          concurrency: "unbounded",
+          discard: true
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        yield* TestClock.adjust("100 millis")
+        strictEqual(yield* Ref.get(attemptsA), 2)
+
+        const fiberB = yield* clientB.get("http://test/b").pipe(Effect.forkChild({ startImmediately: true }))
+
+        // Different wrapper, same limiter key. It must see clientA's Retry-After.
+        yield* TestClock.adjust("199 millis")
+        strictEqual(yield* Ref.get(attemptsB), 0)
+
+        yield* TestClock.adjust("301 millis")
+        yield* Fiber.join(fiberA)
+        yield* Fiber.join(fiberB)
+        strictEqual(yield* Ref.get(attemptsB), 1)
+      }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("shares Retry-After across separate limiters backed by the same store", () =>
+      Effect.gen(function*() {
+        const attemptsA = yield* Ref.make(0)
+        const attemptsB = yield* Ref.make(0)
+        const limiterA = yield* RateLimiter.make
+        const limiterB = yield* RateLimiter.make
+
+        const clientA = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attemptsA, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 2
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "Retry-After": "0.2" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter: limiterA,
+            key: "test",
+            limit: 1,
+            window: "100 millis"
+          })
+        )
+
+        const clientB = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attemptsB, (n) => n + 1),
+            () => HttpClientResponse.fromWeb(request, new Response(null, { status: 200 }))
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter: limiterB,
+            key: "test",
+            limit: 1,
+            window: "100 millis"
+          })
+        )
+
+        const fiberA = yield* Effect.forEach([1, 2], (n) => clientA.get(`http://test/a/${n}`), {
+          concurrency: "unbounded",
+          discard: true
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        yield* TestClock.adjust("100 millis")
+        strictEqual(yield* Ref.get(attemptsA), 2)
+
+        const fiberB = yield* clientB.get("http://test/b").pipe(Effect.forkChild({ startImmediately: true }))
+
+        // Different limiter values, same store key. The store-backed Retry-After must apply.
+        yield* TestClock.adjust("199 millis")
+        strictEqual(yield* Ref.get(attemptsB), 0)
+
+        yield* TestClock.adjust("301 millis")
+        yield* Fiber.join(fiberA)
+        yield* Fiber.join(fiberB)
+        strictEqual(yield* Ref.get(attemptsB), 1)
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory)))
 
     it.effect("retries HttpClientError 429 failures through the limiter", () =>
       Effect.gen(function*() {

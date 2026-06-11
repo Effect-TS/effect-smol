@@ -35,6 +35,15 @@ export const TypeId: TypeId = "~effect/persistence/RateLimiter"
  */
 export type TypeId = "~effect/persistence/RateLimiter"
 
+type SetRetryAfter = (options: {
+  readonly key: string
+  readonly duration: Duration.Duration
+}) => Effect.Effect<void, RateLimiterError>
+
+type GetRetryAfter = (options: {
+  readonly key: string
+}) => Effect.Effect<Duration.Duration, RateLimiterError>
+
 /**
  * Service for consuming rate-limit tokens for a key using fixed-window or
  * token-bucket algorithms.
@@ -86,16 +95,35 @@ export const make: Effect.Effect<
 > = Effect.gen(function*() {
   const store = yield* RateLimiterStore
 
-  return identity<RateLimiter>({
-    [TypeId]: TypeId,
-    consume(options) {
-      const tokens = options.tokens ?? 1
-      const onExceeded = options.onExceeded ?? "fail"
-      const algorithm = options.algorithm ?? "fixed-window"
-      const window = Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
-      const windowMillis = Duration.toMillis(window)
-      const refillRate = Duration.divideUnsafe(window, options.limit)
-      const refillRateMillis = Duration.toMillis(refillRate)
+  const consume: RateLimiter["consume"] = (options) => {
+    const tokens = options.tokens ?? 1
+    const onExceeded = options.onExceeded ?? "fail"
+    const algorithm = options.algorithm ?? "fixed-window"
+    const window = Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
+    const windowMillis = Duration.toMillis(window)
+    const refillRate = Duration.divideUnsafe(window, options.limit)
+    const refillRateMillis = Duration.toMillis(refillRate)
+
+    return Effect.flatMap(store.getRetryAfter({ key: options.key }), (delay) => {
+      if (!Duration.isZero(delay)) {
+        return onExceeded === "fail"
+          ? Effect.fail(
+            new RateLimiterError({
+              reason: new RateLimitExceeded({
+                key: options.key,
+                retryAfter: delay,
+                limit: options.limit,
+                remaining: 0
+              })
+            })
+          )
+          : Effect.succeed<ConsumeResult>({
+            delay,
+            limit: options.limit,
+            remaining: 0,
+            resetAfter: delay
+          })
+      }
 
       if (tokens > options.limit) {
         return onExceeded === "fail"
@@ -207,7 +235,12 @@ export const make: Effect.Effect<
           })
         }
       )
-    }
+    })
+  }
+
+  return identity<RateLimiter>({
+    [TypeId]: TypeId,
+    consume
   })
 })
 
@@ -517,6 +550,17 @@ export class RateLimiterStore extends Context.Service<
       readonly refillRate: Duration.Duration
       readonly allowOverflow: boolean
     }) => Effect.Effect<number, RateLimiterError>
+
+    /**
+     * Records a server-provided retry-after delay for the key, keeping the later
+     * deadline when one already exists.
+     */
+    readonly setRetryAfter: SetRetryAfter
+
+    /**
+     * Returns the remaining server-provided retry-after delay for the key.
+     */
+    readonly getRetryAfter: GetRetryAfter
   }
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
 
@@ -531,6 +575,7 @@ export const layerStoreMemory: Layer.Layer<
 > = Layer.sync(RateLimiterStore, () => {
   const fixedCounters = new Map<string, { count: number; expiresAt: number }>()
   const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>()
+  const retryAfter = new Map<string, number>()
 
   return RateLimiterStore.of({
     fixedWindow: (options) =>
@@ -575,6 +620,28 @@ export const layerStoreMemory: Layer.Layer<
           }
           return newTokenCount
         })
+      ),
+    setRetryAfter: (options) =>
+      Effect.clockWith((clock) =>
+        Effect.sync(() => {
+          const until = clock.currentTimeMillisUnsafe() + Duration.toMillis(options.duration)
+          retryAfter.set(options.key, Math.max(retryAfter.get(options.key) ?? 0, until))
+        })
+      ),
+    getRetryAfter: (options) =>
+      Effect.clockWith((clock) =>
+        Effect.sync(() => {
+          const until = retryAfter.get(options.key)
+          if (until === undefined) {
+            return Duration.zero
+          }
+          const now = clock.currentTimeMillisUnsafe()
+          if (until <= now) {
+            retryAfter.delete(options.key)
+            return Duration.zero
+          }
+          return Duration.millis(until - now)
+        })
       )
   })
 })
@@ -596,6 +663,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
 
   const fixedWindow = redis.eval(fixedWindowScript)
   const tokenBucket = redis.eval(tokenBucketScript)
+  const setRetryAfterScript = redis.eval(setRetryAfterRedisScript)
 
   return RateLimiterStore.of({
     fixedWindow(options) {
@@ -636,9 +704,57 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             })
         )
       )
+    },
+    setRetryAfter(options) {
+      const key = `${prefix}${options.key}:retry-after`
+      const ttl = Duration.toMillis(options.duration)
+      if (ttl <= 0) {
+        return Effect.void
+      }
+      return Effect.mapError(
+        setRetryAfterScript(key, ttl),
+        (cause) =>
+          new RateLimiterError({
+            reason: new RateLimitStoreError({
+              message: `Failed to execute setRetryAfter rate limiting command`,
+              cause: cause.cause
+            })
+          })
+      )
+    },
+    getRetryAfter(options) {
+      const key = `${prefix}${options.key}:retry-after`
+      return Effect.mapError(
+        Effect.map(redis.send<number>("PTTL", key), (ttl) => ttl > 0 ? Duration.millis(ttl) : Duration.zero),
+        (cause) =>
+          new RateLimiterError({
+            reason: new RateLimitStoreError({
+              message: `Failed to execute getRetryAfter rate limiting command`,
+              cause: cause.cause
+            })
+          })
+      )
     }
   })
 })
+
+const setRetryAfterRedisScript = Redis.script(
+  (key: string, ttl: number) => [key, ttl],
+  {
+    numberOfKeys: 1,
+    lua: `
+local key = KEYS[1]
+local ttl = tonumber(ARGV[1])
+local current = tonumber(redis.call("PTTL", key) or "-2")
+
+if current < ttl then
+  redis.call("SET", key, "1", "PX", ttl)
+end
+
+return 0
+`
+  }
+).withReturnType<number>()
 
 const fixedWindowScript = Redis.script(
   (key: string, tokens: number, refillMillis: number, limit?: number) => [key, tokens, refillMillis, limit],

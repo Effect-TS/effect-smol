@@ -31,7 +31,7 @@ import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import * as Tracer from "../../Tracer.ts"
 import type { EqualsWith, ExcludeTag, ExtractTag, NoExcessProperties, NoInfer, Tags } from "../../Types.ts"
-import type * as RateLimiter from "../persistence/RateLimiter.ts"
+import * as RateLimiter from "../persistence/RateLimiter.ts"
 import * as Cookies from "./Cookies.ts"
 import * as Headers from "./Headers.ts"
 import * as Error from "./HttpClientError.ts"
@@ -1057,7 +1057,6 @@ export const withRateLimiter: {
     window: Duration.max(Duration.fromInputUnsafe(options.window), Duration.millis(1))
   }
   const states = new Map<string, RateLimiterState>()
-  const blockedUntil = new Map<string, number>()
 
   const keyOption = options.key
   const resolveKey: (request: HttpClientRequest.HttpClientRequest) => string = typeof keyOption === "function"
@@ -1079,7 +1078,7 @@ export const withRateLimiter: {
 
   const onResponse = options.disableResponseInspection
     ? undefined
-    : (clock: Clock, key: string, headers: Headers.Headers, tokens: number) => {
+    : Effect.fnUntraced(function*(clock: Clock, key: string, headers: Headers.Headers, tokens: number) {
       const current = getState(key)
       const next = parseRateLimiterState(current, clock, headers, tokens)
       if (next.limit !== current.limit || !Duration.equals(next.window, current.window)) {
@@ -1087,23 +1086,12 @@ export const withRateLimiter: {
       }
       const retryAfter = parseRetryAfter(clock, getHeader(headers, "retry-after"))
       if (retryAfter !== undefined) {
-        const until = clock.currentTimeMillisUnsafe() + Duration.toMillis(retryAfter)
-        blockedUntil.set(key, Math.max(blockedUntil.get(key) ?? 0, until))
+        const store = yield* Effect.serviceOption(RateLimiter.RateLimiterStore)
+        if (Option.isSome(store)) {
+          yield* store.value.setRetryAfter({ key, duration: retryAfter })
+        }
       }
-    }
-
-  const waitForBlock = (clock: Clock, key: string): Effect.Effect<void> => {
-    const until = blockedUntil.get(key)
-    if (until === undefined) {
-      return Effect.void
-    }
-    const now = clock.currentTimeMillisUnsafe()
-    if (until <= now) {
-      blockedUntil.delete(key)
-      return Effect.void
-    }
-    return Effect.flatMap(Effect.sleep(Duration.millis(until - now)), () => waitForBlock(clock, key))
-  }
+    })
 
   const isRateLimitExceeded = (
     error: RateLimiter.RateLimiterError
@@ -1126,7 +1114,7 @@ export const withRateLimiter: {
         ? Effect.flatMap(Effect.sleep(retryAfter), () => loop(effect, request))
         : loop(effect, request)
     }
-    return Effect.flatMap(waitForBlock(clock, key), () => {
+    return Effect.suspend(() => {
       const current = getState(key)
       return Effect.matchEffect(
         options.limiter.consume({
@@ -1138,28 +1126,25 @@ export const withRateLimiter: {
           tokens
         }),
         {
-          onFailure(error) {
-            if (isRateLimitExceeded(error)) {
-              return Effect.flatMap(Effect.sleep(error.reason.retryAfter), () => loop(effect, request))
-            }
-            return Effect.fail(error)
-          },
-          onSuccess() {
-            return Effect.matchEffect(effect, {
-              onSuccess(response) {
-                onResponse?.(clock, key, response.headers, tokens)
-                if (response.status !== 429) return Effect.succeed(response)
-                return retry(response)
-              },
-              onFailure(error) {
-                if (isTooManyRequestsHttpClientError(error)) {
-                  onResponse?.(clock, key, error.reason.response.headers, tokens)
-                  return retry(error.reason.response)
-                }
-                return Effect.fail(error)
-              }
+          onFailure: (error) =>
+            isRateLimitExceeded(error)
+              ? Effect.flatMap(Effect.sleep(error.reason.retryAfter), () => loop(effect, request))
+              : Effect.fail(error),
+          onSuccess: () =>
+            Effect.matchEffect(effect, {
+              onSuccess: (response) =>
+                Effect.flatMap(
+                  onResponse?.(clock, key, response.headers, tokens) ?? Effect.void,
+                  () => response.status !== 429 ? Effect.succeed(response) : retry(response)
+                ),
+              onFailure: (error) =>
+                isTooManyRequestsHttpClientError(error)
+                  ? Effect.flatMap(
+                    onResponse?.(clock, key, error.reason.response.headers, tokens) ?? Effect.void,
+                    () => retry(error.reason.response)
+                  )
+                  : Effect.fail(error)
             })
-          }
         }
       )
     })
