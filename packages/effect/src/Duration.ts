@@ -26,11 +26,29 @@ import * as Reducer from "./Reducer.ts"
 const TypeId = "~effect/time/Duration"
 
 const bigint0 = BigInt(0)
+const bigint1 = BigInt(1)
 const bigint24 = BigInt(24)
 const bigint60 = BigInt(60)
 const bigint1e3 = BigInt(1_000)
 const bigint1e6 = BigInt(1_000_000)
 const bigint1e9 = BigInt(1_000_000_000)
+
+const roundTiesAwayFromZero = (input: number): bigint =>
+  BigInt(input < 0 ? Math.ceil(input - 0.5) : Math.floor(input + 0.5))
+
+const roundMillisToNanos = (millis: number): bigint => roundTiesAwayFromZero(millis * 1_000_000)
+
+const parseNanos = (input: string, scale: bigint): bigint =>
+  input.includes(".") ? roundTiesAwayFromZero(Number(input) * Number(scale)) : BigInt(input) * scale
+
+const nanosToHrTime = (nanos: bigint): [seconds: number, nanos: number] => {
+  const sign = nanos < bigint0 ? -bigint1 : bigint1
+  const absolute = nanos < bigint0 ? -nanos : nanos
+  return [
+    Number(sign * (absolute / bigint1e9)),
+    Number(sign * (absolute % bigint1e9))
+  ]
+}
 
 /**
  * Represents a span of time with high precision, supporting operations from
@@ -125,7 +143,9 @@ export type Unit =
  * **Details**
  *
  * String inputs accept values like `"10 seconds"`, `"500 millis"`,
- * `"Infinity"`, and `"-Infinity"`.
+ * `"Infinity"`, and `"-Infinity"`. Finite fractional values that are
+ * normalized to nanoseconds are rounded to the nearest nanosecond, with ties
+ * away from zero.
  *
  * @see {@link fromInput} for safe conversion to `Option`
  * @see {@link fromInputUnsafe} for throwing conversion
@@ -221,14 +241,14 @@ export const fromInputUnsafe = (input: Input): Duration => {
       const match = DURATION_REGEXP.exec(input)
       if (!match) break
       const [_, valueStr, unit] = match
+      if (unit === "nano" || unit === "nanos") {
+        return nanos(parseNanos(valueStr, bigint1))
+      }
+      if (unit === "micro" || unit === "micros") {
+        return nanos(parseNanos(valueStr, bigint1e3))
+      }
       const value = Number(valueStr)
       switch (unit) {
-        case "nano":
-        case "nanos":
-          return nanos(BigInt(valueStr))
-        case "micro":
-        case "micros":
-          return micros(BigInt(valueStr))
         case "milli":
         case "millis":
           return millis(value)
@@ -266,7 +286,7 @@ export const fromInputUnsafe = (input: Input): Duration => {
         if (input[0] === Infinity || input[1] === Infinity) {
           return infinity
         }
-        return make(BigInt(Math.round(input[0] * 1_000_000_000)) + BigInt(Math.round(input[1])))
+        return make(roundTiesAwayFromZero(input[0] * 1_000_000_000 + input[1]))
       }
       const obj = input as DurationObject
       let millis = 0
@@ -278,10 +298,9 @@ export const fromInputUnsafe = (input: Input): Duration => {
       if (obj.seconds) millis += obj.seconds * 1_000
       if (obj.milliseconds) millis += obj.milliseconds
       if (!obj.microseconds && !obj.nanoseconds) return make(millis)
-      let nanos = BigInt(millis) * bigint1e6
-      if (obj.microseconds) nanos += BigInt(obj.microseconds) * bigint1e3
-      if (obj.nanoseconds) nanos += BigInt(obj.nanoseconds)
-      return make(nanos)
+      return make(roundTiesAwayFromZero(
+        millis * 1_000_000 + (obj.microseconds ?? 0) * 1_000 + (obj.nanoseconds ?? 0)
+      ))
     }
   }
   return invalid(input)
@@ -364,7 +383,7 @@ const make = (input: number | bigint): Duration => {
     } else if (!Number.isFinite(input)) {
       duration.value = input > 0 ? infinityDurationValue : negativeInfinityDurationValue
     } else if (!Number.isInteger(input)) {
-      duration.value = { _tag: "Nanos", nanos: BigInt(Math.round(input * 1_000_000)) }
+      duration.value = { _tag: "Nanos", nanos: roundMillisToNanos(input) }
     } else {
       duration.value = { _tag: "Millis", millis: input }
     }
@@ -881,6 +900,11 @@ export const toWeeks = (self: Input): number =>
  * Use when the duration is known to be finite and you need the nanosecond value
  * as a `bigint`.
  *
+ * **Details**
+ *
+ * Millisecond-backed fractional durations are rounded to the nearest
+ * nanosecond, with ties away from zero.
+ *
  * **Gotchas**
  *
  * If the duration is infinite, it throws an error.
@@ -910,7 +934,7 @@ export const toNanosUnsafe = (input: Input): bigint => {
     case "Nanos":
       return self.value.nanos
     case "Millis":
-      return BigInt(Math.round(self.value.millis * 1_000_000))
+      return roundMillisToNanos(self.value.millis)
   }
 }
 
@@ -960,24 +984,10 @@ export const toHrTime = (input: Input): [seconds: number, nanos: number] => {
       return [Infinity, 0]
     case "NegativeInfinity":
       return [-Infinity, 0]
-    case "Nanos": {
-      const n = self.value.nanos
-      const sign = n < bigint0 ? -BigInt(1) : BigInt(1)
-      const a = n < bigint0 ? -n : n
-      return [
-        Number(sign * (a / bigint1e9)),
-        Number(sign * (a % bigint1e9))
-      ]
-    }
-    case "Millis": {
-      const m = self.value.millis
-      const sign = m < 0 ? -1 : 1
-      const a = Math.abs(m)
-      return [
-        sign * Math.floor(a / 1000),
-        sign * Math.round((a % 1000) * 1_000_000)
-      ]
-    }
+    case "Nanos":
+      return nanosToHrTime(self.value.nanos)
+    case "Millis":
+      return nanosToHrTime(roundMillisToNanos(self.value.millis))
   }
 }
 
