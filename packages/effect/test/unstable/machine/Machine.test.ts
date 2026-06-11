@@ -1687,6 +1687,158 @@ describe("Machine", () => {
       assert.strictEqual(Machine.isFinal(machine, planned.next), true)
     }))
 
+  it.effect("runs onDone for nested compound completion without completing the root state", () =>
+    Effect.gen(function*() {
+      const checkout = new Fulfillment({ id: "checkout-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const machine = Machine.make({
+        states: {
+          checkout: {
+            schema: Fulfillment,
+            initial: "inventory",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory,
+                  reserved: {
+                    schema: InventoryReserved,
+                    type: "final"
+                  }
+                }
+              },
+              shipped: ShippingQuoted
+            }
+          },
+          failed: Failed
+        },
+        events: [ReserveInventory, Reset],
+        initial: () => ({
+          path: "checkout",
+          value: checkout,
+          state: {
+            path: "checkout.inventory" as const,
+            value: inventory,
+            state: {
+              path: "checkout.inventory.checking" as const,
+              value: new CheckingInventory({ sku: "sku-1" })
+            }
+          }
+        })
+      }).handle({
+        checkout: {
+          on: {
+            Reset: ({ target }) => target.full.failed(new Failed({ message: "reset" }))
+          },
+          states: {
+            inventory: {
+              onDone: ({ output, target }) =>
+                target.branch.checkout.shipped(new ShippingQuoted({ quoteId: String(output) })),
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                },
+                reserved: {
+                  type: "final",
+                  output: ({ state }) => state.reservationId
+                }
+              }
+            }
+          }
+        }
+      })
+
+      const initial = yield* Machine.planInitial(machine)
+      const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+
+      assertCompoundStateSnapshot(planned.next as any, "checkout", checkout, {
+        path: "checkout.shipped",
+        value: new ShippingQuoted({ quoteId: "res-1" })
+      })
+      assert.strictEqual(Machine.isFinal(machine, planned.next), false)
+      assert.deepStrictEqual(Machine.enabled(machine, planned.next), ["Reset"])
+      assert.strictEqual(planned.output, undefined)
+    }))
+
+  it.effect("does not run a completed state's onDone handler more than once in the same macrostep", () =>
+    Effect.gen(function*() {
+      const deferredLog = yield* makeDeferredLog
+      const checkout = new Fulfillment({ id: "checkout-1" })
+      const inventory = new Inventory({ warehouse: "warehouse-1" })
+      const machine = Machine.make({
+        states: {
+          checkout: {
+            schema: Fulfillment,
+            initial: "inventory",
+            states: {
+              inventory: {
+                schema: Inventory,
+                initial: "checking",
+                states: {
+                  checking: CheckingInventory,
+                  reserved: {
+                    schema: InventoryReserved,
+                    type: "final"
+                  }
+                }
+              }
+            }
+          },
+          failed: Failed
+        },
+        events: [ReserveInventory, Reset],
+        initial: () => ({
+          path: "checkout",
+          value: checkout,
+          state: {
+            path: "checkout.inventory" as const,
+            value: inventory,
+            state: {
+              path: "checkout.inventory.checking" as const,
+              value: new CheckingInventory({ sku: "sku-1" })
+            }
+          }
+        })
+      }).handle({
+        checkout: {
+          on: {
+            Reset: ({ target }) => target.full.failed(new Failed({ message: "raised" }))
+          },
+          states: {
+            inventory: {
+              onDone: Effect.fn(function*() {
+                const deferredLog = yield* DeferredLog
+                yield* deferredLog.push("done:inventory")
+              }),
+              states: {
+                checking: {
+                  on: {
+                    ReserveInventory: ({ event, target }) =>
+                      target.local.reserved(new InventoryReserved({ reservationId: event.reservationId }))
+                  }
+                },
+                reserved: {
+                  type: "final",
+                  entry: ({ runtime }) => Effect.flatMap(runtime, (machine) => machine.raise(new Reset({})))
+                }
+              }
+            }
+          }
+        }
+      })
+
+      const initial = yield* Machine.planInitial(machine).pipe(Effect.provideService(DeferredLog, deferredLog))
+      const planned = yield* Machine.plan(machine, initial.state, new ReserveInventory({ reservationId: "res-1" }))
+        .pipe(Effect.provideService(DeferredLog, deferredLog))
+
+      assertStateSnapshot(planned.next as any, "failed", new Failed({ message: "raised" }))
+      assert.deepStrictEqual(yield* deferredLog.read, ["done:inventory"])
+    }))
+
   it.effect("expands parallel initial states and enters all regions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
@@ -2470,6 +2622,7 @@ describe("Machine", () => {
           on: {
             ReserveInventory: Effect.fn(function*({ target }) {
               const deferredLog = yield* DeferredLog
+              yield* deferredLog.push("evaluate:parent")
               yield* Machine.action(deferredLog.push("transition:parent"))
               return target.full.failed(new Failed({ message: "parent" }))
             })
@@ -2481,6 +2634,7 @@ describe("Machine", () => {
                   on: {
                     ReserveInventory: Effect.fn(function*({ event, target }) {
                       const deferredLog = yield* DeferredLog
+                      yield* deferredLog.push("evaluate:child")
                       yield* Machine.action(deferredLog.push("transition:child"))
                       return target.local.reserved(
                         new InventoryReserved({
@@ -2525,7 +2679,7 @@ describe("Machine", () => {
           }
         }
       })
-      assert.deepStrictEqual(yield* deferredLog.read, ["transition:child"])
+      assert.deepStrictEqual(yield* deferredLog.read, ["evaluate:child", "transition:child"])
     }))
 
   it.effect("runs parallel exit, transition, and entry actions in deterministic order", () =>

@@ -40,6 +40,7 @@ import {
   getLeafPath,
   getNode,
   getPathToRoot,
+  getRootPath,
   isActiveFinalConfiguration,
   isDescendantOf,
   isSnapshot,
@@ -1084,6 +1085,25 @@ export const makeTransitionContext = <
   target: machine.makeTargetBuilder(path as StateId)
 })
 
+export const makeDoneContext = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  StateId extends Machine.StateIdentifier<States>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.LifecycleEvent<Events>,
+  output: unknown
+): Machine.DoneContext<States, Events, Emits, StateId> => ({
+  state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
+  event,
+  output,
+  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+  target: machine.makeTargetBuilder(path as StateId)
+})
+
 export const collectStateActions = Effect.fnUntraced(function*<
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -1170,6 +1190,60 @@ export const selectAlwaysTransitions = <
         }
         break
       }
+    }
+  }
+  return selected
+}
+
+export const selectDoneTransitions = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema>,
+  E,
+  R
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.LifecycleEvent<Events>,
+  completions: ReadonlyArray<{ readonly path: string; readonly output: unknown }>
+): ReadonlyArray<
+  SelectedTransition<
+    States,
+    E,
+    R,
+    Machine.DoneContext<States, Events, Emits, Machine.StateIdentifier<States>>
+  >
+> => {
+  const selected: Array<
+    SelectedTransition<
+      States,
+      E,
+      R,
+      Machine.DoneContext<States, Events, Emits, Machine.StateIdentifier<States>>
+    >
+  > = []
+  const selectedSources = new Set<string>()
+  for (const completion of completions) {
+    const onDone = machine.handlers[completion.path]?.onDone
+    if (onDone !== undefined && !selectedSources.has(completion.path)) {
+      selectedSources.add(completion.path)
+      selected.push({
+        sourcePath: completion.path,
+        leafPath: getActiveLeafPathFrom(machine, configuration, completion.path),
+        transition: { reenter: false, transition: onDone } as MicrostepTransition<
+          States,
+          E,
+          R,
+          Machine.DoneContext<States, Events, Emits, Machine.StateIdentifier<States>>
+        >,
+        context: makeDoneContext<States, Events, Emits, Machine.StateIdentifier<States>>(
+          machine,
+          configuration,
+          completion.path,
+          event,
+          completion.output
+        )
+      })
     }
   }
   return selected
@@ -1282,6 +1356,20 @@ export const sortEvaluatedTransitions = <
 ): ReadonlyArray<EvaluatedTransition<States, Event, E, R, Context>> =>
   Array.from(transitions)
     .sort((left, right) => compareDocumentOrder(machine, left.selection.sourcePath, right.selection.sourcePath))
+
+export const removePreemptedAncestorSelections = <
+  const States extends Machine.StateSchemas,
+  E,
+  R,
+  Context
+>(
+  selections: ReadonlyArray<SelectedTransition<States, E, R, Context>>
+): ReadonlyArray<SelectedTransition<States, E, R, Context>> =>
+  selections.filter((selection) =>
+    !selections.some((other) =>
+      other.sourcePath !== selection.sourcePath && isDescendantOf(other.sourcePath, selection.sourcePath)
+    )
+  )
 
 export const removeConflictingTransitions = <
   const States extends Machine.StateSchemas,
@@ -1399,7 +1487,10 @@ export const getFinalOutputFromConfiguration = <
   event: Machine.LifecycleEvent<Events>
 ): Output | undefined => {
   const completed = completeConfiguration(machine, configuration, event)
-  return completed.completion?.output as Output | undefined
+  const root = getRootPath(machine, completed.configuration)
+  return isActiveFinalConfiguration(machine, completed.configuration)
+    ? completed.configuration.outputs.get(root) as Output | undefined
+    : undefined
 }
 
 export const getFinalOutput = <
@@ -1598,8 +1689,9 @@ export const microstep: <
     })
   }
 
+  const activeSelections = removePreemptedAncestorSelections(selections)
   const evaluatedTransitions: Array<EvaluatedTransition<States, Machine.EventOf<Events>, E, R, Context>> = []
-  for (const selection of selections) {
+  for (const selection of activeSelections) {
     evaluatedTransitions.push(
       yield* collectEvaluatedTransition<States, Machine.EventOf<Events>, E, R, Context>(
         machine,
@@ -1719,8 +1811,29 @@ export const settle: <
   while (true) {
     const completed = completeConfiguration(machine, currentState, currentEvent)
     currentState = completed.configuration
-    if (completed.completion !== undefined) {
-      finalOutput = completed.completion.output as Output | undefined
+    const done = selectDoneTransitions<States, Events, Emits, E, R>(
+      machine,
+      currentState,
+      currentEvent,
+      completed.completions
+    )
+    if (done.length > 0) {
+      const doneStep: MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R> = yield* microstep(
+        machine,
+        currentState,
+        currentEvent,
+        done
+      )
+      actions.push(...doneStep.actions)
+      raisedEvents.push(...doneStep.raisedEvents)
+      microsteps.push(doneStep)
+      currentState = doneStep.next
+      shouldRunAlways = doneStep.changed
+      continue
+    }
+    if (isActiveFinalConfiguration(machine, currentState)) {
+      const root = getRootPath(machine, currentState)
+      finalOutput = currentState.outputs.get(root) as Output | undefined
       break
     }
 

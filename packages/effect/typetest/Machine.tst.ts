@@ -41,6 +41,10 @@ describe("Machine", () => {
     readonly entryMessage: string
   }>()("test/Machine/EntryRequirement") {}
 
+  class DoneRequirement extends Context.Service<DoneRequirement, {
+    readonly doneMessage: string
+  }>()("test/Machine/DoneRequirement") {}
+
   const UpStates = Machine.defineStates({
     up: {
       schema: Up,
@@ -302,6 +306,65 @@ describe("Machine", () => {
         }
       }
     })
+  })
+
+  it("onDone handlers receive typed state context and contribute effect requirements", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () =>
+        UpStates.initial.up(
+          new Up({ id: "up-1" }),
+          (up) =>
+            up
+              .auth(
+                new Auth({ userId: "user-1" }),
+                (auth) => auth.signedOut(new SignedOut({}))
+              )
+              .sync(
+                new Sync({ enabled: true }),
+                (sync) => sync.idle(new SyncIdle({}))
+              )
+        )
+    }).handle({
+      up: {
+        states: {
+          auth: {
+            onDone: ({ event, output, state, target }) => {
+              expect(event).type.toBe<SignIn | Machine.InitialEvent>()
+              expect(output).type.toBe<unknown>()
+              expect(state).type.toBe<Auth>()
+              return Effect.as(DoneRequirement, target.full.down(new Down({})))
+            },
+            states: {
+              signedIn: {
+                type: "final"
+              }
+            }
+          }
+        }
+      }
+    })
+
+    const planned = Machine.plan(
+      machine,
+      UpStates.initial.up(
+        new Up({ id: "up-1" }),
+        (up) =>
+          up
+            .auth(
+              new Auth({ userId: "user-1" }),
+              (auth) => auth.signedOut(new SignedOut({}))
+            )
+            .sync(
+              new Sync({ enabled: true }),
+              (sync) => sync.idle(new SyncIdle({}))
+            )
+      ),
+      new SignIn({ userId: "user-1" })
+    )
+
+    expect<Effect.Services<typeof planned>>().type.toBe<DoneRequirement>()
   })
 
   it("handle rejects old property and callback APIs", () => {

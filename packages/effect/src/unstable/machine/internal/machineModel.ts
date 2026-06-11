@@ -149,6 +149,10 @@ export interface FinalCompletion {
   readonly output: unknown
 }
 
+interface CompletionResult extends FinalCompletion {
+  readonly isNew: boolean
+}
+
 export const getNode = (machine: Machine.Any, path: string): Machine.StateNode => {
   const node = machine.stateNodes.byPath.get(path)
   if (node === undefined) {
@@ -464,6 +468,11 @@ export const isDirectFinalPath = (
   path: string
 ): boolean => getNode(machine, path).type === "final" || getStateConfigByPath(machine, path)?.type === "final"
 
+export const hasCompletionHandler = (
+  machine: Machine.Any,
+  path: string
+): boolean => getStateConfigByPath(machine, path)?.onDone !== undefined
+
 export const isActiveFinalNode = (
   machine: Machine.Any,
   configuration: ActiveConfiguration,
@@ -475,7 +484,7 @@ export const isActiveFinalNode = (
   const node = getNode(machine, path)
   if (node.type === "compound") {
     const child = getActiveChildPath(machine, configuration, path)
-    return child !== undefined && isActiveFinalNode(machine, configuration, child)
+    return child !== undefined && isDirectFinalPath(machine, child)
   }
   if (node.type === "parallel") {
     for (const child of node.children) {
@@ -491,17 +500,29 @@ export const isActiveFinalNode = (
 export const isActiveFinalConfiguration = (
   machine: Machine.Any,
   configuration: ActiveConfiguration
-): boolean => isActiveFinalNode(machine, configuration, getRootPath(machine, configuration))
+): boolean => {
+  const root = getRootPath(machine, configuration)
+  return isActiveFinalNode(machine, configuration, root) && !hasCompletionHandler(machine, root)
+}
 
 export const setCompletedOutput = (
   outputs: Map<string, unknown>,
   path: string,
   output: unknown
-): unknown => {
-  if (!outputs.has(path)) {
-    outputs.set(path, output)
+): CompletionResult => {
+  if (outputs.has(path)) {
+    return {
+      path,
+      output: outputs.get(path),
+      isNew: false
+    }
   }
-  return outputs.get(path)
+  outputs.set(path, output)
+  return {
+    path,
+    output,
+    isNew: true
+  }
 }
 
 export const resolveFinalOutput = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
@@ -522,31 +543,33 @@ export const completeActiveFinalNode = <const Events extends ReadonlyArray<Machi
   configuration: ActiveConfiguration,
   path: string,
   event: Machine.LifecycleEvent<Events>,
-  outputs: Map<string, unknown>
-): FinalCompletion | undefined => {
+  outputs: Map<string, unknown>,
+  completions: Array<FinalCompletion>
+): CompletionResult | undefined => {
   if (!configuration.active.has(path)) {
     return undefined
   }
   const node = getNode(machine, path)
   if (node.type === "compound") {
     const child = getActiveChildPath(machine, configuration, path)
-    if (child === undefined) {
+    if (child === undefined || !isDirectFinalPath(machine, child)) {
       return undefined
     }
-    const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs)
+    const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs, completions)
     if (childCompletion === undefined) {
       return undefined
     }
-    return {
-      path,
-      output: setCompletedOutput(outputs, path, childCompletion.output)
+    const completion = setCompletedOutput(outputs, path, childCompletion.output)
+    if (completion.isNew) {
+      completions.push(completion)
     }
+    return completion
   }
   if (node.type === "parallel") {
     const regionOutputs: Record<string, unknown> = {}
     let completed = true
     for (const child of node.children) {
-      const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs)
+      const childCompletion = completeActiveFinalNode(machine, configuration, child, event, outputs, completions)
       if (childCompletion === undefined) {
         completed = false
       } else {
@@ -556,22 +579,28 @@ export const completeActiveFinalNode = <const Events extends ReadonlyArray<Machi
     if (!completed) {
       return undefined
     }
-    return {
+    const completion = setCompletedOutput(
+      outputs,
       path,
-      output: setCompletedOutput(
-        outputs,
-        path,
-        resolveFinalOutput(machine, configuration, path, event, regionOutputs)
-      )
+      resolveFinalOutput(machine, configuration, path, event, regionOutputs)
+    )
+    if (completion.isNew) {
+      completions.push(completion)
     }
+    return completion
   }
   if (!isDirectFinalPath(machine, path)) {
     return undefined
   }
-  return {
+  const completion = setCompletedOutput(
+    outputs,
     path,
-    output: setCompletedOutput(outputs, path, resolveFinalOutput(machine, configuration, path, event))
+    resolveFinalOutput(machine, configuration, path, event)
+  )
+  if (completion.isNew) {
+    completions.push(completion)
   }
+  return completion
 }
 
 export const completeConfiguration = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
@@ -580,20 +609,22 @@ export const completeConfiguration = <const Events extends ReadonlyArray<Machine
   event: Machine.LifecycleEvent<Events>
 ): {
   readonly configuration: ActiveConfiguration
-  readonly completion: FinalCompletion | undefined
+  readonly completions: ReadonlyArray<FinalCompletion>
 } => {
   const outputs = new Map(configuration.outputs)
+  const completions: Array<FinalCompletion> = []
   const completed = {
     active: configuration.active,
     values: configuration.values,
     outputs
   }
-  const completion = completeActiveFinalNode(
-    machine,
-    completed,
-    getRootPath(machine, completed),
-    event,
-    outputs
-  )
-  return { configuration: completed, completion }
+  for (
+    const path of Array.from(completed.active).sort((left, right) => {
+      const depth = pathDepth(machine, right) - pathDepth(machine, left)
+      return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
+    })
+  ) {
+    completeActiveFinalNode(machine, completed, path, event, outputs, completions)
+  }
+  return { configuration: completed, completions }
 }

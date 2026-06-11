@@ -1424,6 +1424,25 @@ export declare namespace Machine {
   }
 
   /**
+   * Context passed to a state completion transition handler.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface DoneContext<
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    StateId extends StateIdentifier<States>
+  > {
+    readonly state: StateByIdentifier<States, StateId>
+    readonly event: LifecycleEvent<Events>
+    readonly output: unknown
+    readonly runtime: RuntimeEffect<Events, Emits>
+    readonly target: TargetBuilder<States, StateId>
+  }
+
+  /**
    * Context passed to a final state output function.
    *
    * @category models
@@ -1622,6 +1641,15 @@ export declare namespace Machine {
     ? NonNullable<Always> extends (...args: any) => infer Ret ? Ret : never
     : never
   /**
+   * Extracts the return value from a state completion transition.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type DoneReturn<Config> = Config extends { readonly onDone?: infer OnDone }
+    ? NonNullable<OnDone> extends (...args: any) => infer Ret ? Ret : never
+    : never
+  /**
    * Extracts the return value from a final state output function.
    *
    * @category utility types
@@ -1640,6 +1668,7 @@ export declare namespace Machine {
   export type ConfigServices<Config> =
     | Effect.Services<EventHandlerReturn<Config>>
     | Effect.Services<AlwaysReturn<Config>>
+    | Effect.Services<DoneReturn<Config>>
     | Effect.Services<StateActionReturn<Config, "entry">>
     | Effect.Services<StateActionReturn<Config, "exit">>
     | InvokeRequirements<Config>
@@ -1713,6 +1742,7 @@ export declare namespace Machine {
       | InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>
       | ReadonlyArray<InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, Emits, StateId>) => HandlerResult<States, any, any>
+    readonly onDone?: (context: DoneContext<States, Events, Emits, StateId>) => HandlerResult<States, any, any>
     readonly output?: NodeByIdentifier<States, StateId> extends { readonly type: "parallel" } ? (
         context: ParallelOutputContext<States, Events, StateId>
       ) => any
@@ -1748,6 +1778,7 @@ export declare namespace Machine {
     readonly output?: (context: FinalOutputContext<States, Events, StateId>) => any
     readonly exit?: never
     readonly always?: never
+    readonly onDone?: never
     readonly on?: never
   }
 
@@ -1819,7 +1850,7 @@ export declare namespace Machine {
     >
   }
 
-  type HandlerNodeConfigKey = "always" | "entry" | "exit" | "invoke" | "on" | "output" | "states" | "type"
+  type HandlerNodeConfigKey = "always" | "entry" | "exit" | "invoke" | "on" | "onDone" | "output" | "states" | "type"
 
   type HandlerValidationError<Message extends string> = {
     readonly "~effect/Machine/HandlerError": Message
@@ -1948,6 +1979,7 @@ export declare namespace Machine {
   type HandlerConfigError<Config> =
     | Effect.Error<EventHandlerReturn<Config>>
     | Effect.Error<AlwaysReturn<Config>>
+    | Effect.Error<DoneReturn<Config>>
     | Effect.Error<StateActionReturn<Config, "entry">>
     | Effect.Error<StateActionReturn<Config, "exit">>
     | InvokeError<Config>
@@ -2231,6 +2263,7 @@ export declare namespace Machine {
       | InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>
       | ReadonlyArray<InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, Emits, StateId>) => HandlerResult<States, E, R>
+    readonly onDone?: (context: DoneContext<States, Events, Emits, StateId>) => HandlerResult<States, E, R>
     readonly output?:
       | ((context: FinalOutputContext<States, Events, StateId>) => any)
       | ((context: ParallelOutputContext<States, Events, StateId>) => any)
