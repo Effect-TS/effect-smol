@@ -3048,7 +3048,6 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
   }
 
   const slots = new Map<string, Slot>()
-  let jsonRepresentation: Declaration | undefined
 
   function getSlot(identifier: string): Slot {
     const existing = slots.get(identifier)
@@ -3531,21 +3530,15 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function getJsonRepresentation(): Declaration {
-    return jsonRepresentation ??= fromAST(Schema.Json.ast).representation as Declaration
-  }
-
   function makeJson(annotations: Schema.Annotations.Annotations | undefined): Representation {
-    const json = getJsonRepresentation()
-    return annotations === undefined
-      ? json
-      : {
-        ...json,
-        annotations: {
-          ...("annotations" in json ? json.annotations : undefined),
-          ...annotations
-        }
+    if (annotations === undefined) return json
+    return {
+      ...json,
+      annotations: {
+        ...json.annotations,
+        ...annotations
       }
+    }
   }
 
   function unknownToJson(representation: Representation): Representation {
@@ -3735,6 +3728,22 @@ function collectArraysChecks(js: JsonSchema.JsonSchema): Array<Check<ArraysMeta>
 }
 
 const unknown: Unknown = { _tag: "Unknown" }
+const json: Declaration = {
+  _tag: "Declaration",
+  annotations: {
+    expected: "JSON value",
+    generation: {
+      Type: "Schema.Json",
+      runtime: "Schema.Json"
+    },
+    typeConstructor: {
+      _tag: "effect/Json"
+    }
+  },
+  checks: [],
+  encodedSchema: unknown,
+  typeParameters: []
+}
 const never: Never = { _tag: "Never" }
 const null_: Null = { _tag: "Null" }
 const string: String = { _tag: "String", checks: [] }
