@@ -58,8 +58,8 @@ export type PayloadMap = ReadonlyMap<string, {
 export type SuccessSchema = Schema.Top
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top,
+  infer _Events,
+  infer _Error,
   infer _Value
 > ? Stream.Stream<_Value, _Error["Type"], never>
   : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, unknown, never>
@@ -67,8 +67,8 @@ type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   : never
 
 type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top,
+  infer _Events,
+  infer _Error,
   infer _Value
 > ? _Events["EncodingServices"] | _Error["EncodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
@@ -76,8 +76,8 @@ type SuccessEncodingServices<S> = S extends HttpApiSchema.StreamSse<
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top,
+  infer _Events,
+  infer _Error,
   infer _Value
 > ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never

@@ -48,19 +48,12 @@ export interface Service {
   /**
    * Executes a low-level streaming HTTP request and decodes the Server-Sent Events response using the provided schema.
    */
-  readonly streamRequest: <
-    Type extends {
-      readonly id?: string | undefined
-      readonly event: string
-      readonly data: string
-    },
-    DecodingServices
-  >(
-    schema: Schema.Decoder<Type, DecodingServices>
+  readonly streamRequest: <S extends Sse.EventCodec>(
+    schema: S
   ) => (request: HttpClientRequest.HttpClientRequest) => Stream.Stream<
-    Type,
+    S["Type"],
     HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
-    DecodingServices
+    S["DecodingServices"]
   >
 
   /**
@@ -257,25 +250,19 @@ export const make = Effect.fnUntraced(
 
     const httpClientOk = HttpClient.filterStatusOk(httpClient)
 
-    const streamRequest = <
-      Type extends {
-        readonly id?: string | undefined
-        readonly event: string
-        readonly data: string
-      },
-      DecodingServices
-    >(schema: Schema.Decoder<Type, DecodingServices>) =>
-    (request: HttpClientRequest.HttpClientRequest): Stream.Stream<
-      Type,
-      HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
-      DecodingServices
-    > =>
-      httpClientOk.execute(request).pipe(
-        Effect.map((response) => response.stream),
-        Stream.unwrap,
-        Stream.decodeText,
-        Stream.pipeThroughChannel(Sse.decodeSchema(schema))
-      )
+    const streamRequest =
+      <S extends Sse.EventCodec>(schema: S) =>
+      (request: HttpClientRequest.HttpClientRequest): Stream.Stream<
+        S["Type"],
+        HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
+        S["DecodingServices"]
+      > =>
+        httpClientOk.execute(request).pipe(
+          Effect.map((response) => response.stream),
+          Stream.unwrap,
+          Stream.decodeText,
+          Stream.pipeThroughChannel(Sse.decodeSchema(schema))
+        )
 
     const createMessage = (options: {
       readonly payload: typeof Generated.BetaCreateMessageParams.Encoded

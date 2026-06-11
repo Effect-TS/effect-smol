@@ -74,6 +74,25 @@ export const decode = <IE, Done>(): Channel.Channel<
   )
 
 /**
+ * A constraint for schemas that can decode SSE events.
+ *
+ * @category decoding
+ * @since 4.0.0
+ */
+export interface EventCodec extends
+  Schema.Codec<
+    any,
+    {
+      readonly id?: string | undefined
+      readonly event?: string | undefined
+      readonly data: string
+    },
+    any,
+    any
+  >
+{}
+
+/**
  * Creates an SSE decoder channel that decodes each parsed event with a schema.
  *
  * **Details**
@@ -85,24 +104,19 @@ export const decode = <IE, Done>(): Channel.Channel<
  * @since 4.0.0
  */
 export const decodeSchema = <
-  Type extends {
-    readonly id?: string | undefined
-    readonly event: string
-    readonly data: string
-  },
-  DecodingServices,
+  S extends EventCodec,
   IE,
   Done
 >(
-  schema: Schema.Decoder<Type, DecodingServices>
+  schema: S
 ): Channel.Channel<
-  NonEmptyReadonlyArray<Type>,
+  NonEmptyReadonlyArray<S["Type"]>,
   IE | Retry | Schema.SchemaError,
   Done,
   NonEmptyReadonlyArray<string>,
   IE,
   Done,
-  DecodingServices
+  S["DecodingServices"]
 > =>
   Channel.pipeTo(
     decode<IE, Done>(),
@@ -380,10 +394,7 @@ export const encode = <IE, Done>(): Channel.Channel<
  * @since 4.0.0
  */
 export const encodeSchema = <
-  S extends Schema.Encoder<
-    { readonly id?: string | undefined; readonly event: string; readonly data: string },
-    unknown
-  >,
+  S extends EventCodec,
   IE,
   Done
 >(schema: S): Channel.Channel<
@@ -468,7 +479,7 @@ export const Event: Schema.Struct<{
  */
 export const transformEvent = SchemaTransformation.transform<{
   readonly id?: string | undefined
-  readonly event: string
+  readonly event?: string | undefined
   readonly data: string
 }, {
   readonly _tag: "Event"
@@ -480,7 +491,7 @@ export const transformEvent = SchemaTransformation.transform<{
   encode: (event) => ({
     _tag: "Event",
     id: event.id,
-    event: event.event,
+    event: event.event ?? "message",
     data: event.data
   })
 })

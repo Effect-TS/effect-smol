@@ -71,8 +71,8 @@ export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   never
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top,
+  infer _Events,
+  infer _Error,
   infer _Value
 > ? Stream.Stream<
     _Value,
@@ -84,8 +84,8 @@ type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
-  infer _Events extends HttpApiSchema.SseEventSchema,
-  infer _Error extends Schema.Top,
+  infer _Events,
+  infer _Error,
   infer _Value
 > ?
     | _Events["DecodingServices"]
@@ -795,41 +795,49 @@ function streamToResponse(streamSchema: HttpApiSchema.StreamSchema) {
 
 function decodeSseStream(
   stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
-  streamSchema: HttpApiSchema.StreamSse<HttpApiSchema.SseEventSchema, Schema.Top, unknown>
+  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Top, unknown>
 ): Stream.Stream<unknown, unknown, unknown> {
-  const decodeEvent = Schema.decodeUnknownEffect(Sse.EventEncoded.pipe(Schema.decodeTo(streamSchema.events)))
-  const decodeCause = Schema.decodeUnknownEffect(
-    Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(streamSchema.error, Schema.Defect())))
-  )
-  return stream.pipe(
-    Stream.decodeText,
-    Stream.pipeThroughChannel(Sse.decode<HttpClientError.HttpClientError, unknown>()),
-    Stream.mapEffect((event) => {
-      const encoded = {
-        id: event.id,
-        event: event.event,
-        data: event.data
-      }
-      return event.event === reservedStreamFailureEvent ?
-        Effect.flatMap(decodeCause(event.data), (cause) => Effect.failCause(cause)) :
-        Effect.flatMap(
-          decodeEvent(encoded),
-          (decoded) => streamSchema.sseMode === "data" ? decodeSseData(decoded) : Effect.succeed(decoded)
-        )
+  const Event = Schema.Union([
+    declaration.events,
+    Schema.Struct({
+      event: Schema.Literal(reservedStreamFailureEvent),
+      data: Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
     })
-  )
-}
-
-const decodeSseData = (decoded: unknown): Effect.Effect<unknown, Schema.SchemaError> =>
-  Predicate.hasProperty(decoded, "data")
-    ? Effect.succeed(decoded.data)
-    : Effect.fail(
-      new Schema.SchemaError(
-        new SchemaIssue.InvalidValue(Option.some(decoded), {
-          message: "Expected an SSE data event"
+  ])
+  const events = Stream.transformPull(
+    stream.pipe(
+      Stream.decodeText,
+      Stream.pipeThroughChannel(Sse.decodeSchema(Event))
+    ),
+    (pull) =>
+      Effect.sync(() => {
+        let failureCause: Cause.Cause<unknown> | undefined = undefined
+        return Effect.suspend(() => {
+          if (failureCause) {
+            return Effect.failCause(failureCause)
+          }
+          return Effect.flatMap(pull, (events) => {
+            for (let i = 0; i < events.length; i++) {
+              const event = events[i]
+              if (event.event === reservedStreamFailureEvent) {
+                if (i === 0) {
+                  return Effect.failCause(event.data)
+                }
+                failureCause = event.data
+                events = events.slice(0, i) as any
+                break
+              }
+            }
+            return Effect.succeed(events)
+          })
         })
-      )
-    )
+      })
+  )
+  if (declaration.sseMode === "data") {
+    return Stream.map(events, (event) => event.data)
+  }
+  return events
+}
 
 const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {
   expected: "ArrayBuffer"

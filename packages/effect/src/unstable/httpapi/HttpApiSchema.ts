@@ -284,7 +284,7 @@ export type StreamSseMode = "events" | "data"
  * @since 4.0.0
  */
 export interface StreamSse<
-  Events extends SseEventSchema,
+  Events extends Sse.EventCodec,
   Error extends Schema.Top,
   Value = Events["Type"]
 > extends
@@ -309,14 +309,6 @@ export interface StreamSse<
 }
 
 /**
- * Schema constraint for Server-Sent Events emitted by {@link StreamSse}.
- *
- * @category models
- * @since 4.0.0
- */
-export type SseEventSchema = Schema.Codec<any, Sse.EventEncoded, any, any>
-
-/**
  * Event schema produced when {@link StreamSse} is constructed from a JSON data schema.
  *
  * @category models
@@ -329,7 +321,11 @@ export interface SseEventFromData<Data extends Schema.Top> extends
       readonly event: string
       readonly data: Data["Type"]
     },
-    Sse.EventEncoded,
+    {
+      readonly id?: string | undefined
+      readonly event?: string | undefined
+      readonly data: string
+    },
     Data["DecodingServices"],
     Data["EncodingServices"]
   >
@@ -365,7 +361,7 @@ export interface StreamUint8Array extends
 }
 
 /** @internal */
-export type StreamSchema = StreamSse<SseEventSchema, Schema.Top, unknown> | StreamUint8Array
+export type StreamSchema = StreamSse<Sse.EventCodec, Schema.Top, unknown> | StreamUint8Array
 
 /** @internal */
 export type StreamMetadata =
@@ -373,7 +369,7 @@ export type StreamMetadata =
     readonly mode: "sse"
     readonly sseMode: StreamSseMode
     readonly contentType: string
-    readonly events: SseEventSchema
+    readonly events: Sse.EventCodec
     readonly error: Schema.Top
   }
   | {
@@ -390,7 +386,7 @@ const streamSchema = Schema.declare(Stream.isStream)
  * @since 4.0.0
  */
 export const StreamSse: {
-  <Events extends SseEventSchema, Error extends Schema.Top = Schema.Never>(options: {
+  <Events extends Sse.EventCodec, Error extends Schema.Top = Schema.Never>(options: {
     readonly contentType?: string | undefined
     readonly events: Events
     readonly error?: Error | undefined
@@ -402,10 +398,10 @@ export const StreamSse: {
   }): StreamSse<SseEventFromData<Data>, Error, Data["Type"]>
 } = (options: {
   readonly contentType?: string | undefined
-  readonly events?: SseEventSchema | undefined
+  readonly events?: Sse.EventCodec | undefined
   readonly data?: Schema.Top | undefined
   readonly error?: Schema.Top | undefined
-}): StreamSse<SseEventSchema, Schema.Top, unknown> => {
+}): StreamSse<Sse.EventCodec, Schema.Top, unknown> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
     event: Schema.String,
@@ -414,7 +410,7 @@ export const StreamSse: {
   if (events === undefined) {
     throw new Error("StreamSse requires either an events schema or a data schema")
   }
-  return Schema.make<StreamSse<SseEventSchema, Schema.Top, unknown>>(streamSchema.ast, {
+  return Schema.make<StreamSse<Sse.EventCodec, Schema.Top, unknown>>(streamSchema.ast, {
     [StreamSchemaTypeId]: StreamSchemaTypeId,
     _tag: "StreamSse",
     mode: "sse",
@@ -446,7 +442,7 @@ export const isStreamSchema = (u: unknown): u is StreamSchema =>
   Schema.isSchema(u) && Predicate.hasProperty(u, StreamSchemaTypeId)
 
 /** @internal */
-export const isStreamSse = (u: unknown): u is StreamSse<SseEventSchema, Schema.Top, unknown> =>
+export const isStreamSse = (u: unknown): u is StreamSse<Sse.EventCodec, Schema.Top, unknown> =>
   isStreamSchema(u) && u._tag === "StreamSse"
 
 /** @internal */
