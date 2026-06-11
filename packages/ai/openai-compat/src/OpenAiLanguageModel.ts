@@ -1064,6 +1064,11 @@ const makeResponse = Effect.fnUntraced(
     const message = choice?.message
 
     if (message !== undefined) {
+      const reasoning = message.reasoning ?? message.reasoning_content
+      if (Predicate.isNotNullish(reasoning) && reasoning.length > 0) {
+        parts.push({ type: "reasoning", text: reasoning })
+      }
+
       if (
         message.content !== undefined && Predicate.isNotNull(message.content) && message.content.length > 0
       ) {
@@ -1137,6 +1142,8 @@ const makeStreamResponse = Effect.fnUntraced(
     let metadataEmitted = false
     let textStarted = false
     let textId = ""
+    let reasoningStarted = false
+    let reasoningId = ""
     let hasToolCalls = false
     const activeToolCalls: Record<number, ActiveToolCall> = {}
 
@@ -1145,6 +1152,14 @@ const makeStreamResponse = Effect.fnUntraced(
         const parts: Array<Response.StreamPartEncoded> = []
 
         if (event === "[DONE]") {
+          if (reasoningStarted) {
+            parts.push({
+              type: "reasoning-end",
+              id: reasoningId,
+              metadata: { openai: { ...makeItemIdMetadata(reasoningId) } }
+            })
+          }
+
           if (textStarted) {
             parts.push({
               type: "text-end",
@@ -1202,6 +1217,7 @@ const makeStreamResponse = Effect.fnUntraced(
         if (!metadataEmitted) {
           metadataEmitted = true
           textId = `${event.id}_message`
+          reasoningId = `${event.id}_reasoning`
           parts.push({
             type: "response-metadata",
             id: event.id,
@@ -1216,7 +1232,29 @@ const makeStreamResponse = Effect.fnUntraced(
           return parts
         }
 
+        const reasoningDelta = choice.delta?.reasoning ?? choice.delta?.reasoning_content
+        if (Predicate.isNotNullish(reasoningDelta) && reasoningDelta.length > 0) {
+          if (!reasoningStarted) {
+            reasoningStarted = true
+            parts.push({
+              type: "reasoning-start",
+              id: reasoningId,
+              metadata: { openai: { ...makeItemIdMetadata(reasoningId) } }
+            })
+          }
+          parts.push({ type: "reasoning-delta", id: reasoningId, delta: reasoningDelta })
+        }
+
         if (choice.delta?.content !== undefined && Predicate.isNotNull(choice.delta.content)) {
+          if (reasoningStarted) {
+            reasoningStarted = false
+            parts.push({
+              type: "reasoning-end",
+              id: reasoningId,
+              metadata: { openai: { ...makeItemIdMetadata(reasoningId) } }
+            })
+          }
+
           if (!textStarted) {
             textStarted = true
             parts.push({
