@@ -1,17 +1,17 @@
 {
   "name": "@effect/ai-google-vertex",
-  "version": "4.0.0-beta.70",
+  "version": "4.0.0-beta.79",
   "type": "module",
   "license": "MIT",
   "description": "A Google Vertex AI provider integration for Effect AI SDK",
   "homepage": "https://effect.website",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Effect-TS/effect.git",
+    "url": "https://github.com/Effect-TS/effect-smol.git",
     "directory": "packages/ai/google-vertex"
   },
   "bugs": {
-    "url": "https://github.com/Effect-TS/effect/issues"
+    "url": "https://github.com/Effect-TS/effect-smol/issues"
   },
   "tags": [
     "typescript",
