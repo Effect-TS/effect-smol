@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect"
+import { Context, Effect, Schema } from "effect"
 import { Machine } from "effect/unstable/machine"
 import { describe, expect, it } from "tstyche"
 
@@ -32,6 +32,14 @@ describe("Machine", () => {
   class SignIn extends Schema.TaggedClass<SignIn>("SignIn")("SignIn", {
     userId: Schema.String
   }) {}
+
+  class InitialRequirement extends Context.Service<InitialRequirement, {
+    readonly initialMessage: string
+  }>()("test/Machine/InitialRequirement") {}
+
+  class EntryRequirement extends Context.Service<EntryRequirement, {
+    readonly entryMessage: string
+  }>()("test/Machine/EntryRequirement") {}
 
   const UpStates = Machine.defineStates({
     up: {
@@ -139,6 +147,42 @@ describe("Machine", () => {
     expect(machine.states).type.toBe<typeof UpStates.states>()
   })
 
+  it("planInitial carries external initial and lifecycle requirements", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => Effect.as(InitialRequirement, UpStates.initial.down(new Down({})))
+    }).handle({
+      down: {
+        entry: () => Effect.as(EntryRequirement, undefined)
+      }
+    })
+
+    const planned = Machine.planInitial(machine)
+
+    expect<Effect.Services<typeof planned>>().type.toBe<InitialRequirement | EntryRequirement>()
+    expect<Effect.Services<Effect.Success<typeof planned>["actions"][number]>>().type.toBe<
+      InitialRequirement | EntryRequirement
+    >()
+  })
+
+  it("planInitial provides compatible machine runtime requirements", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () =>
+        Effect.gen(function*() {
+          const runtime = yield* Machine.runtime<{ readonly events: SignIn }>()
+          yield* runtime.raise(new SignIn({ userId: "user-1" }))
+          return UpStates.initial.down(new Down({}))
+        })
+    })
+
+    const planned = Machine.planInitial(machine)
+
+    expect<Effect.Services<typeof planned>>().type.toBe<never>()
+  })
+
   it("plan and getters require snapshots", () => {
     const machine = Machine.make({
       states: UpStates.states,
@@ -222,9 +266,18 @@ describe("Machine", () => {
 
     machine.handle({
       up: {
-        entry: ({ state }) => {
+        entry: ({ event, state }) => {
           const id: string = state.id
+          expect(event).type.toBe<SignIn | Machine.InitialEvent>()
+          if (Machine.isInitialEvent(event)) {
+            expect(event._tag).type.toBe<typeof Machine.InitialEventTypeId>()
+          } else {
+            expect(event.userId).type.toBe<string>()
+          }
           void id
+        },
+        always: ({ event }) => {
+          expect(event).type.toBe<SignIn | Machine.InitialEvent>()
         },
         states: {
           auth: {
@@ -263,6 +316,28 @@ describe("Machine", () => {
       on: {}
     })
     expect(machine.handle).type.not.toBeCallableWith((up: unknown) => up)
+  })
+
+  it("final output callbacks receive lifecycle events", () => {
+    const machine = Machine.make({
+      states: {
+        down: {
+          schema: Down,
+          type: "final"
+        }
+      },
+      events: [SignIn],
+      initial: () => Machine.defineStates({ down: { schema: Down, type: "final" } }).initial.down(new Down({}))
+    }).handle({
+      down: {
+        type: "final",
+        output: ({ event }) => {
+          expect(event).type.toBe<SignIn | Machine.InitialEvent>()
+        }
+      }
+    })
+
+    expect(machine).type.toBeAssignableTo<Machine.Machine.Any>()
   })
 
   it("initial builder constructs typed initial snapshots", () => {

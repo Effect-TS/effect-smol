@@ -239,6 +239,11 @@ describe("Machine", () => {
     assert.strictEqual(machine.id, "UserMachine")
   })
 
+  it("identifies the initial lifecycle event", () => {
+    assert.strictEqual(Machine.isInitialEvent(Machine.InitialEvent), true)
+    assert.strictEqual(Machine.isInitialEvent(new Submit({ value: "request-1" })), false)
+  })
+
   it.effect("defineStates returns states accepted by make", () =>
     Effect.gen(function*() {
       const states = { idle: Idle, loading: Loading }
@@ -2801,11 +2806,67 @@ describe("Machine", () => {
         })
       })
 
-      const planned = yield* Machine.planInitial(machine, { userId: "user-1" })
+      const planned = yield* Machine.planInitial(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(DeferredLog, deferredLog)
+      )
 
       assert.deepStrictEqual(planned.state.value, new Idle({ userId: "user-1" }))
       assert.strictEqual(planned.actions.length, 1)
       assert.deepStrictEqual(yield* deferredLog.read, [])
+    }))
+
+  it.effect("planInitial uses the planning runtime for initial raised events", () =>
+    Effect.gen(function*() {
+      const machine = Machine.make({
+        states: { Idle, Loading },
+        events: [Resolve],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          const runtime = yield* Machine.runtime<{ readonly events: Resolve }>()
+          yield* runtime.raise(new Resolve({}))
+          return FlatInitial.Idle(new Idle({ userId }))
+        })
+      }).handle({
+        Idle: {
+          on: {
+            Resolve: () => FlatInitial.Loading(new Loading({ requestId: "resolved" }))
+          }
+        }
+      })
+
+      const planned = yield* Machine.planInitial(machine, { userId: "user-1" })
+
+      assert.deepStrictEqual(planned.state, FlatInitial.Loading(new Loading({ requestId: "resolved" })))
+    }))
+
+  it.effect("planInitial carries external initial and entry requirements", () =>
+    Effect.gen(function*() {
+      const machine = Machine.make({
+        states: { Idle },
+        events: [Submit],
+        input: Input,
+        initial: Effect.fn(function*({ userId }) {
+          const requirement = yield* InitialRequirement
+          return FlatInitial.Idle(new Idle({ userId: `${userId}:${requirement.initialMessage}` }))
+        })
+      }).handle({
+        Idle: {
+          entry: Effect.fn(function*() {
+            const requirement = yield* EntryRequirement
+            yield* Machine.action(Effect.sync(() => {
+              void requirement.entryMessage
+            }))
+          })
+        }
+      })
+
+      const planned = yield* Machine.planInitial(machine, { userId: "user-1" }).pipe(
+        Effect.provideService(InitialRequirement, InitialRequirement.of({ initialMessage: "initial" })),
+        Effect.provideService(EntryRequirement, EntryRequirement.of({ entryMessage: "entry" }))
+      )
+
+      assert.deepStrictEqual(planned.state, FlatInitial.Idle(new Idle({ userId: "user-1:initial" })))
+      assert.strictEqual(planned.actions.length, 1)
     }))
 
   it.effect("start runs deferred initial actions", () =>
@@ -3192,7 +3253,7 @@ describe("Machine", () => {
         },
         Success: {
           type: "final",
-          output: ({ event, state }) => `${state.requestId}:${event._tag}`
+          output: ({ event, state }) => `${state.requestId}:${String(event._tag)}`
         }
       })
 
@@ -5170,7 +5231,7 @@ describe("Machine", () => {
         Idle: {
           exit: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
+            yield* Machine.action(deferredLog.push(`exit:${String(event._tag)}`))
           }),
           on: {
             Submit: Effect.fn(function*() {
@@ -5183,7 +5244,7 @@ describe("Machine", () => {
         Loading: {
           entry: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push(`entry:${event._tag}`))
+            yield* Machine.action(deferredLog.push(`entry:${String(event._tag)}`))
           })
         }
       })
@@ -5268,7 +5329,7 @@ describe("Machine", () => {
         Loading: {
           always: Effect.fn(function*({ event, state }) {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push(`always:${event._tag}`))
+            yield* Machine.action(deferredLog.push(`always:${String(event._tag)}`))
             return FlatInitial.Success(new Success({ requestId: state.requestId }))
           })
         }
@@ -5655,7 +5716,7 @@ describe("Machine", () => {
           }),
           exit: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
+            yield* Machine.action(deferredLog.push(`exit:${String(event._tag)}`))
           }),
           on: {
             Submit: {
@@ -5709,7 +5770,7 @@ describe("Machine", () => {
           }),
           exit: Effect.fn(function*({ event }) {
             const deferredLog = yield* DeferredLog
-            yield* Machine.action(deferredLog.push(`exit:${event._tag}`))
+            yield* Machine.action(deferredLog.push(`exit:${String(event._tag)}`))
           }),
           on: {
             Submit: {

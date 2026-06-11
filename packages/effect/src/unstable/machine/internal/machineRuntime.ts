@@ -12,13 +12,6 @@ import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
 import * as Fiber from "../../../Fiber.ts"
 import * as HashMap from "../../../HashMap.ts"
-import {
-  ChildAlreadyExistsError,
-  InfiniteTransitionError,
-  StartupError,
-  StoppedError,
-  UnhandledEventError
-} from "../../../internal/machineErrors.ts"
 import * as Option from "../../../Option.ts"
 import * as PubSub from "../../../PubSub.ts"
 import * as Queue from "../../../Queue.ts"
@@ -28,7 +21,14 @@ import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
 import * as SynchronizedRef from "../../../SynchronizedRef.ts"
 import type * as Take from "../../../Take.ts"
-import type { Machine, Runtime } from "../Machine.ts"
+import type { InitialEvent as MachineInitialEvent, Machine, Runtime } from "../Machine.ts"
+import {
+  ChildAlreadyExistsError,
+  InfiniteTransitionError,
+  StartupError,
+  StoppedError,
+  UnhandledEventError
+} from "./machineErrors.ts"
 import {
   type ActiveConfiguration,
   compareDocumentOrder,
@@ -52,6 +52,16 @@ import {
 } from "./machineModel.ts"
 
 export type DeferredAction<E = any, R = any> = Effect.Effect<void, E, R>
+
+type IsAny<A> = 0 extends (1 & A) ? true : false
+
+type ExcludeCompatibleRuntime<Requirements, Events, Emits> = Requirements extends Runtime.Requirement<
+  infer RequiredEvents,
+  infer RequiredEmits
+> ? IsAny<Requirements> extends true ? Requirements
+  : [RequiredEvents] extends [Events] ? [RequiredEmits] extends [Emits] ? never : Requirements
+  : Requirements
+  : Requirements
 
 export interface DeferredQueue<A> {
   readonly add: (value: A) => Effect.Effect<void>
@@ -680,6 +690,19 @@ const startInternal: <
       )
     ).pipe(Effect.asVoid)
 
+  const terminalizeWith = (
+    snapshot: RuntimeSnapshot<State, Error | InitialError, Output>,
+    exit: Exit.Exit<unknown, unknown>,
+    completeDone: Effect.Effect<void>
+  ): Effect.Effect<void> =>
+    Queue.shutdown(queue).pipe(
+      Effect.andThen(closeChildren(exit)),
+      Effect.andThen(cleanup),
+      Effect.andThen(setAndPublishSnapshot(snapshot)),
+      Effect.andThen(finalize(exit)),
+      Effect.andThen(completeDone)
+    )
+
   const stopSelf: Effect.Effect<void> = reserveTerminalSnapshot((snapshot) => ({
     status: "stopped",
     state: snapshot.state
@@ -689,12 +712,11 @@ const startInternal: <
         ? Effect.void
         : Effect.suspend(() => {
           const exit = Exit.void
-          return Queue.shutdown(queue).pipe(
-            Effect.andThen(closeChildren(exit)),
-            Effect.andThen(cleanup),
-            Effect.andThen(setAndPublishSnapshot(snapshot)),
-            Effect.andThen(finalize(exit)),
-            Effect.andThen(Deferred.fail(done, new StoppedError())),
+          return terminalizeWith(
+            snapshot,
+            exit,
+            Deferred.fail(done, new StoppedError())
+          ).pipe(
             Effect.andThen(Deferred.await(fiberRef).pipe(Effect.flatMap(Fiber.interrupt)))
           )
         })
@@ -750,13 +772,7 @@ const startInternal: <
           ? Effect.void
           : Effect.suspend(() => {
             const exit = Exit.failCause(cause)
-            return Queue.shutdown(queue).pipe(
-              Effect.andThen(closeChildren(exit)),
-              Effect.andThen(cleanup),
-              Effect.andThen(setAndPublishSnapshot(snapshot)),
-              Effect.andThen(finalize(exit)),
-              Effect.andThen(Deferred.failCause(done, cause))
-            )
+            return terminalizeWith(snapshot, exit, Deferred.failCause(done, cause))
           })
       )
     )
@@ -772,13 +788,7 @@ const startInternal: <
           ? Effect.void
           : Effect.suspend(() => {
             const exit = Exit.succeed(output)
-            return Queue.shutdown(queue).pipe(
-              Effect.andThen(closeChildren(exit)),
-              Effect.andThen(cleanup),
-              Effect.andThen(setAndPublishSnapshot(snapshot)),
-              Effect.andThen(finalize(exit)),
-              Effect.andThen(Deferred.succeed(done, output))
-            )
+            return terminalizeWith(snapshot, exit, Deferred.succeed(done, output))
           })
       )
     )
@@ -1049,7 +1059,7 @@ export const makeStateActionContext = <
 >(
   configuration: ActiveConfiguration,
   path: string,
-  event: Machine.EventOf<Events>
+  event: Machine.LifecycleEvent<Events>
 ): Machine.StateActionContext<States, Events, Emits, StateId> => ({
   state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
   event,
@@ -1084,7 +1094,7 @@ export const collectStateActions = Effect.fnUntraced(function*<
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   paths: ReadonlyArray<string>,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   key: "entry" | "exit"
 ) {
   const actions: Array<DeferredAction<E, R>> = []
@@ -1114,7 +1124,7 @@ export const selectAlwaysTransitions = <
 >(
   machine: Machine.Any,
   configuration: ActiveConfiguration,
-  event: Machine.EventOf<Events>
+  event: Machine.LifecycleEvent<Events>
 ): ReadonlyArray<
   SelectedTransition<
     States,
@@ -1369,12 +1379,11 @@ export const collectEvaluatedTransition = Effect.fnUntraced(function*<
 
 export const MaxMacrostepIterations = 1000
 export const InitialEventTypeId: unique symbol = Symbol("effect/Machine/InitialEvent")
-export const InitialEvent = { _tag: InitialEventTypeId }
+export const InitialEvent: MachineInitialEvent = { _tag: InitialEventTypeId }
 
-export const catchStartup = <A>(
-  effect: Effect.Effect<A, unknown, unknown>
-): Effect.Effect<A, StartupError> =>
-  Effect.catchCause(effect as Effect.Effect<A, unknown, never>, (cause) => Effect.fail(new StartupError({ cause })))
+export const catchStartup = <A, E, R>(
+  effect: Effect.Effect<A, E, R>
+): Effect.Effect<A, StartupError, R> => Effect.catchCause(effect, (cause) => Effect.fail(new StartupError({ cause })))
 
 export const isFinalState = (
   machine: Machine.Any,
@@ -1387,7 +1396,7 @@ export const getFinalOutputFromConfiguration = <
 >(
   machine: Machine.Any,
   configuration: ActiveConfiguration,
-  event: Machine.EventOf<Events>
+  event: Machine.LifecycleEvent<Events>
 ): Output | undefined => {
   const completed = completeConfiguration(machine, configuration, event)
   return completed.completion?.output as Output | undefined
@@ -1400,7 +1409,7 @@ export const getFinalOutput = <
 >(
   machine: Machine.Any,
   state: Machine.Snapshot<States>,
-  event: Machine.EventOf<Events>
+  event: Machine.LifecycleEvent<Events>
 ): Output | undefined =>
   getFinalOutputFromConfiguration<Events, Output>(
     machine,
@@ -1441,11 +1450,11 @@ export const planInitial: <
 ) => Effect.Effect<
   {
     readonly state: Machine.Snapshot<States>
-    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
+    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR | R>>
     readonly output: Output | undefined
   },
   InitialE | StartupError,
-  never
+  ExcludeCompatibleRuntime<InitialR | R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
 > = Effect.fnUntraced(function*<
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -1463,39 +1472,51 @@ export const planInitial: <
   ...args: [...Machine.InputArgs<Input>]
 ) {
   const deferredActions = yield* makeDeferredActions
+  const deferredRaisedEvents = yield* makeDeferredRaisedEvents
   const result = machine.initial(...args)
   const state = Effect.isEffect(result)
-    ? yield* (result.pipe(Effect.provideService(DeferredActions, deferredActions)) as Effect.Effect<
-      Machine.Snapshot<States>
+    ? yield* (provideDeferredServices(
+      result as Effect.Effect<Machine.Snapshot<States>, InitialE, InitialR>,
+      deferredActions,
+      deferredRaisedEvents
+    ) as Effect.Effect<
+      Machine.Snapshot<States>,
+      InitialE,
+      ExcludeCompatibleRuntime<InitialR, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
     >)
     : result
   const configuration = normalizeConfiguration<States>(machine, state)
   validateInitialConfiguration(machine, configuration)
   const actions = yield* deferredActions.read
-  const settled = yield* catchStartup(Effect.gen(function*() {
-    const entry = yield* collectStateActions<States, Events, Emits, never, never>(
+  const raisedEvents = yield* deferredRaisedEvents.read
+  const settled = yield* (catchStartup(Effect.gen(function*() {
+    const entry = yield* collectStateActions<States, Events, Emits, E, R>(
       machine,
       configuration,
       getInitialEntryPaths(machine, configuration),
-      InitialEvent as Machine.EventOf<Events>,
+      InitialEvent,
       "entry"
     )
     return yield* (settle(
       machine,
       configuration,
-      InitialEvent as Machine.EventOf<Events>,
-      [...entry.actions] as Array<Effect.Effect<void, never, never>>,
-      [...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
+      InitialEvent,
+      [...entry.actions] as Array<Effect.Effect<void, E, R>>,
+      [...raisedEvents, ...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
       []
-    ) as Effect.Effect<MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, never, never, Output>>)
-  }))
+    ) as Effect.Effect<MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R, Output>>)
+  })) as Effect.Effect<
+    MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R, Output>,
+    StartupError,
+    ExcludeCompatibleRuntime<R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
+  >)
 
   return {
     state: snapshotFromConfiguration<States>(machine, settled.next),
     actions: [
       ...actions,
       ...settled.actions.map((action) => catchStartup(action))
-    ] as ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>,
+    ] as ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR | R>>,
     output: settled.output
   }
 })
@@ -1544,7 +1565,7 @@ export const microstep: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   selections: ReadonlyArray<SelectedTransition<States, E, R, Context>>
 ) => Effect.Effect<
   MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>,
@@ -1566,7 +1587,7 @@ export const microstep: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   selections: ReadonlyArray<SelectedTransition<States, E, R, Context>>
 ) {
   if (selections.length === 0) {
@@ -1589,17 +1610,18 @@ export const microstep: <
   }
 
   const transitions = removeConflictingTransitions(machine, evaluatedTransitions)
+  const sortedTransitions = sortEvaluatedTransitions(machine, transitions)
   let stateAfterTransition = state
-  for (const transition of sortEvaluatedTransitions(machine, transitions)) {
+  for (const transition of sortedTransitions) {
     if (transition.target !== undefined) {
       stateAfterTransition = normalizeTargetConfiguration<States>(machine, stateAfterTransition, transition.target)
     }
   }
 
   const changed = transitions.some((transition) => transition.changed)
-  const transitionActions = sortEvaluatedTransitions(machine, transitions)
+  const transitionActions = sortedTransitions
     .flatMap((transition) => transition.actions)
-  const transitionRaisedEvents = sortEvaluatedTransitions(machine, transitions)
+  const transitionRaisedEvents = sortedTransitions
     .flatMap((transition) => transition.raisedEvents)
 
   if (!changed) {
@@ -1613,8 +1635,8 @@ export const microstep: <
     }
   }
 
-  const exitPaths = sortExitPaths(machine, transitions.flatMap((transition) => transition.exitPaths))
-  const entryPaths = sortEntryPaths(machine, transitions.flatMap((transition) => transition.entryPaths))
+  const exitPaths = sortExitPaths(machine, sortedTransitions.flatMap((transition) => transition.exitPaths))
+  const entryPaths = sortEntryPaths(machine, sortedTransitions.flatMap((transition) => transition.entryPaths))
   const exit = yield* collectStateActions<States, Events, Emits, E, R>(
     machine,
     state,
@@ -1659,7 +1681,7 @@ export const settle: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
   microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>
@@ -1682,7 +1704,7 @@ export const settle: <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>,
   state: ActiveConfiguration,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
   microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>

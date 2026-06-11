@@ -508,7 +508,7 @@ export const resolveFinalOutput = <const Events extends ReadonlyArray<Machine.Ta
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   path: string,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   outputs?: Readonly<Record<string, unknown>>
 ): unknown =>
   getStateConfigByPath(machine, path)?.output?.({
@@ -521,7 +521,7 @@ export const completeActiveFinalNode = <const Events extends ReadonlyArray<Machi
   machine: Machine.Any,
   configuration: ActiveConfiguration,
   path: string,
-  event: Machine.EventOf<Events>,
+  event: Machine.LifecycleEvent<Events>,
   outputs: Map<string, unknown>
 ): FinalCompletion | undefined => {
   if (!configuration.active.has(path)) {
@@ -577,7 +577,7 @@ export const completeActiveFinalNode = <const Events extends ReadonlyArray<Machi
 export const completeConfiguration = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
   machine: Machine.Any,
   configuration: ActiveConfiguration,
-  event: Machine.EventOf<Events>
+  event: Machine.LifecycleEvent<Events>
 ): {
   readonly configuration: ActiveConfiguration
   readonly completion: FinalCompletion | undefined

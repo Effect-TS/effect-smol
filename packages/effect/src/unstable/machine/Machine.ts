@@ -6,17 +6,17 @@
 
 import * as Effect from "../../Effect.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
-import type {
-  ChildAlreadyExistsError,
-  InfiniteTransitionError,
-  StartupError,
-  UnhandledEventError
-} from "../../internal/machineErrors.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import type * as Types from "../../Types.ts"
+import type {
+  ChildAlreadyExistsError,
+  InfiniteTransitionError,
+  StartupError,
+  UnhandledEventError
+} from "./internal/machineErrors.ts"
 import * as Model from "./internal/machineModel.ts"
 import * as internalProcess from "./internal/machineProcess.ts"
 import * as internalRuntime from "./internal/machineRuntime.ts"
@@ -37,6 +37,42 @@ export type TypeId = "~effect/Machine"
  * @since 4.0.0
  */
 export const TypeId: TypeId = "~effect/Machine"
+
+/**
+ * Type identifier used for the synthetic event passed to startup lifecycle
+ * actions.
+ *
+ * @category type IDs
+ * @since 4.0.0
+ */
+export const InitialEventTypeId: typeof internalRuntime.InitialEventTypeId = internalRuntime.InitialEventTypeId
+
+/**
+ * Synthetic event passed to entry, exit, always, invoke, and output callbacks
+ * that run while the machine is settling its initial state.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface InitialEvent {
+  readonly _tag: typeof InitialEventTypeId
+}
+
+/**
+ * Synthetic event value used while the machine settles its initial state.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const InitialEvent: InitialEvent = internalRuntime.InitialEvent
+
+/**
+ * Returns `true` if a value is the synthetic machine initial event.
+ *
+ * @category guards
+ * @since 4.0.0
+ */
+export const isInitialEvent = (u: unknown): u is InitialEvent => hasProperty(u, "_tag") && u._tag === InitialEventTypeId
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
 
@@ -133,7 +169,7 @@ export {
    * @since 4.0.0
    */
   UnhandledEventError
-} from "../../internal/machineErrors.ts"
+} from "./internal/machineErrors.ts"
 
 const RuntimeRequirementTypeId = "~effect/Machine/RuntimeRequirement"
 
@@ -992,6 +1028,14 @@ export declare namespace Machine {
   export type EmitOf<Emits extends ReadonlyArray<TaggedSchema>> = Emits[number]["Type"]
 
   /**
+   * Event values received by lifecycle callbacks.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type LifecycleEvent<Events extends ReadonlyArray<TaggedSchema>> = EventOf<Events> | InitialEvent
+
+  /**
    * Runtime capability specialized to a machine's event protocols.
    *
    * @category utility types
@@ -1318,7 +1362,7 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > {
     readonly state: StateByIdentifier<States, StateId>
-    readonly event: EventOf<Events>
+    readonly event: LifecycleEvent<Events>
     readonly runtime: RuntimeEffect<Events, Emits>
   }
 
@@ -1335,7 +1379,7 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > {
     readonly state: StateByIdentifier<States, StateId>
-    readonly event: EventOf<Events>
+    readonly event: LifecycleEvent<Events>
     readonly runtime: RuntimeEffect<Events, Emits>
   }
 
@@ -1374,7 +1418,7 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > {
     readonly state: StateByIdentifier<States, StateId>
-    readonly event: EventOf<Events>
+    readonly event: LifecycleEvent<Events>
     readonly runtime: RuntimeEffect<Events, Emits>
     readonly target: TargetBuilder<States, StateId>
   }
@@ -1391,7 +1435,7 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > {
     readonly state: StateByIdentifier<States, StateId>
-    readonly event: EventOf<Events>
+    readonly event: LifecycleEvent<Events>
   }
 
   /**
@@ -1421,7 +1465,7 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > {
     readonly state: StateByIdentifier<States, StateId>
-    readonly event: EventOf<Events>
+    readonly event: LifecycleEvent<Events>
     readonly outputs: ParallelOutputRegions<States, StateId>
   }
 
@@ -2735,11 +2779,11 @@ export const planInitial: <
 ) => Effect.Effect<
   {
     readonly state: Machine.Snapshot<States>
-    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR>>
+    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR | R>>
     readonly output: Output | undefined
   },
   InitialE | StartupError,
-  never
+  ExcludeCompatibleRuntime<InitialR | R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
 > = internalRuntime.planInitial
 
 /**

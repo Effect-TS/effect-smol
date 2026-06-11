@@ -1,5 +1,5 @@
-import type * as Cause from "../Cause.ts"
-import * as Data from "../Data.ts"
+import type * as Cause from "../../../Cause.ts"
+import * as Data from "../../../Data.ts"
 
 /**
  * Error returned when an event has no handler for the current state.

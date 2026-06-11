@@ -7,13 +7,13 @@
 import * as Effect from "../../../Effect.ts"
 import * as Exit from "../../../Exit.ts"
 import * as HashMap from "../../../HashMap.ts"
-import type { InfiniteTransitionError, StartupError, UnhandledEventError } from "../../../internal/machineErrors.ts"
 import * as Option from "../../../Option.ts"
 import * as Ref from "../../../Ref.ts"
 import type * as Schema from "../../../Schema.ts"
 import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
 import type { Machine, Runtime } from "../Machine.ts"
+import type { InfiniteTransitionError, StartupError, UnhandledEventError } from "./machineErrors.ts"
 import * as Model from "./machineModel.ts"
 import * as internalRuntime from "./machineRuntime.ts"
 
@@ -94,7 +94,7 @@ export const toProcessLogic: <
             return internalRuntime.getFinalOutput<States, Events, Output>(
               machine,
               initialState,
-              internalRuntime.InitialEvent as Machine.EventOf<Events>
+              internalRuntime.InitialEvent
             )
           }
 
@@ -202,7 +202,7 @@ export const toProcessLogic: <
             path: StateId,
             config: internalRuntime.AnyInvokeConfig,
             state: Machine.StateByIdentifier<States, StateId>,
-            event: Machine.EventOf<Events>
+            event: Machine.LifecycleEvent<Events>
           ) =>
             Effect.gen(function*() {
               const token = Symbol()
@@ -228,7 +228,7 @@ export const toProcessLogic: <
           const startInvokes = (
             state: Machine.Snapshot<States>,
             paths: ReadonlyArray<string>,
-            event: Machine.EventOf<Events>
+            event: Machine.LifecycleEvent<Events>
           ): Effect.Effect<void, E, R> => {
             const configuration = Model.normalizeConfiguration(machine, state)
             return Effect.all(
@@ -264,7 +264,7 @@ export const toProcessLogic: <
             yield* startInvokes(
               initialState,
               Model.getInitialEntryPaths(machine, Model.normalizeConfiguration(machine, initialState)),
-              internalRuntime.InitialEvent as Machine.EventOf<Events>
+              internalRuntime.InitialEvent
             )
 
             yield* Effect.whileLoop({
