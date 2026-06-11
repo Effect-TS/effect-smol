@@ -283,6 +283,8 @@ type SnapshotBuilderComplete<Regions> = {
   readonly [SnapshotBuilderStateTypeId]: Regions
 }
 
+const HandlerBuilderStateTypeId: unique symbol = Symbol("effect/Machine/HandlerBuilderState")
+
 type InitialSnapshotBuilderWithPrefix<
   States extends Machine.StateSchemas,
   Prefix extends string = ""
@@ -1724,13 +1726,387 @@ export declare namespace Machine {
     | ActiveStateConfig<States, Events, Emits, StateId, E, R>
     | FinalStateConfig<States, Events, Emits, StateId>
 
+  type HandlerBuilderScope = "root" | "nested"
+
+  type HandlerBuilderState<Current> = {
+    readonly [HandlerBuilderStateTypeId]: Current
+  }
+
+  type HandlerBuilderMachine<Builder> = Builder extends HandlerBuilderState<infer Current> ? Current : never
+
+  type HandlerChildren<Node> = Node extends { readonly states: infer Children extends StateSchemas } ? Children : never
+
+  type HandlerStateId<
+    States extends StateSchemas,
+    Path extends string
+  > = StateIdentifierFromPath<States, Path>
+
+  type HasUnhandledState<
+    UnhandledStates extends string,
+    Path extends string
+  > = [Extract<UnhandledStates, Path>] extends [never] ? false : true
+
+  type HasUnhandledChildren<
+    AllStates extends StateSchemas,
+    Children extends StateSchemas,
+    Prefix extends string,
+    UnhandledStates extends StateIdentifier<AllStates>
+  > = [Extract<UnhandledStates, StateIdentifierWithPrefix<Children, Prefix>>] extends [never] ? false : true
+
+  type HandleConfigResult<
+    AllStates extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    StateId extends StateIdentifier<AllStates>,
+    Config
+  > = Machine<
+    AllStates,
+    Events,
+    Input,
+    Exclude<UnhandledStates, StateId>,
+    | E
+    | Effect.Error<EventHandlerReturn<Config>>
+    | Effect.Error<AlwaysReturn<Config>>
+    | Effect.Error<StateActionReturn<Config, "entry">>
+    | Effect.Error<StateActionReturn<Config, "exit">>
+    | InvokeError<Config>,
+    ExcludeCompatibleRuntime<R | ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>,
+    InitialE,
+    InitialR,
+    FinalStates | Extract<FinalStateFromConfig<Config, StateId>, StateIdentifier<AllStates>>,
+    Output | FinalOutputReturn<Config>,
+    Emits
+  >
+
+  type HandlerMethodReturn<
+    Scope extends HandlerBuilderScope,
+    Current,
+    States extends StateSchemas,
+    Prefix extends string
+  > = Scope extends "root" ? Current : HandlerBuilderFromMachine<Current, States, Prefix, "nested">
+
+  type HandlerBuilderFromMachine<
+    Current,
+    States extends StateSchemas,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope
+  > = Current extends Machine<
+    infer AllStates extends StateSchemas,
+    infer Events extends ReadonlyArray<TaggedSchema>,
+    infer Input extends Schema.Top,
+    infer UnhandledStates,
+    infer E,
+    infer R,
+    infer InitialE,
+    infer InitialR,
+    infer FinalStates,
+    infer Output,
+    infer Emits extends ReadonlyArray<TaggedSchema>
+  > ? HandlerBuilderWithPrefix<
+      AllStates,
+      States,
+      Events,
+      Emits,
+      Input,
+      UnhandledStates & StateIdentifier<AllStates>,
+      E,
+      R,
+      InitialE,
+      InitialR,
+      FinalStates & StateIdentifier<AllStates>,
+      Output,
+      Prefix,
+      Scope
+    >
+    : never
+
+  type HandlerConfigOnlyMethod<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Path extends string,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope,
+    StateId extends StateIdentifier<AllStates> = HandlerStateId<AllStates, Path>
+  > = HasUnhandledState<UnhandledStates, Path> extends true ? <
+      const Config extends HandlerConfig<AllStates, Events, Emits, StateId, E, R>
+    >(
+      config: Config & EnsureCompatibleRuntime<ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>
+    ) => HandlerMethodReturn<
+      Scope,
+      HandleConfigResult<
+        AllStates,
+        Events,
+        Emits,
+        Input,
+        UnhandledStates,
+        E,
+        R,
+        InitialE,
+        InitialR,
+        FinalStates,
+        Output,
+        StateId,
+        Config
+      >,
+      States,
+      Prefix
+    >
+    : {}
+
+  type HandlerConfigWithChildrenMethod<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Path extends string,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope,
+    Children extends StateSchemas,
+    StateId extends StateIdentifier<AllStates> = HandlerStateId<AllStates, Path>
+  > = HasUnhandledState<UnhandledStates, Path> extends true ? <
+      const Config extends HandlerConfig<AllStates, Events, Emits, StateId, E, R>,
+      const Result extends HandlerBuilderState<any>
+    >(
+      config: Config & EnsureCompatibleRuntime<ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>,
+      build: (
+        builder: HandlerBuilderFromMachine<
+          HandleConfigResult<
+            AllStates,
+            Events,
+            Emits,
+            Input,
+            UnhandledStates,
+            E,
+            R,
+            InitialE,
+            InitialR,
+            FinalStates,
+            Output,
+            StateId,
+            Config
+          >,
+          Children,
+          Path,
+          "nested"
+        >
+      ) => Result
+    ) => HandlerMethodReturn<Scope, HandlerBuilderMachine<Result>, States, Prefix>
+    : {}
+
+  type HandlerChildrenOnlyMethod<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Path extends string,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope,
+    Children extends StateSchemas
+  > = HasUnhandledChildren<AllStates, Children, Path, UnhandledStates> extends true ? <
+      const Result extends HandlerBuilderState<any>
+    >(
+      build: (
+        builder: HandlerBuilderWithPrefix<
+          AllStates,
+          Children,
+          Events,
+          Emits,
+          Input,
+          UnhandledStates,
+          E,
+          R,
+          InitialE,
+          InitialR,
+          FinalStates,
+          Output,
+          Path,
+          "nested"
+        >
+      ) => Result
+    ) => HandlerMethodReturn<Scope, HandlerBuilderMachine<Result>, States, Prefix>
+    : {}
+
+  type HandlerChildBuilder<
+    AllStates extends StateSchemas,
+    Node,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Path extends string,
+    Scope extends HandlerBuilderScope
+  > = HandlerChildren<Node> extends infer Children extends StateSchemas ? [Children] extends [never] ? {}
+    : HandlerBuilderWithPrefix<
+      AllStates,
+      Children,
+      Events,
+      Emits,
+      Input,
+      UnhandledStates,
+      E,
+      R,
+      InitialE,
+      InitialR,
+      FinalStates,
+      Output,
+      Path,
+      Scope
+    >
+    : {}
+
+  type HandlerMethod<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Key extends Extract<keyof States, string>,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope,
+    Path extends string = JoinPath<Prefix, Key>,
+    Node = States[Key]
+  > =
+    & HandlerConfigOnlyMethod<
+      AllStates,
+      States,
+      Events,
+      Emits,
+      Input,
+      UnhandledStates,
+      E,
+      R,
+      InitialE,
+      InitialR,
+      FinalStates,
+      Output,
+      Path,
+      Prefix,
+      Scope
+    >
+    & ([HandlerChildren<Node>] extends [never] ? {}
+      : HandlerChildren<Node> extends infer Children extends StateSchemas ?
+          & HandlerConfigWithChildrenMethod<
+            AllStates,
+            States,
+            Events,
+            Emits,
+            Input,
+            UnhandledStates,
+            E,
+            R,
+            InitialE,
+            InitialR,
+            FinalStates,
+            Output,
+            Path,
+            Prefix,
+            Scope,
+            Children
+          >
+          & HandlerChildrenOnlyMethod<
+            AllStates,
+            States,
+            Events,
+            Emits,
+            Input,
+            UnhandledStates,
+            E,
+            R,
+            InitialE,
+            InitialR,
+            FinalStates,
+            Output,
+            Path,
+            Prefix,
+            Scope,
+            Children
+          >
+      : {})
+    & HandlerChildBuilder<
+      AllStates,
+      Node,
+      Events,
+      Emits,
+      Input,
+      UnhandledStates,
+      E,
+      R,
+      InitialE,
+      InitialR,
+      FinalStates,
+      Output,
+      Path,
+      Scope
+    >
+
+  type HandlerMethodAvailable<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Key extends Extract<keyof States, string>,
+    Prefix extends string,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    Path extends string = JoinPath<Prefix, Key>,
+    Node = States[Key]
+  > = HasUnhandledState<UnhandledStates, Path> extends true ? true
+    : [HandlerChildren<Node>] extends [never] ? false
+    : HandlerChildren<Node> extends infer Children extends StateSchemas ?
+      HasUnhandledChildren<AllStates, Children, Path, UnhandledStates>
+    : false
+
   /**
-   * Adds handlers for an unhandled state tag.
+   * Adds handlers for unhandled states.
    *
    * @category combinators
    * @since 4.0.0
    */
-  export interface Handler<
+  export type Handler<
     States extends StateSchemas,
     Events extends ReadonlyArray<TaggedSchema>,
     Emits extends ReadonlyArray<TaggedSchema>,
@@ -1742,32 +2118,69 @@ export declare namespace Machine {
     InitialR,
     FinalStates extends StateIdentifier<States>,
     Output
-  > {
-    <
-      const StateId extends UnhandledStates,
-      const Config extends HandlerConfig<States, Events, Emits, StateId, E, R>
-    >(
-      stateTag: StateId,
-      config: Config & EnsureCompatibleRuntime<ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>
-    ): Machine<
-      States,
-      Events,
-      Input,
-      Exclude<UnhandledStates, StateId>,
-      | E
-      | Effect.Error<EventHandlerReturn<Config>>
-      | Effect.Error<AlwaysReturn<Config>>
-      | Effect.Error<StateActionReturn<Config, "entry">>
-      | Effect.Error<StateActionReturn<Config, "exit">>
-      | InvokeError<Config>,
-      ExcludeCompatibleRuntime<R | ConfigServices<Config>, EventOf<Events>, EmitOf<Emits>>,
-      InitialE,
-      InitialR,
-      FinalStates | FinalStateFromConfig<Config, StateId>,
-      Output | FinalOutputReturn<Config>,
-      Emits
+  > = HandlerBuilderWithPrefix<
+    States,
+    States,
+    Events,
+    Emits,
+    Input,
+    UnhandledStates,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates,
+    Output,
+    "",
+    "root"
+  >
+
+  type HandlerBuilderWithPrefix<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    Emits extends ReadonlyArray<TaggedSchema>,
+    Input extends Schema.Top,
+    UnhandledStates extends StateIdentifier<AllStates>,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates extends StateIdentifier<AllStates>,
+    Output,
+    Prefix extends string,
+    Scope extends HandlerBuilderScope
+  > =
+    & HandlerBuilderState<
+      Machine<AllStates, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates, Output, Emits>
     >
-  }
+    & {
+      readonly [
+        Key in Extract<keyof States, string> as HandlerMethodAvailable<
+          AllStates,
+          States,
+          Key,
+          Prefix,
+          UnhandledStates
+        > extends true ? Key : never
+      ]: HandlerMethod<
+        AllStates,
+        States,
+        Events,
+        Emits,
+        Input,
+        UnhandledStates,
+        E,
+        R,
+        InitialE,
+        InitialR,
+        FinalStates,
+        Output,
+        Key,
+        Prefix,
+        Scope
+      >
+    }
 
   /**
    * Any state config.
@@ -1852,14 +2265,69 @@ export declare namespace Machine {
 const Proto = {
   ...PipeInspectableProto,
   [TypeId]: TypeId,
-  handle(this: Machine.Any, stateTag: PropertyKey, config: Machine.AnyStateConfig) {
-    return handleUnsafe(this, stateTag, config)
-  },
   toJSON() {
     return {
       _id: "Machine"
     }
   }
+}
+
+type HandleBuilderMode = "root" | "nested"
+
+const getHandleBuilderMachine = (
+  path: string,
+  builder: unknown
+): Machine.Any => {
+  if (
+    (typeof builder !== "object" && typeof builder !== "function") ||
+    builder === null ||
+    !hasProperty(builder, HandlerBuilderStateTypeId)
+  ) {
+    throw new Error(`Machine expected state "${path}" handle callback to return a builder`)
+  }
+  return (builder as { readonly [HandlerBuilderStateTypeId]: Machine.Any })[HandlerBuilderStateTypeId]
+}
+
+const makeHandleBuilder = (
+  machine: Machine.Any,
+  states: Machine.StateTree,
+  prefix: string,
+  mode: HandleBuilderMode
+): unknown => {
+  const builder: Record<string, unknown> = {}
+  Object.defineProperty(builder, HandlerBuilderStateTypeId, {
+    value: machine,
+    enumerable: false
+  })
+  for (const key of Object.keys(states)) {
+    const path = prefix === "" ? key : `${prefix}.${key}`
+    const node = Model.getStateNodeDefinition(path, states[key])
+    const method = ((configOrSelector: unknown, selector?: (builder: unknown) => unknown) => {
+      const isSelectorOnly = typeof configOrSelector === "function" && selector === undefined
+      let current = machine
+      let childSelector = selector
+      if (isSelectorOnly) {
+        childSelector = configOrSelector as (builder: unknown) => unknown
+      } else {
+        current = handleUnsafe(machine, path, configOrSelector as Machine.AnyStateConfig)
+      }
+      if (childSelector !== undefined) {
+        if (node.states === undefined) {
+          throw new Error(`Machine expected state "${path}" to declare child states`)
+        }
+        current = getHandleBuilderMachine(
+          path,
+          childSelector(makeHandleBuilder(current, node.states, path, "nested"))
+        )
+      }
+      return mode === "root" ? current : makeHandleBuilder(current, states, prefix, "nested")
+    }) as unknown as Record<string, unknown>
+    if (node.states !== undefined) {
+      Object.assign(method, makeHandleBuilder(machine, node.states, path, mode))
+    }
+    builder[key] = method
+  }
+  return builder
 }
 
 const handleUnsafe = (
@@ -1880,6 +2348,7 @@ const handleUnsafe = (
     ...self.handlers,
     [stateTag]: config
   }
+  machine.handle = makeHandleBuilder(machine, machine.states, "", "root")
   return machine
 }
 
@@ -2255,6 +2724,7 @@ export const make = <
   self.stateNodes = Model.compileStateNodes(config.states)
   self.makeTargetBuilder = makeTargetBuilder(config.states, self.stateNodes)
   self.handlers = {}
+  self.handle = makeHandleBuilder(self, self.states, "", "root")
   return self
 }
 

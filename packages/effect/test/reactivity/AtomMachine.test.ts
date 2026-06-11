@@ -60,12 +60,12 @@ const makeCounterMachine = () =>
     events: [Finish],
     initial: () => MachineInitial.Count(new Count({ value: 0 }))
   })
-    .handle("Count", {
+    .handle.Count({
       on: {
         Finish: ({ state, event }) => MachineInitial.Count(new Count({ value: state.value + event.by }))
       }
     })
-    .handle("Done", {
+    .handle.Done({
       type: "final"
     })
 
@@ -144,7 +144,7 @@ describe("AtomMachine", () => {
           }
           return MachineInitial.Count(new Count({ value: 0 }))
         })
-      }).handle("Count", {})
+      }).handle.Count({})
       const bridge = AtomMachine.make(machine)
       yield* mount(registry, bridge.snapshot)
 
@@ -183,12 +183,12 @@ describe("AtomMachine", () => {
         events: [Finish],
         initial: () => MachineInitial.Count(new Count({ value: 1 }))
       })
-        .handle("Count", {
+        .handle.Count({
           on: {
             Finish: ({ state, event }) => MachineInitial.Done(new Done({ value: state.value + event.by }))
           }
         })
-        .handle("Done", {
+        .handle.Done({
           type: "final",
           output: ({ state }) => state.value
         })
@@ -217,7 +217,7 @@ describe("AtomMachine", () => {
         events: [ReadValue],
         initial: () => MachineInitial.Count(new Count({ value: 0 }))
       })
-        .handle("Count", {
+        .handle.Count({
           on: {
             ReadValue: Effect.fn(function*() {
               const value = yield* Atom.get(valueAtom)
@@ -225,7 +225,7 @@ describe("AtomMachine", () => {
             })
           }
         })
-        .handle("ValueRead", {
+        .handle.ValueRead({
           type: "final"
         })
       const bridge = AtomMachine.make(machine)
@@ -253,7 +253,7 @@ describe("AtomMachine", () => {
         states: { Count },
         events: [Finish],
         initial: () => MachineInitial.Count(new Count({ value: 0 }))
-      }).handle("Count", {
+      }).handle.Count({
         on: {
           Finish: Effect.fn(function*({ event }) {
             const multiplier = yield* Multiplier

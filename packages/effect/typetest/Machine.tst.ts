@@ -168,16 +168,97 @@ describe("Machine", () => {
       initial: () => UpStates.initial.down(new Down({}))
     })
 
-    expect(machine.handle).type.not.toBeCallableWith("down", {
+    expect<IsCallable<typeof machine.handle>>().type.toBe<false>()
+    expect(machine.handle.down).type.not.toBeCallableWith({
       on: {
         SignIn: () => new Down({})
       }
     })
-    expect(machine.handle).type.not.toBeCallableWith("down", {
+    expect(machine.handle.down).type.not.toBeCallableWith({
       on: {
         SignIn: () => Effect.succeed(new Down({}))
       }
     })
+  })
+
+  it("handler builder handles nested states by property path", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    const handled = machine.handle.up.auth.signedOut({
+      on: {
+        SignIn: ({ event, target }) => target.local.signedIn(new SignedIn({ userId: event.userId }))
+      }
+    })
+
+    expect(handled.handle.up.auth).type.not.toHaveProperty("signedOut")
+    expect(handled.handle.up.auth).type.toHaveProperty("signedIn")
+    expect(handled.handle.up.sync).type.toHaveProperty("idle")
+  })
+
+  it("handler builder handles nested states inside callbacks", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    const handled = machine.handle.up((up) =>
+      up
+        .auth((auth) =>
+          auth.signedOut({
+            on: {
+              SignIn: ({ event, target }) => target.local.signedIn(new SignedIn({ userId: event.userId }))
+            }
+          })
+        )
+        .sync((sync) =>
+          sync.idle({
+            entry: ({ state }) => {
+              const tag: "SyncIdle" = state._tag
+              void tag
+            }
+          })
+        )
+    )
+
+    expect(handled.handle.up.auth).type.not.toHaveProperty("signedOut")
+    expect(handled.handle.up.sync).type.not.toHaveProperty("idle")
+    expect(handled.handle.up.auth).type.toHaveProperty("signedIn")
+    expect(handled.handle.up.sync).type.toHaveProperty("syncing")
+  })
+
+  it("handler builder handles parent and children in the same callback", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    const handled = machine.handle.up(
+      {
+        entry: ({ state }) => {
+          const id: string = state.id
+          void id
+        }
+      },
+      (up) =>
+        up.auth((auth) =>
+          auth.signedOut({
+            on: {
+              SignIn: ({ event, target }) => target.local.signedIn(new SignedIn({ userId: event.userId }))
+            }
+          })
+        )
+    )
+
+    expect(handled.handle.up).type.not.toBeCallableWith({
+      entry: () => undefined
+    })
+    expect(handled.handle.up.auth).type.not.toHaveProperty("signedOut")
   })
 
   it("initial builder constructs typed initial snapshots", () => {
