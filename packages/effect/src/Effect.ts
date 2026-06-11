@@ -887,7 +887,7 @@ export const promise: <A>(
  * There are two ways to handle errors with `tryPromise`:
  *
  * 1. If you don't provide a `catch` function, the error is caught and the
- *    effect fails with an `UnknownError`.
+ *    effect fails with an {@link Cause.UnknownError}.
  * 2. If you provide a `catch` function, the error is caught and the `catch`
  *    function maps it to an error of type `E`.
  *
