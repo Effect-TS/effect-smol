@@ -77,7 +77,7 @@ describe("HttpApiSchema", () => {
         readonly event: string
         readonly data: { readonly id: string }
       }>()
-      expect(stream.events["Encoded"]).type.toBe<Sse.EventEncoded>()
+      expect(stream.events["Encoded"]).type.toBe<Sse.EventCodec["Encoded"]>()
     })
 
     it("defaults the data stream error schema to Never", () => {
