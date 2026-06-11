@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Data, Effect, Fiber, FileSystem, Layer, Path, Queue, Redacted } from "effect"
+import { Data, Effect, Fiber, FileSystem, Layer, Match, Path, Queue, Redacted } from "effect"
 import { TestConsole } from "effect/testing"
 import { Prompt } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -527,14 +527,20 @@ describe("Prompt.custom", () => {
 
       const prompt = Prompt.custom(
         { count: 0 },
+        Queue.asDequeue(eventQueue),
         {
           render: (state) => Effect.succeed(`Count: ${state.count}`),
-          process: (_input, state) => Effect.succeed(Action.Submit({ value: state.count })),
-          clear: () => Effect.succeed(""),
-          receive: (value, state) =>
-            Effect.succeed(Action.NextFrame({ state: { count: state.count + (value === "tick" ? 1 : 0) } }))
-        },
-        Queue.asDequeue(eventQueue)
+          process: (input, state) =>
+            Match.value(input).pipe(
+              Match.tag("Input", () => Effect.succeed(Action.Submit({ value: state.count }))),
+              Match.tag("Event", ({ value }) =>
+                Effect.succeed(
+                  Action.NextFrame({ state: { count: state.count + (value === "tick" ? 1 : 0) } })
+                )),
+              Match.exhaustive
+            ),
+          clear: () => Effect.succeed("")
+        }
       )
 
       const fiber = yield* Prompt.run(prompt).pipe(Effect.forkChild)
@@ -563,18 +569,22 @@ describe("Prompt.custom", () => {
 
       const prompt = Prompt.custom(
         { keys: 0 },
+        Queue.asDequeue(eventQueue),
         {
           render: (state) => Effect.succeed(`Keys: ${state.keys}`),
-          process: (_input, state) => {
-            const next = state.keys + 1
-            return next >= 3
-              ? Effect.succeed(Action.Submit({ value: next }))
-              : Effect.succeed(Action.NextFrame({ state: { keys: next } }))
-          },
-          clear: () => Effect.succeed(""),
-          receive: (_value, state) => Effect.succeed(Action.NextFrame({ state }))
-        },
-        Queue.asDequeue(eventQueue)
+          process: (input, state) =>
+            Match.value(input).pipe(
+              Match.tag("Input", () => {
+                const next = state.keys + 1
+                return next >= 3
+                  ? Effect.succeed(Action.Submit({ value: next }))
+                  : Effect.succeed(Action.NextFrame({ state: { keys: next } }))
+              }),
+              Match.tag("Event", () => Effect.succeed(Action.NextFrame({ state }))),
+              Match.exhaustive
+            ),
+          clear: () => Effect.succeed("")
+        }
       )
 
       yield* MockTerminal.inputKey("a")

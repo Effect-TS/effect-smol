@@ -11,12 +11,20 @@ const eventQueue = yield * Queue.make<number>()
 
 const prompt = Prompt.custom(
   { count: 0 },
+  Queue.asDequeue(eventQueue), // <-- provide the event queue as a dequeue to the prompt
   {
     render: (state) => Effect.succeed(`Count: ${state.count}`),
-    process: (_input, state) => Effect.succeed(Action.Submit({ value: state.count })),
-    clear: () => Effect.succeed(""),
-    receive: (value, state) => Effect.succeed(Action.NextFrame({ state: { count: state.count + value } })) // <-- handle events from the dequeue
-  },
-  Queue.asDequeue(eventQueue) // <-- provide the event queue as a dequeue to the prompt
+    process: (input, state) =>
+      Effect.succeed(
+        Match.value(input).pipe(
+          // handle user input
+          Match.tag("Input", () => Action.Submit({ value: state.count })),
+          // handle external events from the queue
+          Match.tag("Event", (input) => Action.NextFrame({ state: { count: state.count + input.value } })),
+          Match.exhaustive
+        )
+      ),
+    clear: () => Effect.succeed("")
+  }
 )
 ```
