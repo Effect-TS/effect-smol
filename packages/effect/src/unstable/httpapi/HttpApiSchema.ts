@@ -14,6 +14,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
+import * as Stream from "../../Stream.ts"
 import type * as Sse from "../encoding/Sse.ts"
 import { hasBody, type HttpMethod } from "../http/HttpMethod.ts"
 import type * as Multipart_ from "../http/Multipart.ts"
@@ -127,7 +128,7 @@ const statusCodeByLiteral = {
   NetworkAuthenticationRequired: 511
 } as const
 
-const StreamTypeId = "~effect/httpapi/HttpApiSchema/Stream"
+const StreamSchemaTypeId = "~effect/httpapi/HttpApiSchema/Stream"
 
 /**
  * Common HTTP status code literals accepted by {@link status}.
@@ -143,27 +144,21 @@ export type StatusLiteral = keyof typeof statusCodeByLiteral
  * **Details**
  *
  * This is equivalent to calling `.annotate({ httpApiStatus: code })` on the
- * schema. For streaming success declarations, it stores the same metadata on
- * the declaration. You can pass either a numeric status code (for example,
- * `201`) or a common literal name (for example, `"Created"`).
+ * schema. You can pass either a numeric status code (for example, `201`) or a
+ * common literal name (for example, `"Created"`).
  *
  * @category status
  * @since 4.0.0
  */
 export function status(code: number): {
-  <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S
+  <S extends Schema.Top>(self: S): S["Rebuild"]
 }
 export function status(code: StatusLiteral): {
-  <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S
+  <S extends Schema.Top>(self: S): S["Rebuild"]
 }
-export function status(code: number | StatusLiteral): any {
+export function status(code: number | StatusLiteral) {
   const statusCode = typeof code === "string" ? statusCodeByLiteral[code] : code
-  return <S extends Schema.Top | StreamDeclaration>(self: S): S extends Schema.Top ? S["Rebuild"] : S => {
-    if (Predicate.hasProperty(self, StreamTypeId)) {
-      return { ...self, httpApiStatus: statusCode } as any
-    }
-    return (self as Schema.Top).annotate({ httpApiStatus: statusCode }) as any
-  }
+  return <S extends Schema.Top>(self: S): S["Rebuild"] => self.annotate({ httpApiStatus: statusCode })
 }
 
 /**
@@ -274,7 +269,7 @@ type StreamMode = "sse" | "uint8array"
 export type StreamSseMode = "events" | "data"
 
 /**
- * A schema-like declaration for a Server-Sent Events success response.
+ * Schema for a Server-Sent Events success response.
  *
  * **Details**
  *
@@ -292,12 +287,21 @@ export interface StreamSse<
   Events extends SseEventSchema,
   Error extends Schema.Top,
   Value = Events["Type"]
-> {
-  readonly [StreamTypeId]: typeof StreamTypeId
+> extends
+  Schema.Bottom<
+    Stream.Stream<Value, Error["Type"], never>,
+    Stream.Stream<Value, Error["Type"], never>,
+    Events["DecodingServices"] | Error["DecodingServices"],
+    Events["EncodingServices"] | Error["EncodingServices"],
+    SchemaAST.Declaration,
+    StreamSse<Events, Error, Value>
+  >
+{
+  readonly "Rebuild": StreamSse<Events, Error, Value>
+  readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly _tag: "StreamSse"
   readonly mode: "sse"
   readonly sseMode: StreamSseMode
-  readonly httpApiStatus?: number | undefined
   readonly contentType: string
   readonly events: Events
   readonly error: Error
@@ -332,7 +336,7 @@ export interface SseEventFromData<Data extends Schema.Top> extends
 {}
 
 /**
- * A schema-like declaration for a streaming `Uint8Array` success response.
+ * Schema for a streaming `Uint8Array` success response.
  *
  * **Details**
  *
@@ -343,19 +347,28 @@ export interface SseEventFromData<Data extends Schema.Top> extends
  * @category models
  * @since 4.0.0
  */
-export interface StreamUint8Array {
-  readonly [StreamTypeId]: typeof StreamTypeId
+export interface StreamUint8Array extends
+  Schema.Bottom<
+    Stream.Stream<Uint8Array, unknown, never>,
+    Stream.Stream<Uint8Array, unknown, never>,
+    never,
+    never,
+    SchemaAST.Declaration,
+    StreamUint8Array
+  >
+{
+  readonly "Rebuild": StreamUint8Array
+  readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly _tag: "StreamUint8Array"
   readonly mode: "uint8array"
-  readonly httpApiStatus?: number | undefined
   readonly contentType: string
 }
 
 /** @internal */
-export type StreamDeclaration = StreamSse<SseEventSchema, Schema.Top, unknown> | StreamUint8Array
+export type StreamSchema = StreamSse<SseEventSchema, Schema.Top, unknown> | StreamUint8Array
 
 /** @internal */
-export type StreamDeclarationMetadata =
+export type StreamMetadata =
   | {
     readonly mode: "sse"
     readonly sseMode: StreamSseMode
@@ -368,8 +381,10 @@ export type StreamDeclarationMetadata =
     readonly contentType: string
   }
 
+const streamSchema = Schema.declare(Stream.isStream)
+
 /**
- * Declares a Server-Sent Events streaming success response.
+ * Creates a Server-Sent Events streaming success response schema.
  *
  * @category constructors
  * @since 4.0.0
@@ -399,45 +414,47 @@ export const StreamSse: {
   if (events === undefined) {
     throw new Error("StreamSse requires either an events schema or a data schema")
   }
-  return {
-    [StreamTypeId]: StreamTypeId,
+  return Schema.make<StreamSse<SseEventSchema, Schema.Top, unknown>>(streamSchema.ast, {
+    [StreamSchemaTypeId]: StreamSchemaTypeId,
     _tag: "StreamSse",
     mode: "sse",
     sseMode: options.events === undefined ? "data" : "events",
     contentType: options.contentType ?? defaultStreamContentType("sse"),
     events,
     error: options.error ?? Schema.Never
-  }
+  })
 }
 
 /**
- * Declares a streaming `Uint8Array` success response.
+ * Creates a streaming `Uint8Array` success response schema.
  *
  * @category constructors
  * @since 4.0.0
  */
 export const StreamUint8Array = (options?: {
   readonly contentType?: string | undefined
-}): StreamUint8Array => ({
-  [StreamTypeId]: StreamTypeId,
-  _tag: "StreamUint8Array",
-  mode: "uint8array",
-  contentType: options?.contentType ?? defaultStreamContentType("uint8array")
-})
+}): StreamUint8Array =>
+  Schema.make<StreamUint8Array>(streamSchema.ast, {
+    [StreamSchemaTypeId]: StreamSchemaTypeId,
+    _tag: "StreamUint8Array",
+    mode: "uint8array",
+    contentType: options?.contentType ?? defaultStreamContentType("uint8array")
+  })
 
 /** @internal */
-export const isStreamDeclaration = (u: unknown): u is StreamDeclaration => Predicate.hasProperty(u, StreamTypeId)
+export const isStreamSchema = (u: unknown): u is StreamSchema =>
+  Schema.isSchema(u) && Predicate.hasProperty(u, StreamSchemaTypeId)
 
 /** @internal */
 export const isStreamSse = (u: unknown): u is StreamSse<SseEventSchema, Schema.Top, unknown> =>
-  isStreamDeclaration(u) && u._tag === "StreamSse"
+  isStreamSchema(u) && u._tag === "StreamSse"
 
 /** @internal */
 export const isStreamUint8Array = (u: unknown): u is StreamUint8Array =>
-  isStreamDeclaration(u) && u._tag === "StreamUint8Array"
+  isStreamSchema(u) && u._tag === "StreamUint8Array"
 
 /** @internal */
-export function getStreamDeclarationMetadata(self: StreamDeclaration): StreamDeclarationMetadata {
+export function getStreamMetadata(self: StreamSchema): StreamMetadata {
   return self._tag === "StreamSse" ?
     {
       mode: self.mode,
@@ -698,8 +715,8 @@ export function getStatusSuccess(self: SchemaAST.AST): number {
 }
 
 /** @internal */
-export function getStatusStream(self: StreamDeclaration): number {
-  return self.httpApiStatus ?? 200
+export function getStatusStream(self: StreamSchema): number {
+  return getStatusSuccess(self.ast)
 }
 
 /** @internal */

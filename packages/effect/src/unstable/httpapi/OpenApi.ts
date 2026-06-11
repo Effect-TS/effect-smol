@@ -637,7 +637,7 @@ function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): R
 }
 
 function extractResponseBodies(
-  schemas: Array<Schema.Top | HttpApiSchema.StreamDeclaration>,
+  schemas: Array<Schema.Top>,
   getStatus: (ast: SchemaAST.AST) => number,
   getDescription: (ast: SchemaAST.AST) => string | undefined
 ): ResponseBodies {
@@ -651,8 +651,8 @@ function extractResponseBodies(
 
   return map
 
-  function process(schema: Schema.Top | HttpApiSchema.StreamDeclaration) {
-    if (HttpApiSchema.isStreamDeclaration(schema)) {
+  function process(schema: Schema.Top) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
       addStreamContent(schema)
       return
     }
@@ -714,7 +714,7 @@ function extractResponseBodies(
     }
   }
 
-  function addStreamContent(stream: HttpApiSchema.StreamDeclaration) {
+  function addStreamContent(stream: HttpApiSchema.StreamSchema) {
     const status = HttpApiSchema.getStatusStream(stream)
     const statusMap = map.get(status)
     if (statusMap === undefined) {
@@ -743,7 +743,7 @@ type Content = Map<
   >
 >
 
-type StreamContent = Map<string, HttpApiSchema.StreamDeclaration>
+type StreamContent = Map<string, HttpApiSchema.StreamSchema>
 
 const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"

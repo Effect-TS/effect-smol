@@ -348,7 +348,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should not accept streaming declarations", () => {
+    it("should not accept streaming schemas", () => {
       expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
         error: HttpApiSchema.StreamUint8Array()
       })

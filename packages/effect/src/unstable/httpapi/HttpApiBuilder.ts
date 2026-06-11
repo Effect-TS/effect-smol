@@ -794,16 +794,16 @@ type StreamEncoder = (response: unknown, context: Context.Context<never>) =>
   | undefined
 
 function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncoder | undefined {
-  const declaration = getStreamSuccessDeclaration(endpoint)
-  if (declaration === undefined) {
+  const streamSchema = getStreamSuccessSchema(endpoint)
+  if (streamSchema === undefined) {
     return undefined
   }
 
   const hasBuffered = hasBufferedSuccess(endpoint)
-  const status = HttpApiSchema.getStatusStream(declaration)
-  const contentType = declaration.contentType
+  const status = HttpApiSchema.getStatusStream(streamSchema)
+  const contentType = streamSchema.contentType
 
-  if (HttpApiSchema.isStreamUint8Array(declaration)) {
+  if (HttpApiSchema.isStreamUint8Array(streamSchema)) {
     return (response, context) => {
       if (!Stream.isStream(response)) {
         return hasBuffered ? undefined : expectedStreamResponse(response)
@@ -819,7 +819,7 @@ function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncode
     }
   }
 
-  const sseEncoder = makeSseEncoder(declaration)
+  const sseEncoder = makeSseEncoder(streamSchema)
 
   return (response, context) => {
     if (!Stream.isStream(response)) {
@@ -836,9 +836,9 @@ function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncode
   }
 }
 
-function getStreamSuccessDeclaration(endpoint: HttpApiEndpoint.AnyWithProps) {
+function getStreamSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps) {
   for (const schema of endpoint.success) {
-    if (HttpApiSchema.isStreamDeclaration(schema)) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
       return schema
     }
   }
@@ -846,7 +846,7 @@ function getStreamSuccessDeclaration(endpoint: HttpApiEndpoint.AnyWithProps) {
 
 function hasBufferedSuccess(endpoint: HttpApiEndpoint.AnyWithProps): boolean {
   for (const schema of endpoint.success) {
-    if (Schema.isSchema(schema)) return true
+    if (Schema.isSchema(schema) && !HttpApiSchema.isStreamSchema(schema)) return true
   }
   return endpoint.success.size === 0
 }
@@ -868,12 +868,12 @@ interface SseStreamEncoder {
 }
 
 function makeSseEncoder<Events extends HttpApiSchema.SseEventSchema, Error extends Schema.Top>(
-  declaration: HttpApiSchema.StreamSse<Events, Error, unknown>
+  streamSchema: HttpApiSchema.StreamSse<Events, Error, unknown>
 ): SseStreamEncoder {
-  const CauseSchema = Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect()))
+  const CauseSchema = Schema.toCodecJson(Schema.Cause(streamSchema.error, Schema.Defect()))
   return {
-    sseMode: declaration.sseMode,
-    encodeEvent: Schema.encodeUnknownEffect(declaration.events),
+    sseMode: streamSchema.sseMode,
+    encodeEvent: Schema.encodeUnknownEffect(streamSchema.events),
     encodeCause: Schema.encodeUnknownEffect(Schema.fromJsonString(CauseSchema))
   }
 }

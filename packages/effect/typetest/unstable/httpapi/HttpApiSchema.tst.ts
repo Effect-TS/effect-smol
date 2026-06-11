@@ -32,7 +32,7 @@ describe("HttpApiSchema", () => {
       expect(stream.sseMode).type.toBe<"events" | "data">()
     })
 
-    it("preserves the declaration type when annotated with status", () => {
+    it("preserves the stream schema type when annotated with status", () => {
       const Events = Schema.Struct({
         event: Schema.Literal("user.created"),
         data: Schema.String
@@ -41,6 +41,16 @@ describe("HttpApiSchema", () => {
       const stream = HttpApiSchema.status(202)(HttpApiSchema.StreamSse({ events: Events, error: Error }))
 
       expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, typeof Error>>()
+    })
+
+    it("can be annotated like a regular schema", () => {
+      const Events = Schema.Struct({
+        event: Schema.Literal("user.created"),
+        data: Schema.String
+      })
+      const stream = HttpApiSchema.StreamSse({ events: Events }).annotate({ title: "Events" })
+
+      expect(stream).type.toBe<HttpApiSchema.StreamSse<typeof Events, Schema.Never>>()
     })
 
     it("defaults the stream error schema to Never", () => {
@@ -108,7 +118,7 @@ describe("HttpApiSchema", () => {
   })
 
   describe("StreamUint8Array", () => {
-    it("constructs the stream declaration", () => {
+    it("constructs the stream schema", () => {
       const stream = HttpApiSchema.StreamUint8Array()
 
       expect(stream).type.toBe<HttpApiSchema.StreamUint8Array>()
@@ -116,7 +126,7 @@ describe("HttpApiSchema", () => {
       expect(stream.contentType).type.toBe<string>()
     })
 
-    it("preserves the declaration type when annotated with status", () => {
+    it("preserves the stream schema type when annotated with status", () => {
       const stream = HttpApiSchema.status("PartialContent")(HttpApiSchema.StreamUint8Array())
 
       expect(stream).type.toBe<HttpApiSchema.StreamUint8Array>()

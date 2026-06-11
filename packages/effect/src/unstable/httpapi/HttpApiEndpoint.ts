@@ -55,7 +55,7 @@ export type PayloadMap = ReadonlyMap<string, {
 }>
 
 /** @internal */
-export type SuccessSchema = Schema.Top | HttpApiSchema.StreamDeclaration
+export type SuccessSchema = Schema.Top
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   infer _Events extends HttpApiSchema.SseEventSchema,
@@ -86,10 +86,13 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S
 
-type ExtractBufferedSuccess<S extends SuccessConstraint> = Extract<ExtractSuccessOrArray<S>, Schema.Top>
+type ExtractBufferedSuccess<S extends SuccessConstraint> = Exclude<
+  Extract<ExtractSuccessOrArray<S>, Schema.Top>,
+  HttpApiSchema.StreamSchema
+>
 
 type ExtractStreamSuccess<S extends SuccessConstraint> = ExtractSuccessOrArray<S> extends infer Success ?
-  Success extends HttpApiSchema.StreamDeclaration ? Success : never
+  Success extends HttpApiSchema.StreamSchema ? Success : never
   : never
 
 type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ?
@@ -225,7 +228,10 @@ export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 
 /** @internal */
 export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
-  const schemas = Array.from(endpoint.success).filter(Schema.isSchema)
+  const schemas = Array.from(endpoint.success).filter((schema) =>
+    Schema.isSchema(schema) &&
+    !HttpApiSchema.isStreamSchema(schema)
+  )
   return Arr.isArrayNonEmpty(schemas) ? schemas : [HttpApiSchema.NoContent]
 }
 
@@ -1099,6 +1105,13 @@ export type SuccessConstraint = SuccessSchema | ReadonlyArray<SuccessSchema>
  */
 export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
+type ErrorWithoutStream<S extends ErrorConstraint> = [
+  Extract<
+    S extends ReadonlyArray<Schema.Top> ? S[number] : S,
+    HttpApiSchema.StreamSchema
+  >
+] extends [never] ? S : never
+
 /**
  * Creates endpoint constructors for a specific HTTP method. The resulting
  * constructor builds an `HttpApiEndpoint` from a name, path, and optional request
@@ -1128,7 +1141,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: Error | undefined
+      readonly error?: ErrorWithoutStream<Error> | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1161,7 +1174,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: Error | undefined
+      readonly error?: ErrorWithoutStream<Error> | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1194,7 +1207,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     readonly headers?: Headers | undefined
     readonly payload?: Payload | undefined
     readonly success?: Success | undefined
-    readonly error?: Error | undefined
+    readonly error?: ErrorWithoutStream<Error> | undefined
   }
 ): HttpApiEndpoint<
   Name,
@@ -1313,7 +1326,7 @@ function getSuccessResponse(
   return new Set(
     disableCodecs ?
       schemas :
-      schemas.map((schema) => HttpApiSchema.isStreamDeclaration(schema) ? schema : transformResponse(schema))
+      schemas.map((schema) => HttpApiSchema.isStreamSchema(schema) ? schema : transformResponse(schema))
   )
 }
 
@@ -1324,8 +1337,8 @@ function getErrorResponse(
   if (error === undefined) return new Set()
   const schemas = Arr.ensure(error)
   for (const schema of schemas) {
-    if (HttpApiSchema.isStreamDeclaration(schema)) {
-      throw new Error("Streaming declarations are not supported in error responses")
+    if (HttpApiSchema.isStreamSchema(schema)) {
+      throw new Error("Streaming schemas are not supported in error responses")
     }
   }
   return new Set(disableCodecs ? schemas : schemas.map(transformResponse))
@@ -1333,13 +1346,13 @@ function getErrorResponse(
 
 function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: HttpMethod) {
   const statuses = new Map<number, {
-    readonly stream?: HttpApiSchema.StreamDeclaration | undefined
+    readonly stream?: HttpApiSchema.StreamSchema | undefined
     bufferedContentTypes: Set<string>
     noContent: boolean
   }>()
 
   for (const schema of schemas) {
-    if (HttpApiSchema.isStreamDeclaration(schema)) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
       validateStreamSuccess(schema, method)
       const status = HttpApiSchema.getStatusStream(schema)
       const entry = getStatusEntry(statuses, status)
@@ -1390,7 +1403,7 @@ function normalizeResponseContentType(contentType: string): string {
 
 function getStatusEntry(
   statuses: Map<number, {
-    readonly stream?: HttpApiSchema.StreamDeclaration | undefined
+    readonly stream?: HttpApiSchema.StreamSchema | undefined
     bufferedContentTypes: Set<string>
     noContent: boolean
   }>,
@@ -1404,7 +1417,7 @@ function getStatusEntry(
   return entry
 }
 
-function validateStreamSuccess(schema: HttpApiSchema.StreamDeclaration, method: HttpMethod) {
+function validateStreamSuccess(schema: HttpApiSchema.StreamSchema, method: HttpMethod) {
   if (method === "HEAD") {
     throw new Error("HEAD endpoints cannot declare streaming success responses")
   }

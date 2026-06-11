@@ -10,7 +10,7 @@ const StreamError = Schema.Struct({ reason: Schema.String })
 
 const sse = () => HttpApiSchema.StreamSse({ events: Events, error: StreamError })
 
-describe("HttpApiEndpoint streaming success declarations", () => {
+describe("HttpApiEndpoint streaming success schemas", () => {
   it("GET endpoint accepts StreamSse success", () => {
     const stream = sse()
     const endpoint = HttpApiEndpoint.get("events", "/events", {
@@ -29,7 +29,7 @@ describe("HttpApiEndpoint streaming success declarations", () => {
     assert.isTrue(endpoint.success.has(stream))
   })
 
-  it("streaming declaration in error throws during endpoint construction", () => {
+  it("streaming schema in error throws during endpoint construction", () => {
     assert.throws(() =>
       HttpApiEndpoint.get("events", "/events", {
         error: sse() as any

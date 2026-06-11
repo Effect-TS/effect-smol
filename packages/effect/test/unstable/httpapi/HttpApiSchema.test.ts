@@ -12,7 +12,8 @@ describe("HttpApiSchema", () => {
       const error = Schema.Struct({ reason: Schema.String })
       const stream = HttpApiSchema.StreamSse({ events, error })
 
-      assert.isTrue(HttpApiSchema.isStreamDeclaration(stream))
+      assert.isTrue(Schema.isSchema(stream))
+      assert.isTrue(HttpApiSchema.isStreamSchema(stream))
       assert.isTrue(HttpApiSchema.isStreamSse(stream))
       assert.isFalse(HttpApiSchema.isStreamUint8Array(stream))
       assert.strictEqual(stream.mode, "sse")
@@ -21,7 +22,7 @@ describe("HttpApiSchema", () => {
       assert.strictEqual(stream.events, events)
       assert.strictEqual(stream.error, error)
 
-      const metadata = HttpApiSchema.getStreamDeclarationMetadata(stream)
+      const metadata = HttpApiSchema.getStreamMetadata(stream)
       assert.strictEqual(metadata.mode, "sse")
       assert.strictEqual(metadata.contentType, "text/event-stream")
       if (metadata.mode === "sse") {
@@ -79,12 +80,13 @@ describe("HttpApiSchema", () => {
     it("stores default metadata", () => {
       const stream = HttpApiSchema.StreamUint8Array()
 
-      assert.isTrue(HttpApiSchema.isStreamDeclaration(stream))
+      assert.isTrue(Schema.isSchema(stream))
+      assert.isTrue(HttpApiSchema.isStreamSchema(stream))
       assert.isFalse(HttpApiSchema.isStreamSse(stream))
       assert.isTrue(HttpApiSchema.isStreamUint8Array(stream))
       assert.strictEqual(stream.mode, "uint8array")
       assert.strictEqual(stream.contentType, "application/octet-stream")
-      assert.deepStrictEqual(HttpApiSchema.getStreamDeclarationMetadata(stream), {
+      assert.deepStrictEqual(HttpApiSchema.getStreamMetadata(stream), {
         mode: "uint8array",
         contentType: "application/octet-stream"
       })
@@ -99,8 +101,8 @@ describe("HttpApiSchema", () => {
     })
   })
 
-  it("does not identify buffered schemas as stream declarations", () => {
-    assert.isFalse(HttpApiSchema.isStreamDeclaration(Schema.String))
-    assert.isFalse(HttpApiSchema.isStreamDeclaration(Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())))
+  it("does not identify buffered schemas as stream schemas", () => {
+    assert.isFalse(HttpApiSchema.isStreamSchema(Schema.String))
+    assert.isFalse(HttpApiSchema.isStreamSchema(Schema.Uint8Array.pipe(HttpApiSchema.asUint8Array())))
   })
 })
