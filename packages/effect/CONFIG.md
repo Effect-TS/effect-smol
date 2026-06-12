@@ -467,6 +467,32 @@ const provider = ConfigProvider.fromEnv({
 // path ["databaseHost"] now resolves to ["DATABASE_HOST"]
 ```
 
+Ordering matters with `nested`. `constantCase` is a path transform, so it only converts the path it receives at that point in the pipeline:
+
+```ts
+import { ConfigProvider } from "effect"
+
+const convertedPrefix = ConfigProvider.fromEnv({
+  env: { APP_HOST: "localhost" }
+}).pipe(
+  ConfigProvider.nested("app"),
+  ConfigProvider.constantCase
+)
+
+// path ["host"] resolves to ["APP", "HOST"]
+
+const literalPrefix = ConfigProvider.fromEnv({
+  env: { app_HOST: "localhost" }
+}).pipe(
+  ConfigProvider.constantCase,
+  ConfigProvider.nested("app")
+)
+
+// path ["host"] resolves to ["app", "HOST"]
+```
+
+Put `constantCase` after `nested` when the prefix should be converted too.
+
 ### `ConfigProvider.mapInput` — Arbitrary Path Transforms
 
 Transform the whole path before lookup:
