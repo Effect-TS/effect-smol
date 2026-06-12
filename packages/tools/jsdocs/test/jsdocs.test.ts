@@ -105,6 +105,233 @@ export const makeValue = () => 1
     })
   })
 
+  it("extracts typechecker signatures for top-level functions", () => {
+    const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
+    fs.mkdirSync(path.join(cwd, "src"), { recursive: true })
+    fs.writeFileSync(
+      path.join(cwd, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: { module: "NodeNext", moduleResolution: "NodeNext", target: "ES2022" },
+        include: ["src/**/*.ts"]
+      })
+    )
+    fs.writeFileSync(
+      path.join(cwd, "package.json"),
+      JSON.stringify({
+        name: "@effect/sample",
+        type: "module",
+        exports: { ".": "./src/index.ts", "./*": "./src/*.ts" }
+      })
+    )
+    fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
+    fs.writeFileSync(
+      path.join(cwd, "src/Foo.ts"),
+      `/**
+ * Parses a value.
+ *
+ * @category parsing
+ * @since 1.0.0
+ */
+export function parse(value: string): string
+export function parse(value: number): number
+export function parse(value: string | number) {
+  return value
+}
+
+/**
+ * Converts a value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const inferred = (value: number) => String(value)
+
+const aliased = (value: boolean) => !value
+
+export {
+  /**
+   * Negates a value.
+   *
+   * @category constructors
+   * @since 1.0.0
+   */
+  aliased as renamed
+}
+
+/**
+ * Handles many overloads.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export function many(value: 1): 1
+export function many(value: 2): 2
+export function many(value: 3): 3
+export function many(value: 4): 4
+export function many(value: 5): 5
+export function many(value: 6): 6
+export function many(value: 7): 7
+export function many(value: 8): 8
+export function many(value: 9): 9
+export function many(value: 10): 10
+export function many(value: 11): 11
+export function many(value: 12): 12
+export function many(value: 13): 13
+export function many(value: number) {
+  return value
+}
+
+/**
+ * Runs a value through a transform chain.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export function pipeline<A>(a: A): A
+export function pipeline<A, B>(a: A, ab: (a: A) => B): B
+export function pipeline<A, B, C>(a: A, ab: (a: A) => B, bc: (b: B) => C): C
+export function pipeline<A, B, C, D>(a: A, ab: (a: A) => B, bc: (b: B) => C, cd: (c: C) => D): D
+export function pipeline<A, B, C, D, E>(
+  a: A,
+  ab: (a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D,
+  de: (d: D) => E
+): E
+export function pipeline<A, B, C, D, E, F>(
+  a: A,
+  ab: (a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D,
+  de: (d: D) => E,
+  ef: (e: E) => F
+): F
+export function pipeline<A, B, C, D, E, F, G>(
+  a: A,
+  ab: (a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D,
+  de: (d: D) => E,
+  ef: (e: E) => F,
+  fg: (f: F) => G
+): G
+export function pipeline<A, B, C, D, E, F, G, H>(
+  a: A,
+  ab: (a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D,
+  de: (d: D) => E,
+  ef: (e: E) => F,
+  fg: (f: F) => G,
+  gh: (g: G) => H
+): H
+export function pipeline<A, B, C, D, E, F, G, H, I>(
+  a: A,
+  ab: (a: A) => B,
+  bc: (b: B) => C,
+  cd: (c: C) => D,
+  de: (d: D) => E,
+  ef: (e: E) => F,
+  fg: (f: F) => G,
+  gh: (g: G) => H,
+  hi: (h: H) => I
+): I
+export function pipeline(...args: Array<any>) {
+  return args.length === 1 ? args[0] : args.slice(1).reduce((value, f) => f(value), args[0])
+}
+
+/**
+ * Handles distinct overload modes.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export function modes(body: () => string): string
+export function modes(body: (value: number) => string): string
+export function modes(body: (this: string) => string): string
+export function modes(body: () => string, map: (value: string) => number): number
+export function modes(body: () => string, map: (value: string) => number, next: (value: number) => boolean): boolean
+export function modes(options: { readonly self: string }, body: (this: string) => string): string
+export function modes(name: string): (body: () => string) => string
+export function modes(self: string, body: () => string): string
+export function modes(predicate: (value: number) => boolean, body: () => number): number
+export function modes(refinement: (value: string | number) => value is string, body: () => string): string
+export function modes(...args: Array<any>) {
+  return args[0]
+}
+
+/**
+ * Service for sample values.
+ *
+ * @category services
+ * @since 1.0.0
+ */
+export class Service {
+  readonly value: string
+  /**
+   * Runs the service.
+   */
+  run(input: number): string {
+    return \`\${this.value}:\${input}\`
+  }
+}
+
+/**
+ * Default count.
+ *
+ * @category constants
+ * @since 1.0.0
+ */
+export const count = 1
+
+/**
+ * Sample value type.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface Sample {
+  readonly value: string
+}
+`
+    )
+    const model = extractJSDocsSync({
+      cwd,
+      tsconfig: "tsconfig.json",
+      include: ["src/**/*.ts"],
+      output: ".data/jsdocs.json"
+    })
+    const signatureByName = new Map(model.apis.map((api) => [api.apiName, api.signature]))
+    assert.deepStrictEqual(model.files.flatMap((file) => file.diagnostics), [])
+    assert.strictEqual(
+      signatureByName.get("parse"),
+      "declare function parse(value: string): string\ndeclare function parse(value: number): number"
+    )
+    assert.strictEqual(signatureByName.get("inferred"), "declare function inferred(value: number): string")
+    assert.strictEqual(signatureByName.get("renamed"), "declare function renamed(value: boolean): boolean")
+    const manyLines = signatureByName.get("many")?.split("\n")
+    assert.strictEqual(manyLines?.length, 1)
+    assert.strictEqual(manyLines?.[0], "declare function many(value: 1): 1")
+    const pipelineLines = signatureByName.get("pipeline")?.split("\n") ?? []
+    assert.strictEqual(pipelineLines.length, 6)
+    assert.deepStrictEqual(pipelineLines.map((line) => line.match(/=>/g)?.length ?? 0), [0, 1, 2, 3, 4, 8])
+    const modeLines = signatureByName.get("modes")?.split("\n")
+    assert.deepStrictEqual(modeLines, [
+      "declare function modes(body: () => string): string",
+      "declare function modes(body: (this: string) => string): string",
+      "declare function modes(body: () => string, map: (value: string) => number): number",
+      "declare function modes(options: { readonly self: string; }, body: (this: string) => string): string",
+      "declare function modes(name: string): (body: () => string) => string",
+      "declare function modes(self: string, body: () => string): string",
+      "declare function modes(predicate: (value: number) => boolean, body: () => number): number",
+      "declare function modes(refinement: (value: string | number) => value is string, body: () => string): string"
+    ])
+    assert.strictEqual(signatureByName.get("Service"), null)
+    assert.strictEqual(signatureByName.get("Service.run"), null)
+    assert.strictEqual(signatureByName.get("count"), null)
+    assert.strictEqual(signatureByName.get("Sample"), null)
+  })
+
   it("stores valid top-of-file module JSDoc", () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "jsdocs-"))
     fs.mkdirSync(path.join(cwd, "src"), { recursive: true })

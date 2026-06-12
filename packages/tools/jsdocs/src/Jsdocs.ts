@@ -172,6 +172,7 @@ export interface ParsedMemberTags {
  */
 export interface ParsedMember {
   readonly name: string
+  readonly signature: string | null
   readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
@@ -188,6 +189,7 @@ export interface ParsedMember {
 export interface ParsedRootDeclaration {
   readonly name: string
   readonly bucket: ExportBucket
+  readonly signature: string | null
   readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
@@ -203,6 +205,7 @@ export interface ParsedRootDeclaration {
  */
 export interface ParsedNamespaceDeclaration {
   readonly name: string
+  readonly signature: string | null
   readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
@@ -218,6 +221,7 @@ export interface ParsedNamespaceDeclaration {
  */
 export interface ParsedNamespace {
   readonly name: string
+  readonly signature: string | null
   readonly range: readonly [number, number]
   readonly description: ParsedDescription
   readonly examples: ReadonlyArray<ParsedExample>
@@ -320,6 +324,7 @@ export interface JSDocApi {
   readonly moduleName: string
   readonly apiName: string
   readonly localName: string
+  readonly signature: string | null
   readonly parentApiName: string | null
   readonly apiFqn: string
   readonly hasFqnCollision: boolean
@@ -420,6 +425,11 @@ const tagOrder = new Map([
   ["category", 3],
   ["since", 4]
 ])
+const signatureTypeFormatFlags = ts.TypeFormatFlags.NoTruncation |
+  ts.TypeFormatFlags.WriteTypeArgumentsOfSignature |
+  ts.TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
+  ts.TypeFormatFlags.UseSingleQuotesForStringLiteralType |
+  ts.TypeFormatFlags.OmitThisParameter
 
 const stableSemverRegex = /^\d+\.\d+\.\d+$/
 const urlRegex = /^https?:\/\//
@@ -1858,6 +1868,7 @@ function makeApi(input: {
   readonly bucket: ExportBucket | null
   readonly apiName: string
   readonly localName: string
+  readonly signature: string | null
   readonly parentApiName: string | null
   readonly namespacePath: ReadonlyArray<string>
   readonly memberPath: ReadonlyArray<string>
@@ -1874,6 +1885,7 @@ function makeApi(input: {
     moduleName: input.imports.module,
     apiName: input.apiName,
     localName: input.localName,
+    signature: input.signature,
     parentApiName: input.parentApiName,
     apiFqn,
     hasFqnCollision: false,
@@ -1915,6 +1927,7 @@ function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSD
         bucket: null,
         apiName,
         localName: member.name,
+        signature: member.signature,
         parentApiName,
         namespacePath,
         memberPath: nextMemberPath,
@@ -1948,6 +1961,7 @@ function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSD
         bucket: null,
         apiName: namespaceApiName,
         localName: namespace.name,
+        signature: namespace.signature,
         parentApiName: namespacePath.length === 0 ? null : namespacePath.join("."),
         namespacePath: nextNamespacePath,
         memberPath: [],
@@ -1966,6 +1980,7 @@ function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSD
           bucket: "type",
           apiName,
           localName: declaration.name,
+          signature: declaration.signature,
           parentApiName: namespaceApiName,
           namespacePath: nextNamespacePath,
           memberPath: [],
@@ -1996,6 +2011,7 @@ function buildJSDocApis(files: ReadonlyArray<JSDocModelFile>): ReadonlyArray<JSD
         bucket: declaration.bucket,
         apiName: declaration.name,
         localName: declaration.name,
+        signature: declaration.signature,
         parentApiName: null,
         namespacePath: [],
         memberPath: [],
@@ -2598,6 +2614,203 @@ function bucketOfTs(node: ts.Node): ExportBucket | undefined {
   return undefined
 }
 
+function normalizeSignature(cwd: string, text: string): string | null {
+  const normalizedCwd = normalizePathName(cwd)
+  const signature = text.replaceAll(normalizedCwd, ".").replaceAll(cwd, ".").replace(/\r\n?/g, "\n").replace(
+    /[ \t]+$/gm,
+    ""
+  ).trim()
+  return signature === "" ? null : signature
+}
+
+function signatureParameterDeclaration(parameter: ts.Symbol): ts.ParameterDeclaration | undefined {
+  const declaration = parameter.valueDeclaration ?? parameter.declarations?.[0]
+  return declaration !== undefined && ts.isParameter(declaration) ? declaration : undefined
+}
+
+function signatureParameterName(parameter: ts.Symbol): string {
+  const declaration = signatureParameterDeclaration(parameter)
+  if (declaration !== undefined && ts.isIdentifier(declaration.name)) return declaration.name.text
+  return parameter.getName()
+}
+
+function signatureFunctionThisKind(type: ts.Type, checker: ts.TypeChecker, location: ts.Node): string {
+  const thisParameter = checker.getSignaturesOfType(type, ts.SignatureKind.Call)[0]?.thisParameter
+  if (thisParameter === undefined) return "none"
+  const thisType = checker.typeToString(
+    checker.getTypeOfSymbolAtLocation(thisParameter, location),
+    location,
+    signatureTypeFormatFlags
+  )
+  return thisType === "unassigned" ? "unassigned" : "self"
+}
+
+function isSignatureFunctionKind(kind: string): boolean {
+  return kind.startsWith("body:") || kind.startsWith("function:")
+}
+
+function signatureTransformCountKind(count: number): string {
+  if (count <= 3) return String(count)
+  if (count <= 7) return "4"
+  if (count <= 15) return "8"
+  return "16"
+}
+
+function signatureParameterKind(
+  parameter: ts.Symbol | undefined,
+  checker: ts.TypeChecker,
+  location: ts.Node
+): string {
+  if (parameter === undefined) return "none"
+  const declaration = signatureParameterDeclaration(parameter)
+  if (declaration?.dotDotDotToken !== undefined) return "rest"
+  const name = signatureParameterName(parameter).replace(/_$/, "").toLowerCase()
+  const type = checker.getTypeOfSymbolAtLocation(parameter, declaration ?? location)
+  if (name === "self" || name === "that") return "self"
+  if (name === "body") return `body:${signatureFunctionThisKind(type, checker, location)}`
+  if (name === "name" || name === "spanname") return "name"
+  if (name.includes("refinement")) return "refinement"
+  if (name.includes("predicate")) return "predicate"
+  if (name === "options" || name === "option" || name === "opts" || name === "config" || name === "args") {
+    return "options"
+  }
+  if (name === "f" || name === "fn" || name === "callback") {
+    return `function:${signatureFunctionThisKind(type, checker, location)}`
+  }
+  if (checker.getSignaturesOfType(type, ts.SignatureKind.Call).length > 0) {
+    return `function:${signatureFunctionThisKind(type, checker, location)}`
+  }
+  if ((type.flags & ts.TypeFlags.StringLike) !== 0) return "primitive:string"
+  if ((type.flags & ts.TypeFlags.NumberLike) !== 0) return "primitive:number"
+  if ((type.flags & ts.TypeFlags.BooleanLike) !== 0) return "primitive:boolean"
+  if ((type.flags & ts.TypeFlags.BigIntLike) !== 0) return "primitive:bigint"
+  if ((type.flags & ts.TypeFlags.ESSymbolLike) !== 0) return "primitive:symbol"
+  if ((type.flags & ts.TypeFlags.Object) !== 0 || checker.getPropertiesOfType(type).length > 0) return "object"
+  return "other"
+}
+
+function signatureTailKind(signature: ts.Signature, checker: ts.TypeChecker, location: ts.Node): string {
+  if (signature.parameters.length <= 1) return "none"
+  const firstKind = signatureParameterKind(signature.parameters[0], checker, location)
+  const tailKinds = signature.parameters.slice(1).map((parameter) =>
+    signatureParameterKind(parameter, checker, location)
+  )
+  if (firstKind === "options") {
+    const hasTransformTail = tailKinds.length > 1 && tailKinds.slice(1).every(isSignatureFunctionKind)
+    return `${tailKinds[0]}:${hasTransformTail ? "transform" : "none"}`
+  }
+  if (tailKinds.every(isSignatureFunctionKind)) {
+    return firstKind.startsWith("body:")
+      ? "transform"
+      : `transform:${signatureTransformCountKind(tailKinds.length)}`
+  }
+  return tailKinds[0]
+}
+
+function signatureShapeKey(signature: ts.Signature, checker: ts.TypeChecker, location: ts.Node): string {
+  const hasRest = signature.parameters.some((parameter) =>
+    signatureParameterDeclaration(parameter)?.dotDotDotToken !== undefined
+  )
+  const returnType = checker.getReturnTypeOfSignature(signature)
+  const returnMode = checker.getSignaturesOfType(returnType, ts.SignatureKind.Call).length > 0 ? "curried" : "direct"
+  return [
+    hasRest ? "rest" : "fixed",
+    signatureParameterKind(signature.parameters[0], checker, location),
+    signatureTailKind(signature, checker, location),
+    returnMode
+  ].join(":")
+}
+
+function representativeSignatures(
+  signatures: ReadonlyArray<ts.Signature>,
+  checker: ts.TypeChecker,
+  location: ts.Node
+): ReadonlyArray<ts.Signature> {
+  const seen = new Set<string>()
+  const out: Array<ts.Signature> = []
+  for (const signature of signatures) {
+    const key = signatureShapeKey(signature, checker, location)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(signature)
+  }
+  return out
+}
+
+function functionSignature(
+  name: string,
+  symbol: ts.Symbol,
+  location: ts.Node,
+  checker: ts.TypeChecker,
+  cwd: string
+): string | null {
+  const target = resolvedSymbolTarget(symbol, checker)
+  const type = checker.getTypeOfSymbolAtLocation(target, location)
+  const signatures = checker.getSignaturesOfType(type, ts.SignatureKind.Call)
+  if (signatures.length === 0) return null
+  const lines: Array<string> = []
+  for (const signature of representativeSignatures(signatures, checker, location)) {
+    const text = normalizeSignature(
+      cwd,
+      checker.signatureToString(signature, location, signatureTypeFormatFlags, ts.SignatureKind.Call)
+    )
+    if (text === null) return null
+    lines.push(`declare function ${name}${text}`)
+  }
+  return normalizeSignature(cwd, lines.join("\n"))
+}
+
+function symbolSignature(
+  name: string,
+  bucket: ExportBucket,
+  symbol: ts.Symbol,
+  location: ts.Node,
+  checker: ts.TypeChecker,
+  cwd: string
+): string | null {
+  if (bucket !== "value") return null
+  const target = resolvedSymbolTarget(symbol, checker)
+  const type = checker.getTypeOfSymbolAtLocation(target, location)
+  if (checker.getSignaturesOfType(type, ts.SignatureKind.Call).length === 0) return null
+  return functionSignature(name, symbol, location, checker, cwd)
+}
+
+function declarationSignature(
+  name: string,
+  bucket: ExportBucket,
+  node: ts.Node,
+  checker: ts.TypeChecker,
+  cwd: string
+): string | null {
+  if (ts.isVariableStatement(node)) {
+    const declaration = node.declarationList.declarations.find((item) =>
+      ts.isIdentifier(item.name) && item.name.text === name
+    )
+    if (declaration === undefined) return null
+    const symbol = checker.getSymbolAtLocation(declaration.name)
+    return symbol === undefined ? null : symbolSignature(name, bucket, symbol, declaration.name, checker, cwd)
+  }
+  const nameNode = ts.isFunctionDeclaration(node) || ts.isClassDeclaration(node) || ts.isInterfaceDeclaration(node) ||
+      ts.isTypeAliasDeclaration(node)
+    ? node.name
+    : undefined
+  if (nameNode === undefined) return null
+  const symbol = checker.getSymbolAtLocation(nameNode)
+  return symbol === undefined ? null : symbolSignature(name, bucket, symbol, nameNode, checker, cwd)
+}
+
+function exportSpecifierSignature(
+  name: string,
+  bucket: ExportBucket,
+  specifier: ts.ExportSpecifier,
+  checker: ts.TypeChecker,
+  cwd: string
+): string | null {
+  const symbol = checker.getSymbolAtLocation(specifier.name) ??
+    (specifier.propertyName === undefined ? undefined : checker.getSymbolAtLocation(specifier.propertyName))
+  return symbol === undefined ? null : symbolSignature(name, bucket, symbol, specifier.name, checker, cwd)
+}
+
 function parseMembersFromTsType(
   type: ts.TypeNode | undefined,
   diagnostics: Array<JSDocModelDiagnostic>,
@@ -2674,6 +2887,7 @@ function parseTsMembers(
     const nested = parseMembersFromTsType(memberType(member), diagnostics, linkContext)
     out.push({
       name,
+      signature: null,
       range: nodeRange(member),
       description: documented.core.description,
       examples: documented.core.examples,
@@ -2754,6 +2968,7 @@ function parseNamespaceTs(
       }
       declarations.push({
         name,
+        signature: null,
         range: publicDeclarationRange(statement, name),
         description: nestedDocumented.core.description,
         examples: nestedDocumented.core.examples,
@@ -2764,6 +2979,7 @@ function parseNamespaceTs(
   }
   return {
     name: node.name.text,
+    signature: null,
     range: nodeRange(node),
     description: documented.core.description,
     examples: documented.core.examples,
@@ -2854,6 +3070,13 @@ function parseSourceFileDocs(
           declarations.push({
             name: specifier.name.text,
             bucket: statement.isTypeOnly || specifier.isTypeOnly ? "type" : "value",
+            signature: exportSpecifierSignature(
+              specifier.name.text,
+              statement.isTypeOnly || specifier.isTypeOnly ? "type" : "value",
+              specifier,
+              checker,
+              cwd
+            ),
             range: nodeRange(specifier),
             description: documented.core.description,
             examples: documented.core.examples,
@@ -2898,6 +3121,7 @@ function parseSourceFileDocs(
     declarations.push({
       name,
       bucket,
+      signature: declarationSignature(name, bucket, statement, checker, cwd),
       range: publicDeclarationRange(statement, name),
       description: documented.core.description,
       examples: documented.core.examples,
