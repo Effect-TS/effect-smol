@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- [#2391](https://github.com/Effect-TS/effect-smol/pull/2391) [`193690b`](https://github.com/Effect-TS/effect-smol/commit/193690b642ea802bbed40d663bd677251bbe9dc3) Thanks @IMax153! - Fix HttpApiEndpoint endpoint error inference when success schemas include streams.
+
 ## 4.0.0-beta.81
 
 ### Patch Changes

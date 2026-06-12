@@ -246,6 +246,7 @@
     "fix-hashmap-bit31-ordering",
     "fix-headers-proto-enumerability",
     "fix-http-incoming-message-parse-options",
+    "fix-httpapi-endpoint-error-inference",
     "fix-httpapi-security-middleware-cache",
     "fix-is-json-dag",
     "fix-json-schema-anyof-oneof-siblings",
