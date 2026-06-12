@@ -176,7 +176,7 @@ export function makeArray(length: number, value?: string): Node {
  * **Gotchas**
  *
  * Do not use `SourceError` for "key not found". That case is represented by
- * returning `undefined` from `load` or `get`.
+ * returning `undefined` from `load`.
  *
  * **Example** (Failing with a SourceError)
  *
@@ -190,8 +190,8 @@ export function makeArray(length: number, value?: string): Node {
  * )
  * ```
  *
- * @see {@link ConfigProvider} – the interface whose `load`/`get` may fail
- *   with this error
+ * @see {@link ConfigProvider} – the interface whose `load` may fail with this
+ *   error
  *
  * @category models
  * @since 4.0.0
@@ -234,13 +234,10 @@ export type Path = ReadonlyArray<string | number>
  *
  * **Details**
  *
- * `load(path)` resolves `mapInput` and `prefix` transformations, then
- * delegates to `get`. This is what the `Config` module calls. `get(path)` is
- * raw access to the underlying store without path transformations.
- * `mapInput` and `prefix` are optional path transformations set by
- * {@link mapInput} and {@link nested}. All methods return
- * `Effect<Node | undefined, SourceError>`: `undefined` means "not found" and
- * `SourceError` means the source itself failed.
+ * `load(path)` is the semantic lookup operation used by the `Config` module.
+ * It applies provider transformations and composition before consulting the
+ * underlying source. `undefined` means "not found" and `SourceError` means the
+ * source itself failed.
  *
  * @see {@link make} – construct a provider from a lookup function
  * @see {@link orElse} – compose providers with fallback
@@ -260,33 +257,8 @@ export interface ConfigProvider extends Pipeable {
    */
   readonly load: (path: Path) => Effect.Effect<Node | undefined, SourceError>
 
-  /**
-   * Raw access to the underlying source.
-   *
-   * **When to use**
-   *
-   * Use to read from the backing source without applying this provider's path
-   * transformations.
-   */
-  readonly get: (path: Path) => Effect.Effect<Node | undefined, SourceError>
-
-  /**
-   * Function to map the input path.
-   *
-   * **When to use**
-   *
-   * Use to store the path transformation applied before raw provider lookup.
-   */
-  readonly mapInput: ((path: Path) => Path) | undefined
-
-  /**
-   * Prefix to add to the input path.
-   *
-   * **When to use**
-   *
-   * Use to store the path prefix applied before raw provider lookup.
-   */
-  readonly prefix: Path | undefined
+  /** @internal */
+  readonly state: ProviderState
 }
 
 /**
@@ -335,6 +307,57 @@ const Proto = {
   }
 }
 
+type SourceState = {
+  readonly _tag: "Source"
+  readonly get: (path: Path) => Effect.Effect<Node | undefined, SourceError>
+  readonly transform: (path: Path) => Path
+}
+
+type OrElseState = {
+  readonly _tag: "OrElse"
+  readonly first: ConfigProvider
+  readonly second: ConfigProvider
+}
+
+type ProviderState = SourceState | OrElseState
+
+const identityPath = (path: Path): Path => path
+
+function makeProvider(
+  state: ProviderState,
+  load: (path: Path) => Effect.Effect<Node | undefined, SourceError>
+): ConfigProvider {
+  const self = Object.create(Proto)
+  self.state = state
+  self.load = load
+  return self
+}
+
+function makeSource(
+  get: (path: Path) => Effect.Effect<Node | undefined, SourceError>,
+  transform: (path: Path) => Path
+): ConfigProvider {
+  const state: SourceState = {
+    _tag: "Source",
+    get,
+    transform
+  }
+  return makeProvider(state, (path) => state.get(state.transform(path)))
+}
+
+function makeOrElse(first: ConfigProvider, second: ConfigProvider): ConfigProvider {
+  const state: OrElseState = {
+    _tag: "OrElse",
+    first,
+    second
+  }
+  return makeProvider(state, (path) =>
+    Effect.flatMap(
+      state.first.load(path),
+      (node) => node ? Effect.succeed(node) : state.second.load(path)
+    ))
+}
+
 /**
  * Creates a `ConfigProvider` from a raw lookup function.
  *
@@ -348,10 +371,6 @@ const Proto = {
  * The `get` callback receives a `Path` and must return
  * `Effect<Node | undefined, SourceError>`. Return `undefined` when the path
  * does not exist; fail with `SourceError` only for actual I/O errors.
- *
- * The optional `mapInput` and `prefix` parameters are wired into the
- * resulting `load` method so that combinators like {@link mapInput} and
- * {@link nested} can compose without wrapping `get`.
  *
  * **Example** (Creating a simple in-memory provider)
  *
@@ -378,21 +397,8 @@ const Proto = {
  * @category constructors
  * @since 2.0.0
  */
-export function make(
-  get: (path: Path) => Effect.Effect<Node | undefined, SourceError>,
-  mapInput?: (path: Path) => Path,
-  prefix?: Path
-): ConfigProvider {
-  const self = Object.create(Proto)
-  self.get = get
-  self.mapInput = mapInput
-  self.prefix = prefix
-  self.load = (path: Path) => {
-    if (mapInput) path = mapInput(path)
-    if (prefix) path = [...prefix, ...path]
-    return get(path)
-  }
-  return self
+export function make(get: (path: Path) => Effect.Effect<Node | undefined, SourceError>): ConfigProvider {
+  return makeSource(get, identityPath)
 }
 
 /**
@@ -406,7 +412,9 @@ export function make(
  *
  * **Details**
  *
- * Supports both data-last and data-first calling conventions.
+ * Each provider keeps its own path transformations. If the combined provider
+ * is later transformed with {@link mapInput} or {@link nested}, the
+ * transformation is applied to both sides.
  *
  * **Gotchas**
  *
@@ -436,8 +444,7 @@ export const orElse: {
   (self: ConfigProvider, that: ConfigProvider): ConfigProvider
 } = dual(
   2,
-  (self: ConfigProvider, that: ConfigProvider): ConfigProvider =>
-    make((path) => Effect.flatMap(self.get(path), (node) => node ? Effect.succeed(node) : that.get(path)))
+  (self: ConfigProvider, that: ConfigProvider): ConfigProvider => makeOrElse(self, that)
 )
 
 /**
@@ -450,10 +457,11 @@ export const orElse: {
  *
  * **Details**
  *
- * The function `f` receives the full path and must return a new path. If the
- * provider already has a `mapInput`, the functions compose: the existing
- * mapping runs first, then `f`. Supports both data-last and data-first calling
- * conventions.
+ * The function `f` receives the whole path produced by earlier provider
+ * transformations and must return a new path. Lookup path transformations
+ * compose in application order: the existing transformation runs first, then
+ * `f` runs. For providers composed with {@link orElse}, the transformation is
+ * applied to each operand.
  *
  * **Example** (Uppercasing path segments)
  *
@@ -483,7 +491,13 @@ export const mapInput: {
 } = dual(
   2,
   (self: ConfigProvider, f: (path: Path) => Path): ConfigProvider => {
-    return make(self.get, self.mapInput ? flow(self.mapInput, f) : f, self.prefix ? f(self.prefix) : undefined)
+    const state = self.state
+    switch (state._tag) {
+      case "Source":
+        return makeSource(state.get, flow(state.transform, f))
+      case "OrElse":
+        return makeOrElse(mapInput(state.first, f), mapInput(state.second, f))
+    }
   }
 )
 
@@ -532,14 +546,16 @@ export const constantCase: (self: ConfigProvider) => ConfigProvider = mapInput((
  *
  * **Details**
  *
- * Accepts a single string or a full `Path` array. Supports both data-last and
- * data-first calling conventions.
+ * Accepts a single string or a full `Path` array. For providers composed with
+ * {@link orElse}, the prefix is applied to each operand. Supports both
+ * data-last and data-first calling conventions.
  *
  * **Gotchas**
  *
- * The prefix is prepended after any `mapInput` transformation runs, so
- * ordering matters when composing with {@link mapInput} or
- * {@link constantCase}.
+ * Ordering matters when composing with {@link mapInput} or
+ * {@link constantCase}. Later provider transformations run after earlier ones:
+ * a later `nested` becomes the outer prefix, and a later `mapInput` sees the
+ * whole path produced by previous transformations.
  *
  * **Example** (Nesting under a prefix)
  *
@@ -566,7 +582,13 @@ export const nested: {
   2,
   (self: ConfigProvider, prefix: string | Path): ConfigProvider => {
     const path = typeof prefix === "string" ? [prefix] : prefix
-    return make(self.get, self.mapInput, self.prefix ? [...self.prefix, ...path] : path)
+    const state = self.state
+    switch (state._tag) {
+      case "Source":
+        return makeSource(state.get, flow(state.transform, (input) => [...path, ...input]))
+      case "OrElse":
+        return makeOrElse(nested(state.first, path), nested(state.second, path))
+    }
   }
 )
 
@@ -1064,8 +1086,9 @@ export const fromDotEnv: (options?: {
  *
  * Resolution tries a regular file first and returns a `Value` node with
  * trimmed file contents. If the file read fails, it tries a directory and
- * returns a `Record` node with immediate child names as keys. If both fail, it
- * returns `SourceError`.
+ * returns a `Record` node with immediate child names as keys. If both fail with
+ * `NotFound`, it returns `undefined`. Other platform failures return
+ * `SourceError`.
  *
  * Requires `Path` and `FileSystem` in the Effect context. Defaults to root
  * path `/`; override with `{ rootPath: "/etc/config" }`.
@@ -1110,15 +1133,19 @@ export const fromDir: (options?: {
 
     // If not a file, try reading as a *directory*
     const asDirectory = fs.readDirectory(fullPath).pipe(
-      Effect.map((entries: ReadonlyArray<any>) => {
-        // Support both string paths and DirEntry-like objects
-        const keys = entries.map((e) => typeof e === "string" ? platformPath.basename(e) : format(e?.name ?? ""))
-        return makeRecord(new Set(keys))
-      })
+      Effect.map((entries) => makeRecord(new Set(entries.map((entry) => platformPath.basename(entry)))))
     )
 
     return asFile.pipe(
-      Effect.catch(() => asDirectory),
+      Effect.catch((fileCause) =>
+        asDirectory.pipe(
+          Effect.catch((dirCause) =>
+            isNotFound(fileCause) && isNotFound(dirCause)
+              ? Effect.succeed(undefined)
+              : Effect.fail(isNotFound(fileCause) ? dirCause : fileCause)
+          )
+        )
+      ),
       Effect.mapError((cause: PlatformError) =>
         new SourceError({
           message: `Failed to read file at ${platformPath.join(rootPath, ...path.map(String))}`,
@@ -1128,3 +1155,5 @@ export const fromDir: (options?: {
     )
   })
 })
+
+const isNotFound = (cause: PlatformError) => cause.reason._tag === "NotFound"
