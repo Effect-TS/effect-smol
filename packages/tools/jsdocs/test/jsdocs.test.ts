@@ -3,6 +3,21 @@ import { assert, describe, it } from "@effect/vitest"
 import * as fs from "node:fs"
 import * as os from "node:os"
 import * as path from "node:path"
+import * as ts from "typescript"
+
+interface SourceFileWithParseDiagnostics extends ts.SourceFile {
+  readonly parseDiagnostics: ReadonlyArray<ts.Diagnostic>
+}
+
+const signatureParseDiagnostics = (signature: string): ReadonlyArray<string> =>
+  (ts.createSourceFile(
+    "signature.ts",
+    signature,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  ) as SourceFileWithParseDiagnostics)
+    .parseDiagnostics.map((diagnostic) => ts.flattenDiagnosticMessageText(diagnostic.messageText, "\n"))
 
 describe("jsdocs", () => {
   it("parses a raw JSDoc block", () => {
@@ -125,6 +140,27 @@ export const makeValue = () => 1
     )
     fs.writeFileSync(path.join(cwd, "src/index.ts"), `export * as Foo from "./Foo.ts"\n`)
     fs.writeFileSync(
+      path.join(cwd, "src/External.ts"),
+      `/**
+ * External value type.
+ *
+ * @category models
+ * @since 1.0.0
+ */
+export interface External {
+  readonly value: string
+}
+
+/**
+ * Makes an external value.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export const makeExternal = (value: string): External => ({ value })
+`
+    )
+    fs.writeFileSync(
       path.join(cwd, "src/Foo.ts"),
       `/**
  * Parses a value.
@@ -156,6 +192,28 @@ export {
    * @since 1.0.0
    */
   aliased as renamed
+}
+
+export {
+  /**
+   * Makes an external value.
+   *
+   * @category constructors
+   * @since 1.0.0
+   */
+  makeExternal as external
+} from "./External.ts"
+
+const attempt = (value: string) => value.length
+
+export {
+  /**
+   * Attempts a value.
+   *
+   * @category constructors
+   * @since 1.0.0
+   */
+  attempt as try
 }
 
 /**
@@ -240,6 +298,30 @@ export function pipeline(...args: Array<any>) {
   return args.length === 1 ? args[0] : args.slice(1).reduce((value, f) => f(value), args[0])
 }
 
+interface Box<in out A> {}
+
+declare namespace Box {
+  export type Inner<A extends Box<any>> = A extends Box<infer T> ? T : never
+}
+
+interface Check<A> {}
+
+interface Ctor<A extends Box<any>> {
+  (value: Box.Inner<A>): A
+}
+
+/**
+ * Builds a boxed constructor.
+ *
+ * @category constructors
+ * @since 1.0.0
+ */
+export function boxed<A extends Box<any>>(
+  ...value: readonly [Check<Box.Inner<A>>, ...Array<Check<Box.Inner<A>>>]
+): Ctor<A> {
+  return null as any
+}
+
 /**
  * Handles distinct overload modes.
  *
@@ -303,18 +385,39 @@ export interface Sample {
     })
     const signatureByName = new Map(model.apis.map((api) => [api.apiName, api.signature]))
     assert.deepStrictEqual(model.files.flatMap((file) => file.diagnostics), [])
+    for (const api of model.apis) {
+      if (api.signature !== null) {
+        const diagnostics = signatureParseDiagnostics(api.signature)
+        if (diagnostics.length > 0) {
+          assert.fail(`${api.apiName}: ${diagnostics.join(", ")}`)
+        }
+      }
+    }
     assert.strictEqual(
       signatureByName.get("parse"),
       "declare function parse(value: string): string\ndeclare function parse(value: number): number"
     )
     assert.strictEqual(signatureByName.get("inferred"), "declare function inferred(value: number): string")
     assert.strictEqual(signatureByName.get("renamed"), "declare function renamed(value: boolean): boolean")
+    assert.strictEqual(
+      signatureByName.get("try"),
+      `declare const _try: {
+  (value: string): number;
+}
+export { _try as try }`
+    )
+    assert.strictEqual(signatureByName.get("external"), "declare function external(value: string): External")
     const manyLines = signatureByName.get("many")?.split("\n")
     assert.strictEqual(manyLines?.length, 1)
     assert.strictEqual(manyLines?.[0], "declare function many(value: 1): 1")
     const pipelineLines = signatureByName.get("pipeline")?.split("\n") ?? []
     assert.strictEqual(pipelineLines.length, 6)
     assert.deepStrictEqual(pipelineLines.map((line) => line.match(/=>/g)?.length ?? 0), [0, 1, 2, 3, 4, 8])
+    const boxedSignature = signatureByName.get("boxed")
+    assert.strictEqual(
+      boxedSignature,
+      "declare const boxed: <A extends Box<any>>(value_0: Check<Box.Inner<A>>, ...value: Check<Box.Inner<A>>[]) => Ctor<A>"
+    )
     const modeLines = signatureByName.get("modes")?.split("\n")
     assert.deepStrictEqual(modeLines, [
       "declare function modes(body: () => string): string",

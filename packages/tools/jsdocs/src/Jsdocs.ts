@@ -18,6 +18,10 @@ type Result<A, E> =
   | { readonly _tag: "Success"; readonly value: A }
   | { readonly _tag: "Failure"; readonly error: E }
 
+interface SourceFileWithParseDiagnostics extends ts.SourceFile {
+  readonly parseDiagnostics: ReadonlyArray<ts.Diagnostic>
+}
+
 /**
  * Result type returned by the JSDoc parser helpers.
  *
@@ -426,10 +430,7 @@ const tagOrder = new Map([
   ["since", 4]
 ])
 const signatureTypeFormatFlags = ts.TypeFormatFlags.NoTruncation |
-  ts.TypeFormatFlags.WriteTypeArgumentsOfSignature |
-  ts.TypeFormatFlags.UseAliasDefinedOutsideCurrentScope |
-  ts.TypeFormatFlags.UseSingleQuotesForStringLiteralType |
-  ts.TypeFormatFlags.OmitThisParameter
+  ts.TypeFormatFlags.UseSingleQuotesForStringLiteralType
 
 const stableSemverRegex = /^\d+\.\d+\.\d+$/
 const urlRegex = /^https?:\/\//
@@ -2623,6 +2624,38 @@ function normalizeSignature(cwd: string, text: string): string | null {
   return signature === "" ? null : signature
 }
 
+function displaySignature(text: string): string {
+  return text.replace(/import\((?:"[^"]+"|'[^']+')\)\.([A-Za-z_$][A-Za-z0-9_$]*(?:\.[A-Za-z_$][A-Za-z0-9_$]*)*)/g, "$1")
+}
+
+function parseableSignature(cwd: string, text: string): string | null {
+  const signature = normalizeSignature(cwd, displaySignature(text))
+  if (signature === null) return null
+  const source = ts.createSourceFile(
+    "signature.ts",
+    signature,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS
+  ) as SourceFileWithParseDiagnostics
+  return source.parseDiagnostics.length === 0 ? signature : null
+}
+
+function signatureLocalName(name: string): string {
+  const sanitized = name.replace(/[^A-Za-z0-9_$]/g, "_")
+  return `_${sanitized === "" ? "api" : sanitized}`
+}
+
+function signatureExportName(name: string): string {
+  return /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(name) ? name : JSON.stringify(name)
+}
+
+function signatureAlias(name: string, text: string): string {
+  const localName = signatureLocalName(name)
+  return `declare const ${localName}: ${text}
+export { ${localName} as ${signatureExportName(name)} }`
+}
+
 function signatureParameterDeclaration(parameter: ts.Symbol): ts.ParameterDeclaration | undefined {
   const declaration = parameter.valueDeclaration ?? parameter.declarations?.[0]
   return declaration !== undefined && ts.isParameter(declaration) ? declaration : undefined
@@ -2748,16 +2781,34 @@ function functionSignature(
   const type = checker.getTypeOfSymbolAtLocation(target, location)
   const signatures = checker.getSignaturesOfType(type, ts.SignatureKind.Call)
   if (signatures.length === 0) return null
-  const lines: Array<string> = []
+  const callSignatures: Array<string> = []
   for (const signature of representativeSignatures(signatures, checker, location)) {
     const text = normalizeSignature(
       cwd,
       checker.signatureToString(signature, location, signatureTypeFormatFlags, ts.SignatureKind.Call)
     )
     if (text === null) return null
-    lines.push(`declare function ${name}${text}`)
+    callSignatures.push(text)
   }
-  return normalizeSignature(cwd, lines.join("\n"))
+  const declaration = parseableSignature(
+    cwd,
+    callSignatures.map((text) => `declare function ${name}${text}`).join("\n")
+  )
+  if (declaration !== null) return declaration
+  const callSignatureAlias = parseableSignature(
+    cwd,
+    signatureAlias(
+      name,
+      `{
+${callSignatures.map((text) => `  ${text};`).join("\n")}
+}`
+    )
+  )
+  if (callSignatureAlias !== null) return callSignatureAlias
+  const typeText = normalizeSignature(cwd, checker.typeToString(type, location, signatureTypeFormatFlags))
+  if (typeText === null) return null
+  return parseableSignature(cwd, `declare const ${name}: ${typeText}`) ??
+    parseableSignature(cwd, signatureAlias(name, typeText))
 }
 
 function symbolSignature(
