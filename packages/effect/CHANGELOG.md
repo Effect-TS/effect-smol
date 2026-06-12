@@ -1,5 +1,26 @@
 # effect
 
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- [#2387](https://github.com/Effect-TS/effect-smol/pull/2387) [`93cb4f8`](https://github.com/Effect-TS/effect-smol/commit/93cb4f8fbfb9e07cb9dc86ce6b155fd1f8167914) Thanks @gcanti! - `Config.withDefault` now only recovers from missing data for literal/union
+  schemas. Invalid present values now propagate validation errors instead of
+  using the default, closes [#2384](https://github.com/Effect-TS/effect-smol/issues/2384).
+
+- [#2388](https://github.com/Effect-TS/effect-smol/pull/2388) [`60341d9`](https://github.com/Effect-TS/effect-smol/commit/60341d9ca744d0473ce3fab621ca9bd225af3a39) Thanks @gcanti! - `Config.withDefault` no longer recovers from schema filter failures. A filter
+  failure means a present value reached refinement checks, so using the default
+  could hide invalid configuration values.
+
+- [#2389](https://github.com/Effect-TS/effect-smol/pull/2389) [`1105ab5`](https://github.com/Effect-TS/effect-smol/commit/1105ab56cb724212f7ea7b431396ce82e8fd0484) Thanks @gcanti! - Fix `Schema.toTaggedUnion(...).isAnyOf` narrowing for custom discriminant keys, closes [#2386](https://github.com/Effect-TS/effect-smol/issues/2386).
+
+  Previously, the type predicate always extracted union members by `_tag`, even
+  when `toTaggedUnion` was created with a different discriminant key. Runtime
+  behavior already used the supplied key, so this aligns the type-level narrowing
+  with the existing runtime behavior.
+
+- [#2270](https://github.com/Effect-TS/effect-smol/pull/2270) [`4500fbf`](https://github.com/Effect-TS/effect-smol/commit/4500fbfe00763d8a72af6e5d6c5988e8bd4ade36) Thanks @IMax153! - Add HTTP API streaming response support
+
 ## 4.0.0-beta.80
 
 ### Patch Changes
