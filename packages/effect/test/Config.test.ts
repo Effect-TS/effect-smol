@@ -343,6 +343,18 @@ describe("Config", () => {
   at ["b"]`
         )
       })
+
+      it("does not recover from invalid values", async () => {
+        const config = Config.logLevel("LOG_LEVEL").pipe(Config.withDefault("Info"))
+
+        await assertSuccess(config, ConfigProvider.fromUnknown({}), "Info")
+        await assertFailure(
+          config,
+          ConfigProvider.fromUnknown({ LOG_LEVEL: "debug" }),
+          `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "debug"
+  at ["LOG_LEVEL"]`
+        )
+      })
     })
 
     describe("option", () => {
