@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- [#2394](https://github.com/Effect-TS/effect-smol/pull/2394) [`1f2e8ce`](https://github.com/Effect-TS/effect-smol/commit/1f2e8ceef09e0a791c850ed2ade01f97089596f9) Thanks @IMax153! - Fix published HttpApi declaration files by exporting schema metadata types referenced by public declarations.
+
 ## 4.0.0-beta.82
 
 ### Patch Changes

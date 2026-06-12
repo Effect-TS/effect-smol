@@ -247,6 +247,7 @@
     "fix-headers-proto-enumerability",
     "fix-http-incoming-message-parse-options",
     "fix-httpapi-endpoint-error-inference",
+    "fix-httpapi-schema-types",
     "fix-httpapi-security-middleware-cache",
     "fix-is-json-dag",
     "fix-json-schema-anyof-oneof-siblings",
