@@ -1099,7 +1099,7 @@ export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
  */
 export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
-type ErrorWithoutStream<S extends ErrorConstraint> = [
+type ErrorNoStream<S extends ErrorConstraint> = [
   Extract<
     S extends ReadonlyArray<Schema.Top> ? S[number] : S,
     HttpApiSchema.StreamSchema
@@ -1135,7 +1135,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: ErrorWithoutStream<Error> | undefined
+      readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1168,7 +1168,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: ErrorWithoutStream<Error> | undefined
+      readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1201,7 +1201,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     readonly headers?: Headers | undefined
     readonly payload?: Payload | undefined
     readonly success?: Success | undefined
-    readonly error?: ErrorWithoutStream<Error> | undefined
+    readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
   }
 ): HttpApiEndpoint<
   Name,

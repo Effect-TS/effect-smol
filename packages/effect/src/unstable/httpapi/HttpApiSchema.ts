@@ -34,13 +34,18 @@ declare module "../../Schema.ts" {
 }
 
 /**
- * @internal
+ * HTTP API body encoding metadata used by payloads and responses.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export type Encoding = PayloadEncoding | ResponseEncoding
 
 /**
- * Encodings for payloads
- * @internal
+ * HTTP API request payload encoding metadata.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export type PayloadEncoding =
   | {
@@ -55,8 +60,10 @@ export type PayloadEncoding =
   }
 
 /**
- * Encodings for responses
- * @internal
+ * HTTP API response body encoding metadata.
+ *
+ * @category models
+ * @since 4.0.0
  */
 export type ResponseEncoding = {
   readonly _tag: "Json" | "FormUrlEncoded" | "Uint8Array" | "Text"
@@ -360,7 +367,12 @@ export interface StreamUint8Array extends
   readonly contentType: string
 }
 
-/** @internal */
+/**
+ * Schema for a streaming HTTP API success response.
+ *
+ * @category models
+ * @since 4.0.0
+ */
 export type StreamSchema = StreamSse<Sse.EventCodec, Schema.Top, unknown> | StreamUint8Array
 
 /** @internal */

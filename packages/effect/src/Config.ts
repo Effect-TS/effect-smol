@@ -345,14 +345,17 @@ function isMissingDataOnly(issue: SchemaIssue.Issue): boolean {
         ? true
         : isMissingDataOnly(issue.issue)
     case "Pointer":
-    case "Filter":
       return isMissingDataOnly(issue.issue)
+    case "Filter":
     case "UnexpectedKey":
-      return false
     case "Forbidden":
       return false
     case "Composite":
+      return issue.issues.every(isMissingDataOnly)
     case "AnyOf":
+      if (issue.issues.length === 0) {
+        return issue.actual === undefined
+      }
       return issue.issues.every(isMissingDataOnly)
   }
 }

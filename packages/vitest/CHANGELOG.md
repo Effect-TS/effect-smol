@@ -1,5 +1,26 @@
 # @effect/vitest
 
+## 4.0.0-beta.83
+
+### Patch Changes
+
+- Updated dependencies [[`1f2e8ce`](https://github.com/Effect-TS/effect-smol/commit/1f2e8ceef09e0a791c850ed2ade01f97089596f9)]:
+  - effect@4.0.0-beta.83
+
+## 4.0.0-beta.82
+
+### Patch Changes
+
+- Updated dependencies [[`193690b`](https://github.com/Effect-TS/effect-smol/commit/193690b642ea802bbed40d663bd677251bbe9dc3)]:
+  - effect@4.0.0-beta.82
+
+## 4.0.0-beta.81
+
+### Patch Changes
+
+- Updated dependencies [[`93cb4f8`](https://github.com/Effect-TS/effect-smol/commit/93cb4f8fbfb9e07cb9dc86ce6b155fd1f8167914), [`60341d9`](https://github.com/Effect-TS/effect-smol/commit/60341d9ca744d0473ce3fab621ca9bd225af3a39), [`1105ab5`](https://github.com/Effect-TS/effect-smol/commit/1105ab56cb724212f7ea7b431396ce82e8fd0484), [`4500fbf`](https://github.com/Effect-TS/effect-smol/commit/4500fbfe00763d8a72af6e5d6c5988e8bd4ade36)]:
+  - effect@4.0.0-beta.81
+
 ## 4.0.0-beta.80
 
 ### Patch Changes
