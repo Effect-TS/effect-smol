@@ -314,20 +314,7 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error
-  : never
+export type Error<Endpoint extends Any> = Endpoint["~Error"]
 
 /**
  * Extracts the schema used for an endpoint's path parameters.
@@ -466,20 +453,7 @@ export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Midd
  * @category models
  * @since 4.0.0
  */
-export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
-  : never
+export type Errors<Endpoint extends Any> = Endpoint["~Error"]["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**
  * Computes the services required to encode an endpoint's error responses,
@@ -488,20 +462,9 @@ export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
-  : never
+export type ErrorServicesEncode<Endpoint extends Any> =
+  | Endpoint["~Error"]["EncodingServices"]
+  | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
 
 /**
  * Builds the decoded request shape passed to a normal endpoint handler, including
@@ -691,19 +654,9 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
+export type ErrorServicesDecode<Endpoint> = Endpoint extends Any ?
+    | Endpoint["~Error"]["DecodingServices"]
+    | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
   : never
 
 /**
@@ -1099,7 +1052,7 @@ export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
  */
 export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
-type ErrorWithoutStream<S extends ErrorConstraint> = [
+type ErrorNoStream<S extends ErrorConstraint> = [
   Extract<
     S extends ReadonlyArray<Schema.Top> ? S[number] : S,
     HttpApiSchema.StreamSchema
@@ -1135,7 +1088,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: ErrorWithoutStream<Error> | undefined
+      readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1168,7 +1121,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly headers?: Headers | undefined
       readonly payload?: Payload | undefined
       readonly success?: Success | undefined
-      readonly error?: ErrorWithoutStream<Error> | undefined
+      readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
     Name,
@@ -1201,7 +1154,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     readonly headers?: Headers | undefined
     readonly payload?: Payload | undefined
     readonly success?: Success | undefined
-    readonly error?: ErrorWithoutStream<Error> | undefined
+    readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
   }
 ): HttpApiEndpoint<
   Name,
