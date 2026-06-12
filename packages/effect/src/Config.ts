@@ -345,8 +345,8 @@ function isMissingDataOnly(issue: SchemaIssue.Issue): boolean {
         ? true
         : isMissingDataOnly(issue.issue)
     case "Pointer":
-    case "Filter":
       return isMissingDataOnly(issue.issue)
+    case "Filter":
     case "UnexpectedKey":
     case "Forbidden":
       return false

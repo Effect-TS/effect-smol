@@ -344,7 +344,7 @@ describe("Config", () => {
         )
       })
 
-      it("does not recover from invalid values", async () => {
+      it("does not recover from invalid union values", async () => {
         const config = Config.logLevel("LOG_LEVEL").pipe(Config.withDefault("Info"))
 
         await assertSuccess(config, ConfigProvider.fromUnknown({}), "Info")
@@ -353,6 +353,27 @@ describe("Config", () => {
           ConfigProvider.fromUnknown({ LOG_LEVEL: "debug" }),
           `Expected "All" | "Fatal" | "Error" | "Warn" | "Info" | "Debug" | "Trace" | "None", got "debug"
   at ["LOG_LEVEL"]`
+        )
+      })
+
+      it("does not recover from filter failures", async () => {
+        const schema = Schema.String.check(
+          Schema.makeFilter((s) =>
+            s === "a" ? undefined : new SchemaIssue.InvalidValue(Option.none(), { message: `must be "a"` })
+          )
+        )
+        const config = Config.schema(schema, "a").pipe(Config.withDefault("fallback"))
+
+        // missing key -> default
+        await assertSuccess(config, ConfigProvider.fromUnknown({}), "fallback")
+        // valid present value -> parsed
+        await assertSuccess(config, ConfigProvider.fromUnknown({ a: "a" }), "a")
+        // present value that fails the refinement must fail, not use the default
+        await assertFailure(
+          config,
+          ConfigProvider.fromUnknown({ a: "b" }),
+          `must be "a"
+  at ["a"]`
         )
       })
     })
