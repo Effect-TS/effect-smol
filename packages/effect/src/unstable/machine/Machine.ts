@@ -14,6 +14,7 @@ import type * as Types from "../../Types.ts"
 import type {
   ChildAlreadyExistsError,
   InfiniteTransitionError,
+  MachineSchemaDecodeError,
   StartupError,
   UnhandledEventError
 } from "./internal/machineErrors.ts"
@@ -93,7 +94,8 @@ export interface Machine<
   InitialR = never,
   FinalStates extends Machine.StateIdentifier<States> = never,
   Output = never,
-  Emits extends ReadonlyArray<Machine.TaggedSchema> = any
+  Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
+  OutputStates extends Machine.StateIdentifier<States> = never
 > extends Pipeable {
   readonly [TypeId]: TypeId
   readonly states: States
@@ -122,7 +124,8 @@ export interface Machine<
     InitialE,
     InitialR,
     FinalStates,
-    Output
+    Output,
+    OutputStates
   >
 
   /** @internal */
@@ -146,6 +149,14 @@ export {
    * @since 4.0.0
    */
   InfiniteTransitionError,
+  /**
+   * Error returned when a machine contract value does not match the schema
+   * declared for a machine boundary.
+   *
+   * @category errors
+   * @since 4.0.0
+   */
+  MachineSchemaDecodeError,
   /**
    * Error returned when a machine fails while running startup lifecycle
    * logic after the initial state has been computed.
@@ -180,8 +191,8 @@ const RuntimeRequirementTypeId = "~effect/Machine/RuntimeRequirement"
  * @since 4.0.0
  */
 export interface Runtime<in Events, in Emits> {
-  readonly raise: (event: Events) => Effect.Effect<void>
-  readonly sendParent: (event: Emits) => Effect.Effect<void>
+  readonly raise: (event: Events) => Effect.Effect<void, MachineSchemaDecodeError>
+  readonly sendParent: (event: Emits) => Effect.Effect<void, MachineSchemaDecodeError>
 }
 
 /**
@@ -270,6 +281,10 @@ type ValidateStateNodeConfig<Node extends { readonly schema: Machine.TaggedSchem
   { readonly states: infer Children } ? ValidateStateNodeWithChildren<Node, Children>
   : ValidateStateNodeWithoutChildren<Node>
 
+type ValidateOutputSchema<Node> = "output" extends keyof Node ? Node extends { readonly output: Schema.Top } ? unknown
+  : StateDefinitionError<"State output must be a schema">
+  : unknown
+
 type ValidateStateNodeWithChildren<
   Node extends { readonly schema: Machine.TaggedSchema },
   Children
@@ -277,7 +292,8 @@ type ValidateStateNodeWithChildren<
   Node extends { readonly type: "final" } ? StateDefinitionError<"Final states cannot declare child states">
   : Node extends { readonly type: "parallel" } ?
     "initial" extends keyof Node ? StateDefinitionError<"Parallel states cannot declare an initial child">
-    : { readonly states: ValidateStateTree<Children> }
+    : { readonly states: ValidateStateTree<Children> } & ValidateOutputSchema<Node>
+  : "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
   : ValidateCompoundStateNode<Node, Children>
   : StateDefinitionError<"Child states must be a state tree">
 
@@ -292,8 +308,12 @@ type ValidateCompoundStateNode<
 
 type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.TaggedSchema }> = "initial" extends
   keyof Node ? StateDefinitionError<"Atomic states cannot declare an initial child">
-  : Node extends { readonly type: infer Type } ? Type extends "active" | "final" | undefined ? unknown
+  : Node extends { readonly type: infer Type } ? Type extends "final" ? ValidateOutputSchema<Node>
+    : Type extends "active" | undefined ?
+      "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
+      : unknown
     : StateDefinitionError<"State node type must be active, final, or parallel">
+  : "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
   : unknown
 
 type DefineStateTreeInput<States extends Machine.StateSchemas> = {
@@ -783,10 +803,17 @@ export declare namespace Machine {
    * @category models
    * @since 4.0.0
    */
-  export interface AtomicStateNodeConfig {
-    readonly schema: TaggedSchema
-    readonly type?: "active" | "final"
-  }
+  export type AtomicStateNodeConfig =
+    | {
+      readonly schema: TaggedSchema
+      readonly type?: "active"
+      readonly output?: never
+    }
+    | {
+      readonly schema: TaggedSchema
+      readonly type: "final"
+      readonly output?: Schema.Top
+    }
 
   /**
    * Configuration accepted for a compound object state node.
@@ -810,6 +837,7 @@ export declare namespace Machine {
   export interface ParallelStateNodeConfig {
     readonly schema: TaggedSchema
     readonly type: "parallel"
+    readonly output?: Schema.Top
     readonly states: StateTree
   }
 
@@ -891,6 +919,7 @@ export declare namespace Machine {
     readonly key: string
     readonly tag: PropertyKey
     readonly schema: TaggedSchema
+    readonly output: Schema.Top | undefined
     readonly type: "atomic" | "compound" | "parallel" | "final"
     readonly parent: string | undefined
     readonly children: ReadonlyArray<string>
@@ -1060,6 +1089,61 @@ export declare namespace Machine {
     States extends StateSchemas,
     StateId extends StateIdentifier<States>
   > = Extract<StateOf<States>, SchemaByIdentifier<States, StateId>["Type"]>
+
+  type UndefinedIfNever<A> = [A] extends [never] ? undefined : A
+
+  type NodeOutput<Node> = Node extends { readonly output: infer Output extends Schema.Top } ? Schema.Schema.Type<Output>
+    : undefined
+
+  /**
+   * Extracts the declared output type for a state node.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type OutputByIdentifier<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeOutput<NodeByIdentifier<States, StateId>>
+
+  type DirectFinalCompletionOutput<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends { readonly type: "final" } ? OutputByIdentifier<States, StateId>
+    : never
+
+  type CompoundCompletionOutput<
+    States extends StateSchemas,
+    Children extends StateSchemas,
+    Prefix extends StateIdentifier<States>
+  > = UndefinedIfNever<
+    {
+      readonly [Key in Extract<keyof Children, string>]: DirectFinalCompletionOutput<
+        States,
+        Extract<JoinPath<Prefix, Key>, StateIdentifier<States>>
+      >
+    }[Extract<keyof Children, string>]
+  >
+
+  /**
+   * Extracts the output passed when a state node completes.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type CompletionOutputByIdentifier<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends infer Node
+    ? Node extends { readonly type: "parallel" } ? OutputByIdentifier<States, StateId>
+    : Node extends { readonly states: infer Children extends StateSchemas } ? CompoundCompletionOutput<
+        States,
+        Children,
+        StateId
+      >
+    : Node extends { readonly type: "final" } ? OutputByIdentifier<States, StateId>
+    : undefined
+    : undefined
 
   /**
    * Atomic statechart snapshot carrying path identity separately from the
@@ -1437,7 +1521,7 @@ export declare namespace Machine {
   > {
     readonly state: StateByIdentifier<States, StateId>
     readonly event: LifecycleEvent<Events>
-    readonly output: unknown
+    readonly output: CompletionOutputByIdentifier<States, StateId>
     readonly runtime: RuntimeEffect<Events, Emits>
     readonly target: TargetBuilder<States, StateId>
   }
@@ -1468,7 +1552,10 @@ export declare namespace Machine {
     StateId extends StateIdentifier<States>
   > = NodeByIdentifier<States, StateId> extends
     { readonly type: "parallel"; readonly states: infer Children extends StateSchemas } ? {
-      readonly [Key in Extract<keyof Children, string>]: unknown
+      readonly [Key in Extract<keyof Children, string>]: CompletionOutputByIdentifier<
+        States,
+        Extract<JoinPath<StateId, Key>, StateIdentifier<States>>
+      >
     }
     : never
 
@@ -1721,6 +1808,32 @@ export declare namespace Machine {
     ): Event | undefined
   }
 
+  type OutputHandlerConfig<
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateId extends StateIdentifier<States>,
+    Context
+  > = NodeByIdentifier<States, StateId> extends { readonly output: Schema.Top } ? {
+      readonly output: (context: Context) => OutputByIdentifier<States, StateId>
+    }
+    : {
+      readonly output?: never
+    }
+
+  type ActiveOutputHandlerConfig<
+    States extends StateSchemas,
+    Events extends ReadonlyArray<TaggedSchema>,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends { readonly type: "parallel" } ? OutputHandlerConfig<
+      States,
+      Events,
+      StateId,
+      ParallelOutputContext<States, Events, StateId>
+    >
+    : {
+      readonly output?: never
+    }
+
   /**
    * Configuration accepted for a non-final state.
    *
@@ -1743,10 +1856,6 @@ export declare namespace Machine {
       | ReadonlyArray<InvokeConfig<States, Events, Emits, StateId, EventOf<Events>, any, any, any, any, any, any>>
     readonly always?: (context: AlwaysContext<States, Events, Emits, StateId>) => HandlerResult<States, any, any>
     readonly onDone?: (context: DoneContext<States, Events, Emits, StateId>) => HandlerResult<States, any, any>
-    readonly output?: NodeByIdentifier<States, StateId> extends { readonly type: "parallel" } ? (
-        context: ParallelOutputContext<States, Events, StateId>
-      ) => any
-      : never
     readonly on?: {
       readonly [EventTag in TagOf<Events[number]>]?:
         | ((
@@ -1759,7 +1868,7 @@ export declare namespace Machine {
           ) => HandlerResult<States, any, any>
         }
     }
-  }
+  } & ActiveOutputHandlerConfig<States, Events, StateId>
 
   /**
    * Configuration accepted for a final state.
@@ -1775,12 +1884,11 @@ export declare namespace Machine {
   > = {
     readonly type: "final"
     readonly entry?: (context: StateActionContext<States, Events, Emits, StateId>) => StateActionResult<any, any>
-    readonly output?: (context: FinalOutputContext<States, Events, StateId>) => any
     readonly exit?: never
     readonly always?: never
     readonly onDone?: never
     readonly on?: never
-  }
+  } & OutputHandlerConfig<States, Events, StateId, FinalOutputContext<States, Events, StateId>>
 
   /**
    * Configuration accepted by `handle` for a state tag.
@@ -1856,6 +1964,59 @@ export declare namespace Machine {
     readonly "~effect/Machine/HandlerError": Message
   }
 
+  type NodeHasDeclaredOutput<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends { readonly output: Schema.Top } ? StateId : never
+
+  type DirectFinalOutputState<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends { readonly type: "final" } ? NodeHasDeclaredOutput<States, StateId>
+    : never
+
+  type CompoundCompletionOutputStates<
+    States extends StateSchemas,
+    Children extends StateSchemas,
+    Prefix extends StateIdentifier<States>
+  > = {
+    readonly [Key in Extract<keyof Children, string>]: DirectFinalOutputState<
+      States,
+      Extract<JoinPath<Prefix, Key>, StateIdentifier<States>>
+    >
+  }[Extract<keyof Children, string>]
+
+  type RequiredCompletionOutputStates<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends infer Node
+    ? Node extends { readonly type: "parallel" } ? NodeHasDeclaredOutput<States, StateId>
+    : Node extends { readonly states: infer Children extends StateSchemas } ? CompoundCompletionOutputStates<
+        States,
+        Children,
+        StateId
+      >
+    : never
+    : never
+
+  type RequiredParallelOutputStates<
+    States extends StateSchemas,
+    StateId extends StateIdentifier<States>
+  > = NodeByIdentifier<States, StateId> extends
+    { readonly type: "parallel"; readonly states: infer Children extends StateSchemas } ? {
+      readonly [Key in Extract<keyof Children, string>]: RequiredCompletionOutputStates<
+        States,
+        Extract<JoinPath<StateId, Key>, StateIdentifier<States>>
+      >
+    }[Extract<keyof Children, string>]
+    : never
+
+  type HandlerOutputStates<
+    AllStates extends StateSchemas,
+    StateId extends StateIdentifier<AllStates>,
+    Config
+  > = "output" extends keyof Config ? StateId : never
+
   type UnionToIntersection<Union> = (
     Union extends unknown ? (argument: Union) => void : never
   ) extends (argument: infer Intersection) => void ? Intersection
@@ -1886,34 +2047,56 @@ export declare namespace Machine {
     Node,
     Events extends ReadonlyArray<TaggedSchema>,
     Prefix extends string,
-    Config
+    Config,
+    AvailableOutputStates extends StateIdentifier<AllStates>
   > = "states" extends keyof Config ?
     Config extends { readonly states?: infer ChildrenConfig } ?
       HandlerChildren<Node> extends infer Children extends StateSchemas ?
         [Children] extends [never] ?
           HandlerValidationError<"Handler config contains child states for a state that has no children">
-        : HandlerTreeValidation<AllStates, Children, Events, Prefix, NonNullable<ChildrenConfig>>
+        : HandlerTreeValidation<AllStates, Children, Events, Prefix, NonNullable<ChildrenConfig>, AvailableOutputStates>
       : HandlerValidationError<"Handler config contains child states for a state that has no children">
     : unknown
     : unknown
+
+  type HandlerOutputRequirementValidation<
+    AllStates extends StateSchemas,
+    StateId extends StateIdentifier<AllStates>,
+    AvailableOutputStates extends StateIdentifier<AllStates>,
+    Config
+  > =
+    & ("onDone" extends keyof Config ? [
+        Exclude<RequiredCompletionOutputStates<AllStates, StateId>, AvailableOutputStates>
+      ] extends [never] ? unknown
+      : HandlerValidationError<"Handler config is missing an output implementation required by onDone">
+      : unknown)
+    & ("output" extends keyof Config ? NodeByIdentifier<AllStates, StateId> extends { readonly type: "parallel" } ? [
+          Exclude<RequiredParallelOutputStates<AllStates, StateId>, AvailableOutputStates>
+        ] extends [never] ? unknown
+        : HandlerValidationError<"Handler config is missing a region output implementation required by parallel output">
+      : unknown
+      : unknown)
 
   type HandlerNodeValidation<
     AllStates extends StateSchemas,
     Node,
     Events extends ReadonlyArray<TaggedSchema>,
     StateId extends StateIdentifier<AllStates>,
-    Config
+    Config,
+    AvailableOutputStates extends StateIdentifier<AllStates>
   > =
     & HandlerUnknownConfigKeyValidation<Config>
     & HandlerOnKeyValidation<Events, Config>
-    & HandlerChildrenValidation<AllStates, Node, Events, StateId, Config>
+    & HandlerChildrenValidation<AllStates, Node, Events, StateId, Config, AvailableOutputStates>
+    & HandlerOutputRequirementValidation<AllStates, StateId, AvailableOutputStates, Config>
 
   type HandlerTreeNodeValidations<
     AllStates extends StateSchemas,
     States extends StateSchemas,
     Events extends ReadonlyArray<TaggedSchema>,
     Prefix extends string,
-    Config
+    Config,
+    AvailableOutputStates extends StateIdentifier<AllStates>
   > = UnionToIntersection<
     {
       readonly [Key in Extract<Extract<keyof Config, string>, Extract<keyof States, string>>]: HandlerNodeValidation<
@@ -1921,7 +2104,8 @@ export declare namespace Machine {
         States[Key],
         Events,
         HandlerStateId<AllStates, JoinPath<Prefix, Key>>,
-        Config[Key]
+        Config[Key],
+        AvailableOutputStates
       >
     }[Extract<Extract<keyof Config, string>, Extract<keyof States, string>>]
   >
@@ -1931,10 +2115,11 @@ export declare namespace Machine {
     States extends StateSchemas,
     Events extends ReadonlyArray<TaggedSchema>,
     Prefix extends string,
-    Config
+    Config,
+    AvailableOutputStates extends StateIdentifier<AllStates>
   > =
     & HandlerUnknownStateKeyValidation<States, Config>
-    & HandlerTreeNodeValidations<AllStates, States, Events, Prefix, Config>
+    & HandlerTreeNodeValidations<AllStates, States, Events, Prefix, Config, AvailableOutputStates>
 
   type HandlerNodeChildrenConfig<Config> = "states" extends keyof Config ?
     Config extends { readonly states?: infer Children } ? NonNullable<Children>
@@ -2110,7 +2295,11 @@ export declare namespace Machine {
     Depth extends ReadonlyArray<unknown> = HandlerDepth
   > = {
     readonly [Key in Extract<Extract<keyof Config, string>, Extract<keyof States, string>>]:
-      | FinalOutputReturn<HandlerConfigPart<Config[Key]>>
+      | ("output" extends keyof HandlerConfigPart<Config[Key]> ? OutputByIdentifier<
+          AllStates,
+          HandlerStateId<AllStates, JoinPath<Prefix, Key>>
+        >
+        : never)
       | HandlerNodeChildOutput<
         AllStates,
         States[Key],
@@ -2131,6 +2320,39 @@ export declare namespace Machine {
       : HandlerTreeOutput<AllStates, Children, Prefix, HandlerNodeChildrenConfig<Config>, HandlerNextDepth<Depth>>
     : never
 
+  type HandlerTreeOutputStates<
+    AllStates extends StateSchemas,
+    States extends StateSchemas,
+    Prefix extends string,
+    Config,
+    Depth extends ReadonlyArray<unknown> = HandlerDepth
+  > = {
+    readonly [Key in Extract<Extract<keyof Config, string>, Extract<keyof States, string>>]:
+      | HandlerOutputStates<
+        AllStates,
+        HandlerStateId<AllStates, JoinPath<Prefix, Key>>,
+        HandlerConfigPart<Config[Key]>
+      >
+      | HandlerNodeChildOutputStates<
+        AllStates,
+        States[Key],
+        HandlerStateId<AllStates, JoinPath<Prefix, Key>>,
+        Config[Key],
+        Depth
+      >
+  }[Extract<Extract<keyof Config, string>, Extract<keyof States, string>>]
+
+  type HandlerNodeChildOutputStates<
+    AllStates extends StateSchemas,
+    Node,
+    Prefix extends string,
+    Config,
+    Depth extends ReadonlyArray<unknown>
+  > = Depth extends readonly [] ? never
+    : HandlerChildren<Node> extends infer Children extends StateSchemas ? [Children] extends [never] ? never
+      : HandlerTreeOutputStates<AllStates, Children, Prefix, HandlerNodeChildrenConfig<Config>, HandlerNextDepth<Depth>>
+    : never
+
   type HandleTreeResult<
     AllStates extends StateSchemas,
     Events extends ReadonlyArray<TaggedSchema>,
@@ -2143,6 +2365,7 @@ export declare namespace Machine {
     InitialR,
     FinalStates extends StateIdentifier<AllStates>,
     Output,
+    OutputStates extends StateIdentifier<AllStates>,
     Config
   > = Machine<
     AllStates,
@@ -2159,7 +2382,8 @@ export declare namespace Machine {
     InitialR,
     FinalStates | Extract<HandlerTreeFinalStates<AllStates, AllStates, "", Config>, StateIdentifier<AllStates>>,
     Output | HandlerTreeOutput<AllStates, AllStates, "", Config>,
-    Emits
+    Emits,
+    OutputStates | Extract<HandlerTreeOutputStates<AllStates, AllStates, "", Config>, StateIdentifier<AllStates>>
   >
 
   /**
@@ -2179,12 +2403,20 @@ export declare namespace Machine {
     InitialE,
     InitialR,
     FinalStates extends StateIdentifier<States>,
-    Output
+    Output,
+    OutputStates extends StateIdentifier<States>
   > {
     <const Config extends HandlerTree<States, States, Events, Emits, E, R, "">>(
       config:
         & Config
-        & HandlerTreeValidation<States, States, Events, "", Config>
+        & HandlerTreeValidation<
+          States,
+          States,
+          Events,
+          "",
+          Config,
+          OutputStates | Extract<HandlerTreeOutputStates<States, States, "", Config>, StateIdentifier<States>>
+        >
         & EnsureCompatibleRuntime<
           HandlerTreeServices<States, Events, Emits, States, "", Config>,
           EventOf<Events>,
@@ -2202,6 +2434,7 @@ export declare namespace Machine {
       InitialR,
       FinalStates,
       Output,
+      OutputStates,
       Config
     >
   }
@@ -2812,10 +3045,12 @@ export const planInitial: <
 ) => Effect.Effect<
   {
     readonly state: Machine.Snapshot<States>
-    readonly actions: ReadonlyArray<Effect.Effect<void, InitialE | StartupError, InitialR | R>>
+    readonly actions: ReadonlyArray<
+      Effect.Effect<void, InitialE | MachineSchemaDecodeError | StartupError, InitialR | R>
+    >
     readonly output: Output | undefined
   },
-  InitialE | StartupError,
+  InitialE | MachineSchemaDecodeError | StartupError,
   ExcludeCompatibleRuntime<InitialR | R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
 > = internalRuntime.planInitial
 
@@ -3069,10 +3304,10 @@ export const start: <
   MachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
+    E | InitialE | InfiniteTransitionError | MachineSchemaDecodeError | StartupError | UnhandledEventError,
     Output | undefined
   >,
-  InitialE | StartupError,
+  InitialE | MachineSchemaDecodeError | StartupError,
   ExcludeCompatibleRuntime<
     Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,

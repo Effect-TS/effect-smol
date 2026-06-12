@@ -13,7 +13,12 @@ import type * as Schema from "../../../Schema.ts"
 import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
 import type { Machine, Runtime } from "../Machine.ts"
-import type { InfiniteTransitionError, StartupError, UnhandledEventError } from "./machineErrors.ts"
+import type {
+  InfiniteTransitionError,
+  MachineSchemaDecodeError,
+  StartupError,
+  UnhandledEventError
+} from "./machineErrors.ts"
 import * as Model from "./machineModel.ts"
 import * as internalRuntime from "./machineRuntime.ts"
 
@@ -45,14 +50,14 @@ export const toProcessLogic: <
 ) => internalRuntime.ProcessLogic<
   Machine.Snapshot<States>,
   Machine.EventOf<Events>,
-  E | UnhandledEventError | InfiniteTransitionError,
+  E | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
   ExcludeCompatibleRuntime<
     Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >,
   Output | undefined,
-  InitialE | StartupError
+  InitialE | MachineSchemaDecodeError | StartupError
 > = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -76,7 +81,7 @@ export const toProcessLogic: <
           const planned = yield* internalRuntime.planInitial(machine, ...args)
           yield* internalRuntime.runActions(
             planned.actions,
-            internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(scope)
+            internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, scope)
           )
           return planned.state
         }),
@@ -91,7 +96,7 @@ export const toProcessLogic: <
 
           const initialState = yield* state
           if (internalRuntime.isFinalState(machine, initialState)) {
-            return internalRuntime.getFinalOutput<States, Events, Output>(
+            return yield* internalRuntime.getFinalOutputEffect<States, Events, Output>(
               machine,
               initialState,
               internalRuntime.InitialEvent
@@ -225,13 +230,17 @@ export const toProcessLogic: <
               yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, key, { token, scope, childId }))
               yield* startInvokeWatchers(config, child, key, token, scope)
             })
-          const startInvokes = (
+          const startInvokes: (
             state: Machine.Snapshot<States>,
             paths: ReadonlyArray<string>,
             event: Machine.LifecycleEvent<Events>
-          ): Effect.Effect<void, E, R> => {
-            const configuration = Model.normalizeConfiguration(machine, state)
-            return Effect.all(
+          ) => Effect.Effect<void, E | MachineSchemaDecodeError, R> = Effect.fnUntraced(function*(
+            state: Machine.Snapshot<States>,
+            paths: ReadonlyArray<string>,
+            event: Machine.LifecycleEvent<Events>
+          ) {
+            const configuration = yield* Model.normalizeConfigurationEffect(machine, state)
+            yield* Effect.all(
               internalRuntime.sortEntryPaths(machine, paths)
                 .filter((path) => configuration.active.has(path))
                 .flatMap((path) =>
@@ -244,12 +253,12 @@ export const toProcessLogic: <
                         Machine.StateIdentifier<States>
                       >,
                       event
-                    ) as Effect.Effect<void, E, R>
+                    ) as Effect.Effect<void, E | MachineSchemaDecodeError, R>
                   )
                 ),
               { discard: true }
             )
-          }
+          })
           const stopInvokes = (paths: ReadonlyArray<string>): Effect.Effect<void> =>
             Effect.all(
               internalRuntime.sortExitPaths(machine, paths).flatMap((path) =>
@@ -263,7 +272,7 @@ export const toProcessLogic: <
           return yield* Effect.gen(function*() {
             yield* startInvokes(
               initialState,
-              Model.getInitialEntryPaths(machine, Model.normalizeConfiguration(machine, initialState)),
+              Model.getInitialEntryPaths(machine, yield* Model.normalizeConfigurationEffect(machine, initialState)),
               internalRuntime.InitialEvent
             )
 
@@ -284,7 +293,7 @@ export const toProcessLogic: <
                   yield* setState(planned.next)
                   yield* internalRuntime.runActions(
                     planned.actions,
-                    internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(context)
+                    internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, context)
                   )
 
                   if (internalRuntime.isFinalState(machine, planned.next)) {
@@ -311,14 +320,14 @@ export const toProcessLogic: <
   }) as internalRuntime.ProcessLogic<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | UnhandledEventError | InfiniteTransitionError,
+    E | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
     ExcludeCompatibleRuntime<
       Exclude<InitialR | R, internalRuntime.MachineRuntime>,
       Machine.EventOf<Events>,
       Machine.EmitOf<Emits>
     >,
     Output | undefined,
-    InitialE | StartupError
+    InitialE | MachineSchemaDecodeError | StartupError
   >
 
 export const start: <
@@ -340,10 +349,10 @@ export const start: <
   internalRuntime.MachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | InitialE | StartupError | UnhandledEventError | InfiniteTransitionError,
+    E | InitialE | InfiniteTransitionError | MachineSchemaDecodeError | StartupError | UnhandledEventError,
     Output | undefined
   >,
-  InitialE | StartupError,
+  InitialE | MachineSchemaDecodeError | StartupError,
   ExcludeCompatibleRuntime<
     Exclude<InitialR | R, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,

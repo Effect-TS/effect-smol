@@ -29,6 +29,18 @@ describe("Machine", () => {
     requestId: Schema.String
   }) {}
 
+  class Payment extends Schema.TaggedClass<Payment>("Payment")("Payment", {}) {}
+
+  class PendingPayment extends Schema.TaggedClass<PendingPayment>("PendingPayment")("PendingPayment", {}) {}
+
+  class ApprovedPayment extends Schema.TaggedClass<ApprovedPayment>("ApprovedPayment")("ApprovedPayment", {
+    authId: Schema.String
+  }) {}
+
+  class DeclinedPayment extends Schema.TaggedClass<DeclinedPayment>("DeclinedPayment")("DeclinedPayment", {
+    reason: Schema.String
+  }) {}
+
   class SignIn extends Schema.TaggedClass<SignIn>("SignIn")("SignIn", {
     userId: Schema.String
   }) {}
@@ -332,7 +344,7 @@ describe("Machine", () => {
           auth: {
             onDone: ({ event, output, state, target }) => {
               expect(event).type.toBe<SignIn | Machine.InitialEvent>()
-              expect(output).type.toBe<unknown>()
+              expect(output).type.toBe<undefined>()
               expect(state).type.toBe<Auth>()
               return Effect.as(DoneRequirement, target.full.down(new Down({})))
             },
@@ -386,11 +398,15 @@ describe("Machine", () => {
       states: {
         down: {
           schema: Down,
-          type: "final"
+          type: "final",
+          output: Schema.Void
         }
       },
       events: [SignIn],
-      initial: () => Machine.defineStates({ down: { schema: Down, type: "final" } }).initial.down(new Down({}))
+      initial: () =>
+        Machine.defineStates({ down: { schema: Down, type: "final", output: Schema.Void } }).initial.down(
+          new Down({})
+        )
     }).handle({
       down: {
         type: "final",
@@ -401,6 +417,320 @@ describe("Machine", () => {
     })
 
     expect(machine).type.toBeAssignableTo<Machine.Machine.Any>()
+  })
+
+  it("final output callbacks conform to declared output schemas", () => {
+    const States = Machine.defineStates({
+      signedIn: {
+        schema: SignedIn,
+        type: "final",
+        output: Schema.String
+      }
+    })
+
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () => States.initial.signedIn(new SignedIn({ userId: "user-1" }))
+    }).handle({
+      signedIn: {
+        type: "final",
+        output: ({ state }) => state.userId
+      }
+    })
+
+    const planned = Machine.planInitial(machine)
+    expect<Effect.Success<typeof planned>["output"]>().type.toBe<string | undefined>()
+  })
+
+  it("rejects final output callbacks that do not match declared output schemas", () => {
+    const States = Machine.defineStates({
+      signedIn: {
+        schema: SignedIn,
+        type: "final",
+        output: Schema.String
+      }
+    })
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () => States.initial.signedIn(new SignedIn({ userId: "user-1" }))
+    })
+
+    expect(machine.handle).type.not.toBeCallableWith({
+      signedIn: {
+        type: "final",
+        output: () => 1
+      }
+    })
+  })
+
+  it("compound onDone receives the declared child final output type", () => {
+    const States = Machine.defineStates({
+      auth: {
+        schema: Auth,
+        initial: "signedOut",
+        states: {
+          signedOut: SignedOut,
+          signedIn: {
+            schema: SignedIn,
+            type: "final",
+            output: Schema.String
+          }
+        }
+      },
+      down: Down
+    })
+
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () => States.initial.auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
+    })
+
+    machine.handle({
+      auth: {
+        onDone: ({ output, target }) => {
+          expect(output).type.toBe<string>()
+          return target.full.down(new Down({}))
+        },
+        states: {
+          signedIn: {
+            type: "final",
+            output: ({ state }) => state.userId
+          }
+        }
+      }
+    })
+  })
+
+  it("rejects compound onDone when declared child output is not implemented", () => {
+    const States = Machine.defineStates({
+      auth: {
+        schema: Auth,
+        initial: "signedOut",
+        states: {
+          signedOut: SignedOut,
+          signedIn: {
+            schema: SignedIn,
+            type: "final",
+            output: Schema.String
+          }
+        }
+      }
+    })
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () => States.initial.auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
+    })
+
+    expect(machine.handle).type.not.toBeCallableWith({
+      auth: {
+        onDone: () => undefined
+      }
+    })
+  })
+
+  it("multiple final children produce a discriminated completion output union", () => {
+    const States = Machine.defineStates({
+      payment: {
+        schema: Payment,
+        initial: "pending",
+        states: {
+          pending: PendingPayment,
+          approved: {
+            schema: ApprovedPayment,
+            type: "final",
+            output: Schema.Struct({
+              status: Schema.Literal("approved"),
+              authId: Schema.String
+            })
+          },
+          declined: {
+            schema: DeclinedPayment,
+            type: "final",
+            output: Schema.Struct({
+              status: Schema.Literal("declined"),
+              reason: Schema.String
+            })
+          }
+        }
+      }
+    })
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () => States.initial.payment(new Payment({}), (payment) => payment.pending(new PendingPayment({})))
+    })
+
+    machine.handle({
+      payment: {
+        onDone: ({ output }) => {
+          expect(output.status).type.toBe<"approved" | "declined">()
+          if (output.status === "approved") {
+            expect(output.authId).type.toBe<string>()
+          } else {
+            expect(output.reason).type.toBe<string>()
+          }
+        },
+        states: {
+          approved: {
+            type: "final",
+            output: ({ state }) => ({
+              status: "approved" as const,
+              authId: state.authId
+            })
+          },
+          declined: {
+            type: "final",
+            output: ({ state }) => ({
+              status: "declined" as const,
+              reason: state.reason
+            })
+          }
+        }
+      }
+    })
+  })
+
+  it("parallel output callbacks receive typed region outputs and conform to declared output schemas", () => {
+    const States = Machine.defineStates({
+      up: {
+        schema: Up,
+        type: "parallel",
+        output: Schema.Struct({
+          userId: Schema.String,
+          requestId: Schema.String
+        }),
+        states: {
+          auth: {
+            schema: Auth,
+            initial: "signedOut",
+            states: {
+              signedOut: SignedOut,
+              signedIn: {
+                schema: SignedIn,
+                type: "final",
+                output: Schema.Struct({ userId: Schema.String })
+              }
+            }
+          },
+          sync: {
+            schema: Sync,
+            initial: "idle",
+            states: {
+              idle: SyncIdle,
+              syncing: {
+                schema: Syncing,
+                type: "final",
+                output: Schema.Struct({ requestId: Schema.String })
+              }
+            }
+          }
+        }
+      }
+    })
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () =>
+        States.initial.up(
+          new Up({ id: "up-1" }),
+          (up) =>
+            up
+              .auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
+              .sync(new Sync({ enabled: true }), (sync) => sync.idle(new SyncIdle({})))
+        )
+    })
+
+    machine.handle({
+      up: {
+        output: ({ outputs }) => {
+          expect(outputs.auth.userId).type.toBe<string>()
+          expect(outputs.sync.requestId).type.toBe<string>()
+          return {
+            userId: outputs.auth.userId,
+            requestId: outputs.sync.requestId
+          }
+        },
+        onDone: ({ output }) => {
+          expect(output.userId).type.toBe<string>()
+          expect(output.requestId).type.toBe<string>()
+        },
+        states: {
+          auth: {
+            states: {
+              signedIn: {
+                type: "final",
+                output: ({ state }) => ({ userId: state.userId })
+              }
+            }
+          },
+          sync: {
+            states: {
+              syncing: {
+                type: "final",
+                output: ({ state }) => ({ requestId: state.requestId })
+              }
+            }
+          }
+        }
+      }
+    })
+  })
+
+  it("rejects parallel output callbacks that do not match declared output schemas", () => {
+    const States = Machine.defineStates({
+      up: {
+        schema: Up,
+        type: "parallel",
+        output: Schema.Struct({
+          userId: Schema.String
+        }),
+        states: {
+          auth: {
+            schema: Auth,
+            initial: "signedOut",
+            states: {
+              signedOut: SignedOut,
+              signedIn: {
+                schema: SignedIn,
+                type: "final",
+                output: Schema.Struct({ userId: Schema.String })
+              }
+            }
+          }
+        }
+      }
+    })
+    const machine = Machine.make({
+      states: States.states,
+      events: [SignIn],
+      initial: () =>
+        States.initial.up(
+          new Up({ id: "up-1" }),
+          (up) => up.auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
+        )
+    })
+
+    expect(machine.handle).type.not.toBeCallableWith({
+      up: {
+        output: () => ({
+          requestId: "request-1"
+        }),
+        states: {
+          auth: {
+            states: {
+              signedIn: {
+                type: "final",
+                output: ({ state }: { readonly state: SignedIn }) => ({ userId: state.userId })
+              }
+            }
+          }
+        }
+      }
+    })
   })
 
   it("initial builder constructs typed initial snapshots", () => {

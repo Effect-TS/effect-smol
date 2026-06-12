@@ -4,9 +4,11 @@
  * @since 4.0.0
  */
 
+import * as Effect from "../../../Effect.ts"
 import { hasProperty } from "../../../Predicate.ts"
 import * as Schema from "../../../Schema.ts"
 import type { Machine } from "../Machine.ts"
+import { MachineSchemaDecodeError } from "./machineErrors.ts"
 
 export const TargetTypeId = "~effect/Machine/Target"
 
@@ -22,12 +24,19 @@ export const getStateNodeDefinition = (
   definition: Machine.TaggedSchema | Machine.StateNodeConfig
 ): {
   readonly schema: Machine.TaggedSchema
+  readonly output: Schema.Top | undefined
   readonly type: "atomic" | "compound" | "parallel" | "final"
   readonly initial: string | undefined
   readonly states: Machine.StateTree | undefined
 } => {
   if (Schema.isSchema(definition)) {
-    return { schema: definition as Machine.TaggedSchema, type: "atomic", initial: undefined, states: undefined }
+    return {
+      schema: definition as Machine.TaggedSchema,
+      output: undefined,
+      type: "atomic",
+      initial: undefined,
+      states: undefined
+    }
   }
   if (!hasProperty(definition, "schema") || !Schema.isSchema(definition.schema)) {
     throw new Error(`Machine.make expected state "${path}" to be a tagged schema or state node config`)
@@ -42,6 +51,7 @@ export const getStateNodeDefinition = (
     if ((definition as any).type === "parallel") {
       return {
         schema: definition.schema as Machine.TaggedSchema,
+        output: Schema.isSchema((definition as any).output) ? (definition as any).output as Schema.Top : undefined,
         type: "parallel",
         initial: undefined,
         states: (definition as any).states as Machine.StateTree
@@ -52,6 +62,7 @@ export const getStateNodeDefinition = (
     }
     return {
       schema: definition.schema as Machine.TaggedSchema,
+      output: undefined,
       type: "compound",
       initial: (definition as any).initial,
       states: (definition as any).states as Machine.StateTree
@@ -59,6 +70,7 @@ export const getStateNodeDefinition = (
   }
   return {
     schema: definition.schema as Machine.TaggedSchema,
+    output: Schema.isSchema((definition as any).output) ? (definition as any).output as Schema.Top : undefined,
     type: definition.type === "final" ? "final" : "atomic",
     initial: undefined,
     states: undefined
@@ -79,6 +91,7 @@ export const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNo
         key,
         tag: getSchemaTag(definition.schema) ?? key,
         schema: definition.schema,
+        output: definition.output,
         type: definition.type,
         parent,
         children: [] as ReadonlyArray<string>,
@@ -149,9 +162,86 @@ export interface FinalCompletion {
   readonly output: unknown
 }
 
+export interface DecodeBoundaryOptions {
+  readonly boundary: "input" | "event" | "emit" | "state" | "output"
+  readonly state?: string
+  readonly event?: string
+}
+
 interface CompletionResult extends FinalCompletion {
   readonly isNew: boolean
 }
+
+export const getEventName = (event: unknown): string | undefined =>
+  hasProperty(event, "_tag") ? String(event._tag) : undefined
+
+export const decodeBoundary = Effect.fnUntraced(function*<A>(
+  machine: Machine.Any,
+  schema: Schema.Top,
+  value: unknown,
+  options: DecodeBoundaryOptions
+) {
+  return yield* Schema.decodeUnknownEffect(Schema.toType(schema))(value).pipe(
+    Effect.mapError((cause) =>
+      new MachineSchemaDecodeError({
+        machineId: machine.id,
+        boundary: options.boundary,
+        cause,
+        ...(options.state === undefined ? {} : { state: options.state }),
+        ...(options.event === undefined ? {} : { event: options.event })
+      })
+    )
+  ) as Effect.Effect<A, MachineSchemaDecodeError>
+})
+
+export const decodeInput = <Input extends Schema.Top>(
+  machine: Machine.Any,
+  schema: Input,
+  value: unknown
+): Effect.Effect<Input["Type"], MachineSchemaDecodeError> =>
+  decodeBoundary<Input["Type"]>(machine, schema, value, { boundary: "input" })
+
+export const decodeEvent = <const Events extends ReadonlyArray<Machine.TaggedSchema>>(
+  machine: Machine.Any,
+  event: unknown
+): Effect.Effect<Machine.EventOf<Events>, MachineSchemaDecodeError> => {
+  const eventName = getEventName(event)
+  return decodeBoundary<Machine.EventOf<Events>>(
+    machine,
+    Schema.Union(machine.events as ReadonlyArray<Schema.Top>),
+    event,
+    eventName === undefined ? { boundary: "event" } : { boundary: "event", event: eventName }
+  )
+}
+
+export const decodeEmit = <const Emits extends ReadonlyArray<Machine.TaggedSchema>>(
+  machine: Machine.Any,
+  event: unknown
+): Effect.Effect<Machine.EmitOf<Emits>, MachineSchemaDecodeError> => {
+  const eventName = getEventName(event)
+  return decodeBoundary<Machine.EmitOf<Emits>>(
+    machine,
+    Schema.Union(machine.emits as ReadonlyArray<Schema.Top>),
+    event,
+    eventName === undefined ? { boundary: "emit" } : { boundary: "emit", event: eventName }
+  )
+}
+
+export const decodeStateValue = (
+  machine: Machine.Any,
+  node: Machine.StateNode,
+  value: unknown
+): Effect.Effect<unknown, MachineSchemaDecodeError> =>
+  decodeBoundary(machine, node.schema, value, { boundary: "state", state: node.path })
+
+export const decodeOutputValue = (
+  machine: Machine.Any,
+  node: Machine.StateNode,
+  value: unknown
+): Effect.Effect<unknown, MachineSchemaDecodeError> =>
+  node.output === undefined
+    ? Effect.succeed(value)
+    : decodeBoundary(machine, node.output, value, { boundary: "output", state: node.path })
 
 export const getNode = (machine: Machine.Any, path: string): Machine.StateNode => {
   const node = machine.stateNodes.byPath.get(path)
@@ -357,6 +447,70 @@ export const normalizeConfiguration = <const States extends Machine.StateSchemas
   state: Machine.Snapshot<States>
 ): ActiveConfiguration => configurationFromSnapshot(machine, state)
 
+export const configurationFromSnapshotEffect = Effect.fnUntraced(function*(
+  machine: Machine.Any,
+  snapshot: Machine.AtomicSnapshot<string, unknown>
+) {
+  const active = new Set<string>()
+  const values = new Map<string, unknown>()
+  const snapshotOutputs = (snapshot as SnapshotWithCompletedOutputs)[CompletedOutputsTypeId]
+
+  const visit: (
+    current: Machine.AtomicSnapshot<string, unknown>
+  ) => Effect.Effect<void, MachineSchemaDecodeError> = Effect.fnUntraced(function*(
+    current: Machine.AtomicSnapshot<string, unknown>
+  ) {
+    const node = getNode(machine, String(current.path))
+    const value = yield* decodeStateValue(machine, node, current.value)
+    active.add(node.path)
+    values.set(node.path, value)
+    if (node.type === "compound") {
+      if (!hasProperty(current, "state") || !isSnapshot(current.state)) {
+        throw new Error(`Machine expected compound snapshot "${node.path}" to include an active child state`)
+      }
+      const child = getNode(machine, String(current.state.path))
+      if (child.parent !== node.path) {
+        throw new Error(`Machine expected snapshot "${child.path}" to be a child of "${node.path}"`)
+      }
+      yield* visit(current.state)
+    }
+    if (node.type === "parallel") {
+      if (!hasProperty(current, "states") || typeof current.states !== "object" || current.states === null) {
+        throw new Error(`Machine expected parallel snapshot "${node.path}" to include active child regions`)
+      }
+      const states = current.states as Readonly<Record<string, unknown>>
+      for (const childPath of node.children) {
+        const child = getNode(machine, childPath)
+        const childSnapshot = states[child.key]
+        if (!hasOwn(states, child.key) || !isSnapshot(childSnapshot)) {
+          throw new Error(`Machine expected parallel snapshot "${node.path}" to include region "${child.key}"`)
+        }
+        const snapshotChild = getNode(machine, String(childSnapshot.path))
+        if (snapshotChild.path !== child.path) {
+          throw new Error(`Machine expected snapshot "${snapshotChild.path}" to be region "${child.path}"`)
+        }
+        yield* visit(childSnapshot)
+      }
+    }
+  })
+
+  yield* visit(snapshot)
+  const outputs = new Map<string, unknown>()
+  if (snapshotOutputs !== undefined) {
+    for (const [path, output] of snapshotOutputs) {
+      if (active.has(path)) {
+        outputs.set(path, output)
+      }
+    }
+  }
+  return { active, values, outputs } as ActiveConfiguration
+})
+
+export const normalizeConfigurationEffect = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  state: Machine.Snapshot<States>
+): Effect.Effect<ActiveConfiguration, MachineSchemaDecodeError> => configurationFromSnapshotEffect(machine, state)
+
 export const validateInitialConfiguration = (machine: Machine.Any, configuration: ActiveConfiguration): void => {
   for (const path of configuration.active) {
     const node = getNode(machine, path)
@@ -432,6 +586,63 @@ export const configurationFromTargetPath = (
   return { active, values, outputs }
 }
 
+export const configurationFromTargetPathEffect = Effect.fnUntraced(function*(
+  machine: Machine.Any,
+  current: ActiveConfiguration,
+  path: string,
+  value: unknown,
+  providedValues: Readonly<Record<string, unknown>> | undefined
+) {
+  const node = getNode(machine, path)
+  const active = new Set<string>()
+  const values = new Map<string, unknown>()
+  const outputs = new Map<string, unknown>()
+  const paths = getPathToRoot(machine, node.path)
+  const pathSet = new Set(paths)
+
+  for (const currentPath of paths) {
+    const currentNode = getNode(machine, currentPath)
+    active.add(currentPath)
+    if (currentPath === node.path) {
+      values.set(currentPath, yield* decodeStateValue(machine, currentNode, value))
+    } else if (providedValues !== undefined && hasOwn(providedValues, currentPath)) {
+      values.set(currentPath, yield* decodeStateValue(machine, currentNode, providedValues[currentPath]))
+    } else if (current.values.has(currentPath)) {
+      values.set(currentPath, current.values.get(currentPath))
+    } else {
+      throw new Error(`Machine target "${node.path}" requires a value for ancestor state "${currentPath}"`)
+    }
+  }
+
+  for (const ancestor of paths) {
+    const ancestorNode = getNode(machine, ancestor)
+    if (ancestorNode.type === "parallel") {
+      for (const child of ancestorNode.children) {
+        if (pathSet.has(child) || !current.active.has(child)) {
+          continue
+        }
+        for (const activePath of current.active) {
+          if (isPathInSubtree(activePath, child)) {
+            active.add(activePath)
+            if (current.values.has(activePath)) {
+              values.set(activePath, current.values.get(activePath))
+            }
+            if (current.outputs.has(activePath)) {
+              outputs.set(activePath, current.outputs.get(activePath))
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (node.type === "compound" || node.type === "parallel") {
+    throw new Error(`Machine target "${node.path}" must include an active child state`)
+  }
+
+  return { active, values, outputs } as ActiveConfiguration
+})
+
 export const normalizeTargetConfiguration = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   current: ActiveConfiguration,
@@ -448,6 +659,26 @@ export const normalizeTargetConfiguration = <const States extends Machine.StateS
   }
   if (isSnapshot(target)) {
     return configurationFromSnapshot(machine, target)
+  }
+  throw new Error("Machine expected transition target to be a snapshot or target builder result")
+}
+
+export const normalizeTargetConfigurationEffect = <const States extends Machine.StateSchemas>(
+  machine: Machine.Any,
+  current: ActiveConfiguration,
+  target: Machine.Snapshot<States> | Machine.Target<States, Machine.StateIdentifier<States>>
+): Effect.Effect<ActiveConfiguration, MachineSchemaDecodeError> => {
+  if (isTarget(target)) {
+    return configurationFromTargetPathEffect(
+      machine,
+      current,
+      target.path,
+      target.value,
+      target.values as Readonly<Record<string, unknown>> | undefined
+    )
+  }
+  if (isSnapshot(target)) {
+    return configurationFromSnapshotEffect(machine, target)
   }
   throw new Error("Machine expected transition target to be a snapshot or target builder result")
 }
@@ -628,3 +859,156 @@ export const completeConfiguration = <const Events extends ReadonlyArray<Machine
   }
   return { configuration: completed, completions }
 }
+
+export const resolveFinalOutputEffect: <
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.LifecycleEvent<Events>,
+  outputs?: Readonly<Record<string, unknown>>
+) => Effect.Effect<unknown, MachineSchemaDecodeError> = Effect.fnUntraced(function*<
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.LifecycleEvent<Events>,
+  outputs?: Readonly<Record<string, unknown>>
+) {
+  const node = getNode(machine, path)
+  const output = getStateConfigByPath(machine, path)?.output?.({
+    state: getActiveValue(configuration, path),
+    event,
+    outputs
+  } as any)
+  return yield* decodeOutputValue(machine, node, output)
+})
+
+export const completeActiveFinalNodeEffect: <
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.LifecycleEvent<Events>,
+  outputs: Map<string, unknown>,
+  completions: Array<FinalCompletion>
+) => Effect.Effect<CompletionResult | undefined, MachineSchemaDecodeError> = Effect.fnUntraced(function*<
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  path: string,
+  event: Machine.LifecycleEvent<Events>,
+  outputs: Map<string, unknown>,
+  completions: Array<FinalCompletion>
+) {
+  if (!configuration.active.has(path)) {
+    return undefined
+  }
+  const node = getNode(machine, path)
+  if (node.type === "compound") {
+    const child = getActiveChildPath(machine, configuration, path)
+    if (child === undefined || !isDirectFinalPath(machine, child)) {
+      return undefined
+    }
+    const childCompletion = yield* completeActiveFinalNodeEffect(
+      machine,
+      configuration,
+      child,
+      event,
+      outputs,
+      completions
+    )
+    if (childCompletion === undefined) {
+      return undefined
+    }
+    const completion = setCompletedOutput(outputs, path, childCompletion.output)
+    if (completion.isNew) {
+      completions.push(completion)
+    }
+    return completion
+  }
+  if (node.type === "parallel") {
+    const regionOutputs: Record<string, unknown> = {}
+    let completed = true
+    for (const child of node.children) {
+      const childCompletion = yield* completeActiveFinalNodeEffect(
+        machine,
+        configuration,
+        child,
+        event,
+        outputs,
+        completions
+      )
+      if (childCompletion === undefined) {
+        completed = false
+      } else {
+        regionOutputs[getNode(machine, child).key] = childCompletion.output
+      }
+    }
+    if (!completed) {
+      return undefined
+    }
+    const completion = setCompletedOutput(
+      outputs,
+      path,
+      yield* resolveFinalOutputEffect(machine, configuration, path, event, regionOutputs)
+    )
+    if (completion.isNew) {
+      completions.push(completion)
+    }
+    return completion
+  }
+  if (!isDirectFinalPath(machine, path)) {
+    return undefined
+  }
+  const completion = setCompletedOutput(
+    outputs,
+    path,
+    yield* resolveFinalOutputEffect(machine, configuration, path, event)
+  )
+  if (completion.isNew) {
+    completions.push(completion)
+  }
+  return completion
+})
+
+export const completeConfigurationEffect: <
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.LifecycleEvent<Events>
+) => Effect.Effect<{
+  readonly configuration: ActiveConfiguration
+  readonly completions: ReadonlyArray<FinalCompletion>
+}, MachineSchemaDecodeError> = Effect.fnUntraced(function*<
+  const Events extends ReadonlyArray<Machine.TaggedSchema>
+>(
+  machine: Machine.Any,
+  configuration: ActiveConfiguration,
+  event: Machine.LifecycleEvent<Events>
+) {
+  const outputs = new Map(configuration.outputs)
+  const completions: Array<FinalCompletion> = []
+  const completed = {
+    active: configuration.active,
+    values: configuration.values,
+    outputs
+  }
+  for (
+    const path of Array.from(completed.active).sort((left, right) => {
+      const depth = pathDepth(machine, right) - pathDepth(machine, left)
+      return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
+    })
+  ) {
+    yield* completeActiveFinalNodeEffect(machine, completed, path, event, outputs, completions)
+  }
+  return { configuration: completed, completions } as {
+    readonly configuration: ActiveConfiguration
+    readonly completions: ReadonlyArray<FinalCompletion>
+  }
+})

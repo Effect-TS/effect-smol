@@ -96,20 +96,56 @@ const assertParallelStateSnapshot = <Path extends string, Value, States>(
   assert.deepStrictEqual(actual.states, states)
 }
 
+const assertMachineSchemaDecodeError = (
+  actual: unknown,
+  boundary: Machine.MachineSchemaDecodeError["boundary"],
+  options?: {
+    readonly state?: string
+    readonly event?: string
+  }
+) => {
+  assert.instanceOf(actual, Machine.MachineSchemaDecodeError)
+  assert.strictEqual(actual.boundary, boundary)
+  if (options?.state !== undefined) {
+    assert.strictEqual(actual.state, options.state)
+  }
+  if (options?.event !== undefined) {
+    assert.strictEqual(actual.event, options.event)
+  }
+  assert.isTrue(Schema.isSchemaError(actual.cause))
+}
+
+const unsafeTagged = <A extends { readonly _tag: PropertyKey }>(value: A): A => value
+
 describe("Machine", () => {
   const Input = Schema.Struct({
     userId: Schema.String
   })
+  const NonEmptyInput = Schema.Struct({
+    userId: Schema.NonEmptyString
+  })
   class Idle extends Schema.TaggedClass<Idle>("Idle")("Idle", {
     userId: Schema.String
+  }) {}
+
+  class NonEmptyIdle extends Schema.TaggedClass<NonEmptyIdle>("NonEmptyIdle")("NonEmptyIdle", {
+    userId: Schema.NonEmptyString
   }) {}
 
   class Loading extends Schema.TaggedClass<Loading>("Loading")("Loading", {
     requestId: Schema.String
   }) {}
 
+  class NonEmptyLoading extends Schema.TaggedClass<NonEmptyLoading>("NonEmptyLoading")("NonEmptyLoading", {
+    requestId: Schema.NonEmptyString
+  }) {}
+
   class Success extends Schema.TaggedClass<Success>("Success")("Success", {
     requestId: Schema.String
+  }) {}
+
+  class NonEmptyDone extends Schema.TaggedClass<NonEmptyDone>("NonEmptyDone")("NonEmptyDone", {
+    requestId: Schema.NonEmptyString
   }) {}
 
   class Failed extends Schema.TaggedClass<Failed>("Failed")("Failed", {
@@ -164,8 +200,32 @@ describe("Machine", () => {
     value: Schema.String
   }) {}
 
+  class NonEmptySubmit extends Schema.TaggedClass<NonEmptySubmit>("NonEmptySubmit")("NonEmptySubmit", {
+    value: Schema.NonEmptyString
+  }) {}
+
   class RequestSucceeded extends Schema.TaggedClass<RequestSucceeded>("RequestSucceeded")("RequestSucceeded", {
     value: Schema.String
+  }) {}
+
+  class NonEmptyResolve extends Schema.TaggedClass<NonEmptyResolve>("NonEmptyResolve")("NonEmptyResolve", {
+    value: Schema.NonEmptyString
+  }) {}
+
+  class NonEmptyEmit extends Schema.TaggedClass<NonEmptyEmit>("NonEmptyEmit")("NonEmptyEmit", {
+    value: Schema.NonEmptyString
+  }) {}
+
+  class ParallelRoot extends Schema.TaggedClass<ParallelRoot>("ParallelRoot")("ParallelRoot", {
+    id: Schema.String
+  }) {}
+
+  class ParallelLeftDone extends Schema.TaggedClass<ParallelLeftDone>("ParallelLeftDone")("ParallelLeftDone", {
+    id: Schema.String
+  }) {}
+
+  class ParallelRightDone extends Schema.TaggedClass<ParallelRightDone>("ParallelRightDone")("ParallelRightDone", {
+    id: Schema.String
   }) {}
 
   class RequestProgress extends Schema.TaggedClass<RequestProgress>("RequestProgress")("RequestProgress", {
@@ -199,6 +259,16 @@ describe("Machine", () => {
   }> {}
 
   const FlatInitial = Machine.defineStates({ Idle, Loading, Success, Failed }).initial
+  const SuccessOutput = {
+    schema: Success,
+    type: "final",
+    output: Schema.String
+  } as const
+  const FailedOutput = {
+    schema: Failed,
+    type: "final",
+    output: Schema.String
+  } as const
   const LowercaseInitial = Machine.defineStates({ idle: Idle, loading: Loading, success: Success }).initial
   const DuplicateInitial = Machine.defineStates({ a: Duplicate, b: Duplicate }).initial
 
@@ -382,6 +452,256 @@ describe("Machine", () => {
       })
     }))
 
+  describe("runtime schema contracts", () => {
+    it.effect("decodes input before initial state construction", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          input: NonEmptyInput,
+          initial: (input) => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: input.userId }))
+        })
+
+        const error = yield* Effect.flip(Machine.planInitial(machine, { userId: "" as any }))
+
+        assertMachineSchemaDecodeError(error, "input")
+      }))
+
+    it.effect("decodes initial state snapshots before accepting them", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          initial: () => states.initial.NonEmptyIdle(unsafeTagged({ _tag: "NonEmptyIdle", userId: "" }))
+        })
+
+        const error = yield* Effect.flip(Machine.planInitial(machine))
+
+        assertMachineSchemaDecodeError(error, "state", { state: "NonEmptyIdle" })
+      }))
+
+    it.effect("decodes incoming events before handler selection", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            on: {
+              NonEmptySubmit: ({ state, target }) => target.full.NonEmptyIdle(state)
+            }
+          }
+        })
+
+        const error = yield* Effect.flip(
+          Machine.plan(
+            machine,
+            states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" })),
+            unsafeTagged({ _tag: "NonEmptySubmit", value: "" })
+          )
+        )
+
+        assertMachineSchemaDecodeError(error, "event", { event: "NonEmptySubmit" })
+      }))
+
+    it.effect("surfaces sent event decode failures through actor lifecycle", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            on: {
+              NonEmptySubmit: ({ state, target }) => target.full.NonEmptyIdle(state)
+            }
+          }
+        })
+        const actor = yield* Machine.start(machine)
+
+        const snapshot = yield* sendAndWaitForSnapshot(
+          actor,
+          unsafeTagged({ _tag: "NonEmptySubmit", value: "" }),
+          (snapshot) => snapshot.status === "error"
+        )
+        const error = yield* Effect.flip(actor.join)
+
+        assertMachineSchemaDecodeError(error, "event", { event: "NonEmptySubmit" })
+        assert.strictEqual(snapshot.status, "error")
+        if (snapshot.status === "error") {
+          const reason = snapshot.cause.reasons[0]
+          assert.ok(reason !== undefined)
+          assert.strictEqual(Cause.isFailReason(reason), true)
+          if (Cause.isFailReason(reason)) {
+            assertMachineSchemaDecodeError(reason.error, "event", { event: "NonEmptySubmit" })
+          }
+        }
+      }))
+
+    it.effect("decodes transition target values before accepting them", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle, NonEmptyLoading })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            on: {
+              NonEmptySubmit: ({ target }) =>
+                target.full.NonEmptyLoading(unsafeTagged({ _tag: "NonEmptyLoading", requestId: "" }))
+            }
+          }
+        })
+
+        const error = yield* Effect.flip(
+          Machine.plan(
+            machine,
+            states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" })),
+            new NonEmptySubmit({ value: "request-1" })
+          )
+        )
+
+        assertMachineSchemaDecodeError(error, "state", { state: "NonEmptyLoading" })
+      }))
+
+    it.effect("decodes final state output before caching it", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({
+          NonEmptyIdle,
+          done: {
+            schema: NonEmptyDone,
+            type: "final",
+            output: Schema.NonEmptyString
+          }
+        })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            on: {
+              NonEmptySubmit: ({ event, target }) => target.full.done(new NonEmptyDone({ requestId: event.value }))
+            }
+          },
+          done: {
+            type: "final",
+            output: () => "" as any
+          }
+        })
+
+        const error = yield* Effect.flip(
+          Machine.plan(
+            machine,
+            states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" })),
+            new NonEmptySubmit({ value: "request-1" })
+          )
+        )
+
+        assertMachineSchemaDecodeError(error, "output", { state: "done" })
+      }))
+
+    it.effect("decodes parallel state output before caching it", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({
+          all: {
+            schema: ParallelRoot,
+            type: "parallel",
+            output: Schema.Struct({ summary: Schema.NonEmptyString }),
+            states: {
+              left: {
+                schema: ParallelLeftDone,
+                type: "final"
+              },
+              right: {
+                schema: ParallelRightDone,
+                type: "final"
+              }
+            }
+          }
+        })
+        const machine = Machine.make({
+          states: states.states,
+          events: [],
+          initial: () =>
+            states.initial.all(
+              new ParallelRoot({ id: "all" }),
+              (all) =>
+                all
+                  .left(new ParallelLeftDone({ id: "left" }))
+                  .right(new ParallelRightDone({ id: "right" }))
+            )
+        }).handle({
+          all: {
+            output: () => ({ summary: "" as any })
+          }
+        })
+
+        const error = yield* Effect.flip(Machine.planInitial(machine))
+
+        assertMachineSchemaDecodeError(error, "output", { state: "all" })
+      }))
+
+    it.effect("decodes raised events before processing them", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [NonEmptySubmit, NonEmptyResolve],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            on: {
+              NonEmptySubmit: ({ runtime }) =>
+                Effect.flatMap(
+                  runtime,
+                  (machine) => machine.raise(unsafeTagged({ _tag: "NonEmptyResolve", value: "" }))
+                )
+            }
+          }
+        })
+
+        const error = yield* Effect.flip(
+          Machine.plan(
+            machine,
+            states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" })),
+            new NonEmptySubmit({ value: "request-1" })
+          )
+        )
+
+        assertMachineSchemaDecodeError(error, "event", { event: "NonEmptyResolve" })
+      }))
+
+    it.effect("decodes emitted events before sending them to the parent", () =>
+      Effect.gen(function*() {
+        const states = Machine.defineStates({ NonEmptyIdle })
+        const machine = Machine.make({
+          states: states.states,
+          events: [],
+          emits: [NonEmptyEmit],
+          initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
+        }).handle({
+          NonEmptyIdle: {
+            entry: ({ runtime }) =>
+              Effect.flatMap(
+                runtime,
+                (machine) => machine.sendParent(unsafeTagged({ _tag: "NonEmptyEmit", value: "" }))
+              )
+          }
+        })
+
+        const error = yield* Effect.flip(Machine.planInitial(machine))
+
+        assertMachineSchemaDecodeError(error, "emit", { event: "NonEmptyEmit" })
+      }))
+  })
+
   it.effect("supports flat object states with path-aware handlers", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
@@ -529,7 +849,8 @@ describe("Machine", () => {
               entering: EnteringPayment,
               authorized: {
                 schema: AuthorizedPayment,
-                type: "final"
+                type: "final",
+                output: Schema.String
               }
             }
           }
@@ -631,7 +952,8 @@ describe("Machine", () => {
               entering: EnteringPayment,
               authorized: {
                 schema: AuthorizedPayment,
-                type: "final"
+                type: "final",
+                output: Schema.String
               }
             }
           },
@@ -1472,7 +1794,8 @@ describe("Machine", () => {
               entering: EnteringPayment,
               authorized: {
                 schema: AuthorizedPayment,
-                type: "final"
+                type: "final",
+                output: Schema.String
               }
             }
           }
@@ -1529,7 +1852,8 @@ describe("Machine", () => {
             states: {
               authorized: {
                 schema: AuthorizedPayment,
-                type: "final"
+                type: "final",
+                output: Schema.String
               }
             }
           }
@@ -1578,7 +1902,8 @@ describe("Machine", () => {
               entering: EnteringPayment,
               authorized: {
                 schema: AuthorizedPayment,
-                type: "final"
+                type: "final",
+                output: Schema.String
               }
             }
           }
@@ -1704,7 +2029,8 @@ describe("Machine", () => {
                   checking: CheckingInventory,
                   reserved: {
                     schema: InventoryReserved,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               },
@@ -1999,7 +2325,8 @@ describe("Machine", () => {
                   quoting: QuotingShipping,
                   quoted: {
                     schema: ShippingQuoted,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               }
@@ -2082,6 +2409,10 @@ describe("Machine", () => {
           fulfillment: {
             schema: Fulfillment,
             type: "parallel",
+            output: Schema.Struct({
+              inventory: Schema.String,
+              shipping: Schema.String
+            }),
             states: {
               inventory: {
                 schema: Inventory,
@@ -2090,7 +2421,8 @@ describe("Machine", () => {
                   checking: CheckingInventory,
                   reserved: {
                     schema: InventoryReserved,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               },
@@ -2101,7 +2433,8 @@ describe("Machine", () => {
                   quoting: QuotingShipping,
                   quoted: {
                     schema: ShippingQuoted,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               }
@@ -2218,6 +2551,10 @@ describe("Machine", () => {
           fulfillment: {
             schema: Fulfillment,
             type: "parallel",
+            output: Schema.Struct({
+              inventory: Schema.String,
+              shipping: Schema.String
+            }),
             states: {
               inventory: {
                 schema: Inventory,
@@ -2226,7 +2563,8 @@ describe("Machine", () => {
                   checking: CheckingInventory,
                   reserved: {
                     schema: InventoryReserved,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               },
@@ -2237,7 +2575,8 @@ describe("Machine", () => {
                   quoting: QuotingShipping,
                   quoted: {
                     schema: ShippingQuoted,
-                    type: "final"
+                    type: "final",
+                    output: Schema.String
                   }
                 }
               }
@@ -3395,7 +3734,7 @@ describe("Machine", () => {
   it.effect("exposes final state output from an actor", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -3426,7 +3765,7 @@ describe("Machine", () => {
   it.effect("plans final state output without running deferred actions", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -3454,7 +3793,7 @@ describe("Machine", () => {
   it.effect("exposes output when the initial state is final", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Success },
+        states: { Success: SuccessOutput },
         events: [Submit],
         initial: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
       }).handle({
@@ -3821,7 +4160,7 @@ describe("Machine", () => {
   it.effect("start completes actor output from a final state", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -3892,7 +4231,7 @@ describe("Machine", () => {
   it.effect("start runs invoke configs", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -3942,7 +4281,7 @@ describe("Machine", () => {
         run: ({ sendParent }) => sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
       })
       const parentMachine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -3979,7 +4318,7 @@ describe("Machine", () => {
   it.effect("sendParent is ignored when there is no parent", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [ParentRequestProgress],
         emits: [ParentRequestProgress],
         input: Input,
@@ -4017,7 +4356,7 @@ describe("Machine", () => {
   it.effect("runtime raises events from local deferred actions", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Resolve],
         initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
       }).handle({
@@ -4059,7 +4398,7 @@ describe("Machine", () => {
       })
 
       const parentMachine = Machine.make({
-        states: { Idle, Success },
+        states: { Idle, Success: SuccessOutput },
         events: [Submit, ParentRequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4105,7 +4444,7 @@ describe("Machine", () => {
           )
       })
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4164,7 +4503,7 @@ describe("Machine", () => {
           )
       })
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4222,7 +4561,7 @@ describe("Machine", () => {
           )
       })
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4309,7 +4648,7 @@ describe("Machine", () => {
   it.effect("start invokes a child process and handles its output event", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4360,7 +4699,7 @@ describe("Machine", () => {
         run: () => Effect.succeed("done:request-1")
       })
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4403,7 +4742,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const error = new InvokeError({ message: "boom" })
       const machine = Machine.make({
-        states: { Idle, Loading, Failed },
+        states: { Idle, Loading, Failed: FailedOutput },
         events: [Submit, RequestFailed],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4451,7 +4790,7 @@ describe("Machine", () => {
   it.effect("start maps invoked child active snapshots to machine events", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4495,7 +4834,7 @@ describe("Machine", () => {
       const started = yield* Deferred.make<void>()
       const release = yield* Deferred.make<void>()
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestProgress],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -4813,7 +5152,7 @@ describe("Machine", () => {
           )
       })
       const machine = Machine.make({
-        states: { Idle, Loading, Success },
+        states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve, RequestSucceeded],
         input: Input,
         initial: (input) => FlatInitial.Idle(new Idle({ userId: input.userId }))
@@ -5085,7 +5424,8 @@ describe("Machine", () => {
           },
           success: {
             schema: Success,
-            type: "final"
+            type: "final",
+            output: Schema.String
           }
         },
         events: [ReserveInventory],

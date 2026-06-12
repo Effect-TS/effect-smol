@@ -182,7 +182,14 @@ describe("AtomMachine", () => {
     Effect.scoped(Effect.gen(function*() {
       const registry = yield* makeRegistry
       const machine = Machine.make({
-        states: { Count, Done },
+        states: {
+          Count,
+          Done: {
+            schema: Done,
+            type: "final",
+            output: Schema.Number
+          }
+        },
         events: [Finish],
         initial: () => MachineInitial.Count(new Count({ value: 1 }))
       }).handle({

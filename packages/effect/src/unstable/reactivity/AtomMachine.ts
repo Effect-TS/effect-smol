@@ -71,10 +71,15 @@ const startMachineAtomEffect = <
   Machine.MachineRef<
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
-    E | Machine.UnhandledEventError | Machine.InfiniteTransitionError | InitialE | Machine.StartupError,
+    | E
+    | Machine.InfiniteTransitionError
+    | Machine.MachineSchemaDecodeError
+    | Machine.StartupError
+    | Machine.UnhandledEventError
+    | InitialE,
     Output | undefined
   >,
-  InitialE | Machine.StartupError,
+  InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError,
   MachineRequirements<InitialR, R, Machine.Machine.EventOf<Events>, Machine.Machine.EmitOf<Emits>>
 > =>
   Effect.scoped(
@@ -253,9 +258,14 @@ export const make: {
   ): MachineAtom<
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
-    E | Machine.UnhandledEventError | Machine.InfiniteTransitionError | InitialE | Machine.StartupError,
+    | E
+    | Machine.InfiniteTransitionError
+    | Machine.MachineSchemaDecodeError
+    | Machine.StartupError
+    | Machine.UnhandledEventError
+    | InitialE,
     Output | undefined,
-    InitialE | Machine.StartupError
+    InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError
   >
   <
     RuntimeError,
@@ -300,12 +310,13 @@ export const make: {
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
     | E
-    | Machine.UnhandledEventError
     | Machine.InfiniteTransitionError
-    | InitialE
-    | Machine.StartupError,
+    | Machine.MachineSchemaDecodeError
+    | Machine.StartupError
+    | Machine.UnhandledEventError
+    | InitialE,
     Output | undefined,
-    InitialE | Machine.StartupError | RuntimeError
+    InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError | RuntimeError
   >
 } = ((...args: ReadonlyArray<any>) => {
   const runtimeOrMachine = args[0] as Atom.AtomRuntime<any, any> | Machine.Machine.Any
