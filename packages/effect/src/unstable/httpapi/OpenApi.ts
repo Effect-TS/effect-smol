@@ -628,9 +628,8 @@ type ResponseBodies = Map<
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
 function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): ResponseBodies {
-  const schemas = Array.from(endpoint.success)
   return extractResponseBodies(
-    schemas.length > 0 ? schemas : [HttpApiSchema.NoContent],
+    HttpApiEndpoint.getSuccessSchemas(endpoint),
     HttpApiSchema.getStatusSuccess,
     resolveDescriptionOrIdentifier
   )

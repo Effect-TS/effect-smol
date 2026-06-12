@@ -54,9 +54,6 @@ export type PayloadMap = ReadonlyMap<string, {
   readonly schemas: [Schema.Top, ...Array<Schema.Top>]
 }>
 
-/** @internal */
-export type SuccessSchema = Schema.Top
-
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   infer _Events,
   infer _Error,
@@ -84,7 +81,7 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   : S extends Schema.Top ? S["DecodingServices"]
   : never
 
-type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<SuccessSchema> ? S[number] : S
+type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<Schema.Top> ? S[number] : S
 
 type ExtractBufferedSuccess<S extends SuccessConstraint> = Exclude<
   Extract<ExtractSuccessOrArray<S>, Schema.Top>,
@@ -114,7 +111,7 @@ export interface HttpApiEndpoint<
   out Query extends Schema.Top = never,
   out Payload extends Schema.Top = never,
   out Headers extends Schema.Top = never,
-  out Success extends SuccessSchema = typeof HttpApiSchema.NoContent,
+  out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
   out Error extends Schema.Top = never,
   in out Middleware = never,
   out MiddlewareR = never
@@ -136,7 +133,7 @@ export interface HttpApiEndpoint<
   readonly query: Schema.Top | undefined
   readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
-  readonly success: ReadonlySet<SuccessSchema>
+  readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
@@ -228,10 +225,7 @@ export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 
 /** @internal */
 export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
-  const schemas = Array.from(endpoint.success).filter((schema) =>
-    Schema.isSchema(schema) &&
-    !HttpApiSchema.isStreamSchema(schema)
-  )
+  const schemas = Array.from(endpoint.success)
   return Arr.isArrayNonEmpty(schemas) ? schemas : [HttpApiSchema.NoContent]
 }
 
@@ -257,7 +251,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 export interface Any extends Pipeable {
   readonly [TypeId]: any
   readonly name: string
-  readonly ["~Success"]: SuccessSchema
+  readonly ["~Success"]: Schema.Top
   readonly ["~Error"]: Schema.Top
 }
 
@@ -993,7 +987,7 @@ function makeProto<
   Query extends Schema.Top,
   Payload extends Schema.Top,
   Headers extends Schema.Top,
-  Success extends SuccessSchema,
+  Success extends Schema.Top,
   Error extends Schema.Top,
   Middleware,
   MiddlewareR
@@ -1005,7 +999,7 @@ function makeProto<
   readonly query: Schema.Top | undefined
   readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
-  readonly success: ReadonlySet<SuccessSchema>
+  readonly success: ReadonlySet<Schema.Top>
   readonly error: ReadonlySet<Schema.Top>
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
@@ -1094,7 +1088,7 @@ export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends 
  * @category constraints
  * @since 4.0.0
  */
-export type SuccessConstraint = SuccessSchema | ReadonlyArray<SuccessSchema>
+export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * Constraint for error response schemas, allowing either a single schema or a
@@ -1316,10 +1310,10 @@ function getPayload(
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
 function getSuccessResponse(
-  success: SuccessSchema | ReadonlyArray<SuccessSchema> | undefined,
+  success: Schema.Top | ReadonlyArray<Schema.Top> | undefined,
   method: HttpMethod,
   disableCodecs: boolean
-): Set<SuccessSchema> {
+): Set<Schema.Top> {
   if (success === undefined) return new Set()
   const schemas = Arr.ensure(success)
   validateSuccessResponse(schemas, method)
@@ -1344,7 +1338,7 @@ function getErrorResponse(
   return new Set(disableCodecs ? schemas : schemas.map(transformResponse))
 }
 
-function validateSuccessResponse(schemas: ReadonlyArray<SuccessSchema>, method: HttpMethod) {
+function validateSuccessResponse(schemas: ReadonlyArray<Schema.Top>, method: HttpMethod) {
   const statuses = new Map<number, {
     readonly stream?: HttpApiSchema.StreamSchema | undefined
     bufferedContentTypes: Set<string>

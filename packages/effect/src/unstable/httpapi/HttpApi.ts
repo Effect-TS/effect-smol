@@ -291,6 +291,7 @@ const extractResponseContent = (
   return map
 
   function add(schema: Schema.Top) {
+    if (HttpApiSchema.isStreamSchema(schema)) return
     const ast = schema.ast
     const status = getStatus(ast)
     const schemas = map.get(status)
