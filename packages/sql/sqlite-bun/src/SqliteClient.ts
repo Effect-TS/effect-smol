@@ -126,15 +126,25 @@ export const make = (
         db.run("PRAGMA journal_mode = WAL;")
       }
 
+      const prepare = (sql: string, useSafeIntegers: boolean) => {
+        const statement = db.query(sql)
+        // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
+        statement.safeIntegers(useSafeIntegers)
+        return statement
+      }
+
       const run = (
         sql: string,
         params: ReadonlyArray<unknown> = []
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
-          const statement = db.query(sql)
           const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
-          // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
-          statement.safeIntegers(useSafeIntegers)
+          let statement: ReturnType<typeof db.query>
+          try {
+            statement = prepare(sql, useSafeIntegers)
+          } catch (cause) {
+            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to prepare statement", "prepare") }))
+          }
           try {
             return Effect.succeed((statement.all(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
@@ -147,10 +157,13 @@ export const make = (
         params: ReadonlyArray<unknown> = []
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
-          const statement = db.query(sql)
           const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
-          // @ts-ignore bun-types missing safeIntegers method, fixed in https://github.com/oven-sh/bun/pull/26627
-          statement.safeIntegers(useSafeIntegers)
+          let statement: ReturnType<typeof db.query>
+          try {
+            statement = prepare(sql, useSafeIntegers)
+          } catch (cause) {
+            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to prepare statement", "prepare") }))
+          }
           try {
             return Effect.succeed((statement.values(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
