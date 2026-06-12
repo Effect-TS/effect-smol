@@ -120,7 +120,7 @@ describe("LogLevel", () => {
     "none"
   ]
 
-  it.effect.each(testCases)("level=%s", (level) =>
+  it.effect.for(testCases)("level=%s", (level) =>
     Effect.gen(function*() {
       const logs = yield* testLogLevels(level)
       assert.deepStrictEqual(logs, filterLogs(level))

@@ -13,11 +13,11 @@ it.live(
 
 // each
 
-it.effect.each([1, 2, 3])(
+it.effect.for([1, 2, 3])(
   "effect each %s",
   (n) => Effect.acquireRelease(Effect.sync(() => expect(n).toEqual(n)), () => Effect.void)
 )
-it.live.each([1, 2, 3])(
+it.live.for([1, 2, 3])(
   "live each %s",
   (n) => Effect.acquireRelease(Effect.sync(() => expect(n).toEqual(n)), () => Effect.void)
 )
