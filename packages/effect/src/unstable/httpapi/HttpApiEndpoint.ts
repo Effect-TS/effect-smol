@@ -314,7 +314,20 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Error<Endpoint extends Any> = Endpoint["~Error"]
+export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error
+  : never
 
 /**
  * Extracts the schema used for an endpoint's path parameters.
@@ -453,7 +466,20 @@ export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Midd
  * @category models
  * @since 4.0.0
  */
-export type Errors<Endpoint extends Any> = Endpoint["~Error"]["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
+export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
+  : never
 
 /**
  * Computes the services required to encode an endpoint's error responses,
@@ -462,9 +488,20 @@ export type Errors<Endpoint extends Any> = Endpoint["~Error"]["Type"] | HttpApiM
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesEncode<Endpoint extends Any> =
-  | Endpoint["~Error"]["EncodingServices"]
-  | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
+export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
+  : never
 
 /**
  * Builds the decoded request shape passed to a normal endpoint handler, including
@@ -654,9 +691,19 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesDecode<Endpoint> = Endpoint extends Any ?
-    | Endpoint["~Error"]["DecodingServices"]
-    | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
+export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
   : never
 
 /**

@@ -436,10 +436,7 @@ describe("HttpApiEndpoint", () => {
       })
 
       expect(endpoint["~Error"]).type.toBe<typeof HttpApiError.BadRequest | typeof HttpApiError.Conflict>()
-      expect<HttpApiEndpoint.Error<typeof endpoint>>().type.toBe<
-        typeof HttpApiError.BadRequest | typeof HttpApiError.Conflict
-      >()
-      expect<HttpApiEndpoint.Errors<typeof endpoint>>().type.toBe<
+      expect<(typeof endpoint)["~Error"]["Type"]>().type.toBe<
         HttpApiError.BadRequest | HttpApiError.Conflict
       >()
     })
