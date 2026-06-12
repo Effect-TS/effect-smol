@@ -147,6 +147,77 @@ describe.sequential("Atom", () => {
     }
   })
 
+  it("searchParam preserves TanStack history state on push", () => {
+    const previousWindow = (globalThis as any).window
+    const r = AtomRegistry.make()
+    let pushed: any
+    Object.defineProperty(globalThis, "window", {
+      value: {
+        location: { pathname: "/accounts", search: "" },
+        history: {
+          state: { __TSR_index: 3, __TSR_key: "old", key: "old", keep: true },
+          pushState: (state: any, _title: string, url: string) => {
+            pushed = { state, url }
+          }
+        },
+        addEventListener: () => {},
+        removeEventListener: () => {}
+      },
+      configurable: true,
+      writable: true
+    })
+
+    try {
+      const q = Atom.searchParam("q")
+      r.set(q, "acme")
+      vitest.advanceTimersByTime(500)
+      expect(pushed.url).toEqual("/accounts?q=acme")
+      expect(pushed.state.keep).toEqual(true)
+      expect(pushed.state.__TSR_index).toEqual(4)
+      expect(pushed.state.__TSR_key).not.toEqual("old")
+      expect(pushed.state.key).toEqual(pushed.state.__TSR_key)
+    } finally {
+      r.dispose()
+      if (typeof previousWindow === "undefined") delete (globalThis as any).window
+      else Object.defineProperty(globalThis, "window", { value: previousWindow, configurable: true, writable: true })
+    }
+  })
+
+  it("searchParam discards pending writes across route and history navigation", () => {
+    const previousWindow = (globalThis as any).window
+    const r = AtomRegistry.make()
+    const listeners = new Map<string, Array<() => void>>()
+    const pushes: Array<string> = []
+    Object.defineProperty(globalThis, "window", {
+      value: {
+        location: { pathname: "/accounts", search: "" },
+        history: { state: {}, pushState: (_state: any, _title: string, url: string) => pushes.push(url) },
+        addEventListener: (name: string, cb: () => void) => listeners.set(name, [...(listeners.get(name) ?? []), cb]),
+        removeEventListener: () => {}
+      },
+      configurable: true,
+      writable: true
+    })
+
+    try {
+      const q = Atom.searchParam("q")
+      r.set(q, "acme")
+      ;(globalThis as any).window.location.pathname = "/people"
+      vitest.advanceTimersByTime(500)
+      expect(pushes).toEqual([])
+
+      ;(globalThis as any).window.location.pathname = "/accounts"
+      r.set(q, "workos")
+      for (const cb of listeners.get("popstate") ?? []) cb()
+      vitest.advanceTimersByTime(500)
+      expect(pushes).toEqual([])
+    } finally {
+      r.dispose()
+      if (typeof previousWindow === "undefined") delete (globalThis as any).window
+      else Object.defineProperty(globalThis, "window", { value: previousWindow, configurable: true, writable: true })
+    }
+  })
+
   it("runtime", async () => {
     const count = counterRuntime.atom(Counter.use((_) => _.get)).pipe(
       Atom.withLabel("count")

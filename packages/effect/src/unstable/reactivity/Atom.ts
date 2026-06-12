@@ -2206,10 +2206,10 @@ export const searchParam = <S extends Schema.Codec<any, string> = never>(name: s
 
       if (encode) {
         const encoded = Option.flatMap(value, (v) => Exit.getSuccess(encode(v as S["Type"])))
-        searchParamState.updates.set(name, Option.getOrElse(encoded, () => ""))
+        queueSearchParamUpdate(name, Option.getOrElse(encoded, () => ""))
         value = Option.zipRight(encoded, value)
       } else {
-        searchParamState.updates.set(name, value)
+        queueSearchParamUpdate(name, value)
       }
       ctx.setSelf(value)
       if (searchParamState.timeout) {
@@ -2220,27 +2220,77 @@ export const searchParam = <S extends Schema.Codec<any, string> = never>(name: s
   )
 }
 
+interface SearchParamUpdate {
+  readonly value: string
+  readonly pathname: string
+}
+
 const searchParamState = {
   timeout: undefined as number | undefined,
-  updates: new Map<string, string>(),
-  updating: false
+  updates: new Map<string, SearchParamUpdate>(),
+  updating: false,
+  popstateHookWindow: undefined as typeof window | undefined
+}
+
+function queueSearchParamUpdate(name: string, value: string) {
+  installSearchParamPopstateHook()
+  searchParamState.updates.set(name, { value, pathname: window.location.pathname })
+}
+
+function installSearchParamPopstateHook() {
+  if (searchParamState.popstateHookWindow === window) return
+  searchParamState.popstateHookWindow = window
+  window.addEventListener("popstate", clearPendingSearchParamUpdates)
+}
+
+function clearPendingSearchParamUpdates() {
+  searchParamState.updates.clear()
+  if (searchParamState.timeout !== undefined) {
+    clearTimeout(searchParamState.timeout)
+    searchParamState.timeout = undefined
+  }
+}
+
+function nextSearchParamHistoryState() {
+  const current: unknown = window.history.state
+  if (typeof current !== "object" || current === null) return {}
+  const next: Record<string, unknown> = { ...current }
+  const index = next["__TSR_index"]
+  if (typeof index === "number") {
+    const key = Math.random().toString(36).slice(2, 10)
+    next["__TSR_index"] = index + 1
+    next["__TSR_key"] = key
+    next["key"] = key
+  }
+  return next
 }
 
 function updateSearchParams() {
   searchParamState.timeout = undefined
   searchParamState.updating = true
-  const searchParams = new URLSearchParams(window.location.search)
-  for (const [key, value] of searchParamState.updates.entries()) {
-    if (value.length > 0) {
-      searchParams.set(key, value)
-    } else {
-      searchParams.delete(key)
+  try {
+    const pathname = window.location.pathname
+    const searchParams = new URLSearchParams(window.location.search)
+    let changed = false
+    for (const [key, update] of searchParamState.updates.entries()) {
+      if (update.pathname !== pathname) continue
+      const current = searchParams.get(key) ?? ""
+      if (update.value === current) continue
+      if (update.value.length > 0) {
+        searchParams.set(key, update.value)
+      } else {
+        searchParams.delete(key)
+      }
+      changed = true
     }
+    searchParamState.updates.clear()
+    if (!changed) return
+    const query = searchParams.toString()
+    const newUrl = query.length > 0 ? `${pathname}?${query}` : pathname
+    window.history.pushState(nextSearchParamHistoryState(), "", newUrl)
+  } finally {
+    searchParamState.updating = false
   }
-  searchParamState.updates.clear()
-  const newUrl = `${window.location.pathname}?${searchParams.toString()}`
-  window.history.pushState({}, "", newUrl)
-  searchParamState.updating = false
 }
 
 // -----------------------------------------------------------------------------
