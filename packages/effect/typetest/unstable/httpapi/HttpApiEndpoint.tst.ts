@@ -1,4 +1,5 @@
-import { Schema, Struct } from "effect"
+import { type Effect, hole, Schema, type Stream, Struct } from "effect"
+import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse"
 import { HttpApiEndpoint, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
@@ -206,6 +207,116 @@ describe("HttpApiEndpoint", () => {
         HttpApiEndpoint.Json<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
       >()
     })
+
+    it("should accept StreamSse", () => {
+      const stream = HttpApiSchema.StreamSse({
+        events: Schema.Struct({
+          event: Schema.Literal("user.created"),
+          data: Schema.String
+        }),
+        error: Schema.Struct({ reason: Schema.String })
+      })
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: stream
+      })
+      expect(endpoint["~Success"]).type.toBe<typeof stream>()
+    })
+
+    it("should map StreamSse to stream success helper and handler types", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamSse({
+          events: Schema.Struct({
+            event: Schema.Literal("user.created"),
+            data: Schema.String
+          }),
+          error: Schema.Struct({ reason: Schema.String })
+        })
+      })
+
+      type Event = { readonly event: "user.created"; readonly data: string }
+      type StreamError = { readonly reason: string }
+      type Success = Stream.Stream<Event, StreamError>
+
+      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+      expect<ReturnType<HttpApiEndpoint.HandlerRaw<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+    })
+
+    it("should map StreamSse data mode to data stream helper and handler types", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamSse({
+          data: Schema.Struct({ id: Schema.String }),
+          error: Schema.Struct({ reason: Schema.String })
+        })
+      })
+
+      type Data = { readonly id: string }
+      type StreamError = { readonly reason: string }
+      type Success = Stream.Stream<Data, StreamError>
+
+      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+    })
+
+    it("should map StreamSse without error schema to never stream errors", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamSse({
+          data: Schema.Struct({ id: Schema.String })
+        })
+      })
+
+      type Data = { readonly id: string }
+      type Success = Stream.Stream<Data, never>
+
+      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+    })
+
+    it("should accept StreamUint8Array", () => {
+      const stream = HttpApiSchema.StreamUint8Array()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: stream
+      })
+      expect(endpoint["~Success"]).type.toBe<typeof stream>()
+    })
+
+    it("should map StreamUint8Array to stream success helper and handler types", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamUint8Array()
+      })
+
+      type Success = Stream.Stream<Uint8Array, unknown>
+
+      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+      expect<ReturnType<HttpApiEndpoint.HandlerRaw<typeof endpoint, never, never>>>().type.toBe<
+        Effect.Effect<Success | HttpServerResponse, never>
+      >()
+    })
+
+    it("should include StreamSse event and error schema services", () => {
+      type Event = { readonly event: "user.created"; readonly data: string }
+      type StreamError = { readonly reason: string }
+
+      const Events = hole<Schema.Codec<Event, Event, "EventsDecoding", "EventsEncoding">>()
+      const Error = hole<Schema.Codec<StreamError, StreamError, "ErrorDecoding", "ErrorEncoding">>()
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: HttpApiSchema.StreamSse({ events: Events, error: Error })
+      })
+
+      expect<HttpApiEndpoint.ServerServices<typeof endpoint>>().type.toBe<"EventsEncoding" | "ErrorEncoding">()
+      expect<HttpApiEndpoint.ClientServices<typeof endpoint>>().type.toBe<"EventsDecoding" | "ErrorDecoding">()
+    })
   })
 
   describe("error option", () => {
@@ -235,6 +346,21 @@ describe("HttpApiEndpoint", () => {
           | Schema.Uint8Array
         >
       >()
+    })
+
+    it("should not accept streaming schemas", () => {
+      expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
+        error: HttpApiSchema.StreamUint8Array()
+      })
+      expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
+        error: HttpApiSchema.StreamSse({
+          events: Schema.Struct({
+            event: Schema.Literal("user.created"),
+            data: Schema.String
+          }),
+          error: Schema.Struct({ reason: Schema.String })
+        })
+      })
     })
   })
 })

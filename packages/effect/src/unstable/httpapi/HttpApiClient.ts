@@ -21,8 +21,10 @@ import * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
 import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
+import * as Stream from "../../Stream.ts"
 import type { Simplify } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
+import * as Sse from "../encoding/Sse.ts"
 import * as HttpBody from "../http/HttpBody.ts"
 import * as HttpClient from "../http/HttpClient.ts"
 import * as HttpClientError from "../http/HttpClientError.ts"
@@ -67,6 +69,30 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
 export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
   HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
   never
+
+type SuccessType<S> = S extends HttpApiSchema.StreamSse<
+  infer _Events,
+  infer _Error,
+  infer _Value
+> ? Stream.Stream<
+    _Value,
+    _Error["Type"] | HttpClientError.HttpClientError | Schema.SchemaError | Sse.Retry,
+    never
+  >
+  : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError, never>
+  : S extends Schema.Top ? S["Type"]
+  : never
+
+type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
+  infer _Events,
+  infer _Error,
+  infer _Value
+> ?
+    | _Events["DecodingServices"]
+    | _Error["DecodingServices"]
+  : S extends HttpApiSchema.StreamUint8Array ? never
+  : S extends Schema.Top ? S["DecodingServices"]
+  : never
 
 /**
  * Helper types used to describe generated HTTP API clients, including endpoint
@@ -135,7 +161,7 @@ export declare namespace Client {
   ] ? <Mode extends ResponseMode = ResponseMode>(
       request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
     ) => Effect.Effect<
-      Response<_Success["Type"], Mode>,
+      Response<SuccessType<_Success>, Mode>,
       | HttpApiMiddleware.Error<_Middleware>
       | HttpApiMiddleware.ClientError<_Middleware>
       | E
@@ -146,7 +172,10 @@ export declare namespace Client {
       | _Query["EncodingServices"]
       | _Payload["EncodingServices"]
       | _Headers["EncodingServices"]
-      | ([Mode] extends ["response-only"] ? never : _Success["DecodingServices"] | _Error["DecodingServices"])
+      | ([Mode] extends ["response-only"] ? never
+        :
+          | SuccessDecodingServices<_Success>
+          | _Error["DecodingServices"])
     > :
     never
 
@@ -312,9 +341,25 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
               Effect.fail
             )
         })
-        successes.forEach((schemas, status) => {
-          decodeMap[status] = schemasToResponse(schemas)
-        })
+
+        const successAlternatives = new Map<number, Array<ResponseAlternative>>()
+        for (const [status, schemas] of successes.entries()) {
+          const grouped = groupSchemasByContentType(schemas)
+          for (const [contentType, schemas] of grouped.entries()) {
+            addResponseAlternative(successAlternatives, status, contentType, schemasToResponse(schemas))
+          }
+        }
+        for (const streamSuccess of getStreamSuccessSchemas(endpoint)) {
+          addResponseAlternative(
+            successAlternatives,
+            HttpApiSchema.getStatusStream(streamSuccess),
+            streamSuccess.contentType,
+            streamToResponse(streamSuccess)
+          )
+        }
+        for (const [status, alternatives] of successAlternatives.entries()) {
+          decodeMap[status] = makeResponseDecoder(alternatives)
+        }
 
         // encoders
         const encodeParams = UndefinedOr.map(endpoint.params, Schema.encodeUnknownEffect)
@@ -646,6 +691,152 @@ function schemasToResponse(schemas: readonly [Schema.Top, ...Array<Schema.Top>])
   const codec = toCodecArrayBuffer(schemas)
   const decode = Schema.decodeEffect(codec)
   return (response: HttpClientResponse.HttpClientResponse) => Effect.flatMap(response.arrayBuffer, decode)
+}
+
+type ResponseDecoder = (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
+
+interface ResponseAlternative {
+  readonly contentType: string
+  readonly decode: ResponseDecoder
+}
+
+function addResponseAlternative(
+  map: Map<number, Array<ResponseAlternative>>,
+  status: number,
+  contentType: string,
+  decode: ResponseDecoder
+) {
+  const normalizedContentType = normalizeContentType(contentType)
+  const alternatives = map.get(status)
+  if (alternatives === undefined) {
+    map.set(status, [{ contentType: normalizedContentType, decode }])
+  } else {
+    alternatives.push({ contentType: normalizedContentType, decode })
+  }
+}
+
+function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): ResponseDecoder {
+  const first = alternatives[0]
+  if (alternatives.length === 1 && first !== undefined) {
+    return first.decode
+  }
+  return (response) => {
+    const contentType = normalizeContentType(response.headers["content-type"] ?? "")
+    const alternative = alternatives.find((alternative) => alternative.contentType === contentType)
+    return alternative === undefined
+      ? failUnsupportedContentType(response, contentType, alternatives)
+      : alternative.decode(response)
+  }
+}
+
+function groupSchemasByContentType(
+  schemas: Arr.NonEmptyReadonlyArray<Schema.Top>
+): Map<string, Arr.NonEmptyReadonlyArray<Schema.Top>> {
+  const grouped = new Map<string, [Schema.Top, ...Array<Schema.Top>]>()
+  for (const schema of schemas) {
+    const contentType = HttpApiSchema.getResponseEncoding(schema.ast).contentType
+    const existing = grouped.get(contentType)
+    if (existing === undefined) {
+      grouped.set(contentType, [schema])
+    } else {
+      existing.push(schema)
+    }
+  }
+  return grouped
+}
+
+function normalizeContentType(contentType: string): string {
+  const normalized = contentType.toLowerCase().trim()
+  const index = normalized.indexOf(";")
+  return index === -1 ? normalized : normalized.slice(0, index).trim()
+}
+
+function failUnsupportedContentType(
+  response: HttpClientResponse.HttpClientResponse,
+  contentType: string,
+  alternatives: ReadonlyArray<ResponseAlternative>
+) {
+  const expected = Array.from(new Set(alternatives.map((alternative) => alternative.contentType))).join(", ")
+  return Effect.fail(
+    new HttpClientError.HttpClientError({
+      reason: new HttpClientError.DecodeError({
+        request: response.request,
+        response,
+        description: `Unsupported response content-type for status ${response.status}: ${
+          contentType || "<missing>"
+        }. Expected one of: ${expected}`
+      })
+    })
+  )
+}
+
+const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+
+function getStreamSuccessSchemas(endpoint: HttpApiEndpoint.AnyWithProps): Array<HttpApiSchema.StreamSchema> {
+  const schemas: Array<HttpApiSchema.StreamSchema> = []
+  for (const schema of endpoint.success) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
+      schemas.push(schema)
+    }
+  }
+  return schemas
+}
+
+function streamToResponse(streamSchema: HttpApiSchema.StreamSchema) {
+  return (response: HttpClientResponse.HttpClientResponse) =>
+    Effect.map(Effect.context<never>(), (context) =>
+      Stream.provideContext(
+        HttpApiSchema.isStreamUint8Array(streamSchema) ?
+          response.stream :
+          decodeSseStream(response.stream, streamSchema),
+        context as Context.Context<unknown>
+      ))
+}
+
+function decodeSseStream(
+  stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
+  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Top, unknown>
+): Stream.Stream<unknown, unknown, unknown> {
+  const Event = Schema.Union([
+    declaration.events,
+    Schema.Struct({
+      event: Schema.Literal(reservedStreamFailureEvent),
+      data: Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
+    })
+  ])
+  const events = Stream.transformPull(
+    stream.pipe(
+      Stream.decodeText,
+      Stream.pipeThroughChannel(Sse.decodeSchema(Event))
+    ),
+    (pull) =>
+      Effect.sync(() => {
+        let failureCause: Cause.Cause<unknown> | undefined = undefined
+        return Effect.suspend(() => {
+          if (failureCause) {
+            return Effect.failCause(failureCause)
+          }
+          return Effect.flatMap(pull, (events) => {
+            for (let i = 0; i < events.length; i++) {
+              const event = events[i]
+              if (event.event === reservedStreamFailureEvent) {
+                if (i === 0) {
+                  return Effect.failCause(event.data)
+                }
+                failureCause = event.data
+                events = events.slice(0, i) as any
+                break
+              }
+            }
+            return Effect.succeed(events)
+          })
+        })
+      })
+  )
+  if (declaration.sseMode === "data") {
+    return Stream.map(events, (event) => event.data)
+  }
+  return events
 }
 
 const ArrayBuffer = Schema.instanceOf(globalThis.ArrayBuffer, {

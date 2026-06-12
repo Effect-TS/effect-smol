@@ -1416,7 +1416,7 @@ export const fromReadableStream = <A, E>(
       scope,
       options.releaseLockOnEnd
         ? Effect.sync(() => reader.releaseLock())
-        : Effect.promise(() => reader.cancel())
+        : Effect.promise(() => reader.cancel().catch(constVoid))
     )
     return Effect.flatMap(
       Effect.tryPromise({

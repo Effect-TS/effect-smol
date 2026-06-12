@@ -8,6 +8,8 @@
  *
  * @since 4.0.0
  */
+import type { NonEmptyReadonlyArray } from "../../Array.ts"
+import type * as Cause from "../../Cause.ts"
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import * as Encoding from "../../Encoding.ts"
@@ -29,6 +31,7 @@ import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type { Covariant, NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
+import * as Sse from "../encoding/Sse.ts"
 import type { Cookie } from "../http/Cookies.ts"
 import type * as Etag from "../http/Etag.ts"
 import * as HttpEffect from "../http/HttpEffect.ts"
@@ -635,6 +638,7 @@ function handlerToHttpEffect(
   const decodeParams = UndefinedOr.map(endpoint.params, Schema.decodeUnknownEffect)
   const decodeHeaders = UndefinedOr.map(endpoint.headers, Schema.decodeUnknownEffect)
   const decodeQuery = UndefinedOr.map(endpoint.query, Schema.decodeUnknownEffect)
+  const encodeStream = makeStreamEncoder(endpoint)
 
   const shouldParsePayload = endpoint.payload.size > 0 && !isRaw
   const payloadBy = shouldParsePayload ? buildPayloadDecoders(endpoint.payload) : undefined
@@ -673,9 +677,14 @@ function handlerToHttpEffect(
         }
       }
       const response = yield* handler(request)
-      return Response.isHttpServerResponse(response)
-        ? response
-        : yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
+      if (Response.isHttpServerResponse(response)) {
+        return response
+      }
+      const streamResponse = encodeStream?.(response, context)
+      if (streamResponse !== undefined) {
+        return yield* HttpApiSchemaError.wrap("Body", streamResponse)
+      }
+      return yield* HttpApiSchemaError.wrap("Body", encodeSuccess(response))
     })
   ).pipe(
     Effect.withErrorReporting,
@@ -780,6 +789,142 @@ const makeSecurityMiddleware = (
 }
 
 const $HttpServerResponse = Schema.declare(Response.isHttpServerResponse)
+
+type StreamEncoder = (response: unknown, context: Context.Context<never>) =>
+  | Effect.Effect<HttpServerResponse, Schema.SchemaError, unknown>
+  | undefined
+
+function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncoder | undefined {
+  const streamSchema = getStreamSuccessSchema(endpoint)
+  if (streamSchema === undefined) {
+    return undefined
+  }
+
+  const hasBuffered = hasBufferedSuccess(endpoint)
+  const status = HttpApiSchema.getStatusStream(streamSchema)
+  const contentType = streamSchema.contentType
+
+  if (HttpApiSchema.isStreamUint8Array(streamSchema)) {
+    return (response, context) => {
+      if (!Stream.isStream(response)) {
+        return hasBuffered ? undefined : expectedStreamResponse(response)
+      }
+
+      return Effect.succeed(Response.stream(
+        Stream.provideContext(
+          response as Stream.Stream<Uint8Array, unknown, unknown>,
+          context as Context.Context<unknown>
+        ),
+        { status, contentType }
+      ))
+    }
+  }
+
+  const sseEncoder = makeSseEncoder(streamSchema)
+
+  return (response, context) => {
+    if (!Stream.isStream(response)) {
+      return hasBuffered ? undefined : expectedStreamResponse(response)
+    }
+
+    return Effect.succeed(Response.stream(
+      Stream.provideContext(
+        encodeSseStream(response, sseEncoder),
+        context as Context.Context<unknown>
+      ),
+      { status, contentType }
+    ))
+  }
+}
+
+function getStreamSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps) {
+  for (const schema of endpoint.success) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
+      return schema
+    }
+  }
+}
+
+function hasBufferedSuccess(endpoint: HttpApiEndpoint.AnyWithProps): boolean {
+  for (const schema of endpoint.success) {
+    if (Schema.isSchema(schema) && !HttpApiSchema.isStreamSchema(schema)) return true
+  }
+  return endpoint.success.size === 0
+}
+
+function expectedStreamResponse(response: unknown) {
+  return Effect.fail(
+    makeSchemaError(
+      new SchemaIssue.InvalidValue(Option.some(response), {
+        message: "Expected a streaming response"
+      })
+    )
+  )
+}
+
+interface SseStreamEncoder {
+  readonly sseMode: HttpApiSchema.StreamSseMode
+  readonly encodeEvents: (
+    input: NonEmptyReadonlyArray<unknown>
+  ) => Effect.Effect<NonEmptyReadonlyArray<Sse.EventEncoded>, Schema.SchemaError, unknown>
+  readonly encodeCause: (input: unknown) => Effect.Effect<string, Schema.SchemaError, unknown>
+}
+
+function makeSseEncoder<Events extends Sse.EventCodec, Error extends Schema.Top>(
+  streamSchema: HttpApiSchema.StreamSse<Events, Error, unknown>
+): SseStreamEncoder {
+  const CauseSchema = Schema.toCodecJson(Schema.Cause(streamSchema.error, Schema.Defect()))
+  return {
+    sseMode: streamSchema.sseMode,
+    encodeEvents: Schema.encodeUnknownEffect(Schema.Array(streamSchema.events)) as any,
+    encodeCause: Schema.encodeUnknownEffect(Schema.fromJsonString(CauseSchema))
+  }
+}
+
+function encodeSseStream(
+  stream: Stream.Stream<unknown, unknown, unknown>,
+  encoder: SseStreamEncoder
+): Stream.Stream<Uint8Array, unknown, unknown> {
+  return stream.pipe(
+    encoder.sseMode === "data" ?
+      Stream.map((value) => ({
+        id: undefined,
+        event: "message",
+        data: value
+      })) :
+      identity,
+    Stream.mapArrayEffect((chunk) => Effect.orDie(encoder.encodeEvents(chunk))),
+    Stream.catchCause((cause) => Stream.fromEffect(encodeFailureEvent(cause, encoder))),
+    Stream.map(renderSseEvent),
+    Stream.encodeText
+  )
+}
+
+function encodeFailureEvent(cause: Cause.Cause<unknown>, encoder: SseStreamEncoder) {
+  return encoder.encodeCause(cause).pipe(
+    Effect.orDie,
+    Effect.map((encodedCause) => ({
+      id: undefined,
+      event: reservedStreamFailureEvent,
+      data: encodedCause
+    }))
+  )
+}
+
+const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+
+function renderSseEvent(event: Sse.EventEncoded) {
+  return Sse.encoder.write({
+    _tag: "Event",
+    event: event.event,
+    id: event.id,
+    data: event.data
+  })
+}
+
+function makeSchemaError(issue: SchemaIssue.Issue): Schema.SchemaError {
+  return new Schema.SchemaError(issue)
+}
 
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)

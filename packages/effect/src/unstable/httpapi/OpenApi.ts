@@ -367,7 +367,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       }
 
       function processResponseBodies(bodies: ResponseBodies, defaultDescription: () => string) {
-        for (const [status, { content, descriptions }] of bodies) {
+        for (const [status, { content, descriptions, streamContent }] of bodies) {
           const description = descriptions.size > 0 ? Array.from(descriptions).join(" | ") : defaultDescription()
           op.responses[status] = {
             description
@@ -388,6 +388,67 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
                   schema: {}
                 }
               })
+            })
+          }
+          if (streamContent !== undefined) {
+            streamContent.forEach((stream, contentType) => {
+              op.responses[status].content ??= {}
+              if (HttpApiSchema.isStreamSse(stream)) {
+                pathOps.push({
+                  _tag: "schema",
+                  ast: SchemaAST.getAST(stream.events),
+                  path: ["paths", path, method, "responses", String(status), "content", contentType, "schema"]
+                })
+                pathOps.push({
+                  _tag: "schema",
+                  ast: SchemaAST.getAST(Schema.toCodecJson(Schema.Cause(stream.error, Schema.Defect()))),
+                  path: [
+                    "paths",
+                    path,
+                    method,
+                    "responses",
+                    String(status),
+                    "content",
+                    contentType,
+                    "x-effect-stream",
+                    "causeSchema"
+                  ]
+                })
+                pathOps.push({
+                  _tag: "schema",
+                  ast: SchemaAST.getAST(stream.error),
+                  path: [
+                    "paths",
+                    path,
+                    method,
+                    "responses",
+                    String(status),
+                    "content",
+                    contentType,
+                    "x-effect-stream",
+                    "errorSchema"
+                  ]
+                })
+                op.responses[status].content[contentType] = {
+                  schema: {},
+                  "x-effect-stream": {
+                    encoding: "sse",
+                    causeSchema: {},
+                    errorSchema: {},
+                    failureEvent: reservedStreamFailureEvent
+                  }
+                }
+              } else {
+                op.responses[status].content[contentType] = {
+                  schema: {
+                    type: "string",
+                    format: "binary"
+                  },
+                  "x-effect-stream": {
+                    encoding: "uint8array"
+                  }
+                }
+              }
             })
           }
         }
@@ -461,11 +522,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
       processParameters(endpoint.query, "query")
 
       processResponseBodies(
-        extractResponseBodies(
-          HttpApiEndpoint.getSuccessSchemas(endpoint),
-          HttpApiSchema.getStatusSuccess,
-          resolveDescriptionOrIdentifier
-        ),
+        extractSuccessResponseBodies(endpoint),
         () => "Success"
       )
       processResponseBodies(
@@ -564,8 +621,19 @@ type ResponseBodies = Map<
   {
     descriptions: Set<string>
     content: Content | undefined // undefined means no content
+    streamContent: StreamContent | undefined
   }
 >
+
+const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
+
+function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): ResponseBodies {
+  return extractResponseBodies(
+    HttpApiEndpoint.getSuccessSchemas(endpoint),
+    HttpApiSchema.getStatusSuccess,
+    resolveDescriptionOrIdentifier
+  )
+}
 
 function extractResponseBodies(
   schemas: Array<Schema.Top>,
@@ -575,6 +643,7 @@ function extractResponseBodies(
   const map = new Map<number, {
     descriptions: Set<string>
     content: Content | undefined
+    streamContent: StreamContent | undefined
   }>()
 
   schemas.forEach(process)
@@ -582,6 +651,10 @@ function extractResponseBodies(
   return map
 
   function process(schema: Schema.Top) {
+    if (HttpApiSchema.isStreamSchema(schema)) {
+      addStreamContent(schema)
+      return
+    }
     const ast = schema.ast
     const status = getStatus(ast)
     if (HttpApiSchema.isNoContent(ast)) {
@@ -596,7 +669,8 @@ function extractResponseBodies(
     if (statusMap === undefined) {
       map.set(status, {
         descriptions: new Set([description]),
-        content: undefined
+        content: undefined,
+        streamContent: undefined
       })
     } else {
       if (description !== undefined) {
@@ -612,27 +686,46 @@ function extractResponseBodies(
     if (statusMap === undefined) {
       map.set(status, {
         descriptions: new Set(description !== undefined ? [description] : []),
-        content: new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
+        content: new Map([[_tag, new Map([[contentType, new Set([schema])]])]]),
+        streamContent: undefined
       })
     } else {
-      if (statusMap.content !== undefined) {
-        // concat descriptions
-        if (description !== undefined) {
-          statusMap.descriptions.add(description)
-        }
+      // concat descriptions
+      if (description !== undefined) {
+        statusMap.descriptions.add(description)
+      }
 
-        const contentTypeMap = statusMap.content.get(_tag)
-        if (contentTypeMap === undefined) {
+      if (statusMap.content === undefined) {
+        statusMap.content = new Map([[_tag, new Map([[contentType, new Set([schema])]])]])
+      } else {
+        const schemasByContentType = statusMap.content.get(_tag)
+        if (schemasByContentType === undefined) {
           statusMap.content.set(_tag, new Map([[contentType, new Set([schema])]]))
         } else {
-          const set = contentTypeMap.get(contentType)
+          const set = schemasByContentType.get(contentType)
           if (set === undefined) {
-            contentTypeMap.set(contentType, new Set([schema]))
+            schemasByContentType.set(contentType, new Set([schema]))
           } else {
             set.add(schema)
           }
         }
       }
+    }
+  }
+
+  function addStreamContent(stream: HttpApiSchema.StreamSchema) {
+    const status = HttpApiSchema.getStatusStream(stream)
+    const statusMap = map.get(status)
+    if (statusMap === undefined) {
+      map.set(status, {
+        descriptions: new Set(),
+        content: undefined,
+        streamContent: new Map([[stream.contentType, stream]])
+      })
+    } else if (statusMap.streamContent === undefined) {
+      statusMap.streamContent = new Map([[stream.contentType, stream]])
+    } else {
+      statusMap.streamContent.set(stream.contentType, stream)
     }
   }
 }
@@ -648,6 +741,8 @@ type Content = Map<
     Set<Schema.Top>
   >
 >
+
+type StreamContent = Map<string, HttpApiSchema.StreamSchema>
 
 const Uint8ArrayEncoding = Schema.String.annotate({
   format: "binary"
@@ -895,7 +990,25 @@ export interface OpenApiSpecResponse {
  */
 export interface OpenApiSpecMediaType {
   schema: JsonSchema.JsonSchema
+  "x-effect-stream"?: OpenApiSpecEffectStream
 }
+
+/**
+ * Effect-specific metadata for generated streaming response media types.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type OpenApiSpecEffectStream =
+  | {
+    encoding: "sse"
+    causeSchema: JsonSchema.JsonSchema
+    errorSchema: JsonSchema.JsonSchema
+    failureEvent: "effect/httpapi/stream/failure"
+  }
+  | {
+    encoding: "uint8array"
+  }
 
 /**
  * Generated OpenAPI request body object for endpoint payloads.

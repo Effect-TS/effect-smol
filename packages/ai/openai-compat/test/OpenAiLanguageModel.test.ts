@@ -486,6 +486,82 @@ describe("OpenAiLanguageModel", () => {
           reasoning: 0
         })
       }))
+
+    it.effect("surfaces reasoning from non-streaming responses", () =>
+      Effect.gen(function*() {
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(jsonResponse(
+                request,
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      reasoning: "I should greet the user.",
+                      content: "Hello!"
+                    }
+                  }]
+                })
+              ))
+            )
+          ))
+        )
+
+        const result = yield* LanguageModel.generateText({ prompt: "hello" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const reasoning = result.content.find((part) => part.type === "reasoning")
+        assert.isDefined(reasoning)
+        if (reasoning?.type !== "reasoning") {
+          return
+        }
+        assert.strictEqual(reasoning.text, "I should greet the user.")
+        assert.strictEqual(result.text, "Hello!")
+      }))
+
+    it.effect("surfaces reasoning_content from non-streaming responses", () =>
+      Effect.gen(function*() {
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(jsonResponse(
+                request,
+                makeChatCompletion({
+                  choices: [{
+                    index: 0,
+                    finish_reason: "stop",
+                    message: {
+                      role: "assistant",
+                      reasoning_content: "I should greet the user.",
+                      content: "Hello!"
+                    }
+                  }]
+                })
+              ))
+            )
+          ))
+        )
+
+        const result = yield* LanguageModel.generateText({ prompt: "hello" }).pipe(
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const reasoning = result.content.find((part) => part.type === "reasoning")
+        assert.isDefined(reasoning)
+        if (reasoning?.type !== "reasoning") {
+          return
+        }
+        assert.strictEqual(reasoning.text, "I should greet the user.")
+        assert.strictEqual(result.text, "Hello!")
+      }))
   })
 
   describe("generateObject", () => {
@@ -1088,6 +1164,150 @@ describe("OpenAiLanguageModel", () => {
         }
         assert.strictEqual(toolCall.name, "TestTool")
         assert.deepStrictEqual(toolCall.params, { input: "hello" })
+      }))
+
+    it.effect("emits reasoning lifecycle parts for delta.reasoning", () =>
+      Effect.gen(function*() {
+        const chunk = (delta: Record<string, unknown>, finishReason: string | null = null) => ({
+          id: "chatcmpl_reasoning_1",
+          object: "chat.completion.chunk",
+          model: "gpt-4o-mini",
+          created: 1,
+          choices: [{ index: 0, delta, finish_reason: finishReason }]
+        })
+
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                chunk({ reasoning: "Let me think" }),
+                chunk({ reasoning: " about this." }),
+                chunk({ content: "Hello" }),
+                chunk({ content: " there" }, "stop"),
+                "[DONE]"
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        assert.deepStrictEqual(parts.map((part) => part.type), [
+          "response-metadata",
+          "reasoning-start",
+          "reasoning-delta",
+          "reasoning-delta",
+          "reasoning-end",
+          "text-start",
+          "text-delta",
+          "text-delta",
+          "text-end",
+          "finish"
+        ])
+
+        const reasoningText = parts
+          .flatMap((part) => part.type === "reasoning-delta" ? [part.delta] : [])
+          .join("")
+        assert.strictEqual(reasoningText, "Let me think about this.")
+
+        const reasoningIds = parts.flatMap((part) =>
+          part.type === "reasoning-start" || part.type === "reasoning-delta" || part.type === "reasoning-end"
+            ? [part.id]
+            : []
+        )
+        assert.strictEqual(new Set(reasoningIds).size, 1)
+
+        const textIds = parts.flatMap((part) => part.type === "text-start" ? [part.id] : [])
+        assert.notStrictEqual(reasoningIds[0], textIds[0])
+      }))
+
+    it.effect("emits reasoning lifecycle parts for delta.reasoning_content", () =>
+      Effect.gen(function*() {
+        const chunk = (delta: Record<string, unknown>, finishReason: string | null = null) => ({
+          id: "chatcmpl_reasoning_2",
+          object: "chat.completion.chunk",
+          model: "gpt-4o-mini",
+          created: 1,
+          choices: [{ index: 0, delta, finish_reason: finishReason }]
+        })
+
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                chunk({ reasoning_content: "Thinking..." }),
+                chunk({ content: "Answer." }, "stop"),
+                "[DONE]"
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        assert.deepStrictEqual(parts.map((part) => part.type), [
+          "response-metadata",
+          "reasoning-start",
+          "reasoning-delta",
+          "reasoning-end",
+          "text-start",
+          "text-delta",
+          "text-end",
+          "finish"
+        ])
+
+        const reasoningText = parts
+          .flatMap((part) => part.type === "reasoning-delta" ? [part.delta] : [])
+          .join("")
+        assert.strictEqual(reasoningText, "Thinking...")
+      }))
+
+    it.effect("closes an open reasoning part at stream end", () =>
+      Effect.gen(function*() {
+        const layer = OpenAiClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                {
+                  id: "chatcmpl_reasoning_3",
+                  object: "chat.completion.chunk",
+                  model: "gpt-4o-mini",
+                  created: 1,
+                  choices: [{ index: 0, delta: { reasoning: "Only thoughts." }, finish_reason: "stop" }]
+                },
+                "[DONE]"
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({ prompt: "test" }).pipe(
+          Stream.runCollect,
+          Effect.provide(OpenAiLanguageModel.model("gpt-4o-mini")),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        assert.deepStrictEqual(parts.map((part) => part.type), [
+          "response-metadata",
+          "reasoning-start",
+          "reasoning-delta",
+          "reasoning-end",
+          "finish"
+        ])
       }))
   })
 

@@ -57,7 +57,7 @@ export interface HttpApi<
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
    */
-  add<A extends NonEmptyReadonlyArray<HttpApiGroup.Any>>(...groups: A): HttpApi<Id, Groups | A[number]>
+  add<const A extends NonEmptyReadonlyArray<HttpApiGroup.Any>>(...groups: A): HttpApi<Id, Groups | A[number]>
 
   /**
    * Add another `HttpApi` to the `HttpApi`.
@@ -291,6 +291,7 @@ const extractResponseContent = (
   return map
 
   function add(schema: Schema.Top) {
+    if (HttpApiSchema.isStreamSchema(schema)) return
     const ast = schema.ast
     const status = getStatus(ast)
     const schemas = map.get(status)

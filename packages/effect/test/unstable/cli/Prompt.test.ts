@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, Fiber, FileSystem, Layer, Path, Redacted } from "effect"
+import { Data, Effect, Fiber, FileSystem, Layer, Match, Path, Queue, Redacted } from "effect"
 import { TestConsole } from "effect/testing"
 import { Prompt } from "effect/unstable/cli"
 import * as MockTerminal from "./services/MockTerminal.ts"
@@ -15,6 +15,7 @@ const TestLayer = Layer.mergeAll(
   PathLayer,
   TerminalLayer
 )
+const Action = Data.taggedEnum<Prompt.ActionDefinition>()
 
 const escape = String.fromCharCode(27)
 const bell = String.fromCharCode(7)
@@ -516,5 +517,81 @@ describe("Prompt.multiSelect", () => {
 
       const result = yield* Fiber.join(fiber)
       assert.deepStrictEqual(result, [])
+    }).pipe(Effect.provide(TestLayer)))
+})
+
+describe("Prompt.custom", () => {
+  it.effect("receive handles events from external dequeue", () =>
+    Effect.gen(function*() {
+      const eventQueue = yield* Queue.make<string>()
+
+      const prompt = Prompt.custom(
+        { count: 0 },
+        Queue.asDequeue(eventQueue),
+        {
+          render: (state) => Effect.succeed(`Count: ${state.count}`),
+          process: (input, state) =>
+            Match.value(input).pipe(
+              Match.tag("Input", () => Effect.succeed(Action.Submit({ value: state.count }))),
+              Match.tag("Event", ({ value }) =>
+                Effect.succeed(
+                  Action.NextFrame({ state: { count: state.count + (value === "tick" ? 1 : 0) } })
+                )),
+              Match.exhaustive
+            ),
+          clear: () => Effect.succeed("")
+        }
+      )
+
+      const fiber = yield* Prompt.run(prompt).pipe(Effect.forkChild)
+
+      // Give the prompt loop time to start and block on the race
+      yield* Effect.yieldNow
+
+      // Push two events
+      yield* Queue.offer(eventQueue, "tick")
+      yield* Effect.yieldNow
+      yield* Queue.offer(eventQueue, "tock")
+      yield* Effect.yieldNow
+      yield* Queue.offer(eventQueue, "tick")
+      yield* Effect.yieldNow
+
+      // Submit via keypress
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Fiber.join(fiber)
+      assert.strictEqual(result, 2)
+    }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("falls back to process when no events are pending", () =>
+    Effect.gen(function*() {
+      const eventQueue = yield* Queue.make<string>()
+
+      const prompt = Prompt.custom(
+        { keys: 0 },
+        Queue.asDequeue(eventQueue),
+        {
+          render: (state) => Effect.succeed(`Keys: ${state.keys}`),
+          process: (input, state) =>
+            Match.value(input).pipe(
+              Match.tag("Input", () => {
+                const next = state.keys + 1
+                return next >= 3
+                  ? Effect.succeed(Action.Submit({ value: next }))
+                  : Effect.succeed(Action.NextFrame({ state: { keys: next } }))
+              }),
+              Match.tag("Event", () => Effect.succeed(Action.NextFrame({ state }))),
+              Match.exhaustive
+            ),
+          clear: () => Effect.succeed("")
+        }
+      )
+
+      yield* MockTerminal.inputKey("a")
+      yield* MockTerminal.inputKey("b")
+      yield* MockTerminal.inputKey("c")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, 3)
     }).pipe(Effect.provide(TestLayer)))
 })
