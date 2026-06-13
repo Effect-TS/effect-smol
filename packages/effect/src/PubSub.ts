@@ -2479,7 +2479,7 @@ export class BackPressureStrategy<in out A> implements PubSub.Strategy<A> {
  *
  * Subscribers may miss messages published while they are subscribed.
  *
- * **Example** (Using a dropping strategy)
+ * **Example** (Applying a dropping strategy)
  *
  * ```ts
  * import { Effect, PubSub } from "effect"
@@ -2566,7 +2566,7 @@ export class DroppingStrategy<in out A> implements PubSub.Strategy<A> {
  * Slow subscribers may miss older messages that are evicted before they are
  * consumed.
  *
- * **Example** (Using a sliding strategy)
+ * **Example** (Applying a sliding strategy)
  *
  * ```ts
  * import { Effect, PubSub } from "effect"

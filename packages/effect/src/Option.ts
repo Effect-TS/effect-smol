@@ -1232,7 +1232,7 @@ export {
    *
    * Use to return a "success with no meaningful value" from an `Option`-returning function
    *
-   * **Example** (Using Option.void)
+   * **Example** (Referencing Option.void)
    *
    * ```ts
    * import { Option } from "effect"
@@ -2458,7 +2458,7 @@ export const bind: {
  * Use when you need to start an `Option` do notation pipeline before adding
  * bindings.
  *
- * **Example** (Using do notation pipelines)
+ * **Example** (Building Option pipelines with do notation)
  *
  * ```ts
  * import { Option, pipe } from "effect"
@@ -2498,7 +2498,7 @@ export const Do: Option<{}> = some({})
  * - The return value is wrapped in `Some`
  * - No `Effect` runtime is needed
  *
- * **Example** (Using generator syntax)
+ * **Example** (Sequencing Option computations with generator syntax)
  *
  * ```ts
  * import { Option } from "effect"

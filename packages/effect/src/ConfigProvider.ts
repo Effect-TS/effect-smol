@@ -353,7 +353,7 @@ const Proto = {
  * resulting `load` method so that combinators like {@link mapInput} and
  * {@link nested} can compose without wrapping `get`.
  *
- * **Example** (A simple in-memory provider)
+ * **Example** (Creating a simple in-memory provider)
  *
  * ```ts
  * import { ConfigProvider, Effect } from "effect"
@@ -583,7 +583,7 @@ export const nested: {
  * Accepts either a plain `ConfigProvider` or an `Effect` that produces one.
  * When given an Effect, it is evaluated once when the layer is built.
  *
- * **Example** (Using a JSON object as the config source)
+ * **Example** (Reading config from a JSON object)
  *
  * ```ts
  * import { Config, ConfigProvider, Effect, Layer } from "effect"

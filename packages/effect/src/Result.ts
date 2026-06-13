@@ -328,7 +328,7 @@ export {
    * This is equivalent to `Result.succeed(undefined)`, but reuses a shared
    * `Success` wrapper instead of allocating one each time.
    *
-   * **Example** (Using void result)
+   * **Example** (Referencing void results)
    *
    * ```ts
    * import { Result } from "effect"
@@ -361,7 +361,7 @@ export {
  * `Result<never, void>`, but reuses a shared `Failure` wrapper instead of
  * allocating one each time.
  *
- * **Example** (Using a failure without a payload)
+ * **Example** (Failing without a payload)
  *
  * ```ts
  * import { Result } from "effect"
@@ -1361,7 +1361,7 @@ export const flatMap: {
  *
  * If `self` is a `Failure`, the second argument is never evaluated.
  *
- * **Example** (Using andThen with different argument types)
+ * **Example** (Chaining Result values with different argument types)
  *
  * ```ts
  * import { pipe, Result } from "effect"
@@ -1852,7 +1852,7 @@ export const transposeMapOption = dual<
  * This is equivalent to `Result.succeed(Option.none())`, but reuses a shared
  * `Success` wrapper instead of allocating one each time.
  *
- * **Example** (Using succeedNone)
+ * **Example** (Succeeding with None)
  *
  * ```ts
  * import { Result } from "effect"

@@ -2530,7 +2530,7 @@ export const span = (
  * that are built with this layer. This API does not create, end, or close the
  * span; the caller remains responsible for the span's lifetime.
  *
- * **Example** (Using an existing parent span)
+ * **Example** (Referencing an existing parent span)
  *
  * ```ts
  * import { Console, Context, Effect, Layer, Tracer } from "effect"

@@ -34,7 +34,7 @@ import type { NoInfer, TupleOf } from "./Types.ts"
  * Use to access native JavaScript array constructor methods such as `isArray`
  * or `from` from the Effect module namespace.
  *
- * **Example** (Using the Array constructor)
+ * **Example** (Accessing the Array constructor)
  *
  * ```ts
  * import { Array } from "effect"
@@ -4674,7 +4674,7 @@ export const cartesian: {
  * like nested loops. Use `filter` and `map` in the pipeline to add conditions
  * and transformations.
  *
- * **Example** (Using do notation for array comprehensions)
+ * **Example** (Building array comprehensions with do notation)
  *
  * ```ts
  * import { Array, pipe } from "effect"

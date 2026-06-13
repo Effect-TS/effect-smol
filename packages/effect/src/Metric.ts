@@ -1586,7 +1586,7 @@ export declare namespace Metric {
 /**
  * Service key for the current metric attributes context.
  *
- * **Example** (Using the current attributes key)
+ * **Example** (Accessing the current metric attributes key)
  *
  * ```ts
  * import { Data, Effect, Metric } from "effect"
@@ -3480,7 +3480,7 @@ const fiberFailures = counter("child_fiber_failures", {
 /**
  * Service key for the fiber runtime metrics service.
  *
- * **Example** (Using the fiber runtime metrics key)
+ * **Example** (Accessing the fiber runtime metrics key)
  *
  * ```ts
  * import { Data, Effect, Layer, Metric } from "effect"
@@ -3627,7 +3627,7 @@ export const FiberRuntimeMetrics = Context.Reference<FiberRuntimeMetricsService 
 /**
  * Default implementation of the fiber runtime metrics service.
  *
- * **Example** (Using the default fiber metrics implementation)
+ * **Example** (Accessing the default fiber metrics implementation)
  *
  * ```ts
  * import { Data, Effect, Layer, Metric } from "effect"

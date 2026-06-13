@@ -1859,7 +1859,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * Since effects are immutable, `flatMap` always returns a new effect instead of
  * changing the original one.
  *
- * **Example** (Using flatMap syntax variants)
+ * **Example** (Choosing flatMap syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -1957,7 +1957,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * Failures or requirements from either effect are preserved in the returned
  * effect.
  *
- * **Example** (Using andThen syntax variants)
+ * **Example** (Choosing andThen syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -2266,7 +2266,7 @@ export const exit: <A, E, R>(
  * effect is not modified. Instead, a new effect is returned with the updated
  * value.
  *
- * **Example** (Using map syntax variants)
+ * **Example** (Choosing map syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -6526,7 +6526,7 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
  * is not desired, errors produced by the `release` `Effect` value can be caught
  * and ignored.
  *
- * **Example** (Using a resource with cleanup)
+ * **Example** (Acquiring resources with cleanup)
  *
  * ```ts
  * import { Console, Effect, Exit } from "effect"

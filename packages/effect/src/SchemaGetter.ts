@@ -208,7 +208,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  * - The default overload requires `T === E`. Pass `{ strict: false }` to opt
  *   out of the type constraint.
  *
- * **Example** (Using identity transformations)
+ * **Example** (Passing through identity transformations)
  *
  * ```ts
  * import { Schema, SchemaGetter } from "effect"

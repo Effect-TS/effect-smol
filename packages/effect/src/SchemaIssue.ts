@@ -879,7 +879,7 @@ export type LeafHook = (issue: Leaf) => string
  *   - `Forbidden` → `"Forbidden operation"`
  *   - `OneOf` → `"Expected exactly one member to match the input <actual>"`
  *
- * **Example** (Using defaultLeafHook with Standard Schema formatter)
+ * **Example** (Formatting Standard Schema issues with defaultLeafHook)
  *
  * ```ts
  * import { SchemaIssue } from "effect"

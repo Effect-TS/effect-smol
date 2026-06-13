@@ -889,7 +889,7 @@ export {
 /**
  * Returns `true` if `u` is a {@link SchemaError}.
  *
- * **Example** (Using a type guard in a catch block)
+ * **Example** (Narrowing Schema errors in a catch block)
  *
  * ```ts
  * import { Schema } from "effect"
