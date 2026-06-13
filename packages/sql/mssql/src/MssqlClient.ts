@@ -213,6 +213,10 @@ export interface MssqlClientConfig {
   readonly username?: string | undefined
   readonly password?: Redacted.Redacted | undefined
   readonly connectTimeout?: Duration.Input | undefined
+  readonly cancelTimeout?: Duration.Input | undefined
+  readonly connectionRetryInterval?: Duration.Input | undefined
+  readonly multiSubnetFailover?: boolean | undefined
+  readonly maxRetriesOnTransientErrors?: number | undefined
 
   readonly minConnections?: number | undefined
   readonly maxConnections?: number | undefined
@@ -280,13 +284,21 @@ export const make = (
           port: options.port,
           database: options.database,
           trustServerCertificate: options.trustServer ?? true,
+          multiSubnetFailover: options.multiSubnetFailover,
           connectTimeout: options.connectTimeout
             ? Duration.toMillis(Duration.fromInputUnsafe(options.connectTimeout))
             : undefined,
           rowCollectionOnRequestCompletion: true,
           useColumnNames: false,
           instanceName: options.instanceName,
-          encrypt: options.encrypt ?? false
+          encrypt: options.encrypt ?? false,
+          cancelTimeout: options.cancelTimeout
+            ? Duration.toMillis(Duration.fromInputUnsafe(options.cancelTimeout))
+            : undefined,
+          connectionRetryInterval: options.connectionRetryInterval
+            ? Duration.toMillis(Duration.fromInputUnsafe(options.connectionRetryInterval))
+            : undefined,
+          maxRetriesOnTransientErrors: options.maxRetriesOnTransientErrors
         } as ConnectionOptions,
         server: options.server,
         authentication: {
