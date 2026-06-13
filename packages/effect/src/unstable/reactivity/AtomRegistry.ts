@@ -685,7 +685,10 @@ class NodeImpl<A> {
     }
 
     this.state = NodeState.valid
-    if (Object.is(this._value, value)) {
+    const equivalent = this.atom.equivalence !== undefined
+      ? this.atom.equivalence(this._value, value)
+      : Object.is(this._value, value)
+    if (equivalent) {
       return
     }
 

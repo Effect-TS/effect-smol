@@ -3,8 +3,10 @@ import {
   Array as Arr,
   Cause,
   Context,
+  Data,
   Effect,
   Hash,
+  HashMap,
   Latch,
   Layer,
   Option,
@@ -2471,6 +2473,236 @@ describe.sequential("Atom", () => {
       expect(result.value).toEqual(42)
       expect(result.waiting).toEqual(false)
       expect(storage.get("test-key")).toEqual(JSON.stringify(42))
+    })
+  })
+
+  describe("dedupe / dedupeWith", () => {
+    // Q1: source set — a value-equal set on a writable atom must not notify.
+    it("source set: value-equal distinct ref does not notify", () => {
+      const atom = Atom.make({ a: 1 }).pipe(Atom.dedupe)
+      const r = AtomRegistry.make()
+      r.mount(atom)
+      let count = 0
+      r.subscribe(atom, () => {
+        count++
+      })
+      r.set(atom, { a: 1 })
+      expect(count).toEqual(0)
+      r.set(atom, { a: 2 })
+      expect(count).toEqual(1)
+    })
+
+    it("source set: default Object.is still notifies on value-equal distinct ref", () => {
+      const atom = Atom.make({ a: 1 })
+      const r = AtomRegistry.make()
+      r.mount(atom)
+      let count = 0
+      r.subscribe(atom, () => {
+        count++
+      })
+      r.set(atom, { a: 1 })
+      expect(count).toEqual(1)
+    })
+
+    it("source set: Data/HashMap/explicit equivalence all dedupe", () => {
+      class Point extends Data.Class<{ a: number }> {}
+      const dataAtom = Atom.make(new Point({ a: 1 })).pipe(Atom.dedupe)
+      const hashAtom = Atom.make(HashMap.make(["a", 1] as const)).pipe(Atom.dedupe)
+      const explicitAtom = Atom.make({ a: 1 }).pipe(
+        Atom.dedupeWith((x, y) => x.a === y.a)
+      )
+      const r = AtomRegistry.make()
+      r.mount(dataAtom)
+      r.mount(hashAtom)
+      r.mount(explicitAtom)
+      let data = 0
+      let hash = 0
+      let explicit = 0
+      r.subscribe(dataAtom, () => {
+        data++
+      })
+      r.subscribe(hashAtom, () => {
+        hash++
+      })
+      r.subscribe(explicitAtom, () => {
+        explicit++
+      })
+      r.set(dataAtom, new Point({ a: 1 }))
+      r.set(hashAtom, HashMap.make(["a", 1] as const))
+      r.set(explicitAtom, { a: 1 })
+      expect(data).toEqual(0)
+      expect(hash).toEqual(0)
+      expect(explicit).toEqual(0)
+    })
+
+    // dedupeWith with a PARTIAL custom Equivalence: only one field participates,
+    // so a write that changes only the ignored field is suppressed.
+    it("dedupeWith: partial equivalence dedupes on the compared field only", () => {
+      const atom = Atom.make({ a: 1, b: 0 }).pipe(
+        Atom.dedupeWith((x, y) => x.a === y.a)
+      )
+      const r = AtomRegistry.make()
+      r.mount(atom)
+      let count = 0
+      r.subscribe(atom, () => {
+        count++
+      })
+      // only the ignored field b changes -> suppressed
+      r.set(atom, { a: 1, b: 99 })
+      expect(count).toEqual(0)
+      // the compared field a changes -> notifies
+      r.set(atom, { a: 2, b: 99 })
+      expect(count).toEqual(1)
+    })
+
+    // Q2: map of atoms — a value-equal set on the SOURCE must not recompute the
+    // derived atom. This is the natural consequence of source dedup: when the
+    // source suppresses emission, it never invalidates its children.
+    it("map dedup: value-equal source set does not recompute derived", () => {
+      const base = Atom.make({ a: 1 }).pipe(Atom.dedupe)
+      let computes = 0
+      const derived = base.pipe(Atom.map((s) => {
+        computes++
+        return s.a * 10
+      }))
+      const r = AtomRegistry.make()
+      r.mount(derived)
+      let downstream = 0
+      r.subscribe(derived, () => {
+        downstream++
+      })
+      const initialComputes = computes
+      r.set(base, { a: 1 })
+      expect(computes).toEqual(initialComputes)
+      expect(downstream).toEqual(0)
+      r.set(base, { a: 2 })
+      expect(downstream).toEqual(1)
+    })
+
+    // Q3: derived-output dedup — the powerful case. The derived atom's INPUTS
+    // genuinely change (so it recomputes), but its OUTPUT is value-equal to the
+    // previous output. With dedupeWith on the derived atom, downstream does NOT
+    // fire even though the derived recomputed.
+    it("derived-output dedup: inputs change, value-equal output, downstream silent", () => {
+      const base = Atom.make({ a: 1, irrelevant: 0 })
+      let computes = 0
+      const derived = base.pipe(
+        Atom.map((s) => {
+          computes++
+          return { a: s.a }
+        }),
+        Atom.dedupe
+      )
+      const r = AtomRegistry.make()
+      r.mount(derived)
+      let downstream = 0
+      r.subscribe(derived, () => {
+        downstream++
+      })
+      const before = computes
+      // change only the irrelevant field: derived MUST recompute (input ref changed)
+      r.set(base, { a: 1, irrelevant: 99 })
+      expect(computes).toEqual(before + 1)
+      // ...but the output { a: 1 } is value-equal, so downstream stays silent
+      expect(downstream).toEqual(0)
+      // a real output change still propagates
+      r.set(base, { a: 2, irrelevant: 99 })
+      expect(downstream).toEqual(1)
+    })
+
+    it("derived-output dedup is NOT free without dedupeWith on the derived atom", () => {
+      const base = Atom.make({ a: 1, irrelevant: 0 })
+      const derived = base.pipe(Atom.map((s) => ({ a: s.a })))
+      const r = AtomRegistry.make()
+      r.mount(derived)
+      let downstream = 0
+      r.subscribe(derived, () => {
+        downstream++
+      })
+      r.set(base, { a: 1, irrelevant: 99 })
+      // default Object.is on the derived atom: a fresh { a: 1 } ref emits
+      expect(downstream).toEqual(1)
+    })
+
+    // Q4: deep chains — A -> map -> map -> map; dedup at the head terminates the
+    // whole chain, and a value-equal output mid-chain terminates the tail.
+    it("deep chains: head dedup terminates the whole chain", () => {
+      const base = Atom.make({ a: 1 }).pipe(Atom.dedupe)
+      let c1 = 0
+      let c2 = 0
+      let c3 = 0
+      const m1 = base.pipe(Atom.map((s) => {
+        c1++
+        return s.a + 1
+      }))
+      const m2 = m1.pipe(Atom.map((n) => {
+        c2++
+        return n + 1
+      }))
+      const m3 = m2.pipe(Atom.map((n) => {
+        c3++
+        return n + 1
+      }))
+      const r = AtomRegistry.make()
+      r.mount(m3)
+      let downstream = 0
+      r.subscribe(m3, () => {
+        downstream++
+      })
+      const before = [c1, c2, c3] as const
+      r.set(base, { a: 1 })
+      expect([c1, c2, c3]).toEqual(before)
+      expect(downstream).toEqual(0)
+      r.set(base, { a: 2 })
+      expect(downstream).toEqual(1)
+    })
+
+    it("deep chains: value-equal output mid-chain terminates the tail", () => {
+      const base = Atom.make(0)
+      let tailComputes = 0
+      const head = base.pipe(
+        // floor-divide so 0 and 1 both map to the value-equal output { bucket: 0 }
+        Atom.map((n) => ({ bucket: Math.floor(n / 2) })),
+        Atom.dedupe
+      )
+      const tail = head.pipe(Atom.map((s) => {
+        tailComputes++
+        return s.bucket
+      }))
+      const r = AtomRegistry.make()
+      r.mount(tail)
+      let downstream = 0
+      r.subscribe(tail, () => {
+        downstream++
+      })
+      const before = tailComputes
+      r.set(base, 1) // bucket still 0 -> head output value-equal -> tail silent
+      expect(tailComputes).toEqual(before)
+      expect(downstream).toEqual(0)
+      r.set(base, 2) // bucket 1 -> propagates
+      expect(downstream).toEqual(1)
+    })
+
+    // Q5: atoms that combine multiple readables — dedupeWith on the combiner
+    // dedupes when the combined output is value-equal even if one input changed.
+    it("combined readables: value-equal combined output dedupes downstream", () => {
+      const left = Atom.make(1)
+      const right = Atom.make(10)
+      const combined = Atom.make((get) => ({ max: Math.max(get(left), get(right)) })).pipe(
+        Atom.dedupe
+      )
+      const r = AtomRegistry.make()
+      r.mount(combined)
+      let downstream = 0
+      r.subscribe(combined, () => {
+        downstream++
+      })
+      // change one input in a way that leaves the combined output unchanged:
+      // max(1,10) === max(5,10), so the recomputed { max: 10 } is value-equal
+      r.set(left, 5)
+      expect(downstream).toEqual(0)
+      r.set(left, 20) // now max changes -> emits
+      expect(downstream).toEqual(1)
     })
   })
 })
