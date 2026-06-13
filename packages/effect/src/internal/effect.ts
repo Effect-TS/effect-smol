@@ -539,10 +539,12 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
   runtimeMetrics: Metric.FiberRuntimeMetricsService | undefined
   maxOpsBeforeYield!: number
   currentPreventYield!: boolean
+  currentMacrotaskDispatch!: Scheduler.MacrotaskDispatchState
+  currentAsyncActivity!: Scheduler.AsyncActivityState
 
   _dispatcher: Scheduler.SchedulerDispatcher | undefined = undefined
   get currentDispatcher(): Scheduler.SchedulerDispatcher {
-    return this._dispatcher ??= this.currentScheduler.makeDispatcher()
+    return this._dispatcher ??= this.currentScheduler.makeDispatcher(this)
   }
 
   getRef<X>(ref: Context.Reference<X>): X {
@@ -614,7 +616,6 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     ;(globalThis as any)[currentFiberTypeId] = this
     let yielding = false
     let current: Primitive | Yield = effect
-    this.currentOpCount = 0
     const currentLoop = ++this.currentLoopCount
     try {
       while (true) {
@@ -690,6 +691,8 @@ export class FiberImpl<A = any, E = any> implements Fiber.Fiber<A, E> {
     this.currentStackFrame = context.mapUnsafe.get(CurrentStackFrame.key)
     this.maxOpsBeforeYield = this.getRef(Scheduler.MaxOpsBeforeYield)
     this.currentPreventYield = this.getRef(Scheduler.PreventSchedulerYield)
+    this.currentMacrotaskDispatch = this.getRef(Scheduler.MacrotaskDispatch)
+    this.currentAsyncActivity = this.getRef(Scheduler.AsyncActivity)
     this.runtimeMetrics = context.mapUnsafe.get(InternalMetric.FiberRuntimeMetricsKey)
     const currentTracer = context.mapUnsafe.get(Tracer.TracerKey)
     this.currentTracerContext = currentTracer ? currentTracer["context"] : undefined
@@ -914,6 +917,11 @@ export const yieldNowWith: (priority?: number) => Effect.Effect<void> = makePrim
     let resumed = false
     fiber.currentDispatcher.scheduleTask(() => {
       if (resumed) return
+      // the fiber went through the scheduler, so its operation budget is
+      // refilled. Async resumptions do not refill it, so fibers that loop
+      // over asynchronous work still yield after `maxOpsBeforeYield`
+      // cumulative operations.
+      fiber.currentOpCount = 0
       fiber.evaluate(exitVoid as any)
     }, this[args] ?? 0)
     return fiber.yieldWith(() => {
@@ -1028,6 +1036,8 @@ const callbackOptions: <A, E = never, R = never>(
       if (resumed) return
       resumed = true
       if (yielded) {
+        // the fiber was suspended and is resuming from asynchronous work
+        fiber.currentAsyncActivity.resumptions++
         fiber.evaluate(effect as any)
       } else {
         yielded = effect as any

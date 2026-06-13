@@ -17,7 +17,7 @@ import type { LogLevel } from "./LogLevel.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import type { StackFrame } from "./References.ts"
-import type { Scheduler, SchedulerDispatcher } from "./Scheduler.ts"
+import type { AsyncActivityState, MacrotaskDispatchState, Scheduler, SchedulerDispatcher } from "./Scheduler.ts"
 import type { Scope } from "./Scope.ts"
 import type { AnySpan } from "./Tracer.ts"
 import type { Covariant } from "./Types.ts"
@@ -83,6 +83,8 @@ export interface Fiber<out A, out E = never> extends Pipeable {
   readonly currentStackFrame?: StackFrame | undefined
   readonly maxOpsBeforeYield: number
   readonly currentPreventYield: boolean
+  readonly currentMacrotaskDispatch: MacrotaskDispatchState
+  readonly currentAsyncActivity: AsyncActivityState
   readonly addObserver: (cb: (exit: Exit<A, E>) => void) => () => void
   readonly interruptUnsafe: (
     fiberId?: number | undefined,
