@@ -955,7 +955,7 @@ export const make = <
 /**
  * Creates a custom `Rpc` constructor that can transform the output schemas.
  *
- * **Example** (Paginated RPC constructor)
+ * **Example** (Defining a paginated RPC constructor)
  *
  * ```ts
  * import { Schema } from "effect"

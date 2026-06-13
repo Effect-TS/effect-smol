@@ -29,7 +29,7 @@ import * as Reducer from "./Reducer.ts"
  * is greater than the second. It must satisfy total ordering laws: totality,
  * antisymmetry, and transitivity.
  *
- * **Example** (Custom Order)
+ * **Example** (Defining a custom Order)
  *
  * ```ts
  * import { Order } from "effect"
@@ -126,7 +126,7 @@ export function make<A>(
  * Uses lexicographic dictionary ordering. The empty string is less than any
  * non-empty string, and comparisons are case-sensitive.
  *
- * **Example** (String Ordering)
+ * **Example** (Ordering strings)
  *
  * ```ts
  * import { Order } from "effect"
@@ -156,7 +156,7 @@ export const String: Order<string> = make((self, that) => self < that ? -1 : 1)
  * each other, and any `NaN` is considered less than any non-`NaN` number. All
  * other values use standard numeric comparison.
  *
- * **Example** (Number Ordering)
+ * **Example** (Ordering numbers)
  *
  * ```ts
  * import { Order } from "effect"
@@ -192,7 +192,7 @@ export const Number: Order<number> = make((self, that) => {
  *
  * `false` is less than `true`, and equal values return `0`.
  *
- * **Example** (Boolean Ordering)
+ * **Example** (Ordering booleans)
  *
  * ```ts
  * import { Order } from "effect"
@@ -220,7 +220,7 @@ export const Boolean: Order<boolean> = make((self, that) => self < that ? -1 : 1
  * Uses standard numeric comparison for bigint values and handles arbitrarily
  * large integers.
  *
- * **Example** (BigInt Ordering)
+ * **Example** (Ordering BigInts)
  *
  * ```ts
  * import { Order } from "effect"
@@ -250,7 +250,7 @@ export const BigInt: Order<bigint> = make((self, that) => self < that ? -1 : 1)
  * original order returns `-1`, the flipped order returns `1`, and vice versa.
  * Equal comparisons remain `0`.
  *
- * **Example** (Reversing Order)
+ * **Example** (Reversing an Order)
  *
  * ```ts
  * import { Order } from "effect"
@@ -284,7 +284,7 @@ export function flip<A>(O: Order<A>): Order<A> {
  * returned; otherwise, the second order is applied. The result is the first
  * non-zero comparison result, or `0` if both orders return `0`.
  *
- * **Example** (Combining Orders)
+ * **Example** (Combining two Orders)
  *
  * ```ts
  * import { Order } from "effect"
@@ -336,7 +336,7 @@ export const combine: {
  * Always returns `0` regardless of input values, making it useful as a neutral
  * element in order composition.
  *
- * **Example** (Always Equal Order)
+ * **Example** (Ordering with an always-equal Order)
  *
  * ```ts
  * import { Order } from "effect"
@@ -369,7 +369,7 @@ export function alwaysEqual<A>(): Order<A> {
  * Applies orders in iteration order and short-circuits on the first non-zero
  * result. It returns `0` only if all orders return `0`.
  *
- * **Example** (Combining Multiple Orders)
+ * **Example** (Combining multiple Orders)
  *
  * ```ts
  * import { Order } from "effect"
@@ -462,7 +462,7 @@ export const mapInput: {
  * Earlier dates are less than later dates. Invalid dates are compared through
  * their `getTime()` result.
  *
- * **Example** (Date Ordering)
+ * **Example** (Ordering Dates)
  *
  * ```ts
  * import { Order } from "effect"
@@ -494,7 +494,7 @@ export const Date: Order<Date> = mapInput(Number, (date) => date.getTime())
  * the first non-zero comparison result. Tuples must have the same length as the
  * order collection, and the result is `0` only if all elements are equal.
  *
- * **Example** (Tuple Ordering)
+ * **Example** (Ordering tuples)
  *
  * ```ts
  * import { Order } from "effect"
@@ -558,7 +558,7 @@ export {
    * are less than longer arrays. The result is `0` only if arrays have the same
    * length and all elements are equal.
    *
-   * **Example** (Array Element Ordering)
+   * **Example** (Ordering array elements)
    *
    * ```ts
    * import { Order } from "effect"
@@ -591,7 +591,7 @@ export {
  * stops at the first non-zero comparison result. Field order matters: earlier
  * fields take precedence. The result is `0` only if all fields are equal.
  *
- * **Example** (Struct Ordering)
+ * **Example** (Ordering structs)
  *
  * ```ts
  * import { Order } from "effect"
@@ -642,7 +642,7 @@ export function Struct<const R extends { readonly [x: string]: Order<any> }>(
  * Returns `true` if the order returns `-1`, meaning the first value is less
  * than the second. Equal or greater values return `false`.
  *
- * **Example** (Less Than)
+ * **Example** (Checking less-than comparisons)
  *
  * ```ts
  * import { Order } from "effect"
@@ -676,7 +676,7 @@ export const isLessThan = <A>(O: Order<A>): {
  * Returns `true` if the order returns `1`, meaning the first value is greater
  * than the second. Equal or lesser values return `false`.
  *
- * **Example** (Greater Than)
+ * **Example** (Checking greater-than comparisons)
  *
  * ```ts
  * import { Order } from "effect"
@@ -710,7 +710,7 @@ export const isGreaterThan = <A>(O: Order<A>): {
  * Returns `true` if the order returns `-1` or `0`, and returns `false` only if
  * the order returns `1`.
  *
- * **Example** (Less Than Or Equal)
+ * **Example** (Checking less-than-or-equal comparisons)
  *
  * ```ts
  * import { Order } from "effect"
@@ -745,7 +745,7 @@ export const isLessThanOrEqualTo = <A>(O: Order<A>): {
  * Returns `true` if the order returns `1` or `0`, and returns `false` only if
  * the order returns `-1`.
  *
- * **Example** (Greater Than Or Equal)
+ * **Example** (Checking greater-than-or-equal comparisons)
  *
  * ```ts
  * import { Order } from "effect"
@@ -780,7 +780,7 @@ export const isGreaterThanOrEqualTo = <A>(O: Order<A>): {
  * Returns the value that compares as less than or equal to the other value. If
  * values are equal, the first argument is returned.
  *
- * **Example** (Minimum Value)
+ * **Example** (Selecting the minimum value)
  *
  * ```ts
  * import { Order } from "effect"
@@ -815,7 +815,7 @@ export const min = <A>(O: Order<A>): {
  * Returns the value that compares as greater than or equal to the other value.
  * If values are equal, the first argument is returned.
  *
- * **Example** (Maximum Value)
+ * **Example** (Selecting the maximum value)
  *
  * ```ts
  * import { Order } from "effect"
@@ -852,7 +852,7 @@ export const max = <A>(O: Order<A>): {
  * maximum. The minimum must be less than or equal to the maximum according to
  * the order.
  *
- * **Example** (Clamping Values)
+ * **Example** (Clamping values)
  *
  * ```ts
  * import { Order } from "effect"
@@ -903,7 +903,7 @@ export const clamp = <A>(O: Order<A>): {
  * than or equal to maximum. Values outside the range return `false`. Both
  * bounds are inclusive.
  *
- * **Example** (Checking Range)
+ * **Example** (Checking ranges)
  *
  * ```ts
  * import { Order } from "effect"

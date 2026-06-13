@@ -382,7 +382,7 @@ export {
  * Use as a type guard to narrow `Exit<A, E>` to `Success<A, E>` and access the
  * `value` property.
  *
- * **Example** (Narrowing to Success)
+ * **Example** (Narrowing to success)
  *
  * ```ts
  * import { Exit } from "effect"
@@ -410,7 +410,7 @@ export const isSuccess: <A, E>(self: Exit<A, E>) => self is Success<A, E> = effe
  * Use as a type guard to narrow `Exit<A, E>` to `Failure<A, E>` and access the
  * `cause` property.
  *
- * **Example** (Narrowing to Failure)
+ * **Example** (Narrowing to failure)
  *
  * ```ts
  * import { Exit } from "effect"

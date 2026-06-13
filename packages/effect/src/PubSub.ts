@@ -768,7 +768,7 @@ export const shutdown = <A>(self: PubSub<A>): Effect.Effect<void> =>
  * Checks effectfully whether `shutdown` has been called, returning `true`
  * after shutdown and `false` otherwise.
  *
- * **Example** (Checking whether a PubSub is shutdown)
+ * **Example** (Checking whether a PubSub is shut down)
  *
  * ```ts
  * import { Effect, PubSub } from "effect"

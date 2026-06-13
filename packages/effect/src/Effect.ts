@@ -1581,7 +1581,7 @@ export const failCauseSync: <E>(
  * The error channel of the resulting effect is of type `never`, indicating that
  * it cannot recover from this failure.
  *
- * **Example** (Failing when division by zero)
+ * **Example** (Failing on division by zero)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -1859,7 +1859,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * Since effects are immutable, `flatMap` always returns a new effect instead of
  * changing the original one.
  *
- * **Example** (Syntax)
+ * **Example** (Using flatMap syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -1957,7 +1957,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * Failures or requirements from either effect are preserved in the returned
  * effect.
  *
- * **Example** (Syntax)
+ * **Example** (Using andThen syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -2266,7 +2266,7 @@ export const exit: <A, E, R>(
  * effect is not modified. Instead, a new effect is returned with the updated
  * value.
  *
- * **Example** (Syntax)
+ * **Example** (Using map syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"

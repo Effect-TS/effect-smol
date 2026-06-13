@@ -24,7 +24,7 @@ import type * as Order from "./Order.ts"
  * `Struct.makeCombiner` or `Option.makeCombinerFailFast`, or define the
  * combining step for a `Reducer`.
  *
- * **Example** (number addition combiner)
+ * **Example** (Combining numbers with addition)
  *
  * ```ts
  * import { Combiner } from "effect"
@@ -63,7 +63,7 @@ export interface Combiner<A> {
  * The returned combiner's `combine` method delegates to the provided function.
  * Any purity, associativity, or mutation behavior comes from that function.
  *
- * **Example** (multiplying numbers)
+ * **Example** (Multiplying numbers)
  *
  * ```ts
  * import { Combiner } from "effect"
@@ -95,7 +95,7 @@ export function make<A>(combine: (self: A, that: A) => A): Combiner<A> {
  * Returns a new `Combiner` where `combine(self, that)` calls the original
  * combiner as `combine(that, self)`.
  *
- * **Example** (reversing string concatenation)
+ * **Example** (Reversing string concatenation)
  *
  * ```ts
  * import { Combiner, String } from "effect"
@@ -128,7 +128,7 @@ export function flip<A>(combiner: Combiner<A>): Combiner<A> {
  * The combiner compares values using the given `Order`. When values are equal,
  * it returns `that` (the second argument).
  *
- * **Example** (minimum of two numbers)
+ * **Example** (Selecting the minimum of two numbers)
  *
  * ```ts
  * import { Combiner, Number } from "effect"
@@ -164,7 +164,7 @@ export function min<A>(order: Order.Order<A>): Combiner<A> {
  * The combiner compares values using the given `Order`. When values are equal,
  * it returns `that` (the second argument).
  *
- * **Example** (maximum of two numbers)
+ * **Example** (Selecting the maximum of two numbers)
  *
  * ```ts
  * import { Combiner, Number } from "effect"
@@ -197,7 +197,7 @@ export function max<A>(order: Order.Order<A>): Combiner<A> {
  *
  * `combine(self, that)` returns `self` and ignores `that`.
  *
- * **Example** (keeping the first value)
+ * **Example** (Keeping the first value)
  *
  * ```ts
  * import { Combiner } from "effect"
@@ -227,7 +227,7 @@ export function first<A>(): Combiner<A> {
  *
  * `combine(self, that)` returns `that` and ignores `self`.
  *
- * **Example** (keeping the last value)
+ * **Example** (Keeping the last value)
  *
  * ```ts
  * import { Combiner } from "effect"
@@ -259,7 +259,7 @@ export function last<A>(): Combiner<A> {
  *
  * `combine(self, that)` returns the constant `a` and ignores both arguments.
  *
- * **Example** (always returning zero)
+ * **Example** (Always returning zero)
  *
  * ```ts
  * import { Combiner } from "effect"
@@ -295,7 +295,7 @@ export function constant<A>(a: A): Combiner<A> {
  * `combiner.combine(self, combiner.combine(middle, that))`. This function is
  * curried: first provide the separator, then the base combiner.
  *
- * **Example** (joining strings with a separator)
+ * **Example** (Joining strings with a separator)
  *
  * ```ts
  * import { Combiner, String } from "effect"

@@ -2723,7 +2723,7 @@ export function memoizeThunk<A>(f: () => A): () => A {
  * define recursive or mutually recursive schemas without infinite loops at
  * construction time.
  *
- * **Example** (Recursive schema AST)
+ * **Example** (Defining recursive schema ASTs)
  *
  * ```ts
  * import { Schema, SchemaAST } from "effect"

@@ -29,7 +29,7 @@ import type * as Schema from "./Schema.ts"
  * discriminated by the `op` field, and the optional `description` field can be
  * used for documentation.
  *
- * **Example** (All operation types)
+ * **Example** (Defining all operation types)
  *
  * ```ts
  * import { JsonPatch } from "effect"
@@ -113,7 +113,7 @@ export type JsonPatchOperation =
  * operations observe the document state produced by earlier operations. An empty
  * array represents a no-op patch and returns the original document.
  *
- * **Example** (Multi-operation patch)
+ * **Example** (Defining a multi-operation patch)
  *
  * ```ts
  * import { JsonPatch } from "effect"

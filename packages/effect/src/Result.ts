@@ -570,7 +570,7 @@ export const isResult: (input: unknown) => input is Result<unknown, unknown> = r
  * - Acts as a TypeScript type guard, narrowing to `Failure<A, E>`
  * - After narrowing, you can access `.failure` to read the error value
  *
- * **Example** (Narrowing to Failure)
+ * **Example** (Narrowing to failure)
  *
  * ```ts
  * import { Result } from "effect"
@@ -603,7 +603,7 @@ export const isFailure: <A, E>(self: Result<A, E>) => self is Failure<A, E> = re
  * - Acts as a TypeScript type guard, narrowing to `Success<A, E>`
  * - After narrowing, you can access `.success` to read the value
  *
- * **Example** (Narrowing to Success)
+ * **Example** (Narrowing to success)
  *
  * ```ts
  * import { Result } from "effect"
@@ -1313,7 +1313,7 @@ export const orElse: {
  * - The error types are merged into a union (`E | E2`)
  * - This is the monadic `bind` / `>>=` for `Result`
  *
- * **Example** (Sequential validation)
+ * **Example** (Validating sequentially)
  *
  * ```ts
  * import { pipe, Result } from "effect"
@@ -1807,7 +1807,7 @@ export const transposeOption = <A = never, E = never>(
  * - `Some(a)` where `f(a)` is `Success(b)` becomes `Success(Some(b))`
  * - `Some(a)` where `f(a)` is `Failure(e)` becomes `Failure(e)`
  *
- * **Example** (Map and transpose in one step)
+ * **Example** (Mapping and transposing in one step)
  *
  * ```ts
  * import { Option, Result } from "effect"

@@ -154,7 +154,7 @@ export class Asserts<S extends Schema.Top> {
    *
    * FastCheck generates arbitrary values matching the schema's `Type`. The assertion fails if any generated value does not round-trip. Pass `options.params` to control FastCheck parameters such as `numRuns`.
    *
-   * **Example** (Round-trip verification)
+   * **Example** (Verifying round trips)
    *
    * ```ts
    * import { Schema } from "effect"
@@ -338,7 +338,7 @@ export class Decoding<S extends Schema.Top> {
    *
    * Use to verify successful decoding for one input case.
    *
-   * **Example** (Identity and transformed decoding)
+   * **Example** (Testing identity and transformed decoding)
    *
    * ```ts
    * import { Schema } from "effect"
@@ -478,7 +478,7 @@ export class Encoding<S extends Schema.Top> {
    *
    * Use to verify successful encoding for one input case.
    *
-   * **Example** (Identity and transformed encoding)
+   * **Example** (Testing identity and transformed encoding)
    *
    * ```ts
    * import { Schema } from "effect"

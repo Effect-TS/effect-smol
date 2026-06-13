@@ -102,7 +102,7 @@ export class Getter<out T, in E, R = never> extends Pipeable.Class {
  * The getter is pure and always returns `Option.some(t)` regardless of whether
  * the input is `Some` or `None`.
  *
- * **Example** (Constant getter)
+ * **Example** (Returning a constant getter)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -134,7 +134,7 @@ export function succeed<const T, E>(t: T): Getter<T, E> {
  * - Always fails with the `Issue` returned by `f`.
  * - The failure function receives the original `Option<E>` input for error context.
  *
- * **Example** (Always-failing getter)
+ * **Example** (Defining an always-failing getter)
  *
  * ```ts
  * import { Option, SchemaGetter, SchemaIssue } from "effect"
@@ -208,7 +208,7 @@ function isPassthrough<T, E, R>(getter: Getter<T, E, R>): getter is typeof passt
  * - The default overload requires `T === E`. Pass `{ strict: false }` to opt
  *   out of the type constraint.
  *
- * **Example** (Identity transformation)
+ * **Example** (Using identity transformations)
  *
  * ```ts
  * import { Schema, SchemaGetter } from "effect"
@@ -247,7 +247,7 @@ export function passthrough<T>(): Getter<T, T> {
  *
  * - Same singleton as {@link passthrough} — no allocation, optimized in composition.
  *
- * **Example** (Supertype passthrough)
+ * **Example** (Passing through supertypes)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -279,7 +279,7 @@ export function passthroughSupertype<T>(): Getter<T, T> {
  *
  * - Same singleton as {@link passthrough} — no allocation, optimized in composition.
  *
- * **Example** (Subtype passthrough)
+ * **Example** (Passing through subtypes)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -314,7 +314,7 @@ export function passthroughSubtype<T>(): Getter<T, T> {
  * - When input is `Some`, passes it through unchanged.
  * - `f` receives the parse options and may return `None` to keep the value absent.
  *
- * **Example** (Default timestamp for missing field)
+ * **Example** (Providing a default timestamp for a missing field)
  *
  * ```ts
  * import { Effect, Option, SchemaGetter } from "effect"
@@ -351,7 +351,7 @@ export function onNone<T, E extends T = T, R = never>(
  * - When input is `Some`, passes it through unchanged.
  * - Optional `annotations` customize the error message for the missing key.
  *
- * **Example** (Required struct field)
+ * **Example** (Defining a required struct field)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -384,7 +384,7 @@ export function required<T, E extends T = T>(annotations?: Schema.Annotations.Ke
  * - When input is `Some(e)`, calls `f(e, options)` to produce the result.
  * - `f` may return `None` to omit the value, or fail with an `Issue`.
  *
- * **Example** (Transform only present values)
+ * **Example** (Transforming only present values)
  *
  * ```ts
  * import { Effect, Option, SchemaGetter } from "effect"
@@ -427,7 +427,7 @@ export function onSome<T, E, R = never>(
  *     message string or a full {@link SchemaIssue.Issue}).
  * - Does not transform the value — input and output types are the same.
  *
- * **Example** (Effectful validation)
+ * **Example** (Validating effectfully)
  *
  * ```ts
  * import { Effect, SchemaGetter } from "effect"
@@ -476,7 +476,7 @@ export function checkEffect<T, R = never>(
  * - Skips `None` inputs — only called when a value is present.
  * - Never fails.
  *
- * **Example** (String to number transformation pair)
+ * **Example** (Transforming strings to numbers)
  *
  * ```ts
  * import { Schema, SchemaGetter } from "effect"
@@ -554,7 +554,7 @@ export function transformOrFail<T, E, R = never>(
  * must return `Option<T>`, so it can turn a present value into absent or an
  * absent value into present.
  *
- * **Example** (Filter out empty strings)
+ * **Example** (Filtering out empty strings)
  *
  * ```ts
  * import { Option, SchemaGetter } from "effect"
@@ -587,7 +587,7 @@ export function transformOptional<T, E>(f: (oe: Option.Option<E>) => Option.Opti
  * - Always returns `Option.None` regardless of input.
  * - Never fails.
  *
- * **Example** (Omit a field during encoding)
+ * **Example** (Omitting a field during encoding)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -619,7 +619,7 @@ export function omit<T>(): Getter<never, T> {
  * - If the input is `Some(value)` where value is not `undefined`, passes it through.
  * - `defaultValue` is an `Effect` that will be executed each time a default is needed.
  *
- * **Example** (Default value for optional field)
+ * **Example** (Providing a default value for an optional field)
  *
  * ```ts
  * import { Effect, SchemaGetter } from "effect"
@@ -655,7 +655,7 @@ export function withDefault<T, R = never>(
  *
  * The getter is pure, never fails, and delegates to `globalThis.String`.
  *
- * **Example** (Coerce to string)
+ * **Example** (Coercing to a string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -686,7 +686,7 @@ export function String<E>(): Getter<string, E> {
  * The getter is pure, never fails, and delegates to `globalThis.Number`. It may
  * produce `NaN` for non-numeric inputs.
  *
- * **Example** (Coerce to number)
+ * **Example** (Coercing to a number)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -716,7 +716,7 @@ export function Number<E>(): Getter<number, E> {
  *
  * The getter is pure, never fails, and delegates to `globalThis.Boolean`.
  *
- * **Example** (Coerce to boolean)
+ * **Example** (Coercing to a boolean)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -745,7 +745,7 @@ export function Boolean<E>(): Getter<boolean, E> {
  * - Delegates to `globalThis.BigInt`.
  * - Throws at runtime if the input cannot be converted (e.g. non-numeric string).
  *
- * **Example** (Coerce to bigint)
+ * **Example** (Coercing to a bigint)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -774,7 +774,7 @@ export function BigInt<E extends string | number | bigint | boolean>(): Getter<b
  * - Delegates to `new globalThis.Date(input)`.
  * - Does not validate the result — may produce an invalid Date.
  *
- * **Example** (Coerce to Date)
+ * **Example** (Coercing to a Date)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -799,7 +799,7 @@ export function Date<E extends string | number | Date>(): Getter<Date, E> {
  *
  * - Pure, delegates to `String.trim`.
  *
- * **Example** (Trim whitespace)
+ * **Example** (Trimming whitespace)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -821,7 +821,7 @@ export function trim<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.capitalize`.
  *
- * **Example** (Capitalize string)
+ * **Example** (Capitalizing a string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -843,7 +843,7 @@ export function capitalize<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.uncapitalize`.
  *
- * **Example** (Uncapitalize string)
+ * **Example** (Uncapitalizing a string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -865,7 +865,7 @@ export function uncapitalize<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.snakeToCamel`.
  *
- * **Example** (Snake to camel)
+ * **Example** (Converting snake case to camel case)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -889,7 +889,7 @@ export function snakeToCamel<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.camelToSnake`.
  *
- * **Example** (Camel to snake)
+ * **Example** (Converting camel case to snake case)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -913,7 +913,7 @@ export function camelToSnake<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.toLowerCase`.
  *
- * **Example** (To lowercase)
+ * **Example** (Converting to lowercase)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -937,7 +937,7 @@ export function toLowerCase<E extends string>(): Getter<string, E> {
  *
  * - Pure, delegates to `String.toUpperCase`.
  *
- * **Example** (To uppercase)
+ * **Example** (Converting to uppercase)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -973,7 +973,7 @@ type ParseJsonOptions = {
  * - With `reviver`: returns `unknown` (reviver may produce arbitrary values).
  * - On parse failure, fails with `SchemaIssue.InvalidValue` containing the error message.
  *
- * **Example** (Parse JSON)
+ * **Example** (Parsing JSON)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1022,7 +1022,7 @@ type StringifyJsonOptions = {
  *   functions, symbols, or a replacer that removes the root value, that
  *   `undefined` result is returned rather than converted into an `Issue`.
  *
- * **Example** (Stringify JSON)
+ * **Example** (Stringifying JSON)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1059,7 +1059,7 @@ export function stringifyJson(options?: StringifyJsonOptions): Getter<string, un
  * (default `,`) and then each pair by `keyValueSeparator` (default `=`). Pairs
  * missing a key or value are silently skipped.
  *
- * **Example** (Parse key-value string)
+ * **Example** (Parsing a key-value string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1105,7 +1105,7 @@ export function splitKeyValue<E extends string>(options?: {
  * (default `,`) and joins each key and value with `keyValueSeparator` (default
  * `=`).
  *
- * **Example** (Join key-value record)
+ * **Example** (Joining key-value records)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1143,7 +1143,7 @@ export function joinKeyValue<E extends Record<PropertyKey, string>>(options?: {
  * The getter is pure and never fails. It splits by `separator` (default `,`).
  * An empty string produces an empty array, not `[""]`.
  *
- * **Example** (Split comma-separated string)
+ * **Example** (Splitting a comma-separated string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1172,7 +1172,7 @@ export function split<E extends string>(options?: {
  *
  * The getter is pure and never fails.
  *
- * **Example** (Encode to Base64)
+ * **Example** (Encoding to Base64)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1198,7 +1198,7 @@ export function encodeBase64<E extends Uint8Array | string>(): Getter<string, E>
  *
  * The getter is pure and never fails.
  *
- * **Example** (Encode to Base64Url)
+ * **Example** (Encoding to Base64Url)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1224,7 +1224,7 @@ export function encodeBase64Url<E extends Uint8Array | string>(): Getter<string,
  *
  * The getter is pure and never fails.
  *
- * **Example** (Encode to hex)
+ * **Example** (Encoding to hex)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1249,7 +1249,7 @@ export function encodeHex<E extends Uint8Array | string>(): Getter<string, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
- * **Example** (Decode Base64 to bytes)
+ * **Example** (Decoding Base64 to bytes)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1280,7 +1280,7 @@ export function decodeBase64<E extends string>(): Getter<Uint8Array, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64.
  *
- * **Example** (Decode Base64 to string)
+ * **Example** (Decoding Base64 to string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1311,7 +1311,7 @@ export function decodeBase64String<E extends string>(): Getter<string, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
- * **Example** (Decode Base64Url to bytes)
+ * **Example** (Decoding Base64Url to bytes)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1342,7 +1342,7 @@ export function decodeBase64Url<E extends string>(): Getter<Uint8Array, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid Base64Url.
  *
- * **Example** (Decode Base64Url to string)
+ * **Example** (Decoding Base64Url to string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1373,7 +1373,7 @@ export function decodeBase64UrlString<E extends string>(): Getter<string, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
- * **Example** (Decode hex to bytes)
+ * **Example** (Decoding hex to bytes)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1404,7 +1404,7 @@ export function decodeHex<E extends string>(): Getter<Uint8Array, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input is not valid hex.
  *
- * **Example** (Decode hex to string)
+ * **Example** (Decoding hex to string)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1437,7 +1437,7 @@ export function decodeHexString<E extends string>(): Getter<string, E> {
  * - May throw a `URIError` for malformed surrogate pairs; this exception is not
  *   converted into an `Issue`.
  *
- * **Example** (Encode a URI component)
+ * **Example** (Encoding a URI component)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1461,7 +1461,7 @@ export function encodeUriComponent<E extends string>(): Getter<string, E> {
  *
  * - Fails with `SchemaIssue.InvalidValue` if the input contains malformed percent-encoding sequences.
  *
- * **Example** (Decode a URI component)
+ * **Example** (Decoding a URI component)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1506,7 +1506,7 @@ export function decodeUriComponent<E extends string>(): Getter<string, E> {
  * - Fails with `SchemaIssue.InvalidValue` if the input cannot be parsed as a valid
  *   `DateTime`.
  *
- * **Example** (Parse DateTime)
+ * **Example** (Parsing DateTime)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1544,7 +1544,7 @@ export function dateTimeUtcFromInput<E extends DateTime.DateTime.Input>(): Gette
  * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
  * value is a `string` or `Blob`.
  *
- * **Example** (Decode FormData)
+ * **Example** (Decoding FormData)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1582,7 +1582,7 @@ const collectFormDataEntries = collectBracketPathEntries((value): value is strin
  * bracket-path keys such as `user[name]` and `items[0]`. Non-object inputs
  * produce an empty `FormData`.
  *
- * **Example** (Encode to FormData)
+ * **Example** (Encoding to FormData)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1625,7 +1625,7 @@ export function encodeFormData(): Getter<FormData, unknown> {
  * `user[name]` and `items[0]` to build nested objects or arrays, and each leaf
  * value is a `string`.
  *
- * **Example** (Decode URLSearchParams)
+ * **Example** (Decoding URLSearchParams)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1660,7 +1660,7 @@ const collectURLSearchParamsEntries = collectBracketPathEntries(Predicate.isStri
  * The getter is pure and never fails. It flattens nested objects or arrays into
  * bracket-path keys. Non-object inputs produce an empty `URLSearchParams`.
  *
- * **Example** (Encode to URLSearchParams)
+ * **Example** (Encoding to URLSearchParams)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1726,7 +1726,7 @@ function bracketPathToTokens(bracketPath: string): Array<string | number> {
  *   - `""` → real empty key
  * - Duplicate keys for the same path are merged into arrays.
  *
- * **Example** (Build tree from bracket paths)
+ * **Example** (Building a tree from bracket paths)
  *
  * ```ts
  * import { SchemaGetter } from "effect"
@@ -1818,7 +1818,7 @@ export function makeTreeRecord<A>(
  *   (e.g. `tags=a&tags=b`). Otherwise uses indexed bracket paths (e.g. `items[0]`, `items[1]`).
  * - Non-leaf values that aren't objects or arrays are silently skipped.
  *
- * **Example** (Flatten object to bracket paths)
+ * **Example** (Flattening an object to bracket paths)
  *
  * ```ts
  * import { Predicate, SchemaGetter } from "effect"

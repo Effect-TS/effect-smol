@@ -31,7 +31,7 @@ type TupleOf_<T, N extends number, R extends Array<unknown>> = `${N}` extends `-
  * - If `N` is the general `number` type (non-literal), degrades to `Array<T>`.
  * - Negative numbers produce `never`.
  *
- * **Example** (Fixed-length tuple)
+ * **Example** (Checking fixed-length tuples)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -66,7 +66,7 @@ export type TupleOf<N extends number, T> = N extends N ? number extends N ? Arra
  *
  * Produces a tuple with `N` fixed positions followed by `...Array<T>`.
  *
- * **Example** (Minimum-length tuple)
+ * **Example** (Checking minimum-length tuples)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -201,7 +201,7 @@ export type ExtractTag<E, K extends string> = E extends { readonly _tag: infer T
  * - If the union members are incompatible (e.g. `string | number`), the
  *   result is `never`.
  *
- * **Example** (Union to intersection)
+ * **Example** (Converting a union to an intersection)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -264,7 +264,7 @@ export type Simplify<A> = {
  *   distinguishing between `any`, `unknown`, `never`, and other types.
  * - Resolves to `true` if `X` and `Y` are identical, `false` otherwise.
  *
- * **Example** (Type equality check)
+ * **Example** (Checking type equality)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -295,7 +295,7 @@ export type Equals<X, Y> = (<T>() => T extends X ? 1 : 2) extends <
  *
  * Returns `Y` when `A` and `B` are equal, `N` otherwise.
  *
- * **Example** (Conditional type based on equality)
+ * **Example** (Choosing a conditional type based on equality)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -324,7 +324,7 @@ export type EqualsWith<A, B, Y, N> = (<T>() => T extends A ? 1 : 2) extends (<T>
  * Returns `true` if at least one key from `Key` exists in `A`, `false`
  * otherwise.
  *
- * **Example** (Key presence check)
+ * **Example** (Checking key presence)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -352,7 +352,7 @@ export type Has<A, Key extends string> = (Key extends infer K ? K extends keyof 
  *
  * Implemented as `MergeRight<Target, Source>`.
  *
- * **Example** (Left-biased merge)
+ * **Example** (Merging with left bias)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -423,7 +423,7 @@ export type MergeRight<Target, Source> = Simplify<
  * - `"unbounded"` — run all effects concurrently with no limit.
  * - `"inherit"` — inherit the concurrency from the surrounding context.
  *
- * **Example** (Concurrency values)
+ * **Example** (Setting concurrency values)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -451,7 +451,7 @@ export type Concurrency = number | "unbounded" | "inherit"
  *
  * Only affects the top level; nested properties remain readonly.
  *
- * **Example** (Shallow mutable conversion)
+ * **Example** (Converting shallowly to mutable types)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -492,7 +492,7 @@ export type Mutable<T> = {
  * Recursion stops at primitives (`string`, `number`, `boolean`, `bigint`,
  * `symbol`) and functions.
  *
- * **Example** (Deep mutable conversion)
+ * **Example** (Converting deeply to mutable types)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -557,7 +557,7 @@ export type NoInfer<A> = [A][A extends any ? 0 : never]
  * A value of type `Invariant<A>` cannot be assigned to `Invariant<B>` unless
  * `A` and `B` are the same type.
  *
- * **Example** (Invariant phantom type)
+ * **Example** (Defining an invariant phantom type)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -625,7 +625,7 @@ export declare namespace Invariant {
  * `Covariant<A>` is assignable to `Covariant<B>` when `A extends B`, following
  * the subtype direction.
  *
- * **Example** (Covariant phantom type)
+ * **Example** (Defining a covariant phantom type)
  *
  * ```ts
  * import type { Types } from "effect"
@@ -693,7 +693,7 @@ export declare namespace Covariant {
  * `Contravariant<A>` is assignable to `Contravariant<B>` when `B extends A`,
  * following the supertype direction.
  *
- * **Example** (Contravariant phantom type)
+ * **Example** (Defining a contravariant phantom type)
  *
  * ```ts
  * import type { Types } from "effect"

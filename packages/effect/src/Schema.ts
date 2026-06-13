@@ -358,7 +358,7 @@ export interface declare<T, Iso = T> extends declareConstructor<T, T, readonly [
  * Use when you are defining a schema for an opaque type with no type parameters
  * and validation can be expressed as a type guard.
  *
- * **Example** (Schema for a custom `UserId` branded type)
+ * **Example** (Defining a schema for a custom `UserId` branded type)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -522,7 +522,7 @@ export function annotateEncoded<S extends Top>(annotations: Annotations.Bottom<S
  * as well as standard documentation fields such as `title`, `description`,
  * and `examples`.
  *
- * **Example** (Custom missing-key message for a required field)
+ * **Example** (Customizing the missing-key message for a required field)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -622,7 +622,7 @@ export declare namespace Schema {
  * constructors in this module (e.g. {@link Struct}, {@link String}, {@link Number}).
  * When you also need the encoded type or service requirements, use {@link Codec}.
  *
- * **Example** (Function that accepts any schema decoding to `string`)
+ * **Example** (Accepting any schema decoding to `string`)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -777,7 +777,7 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
  * constraining or depending on the encoded representation (`Encoded` is
  * `unknown`) or encoding services.
  *
- * **Example** (Function that only needs to decode)
+ * **Example** (Accepting schemas that only need to decode)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -804,7 +804,7 @@ export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, un
  * constraining or depending on the decoded `Type` (`Type` is `unknown`) or
  * decoding services.
  *
- * **Example** (Function that only needs to encode)
+ * **Example** (Accepting schemas that only need to encode)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -889,7 +889,7 @@ export {
 /**
  * Returns `true` if `u` is a {@link SchemaError}.
  *
- * **Example** (Type guard in a catch block)
+ * **Example** (Using a type guard in a catch block)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -1093,7 +1093,7 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
  * the type of the input value if the check passes. It's particularly useful for
  * runtime type validation and TypeScript type narrowing.
  *
- * **Example** (Basic Type Guard)
+ * **Example** (Defining a basic type guard)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -1130,7 +1130,7 @@ export const is = SchemaParser.is
  * The input is narrowed if the assertion succeeds. If validation fails, the
  * assertion throws.
  *
- * **Example** (Basic Usage)
+ * **Example** (Asserting and narrowing an input)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2002,7 +2002,7 @@ interface optionalLambda extends Lambda {
  * Use {@link optionalKey} instead if you want exact optional semantics (absent
  * only, not `undefined`).
  *
- * **Example** (Optional field accepting undefined)
+ * **Example** (Defining an optional field accepting undefined)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2233,7 +2233,7 @@ function isFlip$(schema: Top): schema is flip<any> {
  *
  * Calling `flip` twice returns the original schema.
  *
- * **Example** (Flip a number-from-string schema)
+ * **Example** (Flipping a number-from-string schema)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2270,7 +2270,7 @@ export interface Literal<L extends SchemaAST.LiteralValue>
 /**
  * Creates a schema for a single literal value (string, number, bigint, boolean, or null).
  *
- * **Example** (String literal)
+ * **Example** (Defining a string literal)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2394,7 +2394,7 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
  * Use when the decoded value should remain the matched string and you do not
  * need the individual template parts parsed into a tuple.
  *
- * **Example** (URL path pattern)
+ * **Example** (Defining a URL path pattern)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2469,7 +2469,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  * Unlike {@link TemplateLiteral}, this schema decodes the matched string into a
  * readonly tuple with one element per schema part.
  *
- * **Example** (Parse path parameters)
+ * **Example** (Parsing path parameters)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2503,7 +2503,7 @@ export interface Enum<A extends { [x: string]: string | number }>
 /**
  * Creates a schema from a TypeScript enum object. Validates that the input is one of the enum's values.
  *
- * **Example** (Direction enum)
+ * **Example** (Defining a direction enum)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -2768,7 +2768,7 @@ export interface UniqueSymbol<sym extends symbol>
 /**
  * Creates a schema for a specific symbol. Only that exact symbol satisfies the schema.
  *
- * **Example** (Specific symbol)
+ * **Example** (Defining a specific symbol)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -3037,7 +3037,7 @@ function makeStruct<const Fields extends Struct.Fields>(ast: SchemaAST.Objects, 
  * The resulting schema's `Type` is a readonly object type with the fields'
  * decoded types. The `Encoded` form mirrors the field schemas' encoded types.
  *
- * **Example** (Basic struct)
+ * **Example** (Defining a basic struct)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -3139,7 +3139,7 @@ const canonicalPropertyKey = (key: PropertyKey): string | symbol =>
  * If two existing fields would produce the same encoded key, construction
  * fails.
  *
- * **Example** (Rename `name` to `full_name` in the encoded form)
+ * **Example** (Renaming `name` to `full_name` in the encoded form)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -3200,7 +3200,7 @@ export function encodeKeys<
  * computed or enriched fields to live in the decoded type without appearing in
  * the encoded form.
  *
- * **Example** (Add a computed `fullName` field)
+ * **Example** (Adding a computed `fullName` field)
  *
  * ```ts
  * import { Option, Schema } from "effect"
@@ -3406,7 +3406,7 @@ export interface $Record<Key extends Record.Key, Value extends Top> extends
 /**
  * Defines a record (dictionary) schema with typed keys and values.
  *
- * **Example** (String-keyed record of numbers)
+ * **Example** (Defining a string-keyed record of numbers)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -3614,7 +3614,7 @@ export interface StructWithRest<
  * Extends a struct schema with one or more record (index-signature) schemas,
  * producing a schema whose decoded type intersects the struct and all records.
  *
- * **Example** (Struct with string-indexed extra keys)
+ * **Example** (Defining structs with string-indexed extra keys)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -3834,7 +3834,7 @@ function makeTuple<Elements extends Tuple.Elements>(ast: SchemaAST.Arrays, eleme
 /**
  * Defines a fixed-length tuple schema from an array of element schemas.
  *
- * **Example** (Pair of string and number)
+ * **Example** (Defining a pair of string and number)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4011,7 +4011,7 @@ export interface TupleWithRest<
  * example, `[Schema.Boolean, Schema.String]` represents zero or more booleans
  * followed by a final string.
  *
- * **Example** (Tuple with rest)
+ * **Example** (Defining tuples with rest elements)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4075,7 +4075,7 @@ export {
   /**
    * Defines a `ReadonlyArray` schema for a given element schema.
    *
-   * **Example** (Array of strings)
+   * **Example** (Defining an array of strings)
    *
    * ```ts
    * import { Schema } from "effect"
@@ -4123,7 +4123,7 @@ interface NonEmptyArrayLambda extends Lambda {
  * Defines a non-empty `ReadonlyArray` schema — at least one element required.
  * Type is `readonly [T, ...T[]]`.
  *
- * **Example** (Non-empty array of numbers)
+ * **Example** (Defining a non-empty array of numbers)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4251,7 +4251,7 @@ interface mutableLambda extends Lambda {
 /**
  * Makes an array or tuple schema mutable, removing the `readonly` modifier.
  *
- * **Example** (Mutable array)
+ * **Example** (Defining mutable arrays)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4344,7 +4344,7 @@ function makeUnion<Members extends ReadonlyArray<Top>>(
  * - `"anyOf"` (default) — matches if any member matches.
  * - `"oneOf"` — matches if exactly one member matches.
  *
- * **Example** (String or number union)
+ * **Example** (Defining a string or number union)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4391,7 +4391,7 @@ export interface Literals<L extends ReadonlyArray<SchemaAST.LiteralValue>>
 /**
  * Creates a union schema from an array of literal values.
  *
- * **Example** (Status codes)
+ * **Example** (Defining status codes)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4526,7 +4526,7 @@ export interface suspend<S extends Top> extends
  * essential for creating recursive schemas where a schema references itself,
  * preventing infinite recursion during schema definition.
  *
- * **Example** (Recursive tree schema)
+ * **Example** (Defining recursive tree schemas)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -4988,7 +4988,7 @@ export interface compose<To extends Top, From extends Top> extends decodeTo<To, 
  * and is used on the encoding path, while `encode` maps `To["Encoded"]` to
  * `From["Type"]` and is used on the decoding path.
  *
- * **Example** (String to Number with transformation)
+ * **Example** (Transforming strings to numbers with a schema transformation)
  *
  * ```ts
  * import { Schema, SchemaGetter } from "effect"
@@ -5105,7 +5105,7 @@ export function decode<S extends Top, RD = never, RE = never>(transformation: {
  * `encodeTo(to)(from)` is equivalent to `to.pipe(decodeTo(from))`. The `from`
  * schema acts as the target decoded schema and `to` acts as the encoded source.
  *
- * **Example** (Encode a number back to string)
+ * **Example** (Encoding a number back to a string)
  *
  * ```ts
  * import { Schema, SchemaGetter } from "effect"
@@ -5229,7 +5229,7 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
  * Constructor defaults are applied only during `make*`, not during decoding or
  * encoding.
  *
- * **Example** (Optional field with a static default)
+ * **Example** (Defining an optional field with a static default)
  *
  * ```ts
  * import { Effect, Schema } from "effect"
@@ -5299,7 +5299,7 @@ export type DecodingDefaultOptions = {
  *   - `"passthrough"` (default): include the value in the encoded output.
  *   - `"omit"`: omit the key from the encoded output.
  *
- * **Example** (Default for a missing struct key)
+ * **Example** (Providing a default for a missing struct key)
  *
  * ```ts
  * import { Effect, Schema } from "effect"
@@ -5407,7 +5407,7 @@ export interface withDecodingDefault<S extends Top, R = never> extends decodeTo<
  *   - `"passthrough"` (default): include the value in the encoded output.
  *   - `"omit"`: omit the key from the encoded output.
  *
- * **Example** (Default for an optional field value)
+ * **Example** (Providing a default for an optional field value)
  *
  * ```ts
  * import { Effect, Schema } from "effect"
@@ -5502,7 +5502,7 @@ export interface tag<Tag extends SchemaAST.LiteralValue> extends withConstructor
  * for discriminator fields in tagged unions. When constructing via `make`, the
  * `_tag` field can be omitted and will be filled automatically.
  *
- * **Example** (Discriminated union tag)
+ * **Example** (Defining a discriminated union tag)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5536,7 +5536,7 @@ export function tag<Tag extends SchemaAST.LiteralValue>(literal: Tag): tag<Tag> 
  * The tag is filled during decoding and construction, like {@link tag}, but is
  * omitted when encoding.
  *
- * **Example** (Tag omitted during encoding)
+ * **Example** (Omitting tags during encoding)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5582,7 +5582,7 @@ export type TaggedStruct<Tag extends SchemaAST.LiteralValue, Fields extends Stru
  * added automatically. However, when decoding or encoding, the `_tag` field
  * must be present in the input.
  *
- * **Example** (Tagged struct as a shorthand for a struct with a `_tag` field)
+ * **Example** (Defining a tagged struct shorthand)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5781,7 +5781,7 @@ export interface TaggedUnion<Cases extends Record<string, Top>> extends
  * Each key becomes the `_tag` literal and the value is passed to {@link TaggedStruct}.
  * The result includes `cases`, `guards`, `isAnyOf`, and `match` utilities.
  *
- * **Example** (Discriminated union with pattern matching)
+ * **Example** (Pattern matching a discriminated union)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5848,7 +5848,7 @@ export interface Opaque<Self, S extends Top, Brand> extends
  * Useful for creating opaque types that are structurally identical to a base struct
  * but type-incompatible with it.
  *
- * **Example** (Opaque struct)
+ * **Example** (Defining opaque structs)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5889,7 +5889,7 @@ export interface instanceOf<T, Iso = T> extends declare<T, Iso> {
  * Creates a schema that validates values using `instanceof`.
  * Decoding and encoding pass the value through unchanged.
  *
- * **Example** (Schema for a built-in class)
+ * **Example** (Defining a schema for a built-in class)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -5947,7 +5947,7 @@ export function link<T>() {
  * When `abort` is `true`, parsing stops after this filter fails instead of
  * collecting later check failures.
  *
- * **Example** (Failure at a nested path)
+ * **Example** (Reporting failure at a nested path)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -7517,7 +7517,7 @@ export const isBetweenBigDecimal = makeIsBetween({
  * constraint to ensure generated strings or arrays have at least the required
  * length.
  *
- * **Example** (Minimum length check)
+ * **Example** (Checking minimum length)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -9981,7 +9981,7 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  * JSON serializer encodes valid dates as ISO 8601 strings; invalid dates encode
  * as `"Invalid Date"`.
  *
- * **Example** (Date schema)
+ * **Example** (Defining a Date schema)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -10099,7 +10099,7 @@ export interface Duration extends declare<Duration_.Duration> {
  * The default JSON serializer encodes `Duration` as a tagged object with the
  * duration type and value.
  *
- * **Example** (Duration schema)
+ * **Example** (Defining a Duration schema)
  *
  * ```ts
  * import { Duration, Schema } from "effect"
@@ -10762,7 +10762,7 @@ export interface fromFormData<S extends Top> extends decodeTo<S, FormData> {
  * // Success({"a":"1"})
  * ```
  *
- * **Example** (Nested fields)
+ * **Example** (Decoding nested fields)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -10900,7 +10900,7 @@ export interface fromURLSearchParams<S extends Top> extends decodeTo<S, URLSearc
  * // Success({"a":"1"})
  * ```
  *
- * **Example** (Nested fields)
+ * **Example** (Decoding nested fields)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -12198,7 +12198,7 @@ type MissingSelfGeneric<Usage extends string> =
  *
  * Passing `disableChecks` in the options skips constructor validation.
  *
- * **Example** (Basic class)
+ * **Example** (Defining a basic class)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -12281,7 +12281,7 @@ export const Class: {
  * The optional `identifier` parameter overrides the schema identifier;
  * it defaults to the `tag` value.
  *
- * **Example** (Tagged class)
+ * **Example** (Defining a tagged class)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -12397,7 +12397,7 @@ export const ErrorClass: {
  * Use to define typed errors that are schema validated, yielded in `Effect.gen`,
  * and matched as tagged union members.
  *
- * **Example** (Tagged error class)
+ * **Example** (Defining a tagged error class)
  *
  * ```ts
  * import { Effect, Schema } from "effect"
@@ -12729,7 +12729,7 @@ export function overrideToEquivalence<S extends Top>(toEquivalence: () => Equiva
  * every field (and nested field) compares equal according to the schema
  * structure.
  *
- * **Example** (Struct equivalence)
+ * **Example** (Comparing structs)
  *
  * ```ts
  * import { Schema } from "effect"
