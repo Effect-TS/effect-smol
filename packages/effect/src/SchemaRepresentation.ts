@@ -3091,11 +3091,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
   Object.entries(document.definitions).forEach(([identifier, definition]) => {
     visited = new Set<string>([identifier])
-    references[identifier] = recur(definition)
+    references[identifier] = unknownToJson(recur(definition))
   })
 
   visited = new Set<string>()
-  const representations = Arr.map(document.schemas, recur)
+  const representations = Arr.map(document.schemas, (schema) => unknownToJson(recur(schema)))
   return {
     representations,
     references
@@ -3529,6 +3529,80 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     }
     return out
   }
+
+  function makeJson(annotations: Schema.Annotations.Annotations | undefined): Representation {
+    if (annotations === undefined) return json
+    return {
+      ...json,
+      annotations: {
+        ...json.annotations,
+        ...annotations
+      }
+    }
+  }
+
+  function unknownToJson(representation: Representation): Representation {
+    switch (representation._tag) {
+      case "Unknown":
+        return makeJson(representation.annotations)
+      case "Declaration":
+      case "Reference":
+        return representation
+      case "Suspend": {
+        const thunk = unknownToJson(representation.thunk)
+        return thunk === representation.thunk ? representation : { ...representation, thunk }
+      }
+      case "String": {
+        if (representation.contentSchema === undefined) return representation
+        const contentSchema = unknownToJson(representation.contentSchema)
+        return contentSchema === representation.contentSchema ? representation : { ...representation, contentSchema }
+      }
+      case "Arrays": {
+        let changed = false
+        const elements = representation.elements.map((element) => {
+          const type = unknownToJson(element.type)
+          if (type === element.type) return element
+          changed = true
+          return { ...element, type }
+        })
+        const rest = representation.rest.map((schema) => {
+          const type = unknownToJson(schema)
+          if (type === schema) return schema
+          changed = true
+          return type
+        })
+        return changed ? { ...representation, elements, rest } : representation
+      }
+      case "Objects": {
+        let changed = false
+        const propertySignatures = representation.propertySignatures.map((propertySignature) => {
+          const type = unknownToJson(propertySignature.type)
+          if (type === propertySignature.type) return propertySignature
+          changed = true
+          return { ...propertySignature, type }
+        })
+        const indexSignatures = representation.indexSignatures.map((indexSignature) => {
+          const type = unknownToJson(indexSignature.type)
+          if (type === indexSignature.type) return indexSignature
+          changed = true
+          return { ...indexSignature, type }
+        })
+        return changed ? { ...representation, propertySignatures, indexSignatures } : representation
+      }
+      case "Union": {
+        let changed = false
+        const types = representation.types.map((schema) => {
+          const type = unknownToJson(schema)
+          if (type === schema) return schema
+          changed = true
+          return type
+        })
+        return changed ? { ...representation, types } : representation
+      }
+      default:
+        return representation
+    }
+  }
 }
 
 function asChecks<M>(
@@ -3654,6 +3728,22 @@ function collectArraysChecks(js: JsonSchema.JsonSchema): Array<Check<ArraysMeta>
 }
 
 const unknown: Unknown = { _tag: "Unknown" }
+const json: Declaration = {
+  _tag: "Declaration",
+  annotations: {
+    expected: "JSON value",
+    generation: {
+      Type: "Schema.Json",
+      runtime: "Schema.Json"
+    },
+    typeConstructor: {
+      _tag: "effect/Json"
+    }
+  },
+  checks: [],
+  encodedSchema: unknown,
+  typeParameters: []
+}
 const never: Never = { _tag: "Never" }
 const null_: Null = { _tag: "Null" }
 const string: String = { _tag: "String", checks: [] }
