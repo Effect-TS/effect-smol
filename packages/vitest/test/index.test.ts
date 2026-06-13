@@ -33,6 +33,25 @@ it.effect.skip(
   () => Effect.die("skipped anyway")
 )
 
+// chained access through proxy preserves subproperties (regression for
+// https://github.com/Effect-TS/effect-smol/issues/2301)
+
+it.describe("it.describe.each", () => {
+  it.describe.each(["a", "b"] as const)("%s", (text) => {
+    it("matches the case label", () => {
+      assert.include(["a", "b"], text)
+    })
+  })
+})
+
+it.skip.each([1, 2])("it.skip.each is skipped (%s)", (n) => {
+  assert.fail(`should never run for ${n}`)
+})
+
+it.only.each([] as Array<number>)("it.only.each has no cases", () => {
+  assert.fail("no cases registered")
+})
+
 // skipIf
 
 it.effect.skipIf(true)("effect skipIf (true)", () => Effect.die("skipped anyway"))
