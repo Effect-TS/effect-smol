@@ -1755,16 +1755,27 @@ const wrapPropertyKeyIssue = (
   key: PropertyKey,
   exit: Exit.Failure<any, SchemaIssue.Issue>
 ) => {
-  const issueResult = Cause.findError(exit.cause)
-  if (Result.isFailure(issueResult)) {
+  let issue: SchemaIssue.Issue | undefined
+  for (const reason of exit.cause.reasons) {
+    if (!Cause.isFailReason(reason)) {
+      return Exit.failCause(
+        Cause.map(
+          exit.cause,
+          (issue) => new SchemaIssue.Composite(ast, s.oinput, [new SchemaIssue.Pointer([key], issue)])
+        )
+      )
+    }
+    issue ??= reason.error
+  }
+  if (issue === undefined) {
     return exit
   }
-  const issue = new SchemaIssue.Pointer([key], issueResult.success)
+  const pointer = new SchemaIssue.Pointer([key], issue)
   if (s.options.errors === "all") {
-    if (s.issues) s.issues.push(issue)
-    else s.issues = [issue]
+    if (s.issues) s.issues.push(pointer)
+    else s.issues = [pointer]
   } else {
-    return Exit.fail(new SchemaIssue.Composite(ast, s.oinput, [issue]))
+    return Exit.fail(new SchemaIssue.Composite(ast, s.oinput, [pointer]))
   }
 }
 
@@ -2658,12 +2669,18 @@ const parseUnion = iterateEager<{
   },
   step(s, candidate, exit) {
     if (exit._tag === "Failure") {
-      const issueResult = Cause.findError(exit.cause)
-      if (Result.isFailure(issueResult)) {
+      let issue: SchemaIssue.Issue | undefined
+      for (const reason of exit.cause.reasons) {
+        if (!Cause.isFailReason(reason)) {
+          return exit
+        }
+        issue ??= reason.error
+      }
+      if (issue === undefined) {
         return exit
       }
-      if (s.issues) s.issues.push(issueResult.success)
-      else s.issues = [issueResult.success]
+      if (s.issues) s.issues.push(issue)
+      else s.issues = [issue]
     } else {
       if (s.out && s.ast.mode === "oneOf") {
         s.successes.push(candidate)

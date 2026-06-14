@@ -202,6 +202,8 @@ export interface Bottom<
    *
    * Throws an `Error` with the schema issue in its `cause` when validation
    * fails.
+   * Causes that contain defects, interruptions, or other non-schema reasons
+   * throw with the underlying `Cause` attached instead.
    *
    * @see {@link Bottom.makeOption} — construct synchronously and discard validation details
    * @see {@link Bottom.makeEffect} — construct through `Effect` when validation failure should stay in the error channel
@@ -220,6 +222,12 @@ export interface Bottom<
    *
    * Applies constructor defaults and type-side validation according to
    * `MakeOptions`.
+   *
+   * **Gotchas**
+   *
+   * Only causes made entirely of schema issues are converted to `None`. Causes
+   * that contain defects, interruptions, or other non-schema reasons throw
+   * instead.
    *
    * @see {@link Bottom.make} — construct synchronously when validation failure should throw
    * @see {@link Bottom.makeEffect} — construct through `Effect` when validation details should stay in the error channel
@@ -1090,8 +1098,14 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
  * **Details**
  *
  * This function returns a predicate that performs a type-safe check, narrowing
- * the type of the input value if the check passes. It's particularly useful for
- * runtime type validation and TypeScript type narrowing.
+ * the type of the input value if the check passes. The predicate returns `false`
+ * for schema mismatches.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `false`. Causes
+ * that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
  *
  * **Example** (Defining a basic type guard)
  *
@@ -1117,7 +1131,7 @@ export function toStandardJSONSchemaV1<S extends Top>(self: S): StandardJSONSche
 export const is = SchemaParser.is
 
 /**
- * Creates an assertion function that throws an error if the input doesn't match
+ * Creates an assertion function that throws an error if the input does not match
  * the schema.
  *
  * **When to use**
@@ -1127,8 +1141,14 @@ export const is = SchemaParser.is
  *
  * **Details**
  *
- * The input is narrowed if the assertion succeeds. If validation fails, the
- * assertion throws.
+ * The input is narrowed if the assertion succeeds. If schema validation fails,
+ * the assertion throws an `Error` whose cause is `SchemaIssue.Issue`.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or other non-schema reasons throw
+ * with the underlying `Cause` attached instead of being converted to schema
+ * validation errors.
  *
  * **Example** (Asserting and narrowing an input)
  *
@@ -1182,7 +1202,7 @@ export function decodeUnknownEffect<S extends Top>(schema: S, options?: SchemaAS
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> => {
-    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
+    return mapSchemaIssueEffect(parser(input, options))
   }
 }
 
@@ -1215,15 +1235,73 @@ export const decodeEffect: <S extends Top>(
   options?: SchemaAST.ParseOptions
 ) => Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> = decodeUnknownEffect
 
+function mapSchemaIssueEffect<A, R>(
+  self: Effect.Effect<A, SchemaIssue.Issue, R>
+): Effect.Effect<A, SchemaError, R> {
+  return Effect.catchCause(
+    self,
+    (cause) => Effect.failCauseSync(() => Cause_.map(cause, (issue) => new SchemaError(issue)))
+  )
+}
+
+function mapSchemaErrorEffect<A, R>(
+  self: Effect.Effect<A, SchemaError, R>
+): Effect.Effect<A, SchemaIssue.Issue, R> {
+  return Effect.catchCause(self, (cause) => Effect.failCauseSync(() => Cause_.map(cause, (error) => error.issue)))
+}
+
+function mapSchemaIssueExit<A>(exit: Exit_.Exit<A, SchemaIssue.Issue>): Exit_.Exit<A, SchemaError> {
+  return Exit_.isSuccess(exit)
+    ? Exit_.succeed(exit.value)
+    : Exit_.failCause(Cause_.map(exit.cause, (issue) => new SchemaError(issue)))
+}
+
+function getSchemaErrorOrThrow(
+  cause: Cause_.Cause<SchemaError>,
+  message: string
+): SchemaError {
+  let schemaError: SchemaError | undefined
+  for (const reason of cause.reasons) {
+    if (!Cause_.isFailReason(reason) || !isSchemaError(reason.error)) {
+      throw new globalThis.Error(message, { cause })
+    }
+    schemaError ??= reason.error
+  }
+  if (schemaError === undefined) {
+    throw new globalThis.Error(message, { cause })
+  }
+  return schemaError
+}
+
+function runSchemaErrorPromise<A>(
+  self: Effect.Effect<A, SchemaError>
+): Promise<A> {
+  return Effect.runPromiseExit(self).then((exit) => {
+    if (Exit_.isSuccess(exit)) {
+      return exit.value
+    }
+    throw getSchemaErrorOrThrow(exit.cause, "Promise adapter can only reject schema errors")
+  })
+}
+
+function runSchemaErrorSync<A>(
+  self: Effect.Effect<A, SchemaError>
+): A {
+  const exit = Effect.runSyncExit(self)
+  if (Exit_.isSuccess(exit)) {
+    return exit.value
+  }
+  throw getSchemaErrorOrThrow(exit.cause, "Sync adapter can only throw schema errors")
+}
+
 /**
  * Decodes an `unknown` input against a schema synchronously, returning an
- * `Exit` that is either a `Success` with the decoded value or a `Failure` with
- * a {@link SchemaError}.
+ * `Exit` that is either a `Success` with the decoded value or a `Failure`.
  *
  * **When to use**
  *
- * Use when you need to decode unknown input into an `Exit` whose failure
- * contains `SchemaError`.
+ * Use when you need to decode unknown input into an `Exit` and capture schema
+ * mismatches as `SchemaError`.
  *
  * **Details**
  *
@@ -1232,6 +1310,14 @@ export const decodeEffect: <S extends Top>(
  * type.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are represented by a `Failure` cause containing
+ * `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Schema issue fail reasons are wrapped as `SchemaError`. Defects,
+ * interruptions, and other non-schema reasons remain in the returned `Cause`,
+ * including when they are mixed with schema issues.
  *
  * @see {@link SchemaParser.decodeUnknownExit} for the adapter whose failure contains `SchemaIssue.Issue` directly
  *
@@ -1241,19 +1327,19 @@ export const decodeEffect: <S extends Top>(
 export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.decodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
-    return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
+    return mapSchemaIssueExit(parser(input, options))
   }
 }
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema
- * synchronously, returning an `Exit` that is either a `Success` with the
- * decoded value or a `Failure` with a {@link SchemaError}.
+ * synchronously, returning an `Exit` that is either a `Success` with the decoded
+ * value or a `Failure`.
  *
  * **When to use**
  *
- * Use when you need to decode already typed `Encoded` input into an `Exit`
- * whose failure contains `SchemaError`.
+ * Use when you need to decode already typed `Encoded` input into an `Exit` and
+ * capture schema mismatches as `SchemaError`.
  *
  * **Details**
  *
@@ -1261,6 +1347,14 @@ export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options
  * `unknown` input use {@link decodeUnknownExit}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are represented by a `Failure` cause containing
+ * `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Schema issue fail reasons are wrapped as `SchemaError`. Defects,
+ * interruptions, and other non-schema reasons remain in the returned `Cause`,
+ * including when they are mixed with schema issues.
  *
  * @see {@link SchemaParser.decodeExit} for the adapter whose failure contains `SchemaIssue.Issue` directly
  *
@@ -1274,7 +1368,7 @@ export const decodeExit: <S extends Decoder<unknown>>(
 
 /**
  * Decodes an `unknown` input against a schema, returning an `Option` that is
- * `Some` with the decoded value on success or `None` on failure.
+ * `Some` with the decoded value on success or `None` for schema mismatches.
  *
  * **When to use**
  *
@@ -1289,6 +1383,12 @@ export const decodeExit: <S extends Decoder<unknown>>(
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `None`. Causes
+ * that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
+ *
  * @category decoding
  * @since 3.10.0
  */
@@ -1300,7 +1400,7 @@ export const decodeUnknownOption: <S extends Decoder<unknown>>(
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning an `Option` that is `Some` with the decoded value on success or
- * `None` on failure.
+ * `None` for schema mismatches.
  *
  * **When to use**
  *
@@ -1313,6 +1413,12 @@ export const decodeUnknownOption: <S extends Decoder<unknown>>(
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `None`. Causes
+ * that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
+ *
  * @category decoding
  * @since 3.10.0
  */
@@ -1323,12 +1429,13 @@ export const decodeOption: <S extends Decoder<unknown>>(
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the decoded value or fails with a {@link SchemaError}.
+ * succeeds with the decoded value or fails with a {@link SchemaError} for schema
+ * mismatches.
  *
  * **When to use**
  *
- * Use when you do not know the input type statically and want decoding to
- * return a `Result` with `SchemaError` failure data.
+ * Use when you do not know the input type statically and want schema mismatches
+ * returned as `Result.fail` with `SchemaError`.
  *
  * **Details**
  *
@@ -1336,6 +1443,13 @@ export const decodeOption: <S extends Decoder<unknown>>(
  * {@link decodeResult}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are returned as `Result.fail` with `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are returned as `Result.fail`.
+ * Causes that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
  *
  * @see {@link SchemaParser.decodeUnknownResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
@@ -1352,18 +1466,25 @@ export function decodeUnknownResult<S extends Decoder<unknown>>(schema: S, optio
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Result` that succeeds with the decoded value or fails with a
- * {@link SchemaError}.
+ * {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
- * Use when you already have input typed as the schema's `Encoded` type and
- * want decoding to return a `Result` with `SchemaError` failure data.
+ * Use when you already have input typed as the schema's `Encoded` type and want
+ * schema mismatches returned as `Result.fail` with `SchemaError`.
  *
  * **Details**
  *
  * For `unknown` input use {@link decodeUnknownResult}.
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are returned as `Result.fail` with `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are returned as `Result.fail`.
+ * Causes that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
  *
  * @see {@link SchemaParser.decodeResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
@@ -1378,12 +1499,13 @@ export const decodeResult: <S extends Decoder<unknown>>(
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the decoded value or rejects with a {@link SchemaError}.
+ * resolves with the decoded value or rejects with a {@link SchemaError} for
+ * schema mismatches.
  *
  * **When to use**
  *
  * Use when you need decoding of unknown input to return a JavaScript `Promise`
- * that rejects with `SchemaError`.
+ * that rejects with `SchemaError` for schema mismatches.
  *
  * **Details**
  *
@@ -1392,7 +1514,12 @@ export const decodeResult: <S extends Decoder<unknown>>(
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
- * @see {@link SchemaParser.decodeUnknownPromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ * **Gotchas**
+ *
+ * Non-schema failures may reject with a runtime failure instead of
+ * `SchemaError`.
+ *
+ * @see {@link SchemaParser.decodeUnknownPromise} for the adapter that rejects with an `Error` whose cause is `SchemaIssue.Issue`
  *
  * @category decoding
  * @since 3.10.0
@@ -1400,20 +1527,20 @@ export const decodeResult: <S extends Decoder<unknown>>(
 export function decodeUnknownPromise<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = decodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Type"]> => {
-    return Effect.runPromise(parser(input, options))
+    return runSchemaErrorPromise(parser(input, options))
   }
 }
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema,
  * returning a `Promise` that resolves with the decoded value or rejects with a
- * {@link SchemaError}.
+ * {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
  * Use when you already have input typed as the schema's `Encoded` type and
  * need decoding to return a JavaScript `Promise` that rejects with
- * `SchemaError`.
+ * `SchemaError` for schema mismatches.
  *
  * **Details**
  *
@@ -1421,7 +1548,12 @@ export function decodeUnknownPromise<S extends Decoder<unknown>>(schema: S, opti
  * Options may be provided either when creating the decoder or when applying it;
  * application options override creation options.
  *
- * @see {@link SchemaParser.decodePromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ * **Gotchas**
+ *
+ * Non-schema failures may reject with a runtime failure instead of
+ * `SchemaError`.
+ *
+ * @see {@link SchemaParser.decodePromise} for the adapter that rejects with an `Error` whose cause is `SchemaIssue.Issue`
  *
  * @category decoding
  * @since 3.10.0
@@ -1433,7 +1565,7 @@ export const decodePromise: <S extends Decoder<unknown>>(
 
 /**
  * Decodes an `unknown` input against a schema synchronously, returning the
- * decoded value or throwing a {@link SchemaError}.
+ * decoded value or throwing a {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
@@ -1443,10 +1575,15 @@ export const decodePromise: <S extends Decoder<unknown>>(
  * **Details**
  *
  * For input already typed as the schema's `Encoded` type use `decodeSync`.
- * Only service-free schemas can be decoded synchronously. For non-throwing
- * alternatives see `decodeUnknownOption`, `decodeUnknownExit`, or
- * `decodeUnknownEffect`. Options may be provided either when creating the
- * decoder or when applying it; application options override creation options.
+ * Only service-free schemas can be decoded synchronously. For alternatives that
+ * do not throw on schema mismatches, see `decodeUnknownOption`,
+ * `decodeUnknownExit`, or `decodeUnknownEffect`. Options may be provided either
+ * when creating the decoder or when applying it; application options override
+ * creation options.
+ *
+ * **Gotchas**
+ *
+ * Non-schema failures may throw a runtime failure instead of `SchemaError`.
  *
  * **Example** (Decoding with a transformation schema)
  *
@@ -1473,13 +1610,14 @@ export const decodePromise: <S extends Decoder<unknown>>(
 export function decodeUnknownSync<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = decodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): S["Type"] => {
-    return Effect.runSync(parser(input, options) as Effect.Effect<S["Type"], SchemaError>)
+    return runSchemaErrorSync(parser(input, options))
   }
 }
 
 /**
  * Decodes a typed input (the schema's `Encoded` type) against a schema
- * synchronously, returning the decoded value or throwing a {@link SchemaError}.
+ * synchronously, returning the decoded value or throwing a {@link SchemaError}
+ * for schema mismatches.
  *
  * **When to use**
  *
@@ -1492,6 +1630,10 @@ export function decodeUnknownSync<S extends Decoder<unknown>>(schema: S, options
  * Only service-free schemas can be decoded synchronously. Options may be
  * provided either when creating the decoder or when applying it; application
  * options override creation options.
+ *
+ * **Gotchas**
+ *
+ * Non-schema failures may throw a runtime failure instead of `SchemaError`.
  *
  * @see {@link SchemaParser.decodeSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
  *
@@ -1541,7 +1683,7 @@ export function encodeUnknownEffect<S extends Top>(schema: S, options?: SchemaAS
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Encoded"], SchemaError, S["EncodingServices"]> => {
-    return Effect.mapErrorEager(parser(input, options), (issue) => new SchemaError(issue))
+    return mapSchemaIssueEffect(parser(input, options))
   }
 }
 
@@ -1576,13 +1718,12 @@ export const encodeEffect: <S extends Top>(
 
 /**
  * Encodes an `unknown` input against a schema synchronously, returning an
- * `Exit` that is either a `Success` with the encoded value or a `Failure` with
- * a {@link SchemaError}.
+ * `Exit` that is either a `Success` with the encoded value or a `Failure`.
  *
  * **When to use**
  *
- * Use when you need to encode unknown input into an `Exit` whose failure
- * contains `SchemaError`.
+ * Use when you need to encode unknown input into an `Exit` and capture schema
+ * mismatches as `SchemaError`.
  *
  * **Details**
  *
@@ -1590,6 +1731,14 @@ export const encodeEffect: <S extends Top>(
  * {@link encodeExit} when the value is already typed as the schema's `Type`.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are represented by a `Failure` cause containing
+ * `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Schema issue fail reasons are wrapped as `SchemaError`. Defects,
+ * interruptions, and other non-schema reasons remain in the returned `Cause`,
+ * including when they are mixed with schema issues.
  *
  * @see {@link SchemaParser.encodeUnknownExit} for the adapter whose failure contains `SchemaIssue.Issue` directly
  *
@@ -1599,19 +1748,19 @@ export const encodeEffect: <S extends Top>(
 export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.encodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
-    return Exit_.mapError(parser(input, options), (issue) => new SchemaError(issue))
+    return mapSchemaIssueExit(parser(input, options))
   }
 }
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema synchronously,
  * returning an `Exit` that is either a `Success` with the encoded value or a
- * `Failure` with a {@link SchemaError}.
+ * `Failure`.
  *
  * **When to use**
  *
- * Use when you need to encode already typed schema values into an `Exit` whose
- * failure contains `SchemaError`.
+ * Use when you need to encode already typed schema values into an `Exit` and
+ * capture schema mismatches as `SchemaError`.
  *
  * **Details**
  *
@@ -1619,6 +1768,14 @@ export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options
  * `unknown` input use {@link encodeUnknownExit}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are represented by a `Failure` cause containing
+ * `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Schema issue fail reasons are wrapped as `SchemaError`. Defects,
+ * interruptions, and other non-schema reasons remain in the returned `Cause`,
+ * including when they are mixed with schema issues.
  *
  * @see {@link SchemaParser.encodeExit} for the adapter whose failure contains `SchemaIssue.Issue` directly
  *
@@ -1632,7 +1789,7 @@ export const encodeExit: <S extends Encoder<unknown>>(
 
 /**
  * Encodes an `unknown` input against a schema, returning an `Option` that is
- * `Some` with the encoded value on success or `None` on failure.
+ * `Some` with the encoded value on success or `None` for schema mismatches.
  *
  * **When to use**
  *
@@ -1647,6 +1804,12 @@ export const encodeExit: <S extends Encoder<unknown>>(
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `None`. Causes
+ * that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
+ *
  * @category encoding
  * @since 3.10.0
  */
@@ -1658,8 +1821,8 @@ export const encodeUnknownOption: <S extends Encoder<unknown>>(
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning an
- * `Option` that is `Some` with the encoded value on success or `None` on
- * failure.
+ * `Option` that is `Some` with the encoded value on success or `None` for schema
+ * mismatches.
  *
  * **When to use**
  *
@@ -1672,6 +1835,12 @@ export const encodeUnknownOption: <S extends Encoder<unknown>>(
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `None`. Causes
+ * that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
+ *
  * @category encoding
  * @since 3.10.0
  */
@@ -1682,18 +1851,26 @@ export const encodeOption: <S extends Encoder<unknown>>(
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
- * succeeds with the encoded value or fails with a {@link SchemaError}.
+ * succeeds with the encoded value or fails with a {@link SchemaError} for schema
+ * mismatches.
  *
  * **When to use**
  *
- * Use when you do not know the input type statically and want encoding to
- * return a `Result` with `SchemaError` failure data.
+ * Use when you do not know the input type statically and want schema mismatches
+ * returned as `Result.fail` with `SchemaError`.
  *
  * **Details**
  *
  * For values already typed as the schema's `Type` use {@link encodeResult}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are returned as `Result.fail` with `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are returned as `Result.fail`.
+ * Causes that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
  *
  * @see {@link SchemaParser.encodeUnknownResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
@@ -1710,18 +1887,25 @@ export function encodeUnknownResult<S extends Encoder<unknown>>(schema: S, optio
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
  * `Result` that succeeds with the encoded value or fails with a
- * {@link SchemaError}.
+ * {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
- * Use when you already have a value typed as the schema's `Type` and want
- * encoding to return a `Result` with `SchemaError` failure data.
+ * Use when you already have a value typed as the schema's `Type` and want schema
+ * mismatches returned as `Result.fail` with `SchemaError`.
  *
  * **Details**
  *
  * For `unknown` input use {@link encodeUnknownResult}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ * Schema mismatches are returned as `Result.fail` with `SchemaError`.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are returned as `Result.fail`.
+ * Causes that contain defects, interruptions, or other non-schema reasons throw
+ * instead.
  *
  * @see {@link SchemaParser.encodeResult} for the adapter that fails with `SchemaIssue.Issue` directly
  *
@@ -1736,12 +1920,13 @@ export const encodeResult: <S extends Encoder<unknown>>(
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Promise` that
- * resolves with the encoded value or rejects with a {@link SchemaError}.
+ * resolves with the encoded value or rejects with a {@link SchemaError} for
+ * schema mismatches.
  *
  * **When to use**
  *
  * Use when you need encoding of unknown input to return a JavaScript `Promise`
- * that rejects with `SchemaError`.
+ * that rejects with `SchemaError` for schema mismatches.
  *
  * **Details**
  *
@@ -1749,7 +1934,12 @@ export const encodeResult: <S extends Encoder<unknown>>(
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
- * @see {@link SchemaParser.encodeUnknownPromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ * **Gotchas**
+ *
+ * Non-schema failures may reject with a runtime failure instead of
+ * `SchemaError`.
+ *
+ * @see {@link SchemaParser.encodeUnknownPromise} for the adapter that rejects with an `Error` whose cause is `SchemaIssue.Issue`
  *
  * @category encoding
  * @since 3.10.0
@@ -1757,19 +1947,20 @@ export const encodeResult: <S extends Encoder<unknown>>(
 export function encodeUnknownPromise<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = encodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Encoded"]> => {
-    return Effect.runPromise(parser(input, options))
+    return runSchemaErrorPromise(parser(input, options))
   }
 }
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema, returning a
  * `Promise` that resolves with the encoded value or rejects with a
- * {@link SchemaError}.
+ * {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
  * Use when you already have a value typed as the schema's `Type` and need
- * encoding to return a JavaScript `Promise` that rejects with `SchemaError`.
+ * encoding to return a JavaScript `Promise` that rejects with `SchemaError` for
+ * schema mismatches.
  *
  * **Details**
  *
@@ -1777,7 +1968,12 @@ export function encodeUnknownPromise<S extends Encoder<unknown>>(schema: S, opti
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
  *
- * @see {@link SchemaParser.encodePromise} for the adapter that rejects with `SchemaIssue.Issue` directly
+ * **Gotchas**
+ *
+ * Non-schema failures may reject with a runtime failure instead of
+ * `SchemaError`.
+ *
+ * @see {@link SchemaParser.encodePromise} for the adapter that rejects with an `Error` whose cause is `SchemaIssue.Issue`
  *
  * @category encoding
  * @since 3.10.0
@@ -1789,7 +1985,7 @@ export const encodePromise: <S extends Encoder<unknown>>(
 
 /**
  * Encodes an `unknown` input against a schema synchronously, throwing a
- * {@link SchemaError} on failure.
+ * {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
@@ -1798,11 +1994,15 @@ export const encodePromise: <S extends Encoder<unknown>>(
  *
  * **Details**
  *
- * For non-throwing alternatives see {@link encodeUnknownOption},
- * {@link encodeUnknownExit}, or {@link encodeUnknownEffect}. For values
- * already typed as the schema's `Type` use {@link encodeSync}.
- * Options may be provided either when creating the encoder or when applying it;
- * application options override creation options.
+ * For alternatives that do not throw on schema mismatches, see
+ * {@link encodeUnknownOption}, {@link encodeUnknownExit}, or
+ * {@link encodeUnknownEffect}. For values already typed as the schema's `Type`
+ * use {@link encodeSync}. Options may be provided either when creating the
+ * encoder or when applying it; application options override creation options.
+ *
+ * **Gotchas**
+ *
+ * Non-schema failures may throw a runtime failure instead of `SchemaError`.
  *
  * @see {@link SchemaParser.encodeUnknownSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
  *
@@ -1812,13 +2012,13 @@ export const encodePromise: <S extends Encoder<unknown>>(
 export function encodeUnknownSync<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = encodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): S["Encoded"] => {
-    return Effect.runSync(parser(input, options) as Effect.Effect<S["Encoded"], SchemaError>)
+    return runSchemaErrorSync(parser(input, options) as Effect.Effect<S["Encoded"], SchemaError>)
   }
 }
 
 /**
  * Encodes a typed input (the schema's `Type`) against a schema synchronously,
- * throwing a {@link SchemaError} on failure.
+ * throwing a {@link SchemaError} for schema mismatches.
  *
  * **When to use**
  *
@@ -1830,6 +2030,10 @@ export function encodeUnknownSync<S extends Encoder<unknown>>(schema: S, options
  * For `unknown` input use {@link encodeUnknownSync}.
  * Options may be provided either when creating the encoder or when applying it;
  * application options override creation options.
+ *
+ * **Gotchas**
+ *
+ * Non-schema failures may throw a runtime failure instead of `SchemaError`.
  *
  * @see {@link SchemaParser.encodeSync} for the adapter that throws an `Error` whose cause is `SchemaIssue.Issue`
  *
@@ -5254,7 +5458,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   defaultValue: Effect.Effect<S["~type.make.in"], SchemaError>
 ) {
   return (schema: S): withConstructorDefault<S> =>
-    make(SchemaAST.withConstructorDefault(schema.ast, Effect.mapErrorEager(defaultValue, (e) => e.issue)), { schema })
+    make(SchemaAST.withConstructorDefault(schema.ast, mapSchemaErrorEffect(defaultValue)), { schema })
 }
 
 /**
@@ -5324,7 +5528,7 @@ export function withDecodingDefaultKey<S extends Top, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefaultKey<S, R> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(Effect.mapErrorEager(defaultValue, (e) => e.issue)),
+      decode: SchemaGetter.withDefault(mapSchemaErrorEffect(defaultValue)),
       encode
     }))
   }
@@ -5432,7 +5636,7 @@ export function withDecodingDefault<S extends Top, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefault<S, R> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(Effect.mapErrorEager(defaultValue, (e) => e.issue)),
+      decode: SchemaGetter.withDefault(mapSchemaErrorEffect(defaultValue)),
       encode
     }))
   }
