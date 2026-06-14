@@ -21,6 +21,7 @@ import { memoize } from "./Function.ts"
 import { effectIsExit, iterateEager } from "./internal/effect.ts"
 import * as internalRecord from "./internal/record.ts"
 import * as InternalAnnotations from "./internal/schema/annotations.ts"
+import * as InternalSchemaCause from "./internal/schema/cause.ts"
 import * as Option from "./Option.ts"
 import * as Pipeable from "./Pipeable.ts"
 import * as Predicate from "./Predicate.ts"
@@ -1755,20 +1756,17 @@ const wrapPropertyKeyIssue = (
   key: PropertyKey,
   exit: Exit.Failure<any, SchemaIssue.Issue>
 ) => {
-  let issue: SchemaIssue.Issue | undefined
-  for (const reason of exit.cause.reasons) {
-    if (!Cause.isFailReason(reason)) {
-      return Exit.failCause(
-        Cause.map(
-          exit.cause,
-          (issue) => new SchemaIssue.Composite(ast, s.oinput, [new SchemaIssue.Pointer([key], issue)])
-        )
-      )
-    }
-    issue ??= reason.error
-  }
-  if (issue === undefined) {
+  if (exit.cause.reasons.length === 0) {
     return exit
+  }
+  const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
+  if (issue === undefined) {
+    return Exit.failCause(
+      Cause.map(
+        exit.cause,
+        (issue) => new SchemaIssue.Composite(ast, s.oinput, [new SchemaIssue.Pointer([key], issue)])
+      )
+    )
   }
   const pointer = new SchemaIssue.Pointer([key], issue)
   if (s.options.errors === "all") {
@@ -2669,13 +2667,7 @@ const parseUnion = iterateEager<{
   },
   step(s, candidate, exit) {
     if (exit._tag === "Failure") {
-      let issue: SchemaIssue.Issue | undefined
-      for (const reason of exit.cause.reasons) {
-        if (!Cause.isFailReason(reason)) {
-          return exit
-        }
-        issue ??= reason.error
-      }
+      const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
       if (issue === undefined) {
         return exit
       }

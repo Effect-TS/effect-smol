@@ -15,6 +15,7 @@ import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
 import { memoize } from "./Function.ts"
+import * as InternalSchemaCause from "./internal/schema/cause.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
@@ -104,7 +105,7 @@ export function makeOption<S extends Schema.Top>(schema: S) {
     if (Exit.isSuccess(exit)) {
       return Option.some(exit.value)
     }
-    getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
     return Option.none()
   }
 }
@@ -138,7 +139,10 @@ export function make<S extends Schema.Top>(schema: S) {
     if (Exit.isSuccess(exit)) {
       return exit.value
     }
-    const issue = getSchemaIssueOrThrow(exit.cause, "Constructor adapter can only throw schema issues")
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+      exit.cause,
+      "Constructor adapter can only throw schema issues"
+    )
     throw new Error(issue.toString(), { cause: issue })
   }
 }
@@ -178,7 +182,7 @@ export function _is<T>(ast: SchemaAST.AST) {
     if (Exit.isSuccess(exit)) {
       return true
     }
-    getSchemaIssueOrThrow(exit.cause, "Type guard adapter can only return false for schema issues")
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Type guard adapter can only return false for schema issues")
     return false
   }
 }
@@ -191,7 +195,7 @@ export function _issue<T>(ast: SchemaAST.AST) {
     if (Exit.isSuccess(exit)) {
       return undefined
     }
-    return getSchemaIssueOrThrow(exit.cause, "Issue adapter can only return schema issues")
+    return InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Issue adapter can only return schema issues")
   }
 }
 
@@ -222,7 +226,10 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
   const parser = asExit(run<S["Type"], never>(SchemaAST.toType(schema.ast)))
   const exit = parser(input, SchemaAST.defaultParseOptions)
   if (Exit.isFailure(exit)) {
-    const issue = getSchemaIssueOrThrow(exit.cause, "Assertion adapter can only throw schema issues")
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+      exit.cause,
+      "Assertion adapter can only throw schema issues"
+    )
     throw new Error(issue.toString(), { cause: issue })
   }
 }
@@ -924,7 +931,10 @@ function asPromise<T, E>(
       if (Exit.isSuccess(exit)) {
         return exit.value
       }
-      const issue = getSchemaIssueOrThrow(exit.cause, "Promise adapter can only reject schema issues")
+      const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+        exit.cause,
+        "Promise adapter can only reject schema issues"
+      )
       throw new Error(issue.toString(), { cause: issue })
     })
 }
@@ -945,7 +955,7 @@ export function asOption<T, E, R>(
     if (Exit.isSuccess(exit)) {
       return Option.some(exit.value)
     }
-    getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
     return Option.none()
   }
 }
@@ -959,25 +969,10 @@ function asResult<T, E, R>(
     if (Exit.isSuccess(exit)) {
       return Result.succeed(exit.value)
     }
-    return Result.fail(getSchemaIssueOrThrow(exit.cause, "Result adapter can only return schema issues"))
+    return Result.fail(
+      InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Result adapter can only return schema issues")
+    )
   }
-}
-
-function getSchemaIssueOrThrow(
-  cause: Cause.Cause<SchemaIssue.Issue>,
-  message: string
-): SchemaIssue.Issue {
-  let issue: SchemaIssue.Issue | undefined
-  for (const reason of cause.reasons) {
-    if (!Cause.isFailReason(reason) || !SchemaIssue.isIssue(reason.error)) {
-      throw new Error(message, { cause })
-    }
-    issue ??= reason.error
-  }
-  if (issue === undefined) {
-    throw new Error(message, { cause })
-  }
-  return issue
 }
 
 function asSync<T, E>(
@@ -989,7 +984,7 @@ function asSync<T, E>(
     if (Exit.isSuccess(exit)) {
       return exit.value
     }
-    const issue = getSchemaIssueOrThrow(exit.cause, "Sync adapter can only throw schema issues")
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Sync adapter can only throw schema issues")
     throw new Error(issue.toString(), { cause: issue })
   }
 }

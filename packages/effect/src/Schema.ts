@@ -1202,7 +1202,7 @@ export function decodeUnknownEffect<S extends Top>(schema: S, options?: SchemaAS
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> => {
-    return mapSchemaIssueEffect(parser(input, options))
+    return InternalSchema.mapSchemaIssueEffect(parser(input, options))
   }
 }
 
@@ -1234,27 +1234,6 @@ export const decodeEffect: <S extends Top>(
   input: S["Encoded"],
   options?: SchemaAST.ParseOptions
 ) => Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> = decodeUnknownEffect
-
-function mapSchemaIssueEffect<A, R>(
-  self: Effect.Effect<A, SchemaIssue.Issue, R>
-): Effect.Effect<A, SchemaError, R> {
-  return Effect.catchCause(
-    self,
-    (cause) => Effect.failCauseSync(() => Cause_.map(cause, (issue) => new SchemaError(issue)))
-  )
-}
-
-function mapSchemaErrorEffect<A, R>(
-  self: Effect.Effect<A, SchemaError, R>
-): Effect.Effect<A, SchemaIssue.Issue, R> {
-  return Effect.catchCause(self, (cause) => Effect.failCauseSync(() => Cause_.map(cause, (error) => error.issue)))
-}
-
-function mapSchemaIssueExit<A>(exit: Exit_.Exit<A, SchemaIssue.Issue>): Exit_.Exit<A, SchemaError> {
-  return Exit_.isSuccess(exit)
-    ? Exit_.succeed(exit.value)
-    : Exit_.failCause(Cause_.map(exit.cause, (issue) => new SchemaError(issue)))
-}
 
 function getSchemaErrorOrThrow(
   cause: Cause_.Cause<SchemaError>,
@@ -1327,7 +1306,7 @@ function runSchemaErrorSync<A>(
 export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.decodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
-    return mapSchemaIssueExit(parser(input, options))
+    return InternalSchema.mapSchemaIssueExit(parser(input, options))
   }
 }
 
@@ -1683,7 +1662,7 @@ export function encodeUnknownEffect<S extends Top>(schema: S, options?: SchemaAS
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Encoded"], SchemaError, S["EncodingServices"]> => {
-    return mapSchemaIssueEffect(parser(input, options))
+    return InternalSchema.mapSchemaIssueEffect(parser(input, options))
   }
 }
 
@@ -1748,7 +1727,7 @@ export const encodeEffect: <S extends Top>(
 export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.encodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
-    return mapSchemaIssueExit(parser(input, options))
+    return InternalSchema.mapSchemaIssueExit(parser(input, options))
   }
 }
 
@@ -5458,7 +5437,7 @@ export function withConstructorDefault<S extends Top & WithoutConstructorDefault
   defaultValue: Effect.Effect<S["~type.make.in"], SchemaError>
 ) {
   return (schema: S): withConstructorDefault<S> =>
-    make(SchemaAST.withConstructorDefault(schema.ast, mapSchemaErrorEffect(defaultValue)), { schema })
+    make(SchemaAST.withConstructorDefault(schema.ast, InternalSchema.mapSchemaErrorEffect(defaultValue)), { schema })
 }
 
 /**
@@ -5528,7 +5507,7 @@ export function withDecodingDefaultKey<S extends Top, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefaultKey<S, R> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(mapSchemaErrorEffect(defaultValue)),
+      decode: SchemaGetter.withDefault(InternalSchema.mapSchemaErrorEffect(defaultValue)),
       encode
     }))
   }
@@ -5636,7 +5615,7 @@ export function withDecodingDefault<S extends Top, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefault<S, R> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(mapSchemaErrorEffect(defaultValue)),
+      decode: SchemaGetter.withDefault(InternalSchema.mapSchemaErrorEffect(defaultValue)),
       encode
     }))
   }
