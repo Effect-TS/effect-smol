@@ -22,7 +22,7 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaAST from "./SchemaAST.ts"
 import * as SchemaGetter from "./SchemaGetter.ts"
 
 // -----------------------------------------------------------------------------
@@ -3530,24 +3530,18 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function makeJson(annotations: Schema.Annotations.Annotations | undefined): Representation {
-    if (annotations === undefined) return json
-    return {
-      ...json,
-      annotations: {
-        ...json.annotations,
-        ...annotations
-      }
-    }
-  }
-
   function unknownToJson(representation: Representation): Representation {
     switch (representation._tag) {
       case "Unknown":
-        return makeJson(representation.annotations)
-      case "Declaration":
-      case "Reference":
-        return representation
+        return representation.annotations === undefined ?
+          json :
+          {
+            ...json,
+            annotations: {
+              ...json.annotations,
+              ...representation.annotations
+            }
+          }
       case "Suspend": {
         const thunk = unknownToJson(representation.thunk)
         return thunk === representation.thunk ? representation : { ...representation, thunk }
@@ -3558,46 +3552,32 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         return contentSchema === representation.contentSchema ? representation : { ...representation, contentSchema }
       }
       case "Arrays": {
-        let changed = false
-        const elements = representation.elements.map((element) => {
+        const elements = SchemaAST.mapOrSame(representation.elements, (element) => {
           const type = unknownToJson(element.type)
-          if (type === element.type) return element
-          changed = true
-          return { ...element, type }
+          return type === element.type ? element : { ...element, type }
         })
-        const rest = representation.rest.map((schema) => {
-          const type = unknownToJson(schema)
-          if (type === schema) return schema
-          changed = true
-          return type
-        })
-        return changed ? { ...representation, elements, rest } : representation
+        const rest = SchemaAST.mapOrSame(representation.rest, unknownToJson)
+        return elements === representation.elements && rest === representation.rest ?
+          representation :
+          { ...representation, elements, rest }
       }
       case "Objects": {
-        let changed = false
-        const propertySignatures = representation.propertySignatures.map((propertySignature) => {
+        const propertySignatures = SchemaAST.mapOrSame(representation.propertySignatures, (propertySignature) => {
           const type = unknownToJson(propertySignature.type)
-          if (type === propertySignature.type) return propertySignature
-          changed = true
-          return { ...propertySignature, type }
+          return type === propertySignature.type ? propertySignature : { ...propertySignature, type }
         })
-        const indexSignatures = representation.indexSignatures.map((indexSignature) => {
+        const indexSignatures = SchemaAST.mapOrSame(representation.indexSignatures, (indexSignature) => {
           const type = unknownToJson(indexSignature.type)
-          if (type === indexSignature.type) return indexSignature
-          changed = true
-          return { ...indexSignature, type }
+          return type === indexSignature.type ? indexSignature : { ...indexSignature, type }
         })
-        return changed ? { ...representation, propertySignatures, indexSignatures } : representation
+        return propertySignatures === representation.propertySignatures &&
+            indexSignatures === representation.indexSignatures ?
+          representation :
+          { ...representation, propertySignatures, indexSignatures }
       }
       case "Union": {
-        let changed = false
-        const types = representation.types.map((schema) => {
-          const type = unknownToJson(schema)
-          if (type === schema) return schema
-          changed = true
-          return type
-        })
-        return changed ? { ...representation, types } : representation
+        const types = SchemaAST.mapOrSame(representation.types, unknownToJson)
+        return types === representation.types ? representation : { ...representation, types }
       }
       default:
         return representation
