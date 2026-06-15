@@ -278,11 +278,12 @@ export const make = (
       executeUnprepared(
         sql: string,
         params: ReadonlyArray<unknown>,
-        transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined
+        transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined,
+        method: "execute" | "query" = "query",
       ) {
         return transformRows
           ? Effect.map(this.run(sql, params, false, "query"), transformRows)
-          : this.run(sql, params, false, "query")
+          : this.run(sql, params, false, method)
       }
       executeStream(
         sql: string,
