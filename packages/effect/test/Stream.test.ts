@@ -133,6 +133,36 @@ describe("Stream", () => {
       }))
   })
 
+  describe("destructors", () => {
+    it.effect("runForEachWhile continues across chunk boundaries", () =>
+      Effect.gen(function*() {
+        const seen: Array<number> = []
+        yield* Stream.fromArrays([1, 2], [3, 4]).pipe(
+          Stream.runForEachWhile((n) =>
+            Effect.sync(() => {
+              seen.push(n)
+              return true
+            })
+          )
+        )
+        assert.deepStrictEqual(seen, [1, 2, 3, 4])
+      }))
+
+    it.effect("runForEachWhile stops when predicate returns false", () =>
+      Effect.gen(function*() {
+        const seen: Array<number> = []
+        yield* Stream.fromArrays([1, 2, 3], [4, 5]).pipe(
+          Stream.runForEachWhile((n) =>
+            Effect.sync(() => {
+              seen.push(n)
+              return n < 3
+            })
+          )
+        )
+        assert.deepStrictEqual(seen, [1, 2, 3])
+      }))
+  })
+
   describe("constructors", () => {
     class Greeter extends Context.Service<Greeter, {
       readonly greet: (name: string) => string

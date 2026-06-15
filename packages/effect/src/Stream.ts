@@ -10937,7 +10937,7 @@ export const runForEachWhile: {
           if (!b) done = true
         }
       }),
-      () => done
+      () => !done
     )
   }))
 
