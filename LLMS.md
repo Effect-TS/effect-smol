@@ -262,10 +262,9 @@ Schedules define recurring patterns for retries, repeats and polling.
 
 ## Working with DateTime
 
-`DateTime` represents absolute instants, optional time zones, and calendar-aware
-operations. Use it instead of direct `Date`/`Date.now` access when your
-Effect programs need testable current time, safe parsing, stable ISO formatting,
-time-zone conversion, or calendar arithmetic.
+When working with dates and time, use the `DateTime` module instead of `Date` and `Date.now`.
+
+Use it when your Effect programs need testable current time, safe parsing, stable ISO formatting, time-zone conversion, or calendar arithmetic.
 
 - **[Creating and formatting DateTime values](./ai-docs/src/07_datetime/10_creating-and-formatting.ts)**:
   Parse incoming date values safely, use Clock-powered current time, and format
@@ -273,9 +272,6 @@ time-zone conversion, or calendar arithmetic.
 - **[Working with time zones](./ai-docs/src/07_datetime/20_time-zones.ts)**:
   Attach IANA zones to instants, render zoned ISO strings, and provide a
   CurrentTimeZone service for code that should use the workspace/user zone.
-- **[Calendar-aware DateTime math](./ai-docs/src/07_datetime/30_calendar-math.ts)**:
-  Use DateTime arithmetic and rounding for billing periods, reminders, grace
-  periods, and business-calendar boundaries.
 
 ## Observability
 
