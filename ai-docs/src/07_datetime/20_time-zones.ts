@@ -4,63 +4,41 @@
  * Attach IANA zones to instants, render zoned ISO strings, and provide a
  * CurrentTimeZone service for code that should use the workspace/user zone.
  */
-import { type Cause, DateTime, Effect } from "effect"
+import { NodeRuntime } from "@effect/platform-node"
+import { DateTime, Effect, Option } from "effect"
 
-export interface WorkspaceTime {
-  readonly zoneId: string
-  readonly iso: string
-  readonly localDate: string
-  readonly label: string
-}
+Effect.gen(function*() {
+  // Use DateTime.now to get the current time from Effect's Clock service.
+  const now = yield* DateTime.now
 
-export const renderInstantForWorkspace = Effect.fn("renderInstantForWorkspace")(function*(
-  instant: DateTime.DateTime,
-  zoneId: string
-): Effect.fn.Return<WorkspaceTime, Cause.IllegalArgumentError> {
-  // Use the effectful constructor when an invalid IANA identifier should fail
-  // through the Effect error channel instead of throwing.
-  const zone = yield* DateTime.zoneMakeNamedEffect(zoneId)
+  // To attach a named IANA zone to a DateTime value
+  const nowInAuckland = now.pipe(
+    // Use DateTime.setZoneNamedUnsafe when you know the zone is valid.
+    DateTime.setZoneNamedUnsafe("Pacific/Auckland")
+  )
+  yield* Effect.log("Now in Auckland:", nowInAuckland)
 
-  // setZone preserves the same absolute instant and changes only the zone used
-  // for calendar parts and formatting.
-  const zoned = DateTime.setZone(instant, zone)
-
-  return {
-    zoneId,
-    iso: DateTime.formatIsoZoned(zoned),
-    // formatIsoDate respects the DateTime's zone, so late-night UTC instants can
-    // become the next calendar date for users east of UTC.
-    localDate: DateTime.formatIsoDate(zoned),
-    label: DateTime.format(zoned, {
-      locale: "en-US",
-      dateStyle: "full",
-      timeStyle: "short"
-    })
-  }
-})
-
-export const renderCurrentWorkspaceTime = Effect.fn("renderCurrentWorkspaceTime")(function*(
-  zoneId: string
-): Effect.fn.Return<WorkspaceTime, Cause.IllegalArgumentError> {
-  const now = yield* DateTime.nowInCurrentZone.pipe(
-    // CurrentTimeZone is a service. Providing it at the edge keeps the rest of
-    // the program independent from system-local time-zone settings.
-    DateTime.withCurrentZoneNamed(zoneId)
+  // Use DateTime.setZoneNamed when you don't know the zone is valid.
+  const nowInSydneyOption: Option.Option<DateTime.Zoned> = now.pipe(
+    DateTime.setZoneNamed("Australia/Sydney")
   )
 
-  return {
-    zoneId,
-    iso: DateTime.formatIsoZoned(now),
-    localDate: DateTime.formatIsoDate(now),
-    label: DateTime.format(now, {
-      locale: "en-US",
-      dateStyle: "full",
-      timeStyle: "short"
-    })
-  }
-})
+  yield* Effect.log("Now in Sydney:", Option.getOrUndefined(nowInSydneyOption))
 
-export const workspaceTimeExample = renderInstantForWorkspace(
-  DateTime.makeUnsafe("2024-01-01T23:30:00.000Z"),
-  "Pacific/Auckland"
+  // To generate a `DateTime.Zoned` in the `DateTime.CurrentTimeZone`
+  const nowInNewYork = yield* DateTime.nowInCurrentZone
+  yield* Effect.log("Now in New York:", nowInNewYork)
+
+  // If you have a date string that you know is in a particular IANA zone, you
+  // can convert it to a DateTime.Zoned to ensure the instant is correct
+  const dateInAuckland: DateTime.Zoned = DateTime.makeZonedUnsafe("2026-06-05", {
+    timeZone: "Pacific/Auckland",
+    // adjustForTimeZone will adjust the input to the given zone, otherwise it
+    // will be treated as UTC.
+    adjustForTimeZone: true
+  })
+  yield* Effect.log("Date in Auckland:", dateInAuckland)
+}).pipe(
+  Effect.provide(DateTime.layerCurrentZoneNamed("America/New_York")),
+  NodeRuntime.runMain
 )
