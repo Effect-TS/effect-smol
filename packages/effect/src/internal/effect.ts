@@ -987,15 +987,22 @@ export const tryPromise = <A, E = Cause.UnknownError>(
     ? ((cause: unknown) => new UnknownError(cause, "An error occurred in Effect.tryPromise"))
     : options.catch
   return callbackOptions<A, E>(function(resume, signal) {
+    const failWithCatch = (cause: unknown) => {
+      try {
+        resume(fail(internalCall(() => catcher(cause)) as E))
+      } catch (err) {
+        resume(die(err))
+      }
+    }
     try {
       internalCall(() => f(signal!)).then(
         (a) => resume(succeed(a)),
-        (e) => resume(fail(internalCall(() => catcher(e)) as E))
+        failWithCatch
       )
     } catch (err) {
-      resume(fail(internalCall(() => catcher(err)) as E))
+      failWithCatch(err)
     }
-  }, eval.length !== 0)
+  }, f.length !== 0)
 }
 
 /** @internal */

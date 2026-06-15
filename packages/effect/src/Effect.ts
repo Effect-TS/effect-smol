@@ -871,8 +871,8 @@ export const promise: <A>(
 ) => Effect<A> = internal.promise
 
 /**
- * Creates an `Effect` that represents an asynchronous computation that might
- * fail.
+ * Creates an `Effect` from an asynchronous computation that may throw or
+ * reject, mapping failures into the error channel.
  *
  * **When to use**
  *
@@ -882,19 +882,24 @@ export const promise: <A>(
  *
  * **Details**
  *
- * Error Handling:
+ * The promise thunk is evaluated when the effect runs. If it returns a promise
+ * that resolves, the resolved value becomes the success value. If the thunk
+ * throws before returning a promise, or if the returned promise rejects, the
+ * thrown or rejected value is mapped into the error channel.
  *
- * There are two ways to handle errors with `tryPromise`:
+ * Passing the thunk directly maps failures to {@link Cause.UnknownError}.
+ * Passing `{ try, catch }` uses `catch` to map failures to an error of type
+ * `E`.
  *
- * 1. If you don't provide a `catch` function, the error is caught and the
- *    effect fails with an {@link Cause.UnknownError}.
- * 2. If you provide a `catch` function, the error is caught and the `catch`
- *    function maps it to an error of type `E`.
+ * The thunk receives an `AbortSignal` that is aborted if the effect is
+ * interrupted. The underlying asynchronous operation only stops if it observes
+ * that signal.
  *
- * Interruptions:
+ * **Gotchas**
  *
- * An optional `AbortSignal` can be provided to allow for interruption of the
- * wrapped `Promise` API.
+ * If `catch` throws while mapping the error, that thrown value is treated as a
+ * defect. Return the error value you want in the error channel instead of
+ * throwing it.
  *
  * **Example** (Wrapping a fetch request that may fail)
  *
@@ -1613,8 +1618,8 @@ const try_: <A, E>(options: {
 
 export {
   /**
-   * Creates an `Effect` that represents a synchronous computation that might
-   * fail.
+   * Creates an `Effect` from a synchronous computation that may throw, mapping
+   * thrown values into typed failures.
    *
    * **When to use**
    *
@@ -1623,14 +1628,16 @@ export {
    *
    * **Details**
    *
-   * Error Handling:
+   * The `try` thunk is evaluated when the effect runs. If it returns normally,
+   * the returned value becomes the success value. If it throws, the thrown value
+   * is passed to `catch`, and the value returned by `catch` becomes the typed
+   * failure.
    *
-   * There are two ways to handle errors with `try`:
+   * **Gotchas**
    *
-   * 1. If you don't provide a `catch` function, the error is caught and the
-   *    effect fails with an `UnknownError`.
-   * 2. If you provide a `catch` function, the error is caught and the `catch`
-   *    function maps it to an error of type `E`.
+   * If `catch` throws while mapping the error, that thrown value is treated as
+   * a defect. Return the error value you want in the error channel instead of
+   * throwing it.
    *
    * **Example** (Parsing JSON with typed error mapping)
    *

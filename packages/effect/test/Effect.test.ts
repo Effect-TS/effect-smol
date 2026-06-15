@@ -26,6 +26,28 @@ import { assertCauseFail } from "./utils/assert.ts"
 
 class ATag extends Context.Service<ATag, "A">()("ATag") {}
 
+const assertExitDefect = <A, E>(exit: Exit.Exit<A, E>, defect: unknown) => {
+  assert.isTrue(Exit.hasDies(exit))
+  const result = Exit.findDefect(exit)
+  assert.isTrue(Result.isSuccess(result))
+  if (Result.isSuccess(result)) {
+    assert.strictEqual(result.success, defect)
+  }
+}
+
+const assertUnknownError = <A>(exit: Exit.Exit<A, Cause.UnknownError>, cause: unknown) => {
+  assert.isTrue(Exit.isFailure(exit))
+  if (Exit.isFailure(exit)) {
+    const result = Cause.findError(exit.cause)
+    assert.isTrue(Result.isSuccess(result))
+    if (Result.isSuccess(result)) {
+      assert.isTrue(Cause.isUnknownError(result.success))
+      assert.strictEqual((result.success as Error).cause, cause)
+      assert.strictEqual(result.success.message, "An error occurred in Effect.tryPromise")
+    }
+  }
+}
+
 describe("Effect", () => {
   it("isEffect", () => {
     assert.isTrue(Effect.isEffect(Effect.succeed(0)))
@@ -170,6 +192,184 @@ describe("Effect", () => {
         Effect.tap((error) => Effect.sync(() => assert.strictEqual(error, "error"))),
         Effect.runPromise
       ))
+  })
+
+  describe("try", () => {
+    it.effect("succeeds with the returned value", () =>
+      Effect.gen(function*() {
+        let catchCalled = false
+        const result = yield* Effect.try({
+          try: () => 1,
+          catch: () => {
+            catchCalled = true
+            return "error" as const
+          }
+        })
+        assert.strictEqual(result, 1)
+        assert.isFalse(catchCalled)
+      }))
+
+    it.effect("maps thrown values into typed failures", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const mapped = { cause: thrown }
+        const exit = yield* Effect.try({
+          try: () => {
+            throw thrown
+          },
+          catch: () => mapped
+        }).pipe(Effect.exit)
+        assertExitFailure(exit, Cause.fail(mapped))
+      }))
+
+    it.effect("turns a throwing catch mapper into a defect", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const defect = new Error("catch")
+        const exit = yield* Effect.try({
+          try: () => {
+            throw thrown
+          },
+          catch: () => {
+            throw defect
+          }
+        }).pipe(Effect.exit)
+        assertExitDefect(exit, defect)
+      }))
+  })
+
+  describe("tryPromise", () => {
+    it.effect("succeeds with the resolved value in direct-thunk form", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.tryPromise(() => Promise.resolve(1))
+        assert.strictEqual(result, 1)
+      }))
+
+    it.effect("does not allocate AbortController for zero-argument thunks", () =>
+      Effect.gen(function*() {
+        const originalAbortController = globalThis.AbortController
+        let allocations = 0
+        class TestAbortController extends originalAbortController {
+          constructor() {
+            allocations += 1
+            super()
+          }
+        }
+
+        yield* Effect.acquireUseRelease(
+          Effect.sync(() => {
+            globalThis.AbortController = TestAbortController
+          }),
+          () =>
+            Effect.gen(function*() {
+              const direct = yield* Effect.tryPromise(() => Promise.resolve(1))
+              const options = yield* Effect.tryPromise({
+                try: () => Promise.resolve(2),
+                catch: () => "error" as const
+              })
+              assert.strictEqual(direct, 1)
+              assert.strictEqual(options, 2)
+              assert.strictEqual(allocations, 0)
+            }),
+          () =>
+            Effect.sync(() => {
+              globalThis.AbortController = originalAbortController
+            })
+        )
+      }))
+
+    it.effect("maps synchronous throws to UnknownError in direct-thunk form", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const exit = yield* Effect.tryPromise<number>(() => {
+          throw thrown
+        }).pipe(Effect.exit)
+        assertUnknownError(exit, thrown)
+      }))
+
+    it.effect("maps promise rejections to UnknownError in direct-thunk form", () =>
+      Effect.gen(function*() {
+        const rejected = new Error("reject")
+        const exit = yield* Effect.tryPromise<number>(() => Promise.reject(rejected)).pipe(Effect.exit)
+        assertUnknownError(exit, rejected)
+      }))
+
+    it.effect("succeeds with the resolved value in options form", () =>
+      Effect.gen(function*() {
+        let catchCalled = false
+        const result = yield* Effect.tryPromise({
+          try: () => Promise.resolve(1),
+          catch: () => {
+            catchCalled = true
+            return "error" as const
+          }
+        })
+        assert.strictEqual(result, 1)
+        assert.isFalse(catchCalled)
+      }))
+
+    it.effect("maps synchronous throws with catch in options form", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const mapped = { cause: thrown }
+        const exit = yield* Effect.tryPromise({
+          try: () => {
+            throw thrown
+          },
+          catch: () => mapped
+        }).pipe(Effect.exit)
+        assertExitFailure(exit, Cause.fail(mapped))
+      }))
+
+    it.effect("maps promise rejections with catch in options form", () =>
+      Effect.gen(function*() {
+        const rejected = new Error("reject")
+        const mapped = { cause: rejected }
+        const exit = yield* Effect.tryPromise({
+          try: () => Promise.reject(rejected),
+          catch: () => mapped
+        }).pipe(Effect.exit)
+        assertExitFailure(exit, Cause.fail(mapped))
+      }))
+
+    it.effect("turns a throwing catch mapper for a synchronous throw into a defect", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const defect = new Error("catch")
+        const exit = yield* Effect.tryPromise({
+          try: () => {
+            throw thrown
+          },
+          catch: () => {
+            throw defect
+          }
+        }).pipe(Effect.exit)
+        assertExitDefect(exit, defect)
+      }))
+
+    it.effect("turns a throwing catch mapper for a promise rejection into a defect", () =>
+      Effect.gen(function*() {
+        const rejected = new Error("reject")
+        const defect = new Error("catch")
+        const exit = yield* Effect.tryPromise({
+          try: () => Promise.reject(rejected),
+          catch: () => {
+            throw defect
+          }
+        }).pipe(Effect.exit)
+        assertExitDefect(exit, defect)
+      }))
+
+    it.effect("aborts the provided AbortSignal on interruption", () =>
+      Effect.gen(function*() {
+        let signal: AbortSignal | undefined
+        const fiber = yield* Effect.tryPromise((signal_) => {
+          signal = signal_
+          return new Promise<never>(() => {})
+        }).pipe(Effect.forkChild({ startImmediately: true }))
+        yield* Fiber.interrupt(fiber)
+        assert.strictEqual(signal?.aborted, true)
+      }))
   })
 
   describe("gen", () => {
