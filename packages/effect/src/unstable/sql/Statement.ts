@@ -150,6 +150,7 @@ export interface Literal {
   readonly _tag: "Literal"
   readonly value: string
   readonly params?: ReadonlyArray<unknown> | undefined
+  readonly method?:string | undefined
 }
 
 /**
@@ -159,10 +160,12 @@ export interface Literal {
  * @category constructors
  * @since 4.0.0
  */
-export const literal = (value: string, params?: ReadonlyArray<unknown> | undefined): Literal => ({
+export const literal = (value: string, params?: ReadonlyArray<unknown> | undefined,method?: "execute" | "query"
+): Literal => ({
   _tag: "Literal",
   value,
-  params
+  params,
+  method
 })
 
 /**
@@ -439,7 +442,8 @@ export interface Constructor {
    */
   readonly unsafe: <A extends object>(
     sql: string,
-    params?: ReadonlyArray<unknown> | undefined
+    params?: ReadonlyArray<unknown> | undefined,
+    method?: "execute" | "query"
   ) => Statement<A>
 
   readonly literal: (sql: string) => Fragment
@@ -557,10 +561,11 @@ export const make = (
     {
       unsafe<A extends object = Row>(
         sql: string,
-        params?: ReadonlyArray<unknown>
+        params?: ReadonlyArray<unknown>,
+        method?: "execute" | "query"
       ) {
         return makeUnsafe<A>(
-          [literal(sql, params)],
+          [literal(sql, params,method)],
           acquirer,
           compiler,
           spanAttributes,
