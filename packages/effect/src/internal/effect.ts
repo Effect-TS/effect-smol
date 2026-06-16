@@ -950,17 +950,24 @@ const void_: Effect.Effect<void> = succeed(void 0)
 export { void_ as void }
 
 /** @internal */
-const try_ = <A, E>(options: {
-  try: LazyArg<A>
-  catch: (error: unknown) => E
-}): Effect.Effect<A, E> =>
-  suspend(() => {
+const try_ = <A, E = Cause.UnknownError>(
+  options: {
+    readonly try: LazyArg<A>
+    readonly catch: (error: unknown) => E
+  } | LazyArg<A>
+): Effect.Effect<A, E> => {
+  const evaluate = typeof options === "function" ? options : options.try
+  const catcher = typeof options === "function"
+    ? ((cause: unknown) => new UnknownError(cause, "An error occurred in Effect.try"))
+    : options.catch
+  return suspend(() => {
     try {
-      return succeed(internalCall(options.try))
+      return succeed(internalCall(evaluate))
     } catch (err) {
-      return fail(internalCall(() => options.catch(err)))
+      return fail(internalCall(() => catcher(err)) as E)
     }
   })
+}
 /** @internal */
 export { try_ as try }
 

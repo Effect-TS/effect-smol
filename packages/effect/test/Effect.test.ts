@@ -35,7 +35,7 @@ const assertExitDefect = <A, E>(exit: Exit.Exit<A, E>, defect: unknown) => {
   }
 }
 
-const assertUnknownError = <A>(exit: Exit.Exit<A, Cause.UnknownError>, cause: unknown) => {
+const assertUnknownError = <A>(exit: Exit.Exit<A, Cause.UnknownError>, cause: unknown, message: string) => {
   assert.isTrue(Exit.isFailure(exit))
   if (Exit.isFailure(exit)) {
     const result = Cause.findError(exit.cause)
@@ -43,7 +43,7 @@ const assertUnknownError = <A>(exit: Exit.Exit<A, Cause.UnknownError>, cause: un
     if (Result.isSuccess(result)) {
       assert.isTrue(Cause.isUnknownError(result.success))
       assert.strictEqual((result.success as Error).cause, cause)
-      assert.strictEqual(result.success.message, "An error occurred in Effect.tryPromise")
+      assert.strictEqual(result.success.message, message)
     }
   }
 }
@@ -195,6 +195,21 @@ describe("Effect", () => {
   })
 
   describe("try", () => {
+    it.effect("succeeds with the returned value in direct-thunk form", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.try(() => 1)
+        assert.strictEqual(result, 1)
+      }))
+
+    it.effect("maps thrown values to UnknownError in direct-thunk form", () =>
+      Effect.gen(function*() {
+        const thrown = new Error("try")
+        const exit = yield* Effect.try<number>(() => {
+          throw thrown
+        }).pipe(Effect.exit)
+        assertUnknownError(exit, thrown, "An error occurred in Effect.try")
+      }))
+
     it.effect("succeeds with the returned value", () =>
       Effect.gen(function*() {
         let catchCalled = false
@@ -284,14 +299,14 @@ describe("Effect", () => {
         const exit = yield* Effect.tryPromise<number>(() => {
           throw thrown
         }).pipe(Effect.exit)
-        assertUnknownError(exit, thrown)
+        assertUnknownError(exit, thrown, "An error occurred in Effect.tryPromise")
       }))
 
     it.effect("maps promise rejections to UnknownError in direct-thunk form", () =>
       Effect.gen(function*() {
         const rejected = new Error("reject")
         const exit = yield* Effect.tryPromise<number>(() => Promise.reject(rejected)).pipe(Effect.exit)
-        assertUnknownError(exit, rejected)
+        assertUnknownError(exit, rejected, "An error occurred in Effect.tryPromise")
       }))
 
     it.effect("succeeds with the resolved value in options form", () =>

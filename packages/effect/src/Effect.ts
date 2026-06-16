@@ -1611,27 +1611,32 @@ export const failCauseSync: <E>(
  */
 export const die: (defect: unknown) => Effect<never> = internal.die
 
-const try_: <A, E>(options: {
-  try: LazyArg<A>
-  catch: (error: unknown) => E
-}) => Effect<A, E> = internal.try
+const try_: <A, E = Cause.UnknownError>(
+  options: {
+    readonly try: LazyArg<A>
+    readonly catch: (error: unknown) => E
+  } | LazyArg<A>
+) => Effect<A, E> = internal.try
 
 export {
   /**
    * Creates an `Effect` from a synchronous computation that may throw, mapping
-   * thrown values into typed failures.
+   * thrown values into the error channel.
    *
    * **When to use**
    *
    * Use when you need to perform synchronous operations that might throw, such
-   * as parsing JSON, and convert thrown exceptions into typed Effect failures.
+   * as parsing JSON, and want thrown exceptions captured as Effect errors.
    *
    * **Details**
    *
-   * The `try` thunk is evaluated when the effect runs. If it returns normally,
-   * the returned value becomes the success value. If it throws, the thrown value
-   * is passed to `catch`, and the value returned by `catch` becomes the typed
-   * failure.
+   * The thunk is evaluated when the effect runs. If it returns normally, the
+   * returned value becomes the success value. If it throws, the thrown value is
+   * mapped into the error channel.
+   *
+   * Passing the thunk directly maps failures to {@link Cause.UnknownError}.
+   * Passing `{ try, catch }` uses `catch` to map failures to an error of type
+   * `E`.
    *
    * **Gotchas**
    *
@@ -1639,27 +1644,23 @@ export {
    * a defect. Return the error value you want in the error channel instead of
    * throwing it.
    *
-   * **Example** (Parsing JSON with typed error mapping)
+   * **Example** (Parsing JSON)
    *
    * ```ts
    * import { Effect } from "effect"
    *
    * const parseJSON = (input: string) =>
-   *   Effect.try({
-   *     try: () => JSON.parse(input),
-   *     catch: (error) => error as Error
-   *   })
+   *   Effect.try(() => JSON.parse(input))
    *
    * // Success case
    * Effect.runPromise(parseJSON("{\"name\": \"Alice\"}")).then(console.log)
    * // Output: { name: "Alice" }
    *
-   * // Failure case
+   * // Failure case maps the thrown value to UnknownError
    * Effect.runPromiseExit(parseJSON("invalid json")).then(console.log)
-   * // Output: Exit.failure with Error
    * ```
    *
-   * **Example** (Mapping synchronous exceptions to a tagged error)
+   * **Example** (Mapping exceptions to a tagged error)
    *
    * ```ts
    * import { Data, Effect } from "effect"

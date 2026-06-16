@@ -106,6 +106,42 @@ describe("Types", () => {
   })
 })
 
+describe("Effect.try", () => {
+  it("supports direct-thunk form", () => {
+    const result = Effect.try(() => 1)
+    expect(result).type.toBe<Effect.Effect<number, Cause.UnknownError>>()
+  })
+
+  it("supports options form with typed error mapping", () => {
+    const result = Effect.try({
+      try: () => 1,
+      catch: () => new SimpleError({ code: 1 })
+    })
+    expect(result).type.toBe<Effect.Effect<number, SimpleError>>()
+  })
+})
+
+describe("Effect.tryPromise", () => {
+  it("supports direct-thunk form", () => {
+    const result = Effect.tryPromise((signal) => {
+      expect(signal).type.toBe<AbortSignal>()
+      return Promise.resolve(1)
+    })
+    expect(result).type.toBe<Effect.Effect<number, Cause.UnknownError>>()
+  })
+
+  it("supports options form with typed error mapping", () => {
+    const result = Effect.tryPromise({
+      try: (signal) => {
+        expect(signal).type.toBe<AbortSignal>()
+        return Promise.resolve(1)
+      },
+      catch: () => new SimpleError({ code: 1 })
+    })
+    expect(result).type.toBe<Effect.Effect<number, SimpleError>>()
+  })
+})
+
 describe("Effect.catchReason", () => {
   it("handler receives reason type", () => {
     pipe(
