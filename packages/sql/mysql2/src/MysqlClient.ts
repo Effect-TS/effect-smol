@@ -279,7 +279,7 @@ export const make = (
         sql: string,
         params: ReadonlyArray<unknown>,
         transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined,
-        method: "execute" | "query" = "query",
+        method: "execute" | "query" = "query"
       ) {
         return transformRows
           ? Effect.map(this.run(sql, params, false, "query"), transformRows)

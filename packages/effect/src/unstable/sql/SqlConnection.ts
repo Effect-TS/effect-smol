@@ -54,7 +54,7 @@ export interface Connection {
     sql: string,
     params: ReadonlyArray<unknown>,
     transformRows: (<A extends object>(row: ReadonlyArray<A>) => ReadonlyArray<A>) | undefined,
-    method?: "execute" | "query",
+    method?: "execute" | "query"
   ) => Effect<ReadonlyArray<any>, SqlError>
 }
 
