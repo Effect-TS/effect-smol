@@ -67,6 +67,7 @@ declare const resultStringOrNumber: Result.Result<string, "err-1"> | Result.Resu
 declare const fiberStringOrNumber: Fiber.Fiber<string, "err-1"> | Fiber.Fiber<number, "err-2">
 declare const stringArray: Array<Effect.Effect<string, "err-3", "dep-3">>
 declare const numberRecord: Record<string, Effect.Effect<number, "err-4", "dep-4">>
+declare const optionalEffect: Option.Option<Effect.Effect<string, "err-1", "dep-1">>
 
 class AcquireReleaseDependency extends Context.Service<AcquireReleaseDependency, string>()(
   "AcquireReleaseDependency"
@@ -165,6 +166,13 @@ describe("Effect.catchReason", () => {
       )
     )
     expect(result).type.toBe<Effect.Effect<string, OtherError | SimpleError>>()
+  })
+})
+
+describe("Effect.transposeOption", () => {
+  it("preserves success, error, and requirements", () => {
+    const result = Effect.transposeOption(optionalEffect)
+    expect(result).type.toBe<Effect.Effect<Option.Option<string>, "err-1", "dep-1">>()
   })
 })
 

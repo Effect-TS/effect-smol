@@ -1809,6 +1809,42 @@ export const fromOption: <A>(
 ) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
+ * Converts an `Option` of an `Effect` into an `Effect` of an `Option`.
+ *
+ * **When to use**
+ *
+ * Use when an effect should run only when an optional value is present, while
+ * preserving absence as a successful `None`.
+ *
+ * **Details**
+ *
+ * - `None` becomes an effect that succeeds with `None`
+ * - `Some(effect)` runs the inner effect and wraps its success value in `Some`
+ * - Inner failures are preserved in the resulting effect
+ *
+ * **Example** (Transposing an Option of an Effect)
+ *
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const some = Option.some(Effect.succeed(42))
+ *
+ * //      ┌─── Effect<Option<number>, never, never>
+ * //      ▼
+ * const program = Effect.transposeOption(some)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
+ *
+ * @category converting
+ * @since 3.13.0
+ */
+export const transposeOption: <A = never, E = never, R = never>(
+  self: Option<Effect<A, E, R>>
+) => Effect<Option<A>, E, R> = internal.transposeOption
+
+/**
  * Converts a nullable value to an `Effect`, failing with a `NoSuchElementError`
  * when the value is `null` or `undefined`.
  *

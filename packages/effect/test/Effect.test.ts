@@ -155,6 +155,26 @@ describe("Effect", () => {
       ))
   })
 
+  describe("transposeOption", () => {
+    it.effect("transposes a none", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.transposeOption(Option.none())
+        assert.deepStrictEqual(result, Option.none())
+      }))
+
+    it.effect("transposes a some containing a success", () =>
+      Effect.gen(function*() {
+        const result = yield* Effect.transposeOption(Option.some(Effect.succeed("A")))
+        assert.deepStrictEqual(result, Option.some("A"))
+      }))
+
+    it.effect("transposes a some containing a failure", () =>
+      Effect.gen(function*() {
+        const error = yield* Effect.transposeOption(Option.some(Effect.fail("error"))).pipe(Effect.flip)
+        assert.strictEqual(error, "error")
+      }))
+  })
+
   describe("fromResult", () => {
     it("from a success", () =>
       Result.succeed("A").pipe(

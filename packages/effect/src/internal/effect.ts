@@ -934,6 +934,11 @@ export const succeedNone: Effect.Effect<Option.Option<never>> = succeed(
 )
 
 /** @internal */
+export const transposeOption = <A = never, E = never, R = never>(
+  self: Option.Option<Effect.Effect<A, E, R>>
+): Effect.Effect<Option.Option<A>, E, R> => Option.isNone(self) ? succeedNone : map(self.value, Option.some)
+
+/** @internal */
 export const failCauseSync = <E>(
   evaluate: LazyArg<Cause.Cause<E>>
 ): Effect.Effect<never, E> => suspend(() => failCause(internalCall(evaluate)))
