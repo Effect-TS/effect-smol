@@ -765,7 +765,7 @@ const prepareMessages = Effect.fnUntraced(
                       method: "prepareMessages",
                       reason: new AiError.InvalidUserInputError({
                         description: `Detected unsupported media type for audio file: '${part.mediaType}' ` +
-                          "- OpenRouter supports aac, aiff, flac, m4a, mp3, ogg, pcm16, pcm24, and wav audio"
+                          `- OpenRouter supports ${supportedAudioFormats} audio`
                       })
                     })
                   }
@@ -1820,6 +1820,8 @@ const audioFormats: Record<string, string> = {
   "audio/wave": "wav",
   "audio/x-wav": "wav"
 }
+
+const supportedAudioFormats = Array.from(new Set(Object.values(audioFormats))).join(", ")
 
 const getMediaType = (dataUrl: string, defaultMediaType: string): string => {
   const match = dataUrl.match(/^data:([^;]+)/)
