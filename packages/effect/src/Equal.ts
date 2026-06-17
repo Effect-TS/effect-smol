@@ -26,7 +26,7 @@ import { hasProperty } from "./Predicate.ts"
  *
  * This is a pure constant with no allocation or side effects.
  *
- * **Example** (Implementing Equal on a Class)
+ * **Example** (Implementing Equal on a class)
  *
  * ```ts
  * import { Equal, Hash } from "effect"
@@ -74,7 +74,7 @@ export const symbol = "~effect/interfaces/Equal"
  * - {@link equals} delegates to this method when both operands implement it.
  *   If only one operand implements `Equal`, they are considered unequal.
  *
- * **Example** (Coordinate with Value Equality)
+ * **Example** (Comparing coordinates by value)
  *
  * ```ts
  * import { Equal, Hash } from "effect"
@@ -137,7 +137,7 @@ export interface Equal extends Hash.Hash {
  *   mutated after their first comparison.**
  * - Map and Set comparisons are O(n²) in size.
  *
- * **Example** (Comparing Values)
+ * **Example** (Comparing values)
  *
  * ```ts
  * import { Equal } from "effect"
@@ -404,7 +404,7 @@ const compareSets = makeCompareSet(compareBoth)
  *   {@link symbol}.
  * - Acts as a TypeScript type guard, narrowing the input to {@link Equal}.
  *
- * **Example** (Type Guard)
+ * **Example** (Checking Equal values)
  *
  * ```ts
  * import { Equal, Hash } from "effect"
@@ -445,7 +445,7 @@ export const isEqual = (u: unknown): u is Equal => hasProperty(u, symbol)
  *   {@link equals}.
  * - Pure; allocates a thin wrapper on each call.
  *
- * **Example** (Deduplicating with Equal Semantics)
+ * **Example** (Deduplicating with Equal semantics)
  *
  * ```ts
  * import { Array, Equal } from "effect"
@@ -479,7 +479,7 @@ export const asEquivalence: <A>() => Equivalence<A> = () => equals
  * - Each call creates a **new** proxy, so `byReference(x) !== byReference(x)`.
  * - Does **not** mutate the original object (unlike {@link byReferenceUnsafe}).
  *
- * **Example** (Opting Out of Structural Equality)
+ * **Example** (Opting out of structural equality)
  *
  * ```ts
  * import { Equal } from "effect"
@@ -524,7 +524,7 @@ export const byReference = <T extends object>(obj: T): T => byReferenceUnsafe(ne
  *
  * The marking is irreversible for the lifetime of the object.
  *
- * **Example** (Marking an Object for Reference Equality)
+ * **Example** (Marking an object for reference equality)
  *
  * ```ts
  * import { Equal } from "effect"

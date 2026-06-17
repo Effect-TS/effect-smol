@@ -1018,7 +1018,7 @@ export const map: {
  *
  * The hash and equality behavior of both maps have to be the same.
  *
- * **Example** (FlatMapping values)
+ * **Example** (Flat mapping values)
  *
  * ```ts
  * import { HashMap } from "effect"

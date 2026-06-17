@@ -594,4 +594,36 @@ describe("Prompt.custom", () => {
       const result = yield* Prompt.run(prompt)
       assert.strictEqual(result, 3)
     }).pipe(Effect.provide(TestLayer)))
+
+  it.effect("Input variant exposes the input field with UserInput", () =>
+    Effect.gen(function*() {
+      const eventQueue = yield* Queue.make<string>()
+
+      const prompt = Prompt.custom(
+        { captured: "" },
+        Queue.asDequeue(eventQueue),
+        {
+          render: (state) => Effect.succeed(`Captured: ${state.captured}`),
+          process: (input, state) =>
+            Match.value(input).pipe(
+              Match.tag("Input", ({ input: userInput }) => {
+                const key = userInput.key.name
+                return key === "enter"
+                  ? Effect.succeed(Action.Submit({ value: state.captured }))
+                  : Effect.succeed(Action.NextFrame({ state: { captured: state.captured + key } }))
+              }),
+              Match.tag("Event", () => Effect.succeed(Action.NextFrame({ state }))),
+              Match.exhaustive
+            ),
+          clear: () => Effect.succeed("")
+        }
+      )
+
+      yield* MockTerminal.inputKey("x")
+      yield* MockTerminal.inputKey("y")
+      yield* MockTerminal.inputKey("enter")
+
+      const result = yield* Prompt.run(prompt)
+      assert.strictEqual(result, "xy")
+    }).pipe(Effect.provide(TestLayer)))
 })

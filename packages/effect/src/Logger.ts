@@ -480,7 +480,7 @@ export const make: <Message, Output>(
 /**
  * The default logging implementation used by the Effect runtime.
  *
- * **Example** (Using the default logger)
+ * **Example** (Referencing the default logger)
  *
  * ```ts
  * import { Effect, Logger } from "effect"

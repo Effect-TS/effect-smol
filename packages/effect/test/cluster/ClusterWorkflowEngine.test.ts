@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Cause, Context, DateTime, Duration, Effect, Exit, Fiber, Layer, Option, Schema } from "effect"
+import { Cause, Context, DateTime, Duration, Effect, Exit, Fiber, Layer, Option, Result, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import {
   ClusterSchema,
@@ -306,6 +306,21 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       yield* Fiber.join(fiber)
 
       assert.isTrue(flags.get("catch"))
+    }).pipe(Effect.provide(TestWorkflowLayer)))
+
+  it.effect("can serialize workflow defects", () =>
+    Effect.gen(function*() {
+      yield* TestClock.adjust(1)
+
+      const exit = yield* ErrorDefectWorkflow.execute({
+        id: "raw-error-defect"
+      }).pipe(Effect.exit)
+
+      assert(Exit.isFailure(exit))
+      const defect = Cause.findDefect(exit.cause)
+      assert(Result.isSuccess(defect))
+      assert(defect.success instanceof Error)
+      assert.strictEqual(defect.success.message, "Batch request error: Request timed out")
     }).pipe(Effect.provide(TestWorkflowLayer)))
 })
 
@@ -639,6 +654,31 @@ const CatchWorkflowLayer = CatchWorkflow.toLayer(Effect.fnUntraced(function*() {
   )
 }))
 
+const ErrorDefectWorkflow = Workflow.make("ErrorDefectWorkflow", {
+  payload: {
+    id: Schema.String
+  },
+  idempotencyKey(payload) {
+    return payload.id
+  }
+})
+
+const ErrorDefectWorkflowLayer = ErrorDefectWorkflow.toLayer(Effect.fnUntraced(function*() {
+  yield* Activity.make({
+    name: "raw-error-defect",
+    execute: Effect.die(makeBatchRequestError())
+  })
+}))
+
+const makeBatchRequestError = () => {
+  const error = new Error("Batch request error: Request timed out")
+  Object.defineProperty(error, "nonJson", {
+    enumerable: true,
+    value: 1n
+  })
+  return error
+}
+
 const TestWorkflowLayer = EmailWorkflowLayer.pipe(
   Layer.merge(RaceWorkflowLayer),
   Layer.merge(DurableRaceWorkflowLayer),
@@ -647,6 +687,7 @@ const TestWorkflowLayer = EmailWorkflowLayer.pipe(
   Layer.merge(ShardedClockWorkflowLayer),
   Layer.merge(SuspendOnFailureWorkflowLayer),
   Layer.merge(CatchWorkflowLayer),
+  Layer.merge(ErrorDefectWorkflowLayer),
   Layer.provideMerge(Flags.layer),
   Layer.provideMerge(TestWorkflowEngine)
 )

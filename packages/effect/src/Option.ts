@@ -796,7 +796,7 @@ export const firstSomeOf = <T, C extends Iterable<Option<T>> = Iterable<Option<T
  * - `null` or `undefined` → `None`
  * - Any other value → `Some` (typed as `NonNullable<A>`)
  *
- * **Example** (From nullable values)
+ * **Example** (Converting nullable values to an Option)
  *
  * ```ts
  * import { Option } from "effect"
@@ -836,7 +836,7 @@ export const fromNullishOr = <A>(
  * - `undefined` → `None`
  * - Any other value (including `null`) → `Some`
  *
- * **Example** (From possibly-undefined values)
+ * **Example** (Converting possibly undefined values to an Option)
  *
  * ```ts
  * import { Option } from "effect"
@@ -875,7 +875,7 @@ export const fromUndefinedOr = <A>(
  * - `null` → `None`
  * - Any other value (including `undefined`) → `Some`
  *
- * **Example** (From possibly-null values)
+ * **Example** (Converting possibly null values to an Option)
  *
  * ```ts
  * import { Option } from "effect"
@@ -1232,7 +1232,7 @@ export {
    *
    * Use to return a "success with no meaningful value" from an `Option`-returning function
    *
-   * **Example** (Using Option.void)
+   * **Example** (Referencing Option.void)
    *
    * ```ts
    * import { Option } from "effect"
@@ -2205,7 +2205,7 @@ export const liftPredicate: { // Note: I intentionally avoid using the NoInfer p
  * - `Some` where `isEquivalent(value, a)` is `true` → `true`
  * - `Some` where not equivalent, or `None` → `false`
  *
- * **Example** (Custom equivalence check)
+ * **Example** (Checking with custom equivalence)
  *
  * ```ts
  * import { Equivalence, Option } from "effect"
@@ -2458,7 +2458,7 @@ export const bind: {
  * Use when you need to start an `Option` do notation pipeline before adding
  * bindings.
  *
- * **Example** (Do notation pipeline)
+ * **Example** (Building Option pipelines with do notation)
  *
  * ```ts
  * import { Option, pipe } from "effect"
@@ -2498,7 +2498,7 @@ export const Do: Option<{}> = some({})
  * - The return value is wrapped in `Some`
  * - No `Effect` runtime is needed
  *
- * **Example** (Generator syntax)
+ * **Example** (Sequencing Option computations with generator syntax)
  *
  * ```ts
  * import { Option } from "effect"

@@ -1,4 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Random from "effect/Random"
 
@@ -142,6 +143,42 @@ describe("Random", () => {
 
         const result1 = yield* program.pipe(Random.withSeed("shuffle-seed"))
         const result2 = yield* program.pipe(Random.withSeed("shuffle-seed"))
+
+        assert.deepStrictEqual(result1, result2)
+      }))
+  })
+
+  describe("choice", () => {
+    it.effect("selects a random element from an iterable", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.choice(["a", "b", "c"]).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 0.75
+          })
+        )
+
+        assert.strictEqual(value, "c")
+      }))
+
+    it.effect("fails with NoSuchElementError for an empty iterable", () =>
+      Effect.gen(function*() {
+        const error = yield* Random.choice([]).pipe(Effect.flip)
+
+        assert.isTrue(Cause.isNoSuchElementError(error))
+        assert.strictEqual(error.message, "Cannot select a random element from an empty array")
+      }))
+
+    it.effect("is deterministic with the same seed", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([
+          Random.choice([1, 2, 3, 4, 5]),
+          Random.choice([1, 2, 3, 4, 5]),
+          Random.choice([1, 2, 3, 4, 5])
+        ])
+
+        const result1 = yield* program.pipe(Random.withSeed("choice-seed"))
+        const result2 = yield* program.pipe(Random.withSeed("choice-seed"))
 
         assert.deepStrictEqual(result1, result2)
       }))

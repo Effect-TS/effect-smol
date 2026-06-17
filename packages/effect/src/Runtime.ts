@@ -88,7 +88,7 @@ export interface Teardown {
  * The `130` code is used only when the Cause contains interruptions and no
  * other failure reasons. Mixed causes use the squashed error path instead.
  *
- * **Example** (Using default teardown)
+ * **Example** (Referencing default teardown)
  *
  * ```ts
  * import { Exit, Runtime } from "effect"

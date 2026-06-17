@@ -8,10 +8,13 @@
  *
  * @since 4.0.0
  */
+import type * as Arr from "./Array.ts"
+import * as Cause from "./Cause.ts"
 import type * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
 import * as random from "./internal/random.ts"
+import type * as NonEmptyIterable from "./NonEmptyIterable.ts"
 import * as Predicate from "./Predicate.ts"
 
 /**
@@ -224,6 +227,45 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
     }
     return buffer
   })
+
+/**
+ * Gets a random element from an iterable.
+ *
+ * **When to use**
+ *
+ * Use to select one value uniformly from a collection using the active `Random`
+ * service.
+ *
+ * **Details**
+ *
+ * If the input type is known to be non-empty, the returned effect cannot fail.
+ * Otherwise, empty iterables fail with `Cause.NoSuchElementError`.
+ *
+ * **Example** (Choosing a random value)
+ *
+ * ```ts
+ * import { Effect, Random } from "effect"
+ *
+ * const program = Effect.gen(function*() {
+ *   const value = yield* Random.choice(["red", "green", "blue"] as const)
+ *   console.log(value)
+ * })
+ * ```
+ *
+ * @category Random Number Generators
+ * @since 3.6.0
+ */
+export const choice: <Self extends Iterable<unknown>>(
+  elements: Self
+) => Self extends NonEmptyIterable.NonEmptyIterable<infer A> ? Effect.Effect<A>
+  : Self extends Arr.NonEmptyReadonlyArray<infer A> ? Effect.Effect<A>
+  : Self extends Iterable<infer A> ? Effect.Effect<A, Cause.NoSuchElementError>
+  : never = ((elements: Iterable<unknown>) => {
+    const buffer = Array.from(elements)
+    return buffer.length === 0
+      ? Effect.fail(new Cause.NoSuchElementError("Cannot select a random element from an empty array"))
+      : randomWith((r) => buffer[Math.min(buffer.length - 1, Math.floor(r.nextDoubleUnsafe() * buffer.length))]!)
+  }) as any
 
 /**
  * Seeds the pseudo-random number generator with the specified value.

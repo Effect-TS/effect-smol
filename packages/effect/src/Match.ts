@@ -451,7 +451,7 @@ export const typeTags: {
  * **Important:** This function must be the first step in the matcher pipeline.
  * If used later, TypeScript will not enforce type consistency correctly.
  *
- * **Example** (Validating Return Type Consistency)
+ * **Example** (Validating return type consistency)
  *
  * ```ts
  * import { Match } from "effect"
@@ -491,7 +491,7 @@ export const withReturnType: <Ret>() => <I, F, R, A, Pr, _>(
  * pattern matches, the associated function is executed and the matched input is
  * removed from the remaining cases tracked by the matcher.
  *
- * **Example** (Matching with Values and Predicates)
+ * **Example** (Matching with values and predicates)
  *
  * ```ts
  * import { Match } from "effect"
@@ -905,7 +905,7 @@ export const discriminatorsExhaustive: <D extends string>(
  * `"_tag"` as their discriminator field. Use {@link discriminator} for a
  * different discriminator field.
  *
- * **Example** (Matching a Discriminated Union by Tag)
+ * **Example** (Matching a discriminated union by tag)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1118,7 +1118,7 @@ export const tagsExhaustive: <
  * Any excluded value bypasses the provided function and continues matching
  * through later cases.
  *
- * **Example** (Ignoring a Specific Value)
+ * **Example** (Ignoring a specific value)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1795,7 +1795,7 @@ export const instanceOfUnsafe: <A extends abstract new(...args: any) => any>(
  * `default` clause in a `switch` statement or the final `else` in an `if-else`
  * chain.
  *
- * **Example** (Providing a Default Value When No Patterns Match)
+ * **Example** (Providing a default value when no patterns match)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1891,7 +1891,7 @@ export const orElseAbsurd: <I, R, RA, A, Pr, Ret>(
  * unmatched case should be explicitly handled rather than returning a default
  * value or throwing an error.
  *
- * **Example** (Extracting a User Role with `Match.result`)
+ * **Example** (Extracting a user role with `Match.result`)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1937,7 +1937,7 @@ export const result: <I, F, R, A, Pr, Ret>(
  * handled explicitly rather than throwing an error or returning a default
  * value.
  *
- * **Example** (Extracting a User Role with `Match.option`)
+ * **Example** (Extracting a user role with `Match.option`)
  *
  * ```ts
  * import { Match } from "effect"
@@ -1981,7 +1981,7 @@ export const option: <I, F, R, A, Pr, Ret>(
  * If any case is still unmatched, the matcher does not type-check as
  * exhaustive.
  *
- * **Example** (Ensuring All Cases Are Covered)
+ * **Example** (Ensuring all cases are covered)
  *
  * ```ts
  * import { Match } from "effect"

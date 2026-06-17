@@ -455,7 +455,7 @@ export class Composite extends Base {
  *   `Option.none()` when no value was provided.
  * - The default formatter renders this as `"Expected <type>, got <actual>"`.
  *
- * **Example** (Formatted output)
+ * **Example** (Formatting output)
  *
  * ```ts
  * import { Schema } from "effect"
@@ -519,7 +519,7 @@ export class InvalidType extends Base {
  * - The default formatter renders this as `"Invalid data <actual>"` unless a
  *   custom `message` annotation is provided.
  *
- * **Example** (Custom filter returning InvalidValue)
+ * **Example** (Returning InvalidValue from a custom filter)
  *
  * ```ts
  * import { Option, SchemaIssue } from "effect"
@@ -879,7 +879,7 @@ export type LeafHook = (issue: Leaf) => string
  *   - `Forbidden` → `"Forbidden operation"`
  *   - `OneOf` → `"Expected exactly one member to match the input <actual>"`
  *
- * **Example** (Using defaultLeafHook with Standard Schema formatter)
+ * **Example** (Formatting Standard Schema issues with defaultLeafHook)
  *
  * ```ts
  * import { SchemaIssue } from "effect"

@@ -14,7 +14,8 @@ import * as Arr from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Effect from "./Effect.ts"
 import * as Exit from "./Exit.ts"
-import { identity, memoize } from "./Function.ts"
+import { memoize } from "./Function.ts"
+import * as InternalSchemaCause from "./internal/schema/cause.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Result from "./Result.ts"
@@ -81,12 +82,18 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
 
 /**
  * Creates a synchronous maker that returns `Option.some` with the constructed
- * value on success, or `Option.none` when construction fails.
+ * value on success, or `Option.none` when construction fails with schema issues.
  *
  * **When to use**
  *
  * Use when you need to validate schema constructor input and only care whether
  * construction succeeds, without exposing `SchemaIssue.Issue` details.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `Option.none`.
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`.
  *
  * @category constructors
  * @since 4.0.0
@@ -94,7 +101,12 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
 export function makeOption<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Option.Option<S["Type"]> => {
-    return Exit.getSuccess(Effect.runSyncExit(parser(input, options) as any))
+    const exit = Effect.runSyncExit(parser(input, options))
+    if (Exit.isSuccess(exit)) {
+      return Option.some(exit.value)
+    }
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
+    return Option.none()
   }
 }
 
@@ -111,18 +123,27 @@ export function makeOption<S extends Schema.Top>(schema: S) {
  * The returned function constructs a value from constructor input and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` when construction fails.
  *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
+ *
  * @category constructors
  * @since 4.0.0
  */
 export function make<S extends Schema.Top>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
-    return Effect.runSync(
-      Effect.mapErrorEager(
-        parser(input, options),
-        (issue) => new Error(issue.toString(), { cause: issue })
-      )
+    const exit = Effect.runSyncExit(parser(input, options))
+    if (Exit.isSuccess(exit)) {
+      return exit.value
+    }
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+      exit.cause,
+      "Constructor adapter can only throw schema issues"
     )
+    throw new Error(issue.toString(), { cause: issue })
   }
 }
 
@@ -137,8 +158,14 @@ export function make<S extends Schema.Top>(schema: S) {
  *
  * **Details**
  *
- * The guard returns `true` on successful validation and `false` on failure, without
- * exposing issue details.
+ * The guard returns `true` on successful validation and `false` when validation
+ * fails only with schema issues, without exposing issue details.
+ *
+ * **Gotchas**
+ *
+ * Only causes made entirely of schema issues are converted to `false`. Causes
+ * that contain defects, interruptions, or asynchronous work at this synchronous
+ * boundary throw an `Error` whose cause is the underlying `Cause`.
  *
  * @category Asserting
  * @since 3.10.0
@@ -151,7 +178,12 @@ export function is<T>(schema: Schema.Schema<T>): <I>(input: I) => input is I & T
 export function _is<T>(ast: SchemaAST.AST) {
   const parser = asExit(run<T, never>(SchemaAST.toType(ast)))
   return <I>(input: I): input is I & T => {
-    return Exit.isSuccess(parser(input, SchemaAST.defaultParseOptions))
+    const exit = parser(input, SchemaAST.defaultParseOptions)
+    if (Exit.isSuccess(exit)) {
+      return true
+    }
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Type guard adapter can only return false for schema issues")
+    return false
   }
 }
 
@@ -159,10 +191,11 @@ export function _is<T>(ast: SchemaAST.AST) {
 export function _issue<T>(ast: SchemaAST.AST) {
   const parser = run<T, never>(ast)
   return (input: unknown, options: SchemaAST.ParseOptions): SchemaIssue.Issue | undefined => {
-    return Effect.runSync(Effect.matchEager(parser(input, options), {
-      onSuccess: () => undefined,
-      onFailure: identity
-    }))
+    const exit = Effect.runSyncExit(parser(input, options))
+    if (Exit.isSuccess(exit)) {
+      return undefined
+    }
+    return InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Issue adapter can only return schema issues")
   }
 }
 
@@ -171,13 +204,20 @@ export function _issue<T>(ast: SchemaAST.AST) {
  *
  * **When to use**
  *
- * Use to assert that an input satisfies the decoded side of a schema, throwing
- * an `Error` whose cause is `SchemaIssue.Issue` when validation fails.
+ * Use to assert that an input satisfies the decoded side of a schema when schema
+ * validation failures should throw an `Error` whose cause is `SchemaIssue.Issue`.
  *
  * **Details**
  *
- * The assertion returns normally when validation succeeds and throws when the
- * input does not satisfy the schema.
+ * The assertion returns normally when validation succeeds. When the input does
+ * not satisfy the schema with a schema-only failure, it throws an `Error` with
+ * the `SchemaIssue.Issue` in its `cause`.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
  *
  * @category Asserting
  * @since 4.0.0
@@ -186,11 +226,11 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
   const parser = asExit(run<S["Type"], never>(SchemaAST.toType(schema.ast)))
   const exit = parser(input, SchemaAST.defaultParseOptions)
   if (Exit.isFailure(exit)) {
-    const issue = Cause.findError(exit.cause)
-    if (Result.isFailure(issue)) {
-      throw Cause.squash(issue.failure)
-    }
-    throw new Error(issue.success.toString(), { cause: issue.success })
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+      exit.cause,
+      "Assertion adapter can only throw schema issues"
+    )
+    throw new Error(issue.toString(), { cause: issue })
   }
 }
 
@@ -264,12 +304,17 @@ export const decodeEffect: <S extends Schema.Top>(
  * **When to use**
  *
  * Use when you need to decode untyped input with a service-free schema and
- * return a JavaScript `Promise` that rejects with `SchemaIssue.Issue`.
+ * return a JavaScript `Promise`.
  *
  * **Details**
  *
  * The returned function resolves with the decoded `Type` on success and rejects
- * with a `SchemaIssue.Issue` on decoding failure.
+ * with an `Error` whose cause is a `SchemaIssue.Issue` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or other non-schema reasons reject
+ * with an `Error` whose cause is the underlying `Cause`.
  *
  * @see {@link decodePromise} for input already typed as the schema's `Encoded` type
  * @see {@link decodeUnknownEffect} for schemas that require decoding services or when failures should remain in `Effect`
@@ -291,12 +336,17 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  * **When to use**
  *
  * Use when you already have input typed as the schema's `Encoded` type and need
- * decoding to return a JavaScript `Promise` that rejects with `SchemaIssue.Issue`.
+ * decoding to return a JavaScript `Promise`.
  *
  * **Details**
  *
  * The returned function resolves with the decoded `Type` on success and rejects
- * with a `SchemaIssue.Issue` on decoding failure.
+ * with an `Error` whose cause is a `SchemaIssue.Issue` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or other non-schema reasons reject
+ * with an `Error` whose cause is the underlying `Cause`.
  *
  * @see {@link decodeUnknownPromise} for untyped input returning a JavaScript `Promise`
  * @see {@link decodeEffect} for preserving decoding services and failures in `Effect`
@@ -329,7 +379,8 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  * **Gotchas**
  *
  * Because this adapter runs synchronously, async decoding work can produce an
- * `Exit.Failure` with a defect cause.
+ * `Exit.Failure` with a defect cause. When the cause contains both schema
+ * issues and non-schema reasons, all reasons remain in the returned `Cause`.
  *
  * @see {@link decodeExit} for input already typed as the schema's `Encoded` type
  * @see {@link decodeUnknownEffect} for preserving decoding services and failures in `Effect`
@@ -359,6 +410,12 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  *
  * The returned function produces `Exit.Success` with the decoded `Type` or
  * `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * **Gotchas**
+ *
+ * Because this adapter runs synchronously, async decoding work can produce an
+ * `Exit.Failure` with a defect cause. When the cause contains both schema
+ * issues and non-schema reasons, all reasons remain in the returned `Cause`.
  *
  * @see {@link decodeUnknownExit} for untyped input with the same `Exit` result shape
  * @see {@link decodeEffect} for preserving decoding services and failures in `Effect`
@@ -402,8 +459,9 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
  *
  * **Gotchas**
  *
- * This adapter runs synchronously. Schema issues become `Result.fail`, but async
- * decoding or defects can still throw.
+ * This adapter runs synchronously. Causes made entirely of schema issues become
+ * `Result.fail`, but causes that contain defects, interruptions, or asynchronous
+ * work at this synchronous boundary throw instead.
  *
  * @see {@link decodeResult} for input already typed as the schema's `Encoded` type
  * @see {@link decodeUnknownEffect} for effectful or service-requiring decoding
@@ -434,8 +492,9 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  *
  * **Gotchas**
  *
- * This synchronous adapter returns `Result.fail` for schema issues, but async
- * decoding or other non-schema failures can still throw.
+ * This synchronous adapter returns `Result.fail` for causes made entirely of
+ * schema issues, but causes that contain defects, interruptions, or other
+ * non-schema reasons throw instead.
  *
  * @see {@link decodeUnknownResult} for untyped input with the same `Result` shape
  * @see {@link decodeEffect} for effectful or service-requiring decoding
@@ -461,6 +520,12 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
  *
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
  *
  * @see {@link decodeSync} for input already typed as the schema's `Encoded` type
  * @see {@link decodeUnknownEffect} for preserving decoding failures in `Effect`
@@ -489,6 +554,12 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  *
  * The returned function returns the decoded `Type` on success and throws an
  * `Error` with the `SchemaIssue.Issue` in its `cause` on decoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
  *
  * @see {@link decodeUnknownSync} for untrusted or dynamically typed input
  * @see {@link decodeResult} for returning schema issues as data
@@ -571,13 +642,17 @@ export const encodeEffect: <S extends Schema.Top>(
  * **When to use**
  *
  * Use when you need to encode untrusted or dynamically typed values with a
- * service-free schema and return a JavaScript `Promise` that rejects with
- * `SchemaIssue.Issue`.
+ * service-free schema and return a JavaScript `Promise`.
  *
  * **Details**
  *
  * The returned function resolves with the schema's `Encoded` value on success and
- * rejects with a `SchemaIssue.Issue` on encoding failure.
+ * rejects with an `Error` whose cause is a `SchemaIssue.Issue` on encoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or other non-schema reasons reject
+ * with an `Error` whose cause is the underlying `Cause`.
  *
  * @see {@link encodePromise} for input already typed as the schema's decoded `Type`
  * @see {@link encodeUnknownEffect} for schemas that require encoding services or when failures should remain in `Effect`
@@ -598,13 +673,17 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  * **When to use**
  *
  * Use when you already have values typed as the schema's decoded `Type` and
- * need encoding to return a JavaScript `Promise` that rejects with
- * `SchemaIssue.Issue`.
+ * need encoding to return a JavaScript `Promise`.
  *
  * **Details**
  *
  * The returned function resolves with the schema's `Encoded` value on success and
- * rejects with a `SchemaIssue.Issue` on encoding failure.
+ * rejects with an `Error` whose cause is a `SchemaIssue.Issue` on encoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or other non-schema reasons reject
+ * with an `Error` whose cause is the underlying `Cause`.
  *
  * @see {@link encodeUnknownPromise} for encoding untyped input
  * @see {@link encodeEffect} for effectful encoding or schemas with encoding service requirements
@@ -630,6 +709,12 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  *
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * **Gotchas**
+ *
+ * Because this adapter runs synchronously, async encoding work can produce an
+ * `Exit.Failure` with a defect cause. When the cause contains both schema
+ * issues and non-schema reasons, all reasons remain in the returned `Cause`.
  *
  * @see {@link encodeExit} for input already typed as the schema's decoded `Type`
  * @see {@link encodeUnknownEffect} for effectful encoding that preserves service requirements
@@ -657,6 +742,12 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  *
  * The returned function produces `Exit.Success` with the schema's `Encoded` value
  * or `Exit.Failure` with a `SchemaIssue.Issue`.
+ *
+ * **Gotchas**
+ *
+ * Because this adapter runs synchronously, async encoding work can produce an
+ * `Exit.Failure` with a defect cause. When the cause contains both schema
+ * issues and non-schema reasons, all reasons remain in the returned `Cause`.
  *
  * @see {@link encodeUnknownExit} for unknown input with the same `Exit` result shape
  * @see {@link encodeEffect} for effectful encoding that preserves service requirements
@@ -700,6 +791,12 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
  *
+ * **Gotchas**
+ *
+ * This adapter runs synchronously. Causes made entirely of schema issues become
+ * `Result.fail`, but causes that contain defects, interruptions, or asynchronous
+ * work at this synchronous boundary throw instead.
+ *
  * @see {@link encodeResult} for input already typed as the schema's decoded `Type`
  * @see {@link encodeUnknownEffect} for effectful encoding, including schemas with encoding service requirements
  *
@@ -728,6 +825,12 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  * value on success or `Result.fail` with a `SchemaIssue.Issue` on encoding
  * failure.
  *
+ * **Gotchas**
+ *
+ * This synchronous adapter returns `Result.fail` for causes made entirely of
+ * schema issues, but causes that contain defects, interruptions, or other
+ * non-schema reasons throw instead.
+ *
  * @see {@link encodeUnknownResult} for the same `Result` shape when the input is not already typed
  *
  * @category encoding
@@ -751,6 +854,12 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  *
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
  *
  * @see {@link encodeSync} for input already typed as the schema's decoded `Type`
  * @see {@link encodeUnknownEffect} for effectful encoding that preserves service requirements
@@ -778,6 +887,12 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  *
  * The returned function returns the schema's `Encoded` value on success and throws
  * an `Error` with the `SchemaIssue.Issue` in its `cause` on encoding failure.
+ *
+ * **Gotchas**
+ *
+ * Causes that contain defects, interruptions, or asynchronous work at this
+ * synchronous boundary throw an `Error` whose cause is the underlying `Cause`,
+ * instead of being converted to a schema validation error.
  *
  * @see {@link encodeUnknownSync} for unknown input with the same throwing boundary
  * @see {@link encodeResult} for returning schema issues as data
@@ -811,7 +926,17 @@ export function run<T, R>(ast: SchemaAST.AST) {
 function asPromise<T, E>(
   parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue>
 ): (input: E, options?: SchemaAST.ParseOptions) => Promise<T> {
-  return (input: E, options?: SchemaAST.ParseOptions) => Effect.runPromise(parser(input, options))
+  return (input: E, options?: SchemaAST.ParseOptions) =>
+    Effect.runPromiseExit(parser(input, options)).then((exit) => {
+      if (Exit.isSuccess(exit)) {
+        return exit.value
+      }
+      const issue = InternalSchemaCause.getSchemaIssueOrThrow(
+        exit.cause,
+        "Promise adapter can only reject schema issues"
+      )
+      throw new Error(issue.toString(), { cause: issue })
+    })
 }
 
 function asExit<T, E, R>(
@@ -825,7 +950,14 @@ export function asOption<T, E, R>(
   parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
 ): (input: E, options?: SchemaAST.ParseOptions) => Option.Option<T> {
   const parserExit = asExit(parser)
-  return (input: E, options?: SchemaAST.ParseOptions) => Exit.getSuccess(parserExit(input, options))
+  return (input: E, options?: SchemaAST.ParseOptions) => {
+    const exit = parserExit(input, options)
+    if (Exit.isSuccess(exit)) {
+      return Option.some(exit.value)
+    }
+    InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Option adapter can only return none for schema issues")
+    return Option.none()
+  }
 }
 
 function asResult<T, E, R>(
@@ -837,24 +969,31 @@ function asResult<T, E, R>(
     if (Exit.isSuccess(exit)) {
       return Result.succeed(exit.value)
     }
-    const error = Cause.findError(exit.cause)
-    if (Result.isFailure(error)) {
-      throw Cause.squash(error.failure)
-    }
-    return Result.fail(error.success)
+    return Result.fail(
+      InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Result adapter can only return schema issues")
+    )
   }
 }
 
-function asSync<T, E, R>(
-  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue, R>
+function asSync<T, E>(
+  parser: (input: E, options?: SchemaAST.ParseOptions) => Effect.Effect<T, SchemaIssue.Issue>
 ): (input: E, options?: SchemaAST.ParseOptions) => T {
-  return (input: E, options?: SchemaAST.ParseOptions) =>
-    Effect.runSync(
-      Effect.mapErrorEager(
-        parser(input, options),
-        (issue) => new Error(issue.toString(), { cause: issue })
-      ) as any
-    )
+  const parserExit = asExit(parser)
+  return (input: E, options?: SchemaAST.ParseOptions) => {
+    const exit = parserExit(input, options)
+    if (Exit.isSuccess(exit)) {
+      return exit.value
+    }
+    const issue = InternalSchemaCause.getSchemaIssueOrThrow(exit.cause, "Sync adapter can only throw schema issues")
+    throw new Error(issue.toString(), { cause: issue })
+  }
+}
+
+function mapSchemaIssueEffect<A, R>(
+  self: Effect.Effect<A, SchemaIssue.Issue, R>,
+  f: (issue: SchemaIssue.Issue) => SchemaIssue.Issue
+): Effect.Effect<A, SchemaIssue.Issue, R> {
+  return Effect.catchCause(self, (cause) => Effect.failCauseSync(() => Cause.map(cause, f)))
 }
 
 /** @internal */
@@ -904,7 +1043,7 @@ const recur = memoize(
             srou = link.transformation.decode(srou, options)
           }
         }
-        srou = Effect.mapErrorEager(srou!, (issue) => new SchemaIssue.Encoding(ast, ou, issue))
+        srou = mapSchemaIssueEffect(srou!, (issue) => new SchemaIssue.Encoding(ast, ou, issue))
       }
 
       parser ??= ast.getParser(recur)
@@ -928,7 +1067,7 @@ const recur = memoize(
       if (ast.checks && !options?.disableChecks) {
         const checks = ast.checks
         if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
-          sroa = Effect.catchEager(sroa, (issue) => {
+          sroa = mapSchemaIssueEffect(sroa, (issue) => {
             const issues: Array<SchemaIssue.Issue> = []
             SchemaAST.collectIssues(
               checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]),
@@ -942,7 +1081,7 @@ const recur = memoize(
                 ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
                 : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
               : issue
-            return Effect.fail(out)
+            return out
           })
         }
         sroa = Effect.flatMapEager(sroa, (oa) => {

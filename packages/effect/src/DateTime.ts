@@ -2163,7 +2163,7 @@ export const mapEpochMillis: {
  * `DateTime.Zoned` values. Use `DateTime.withDateUtc` when the callback should
  * receive the UTC instant.
  *
- * **Example** (Using time zone adjusted Dates)
+ * **Example** (Applying time zone adjusted Dates)
  *
  * ```ts
  * import { DateTime } from "effect"
@@ -2191,7 +2191,7 @@ export const withDate: {
  * This ignores any associated time zone. Use `DateTime.withDate` when the
  * callback should receive the time-zone-adjusted wall-clock date.
  *
- * **Example** (Using UTC Dates)
+ * **Example** (Applying UTC Dates)
  *
  * ```ts
  * import { DateTime } from "effect"

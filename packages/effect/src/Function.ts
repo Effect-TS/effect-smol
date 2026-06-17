@@ -51,7 +51,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * whether the current call is data-first. Arity is the common case. Use a
  * predicate when optional arguments make arity ambiguous.
  *
- * **Example** (Using arity to determine data-first or data-last style)
+ * **Example** (Selecting data-first or data-last style by arity)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -65,7 +65,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * console.log(pipe(2, sum(3))) // 5
  * ```
  *
- * **Example** (Using call signatures to define the overloads)
+ * **Example** (Defining overloads with call signatures)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -79,7 +79,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * console.log(pipe(2, sum(3))) // 5
  * ```
  *
- * **Example** (Using a predicate to determine data-first or data-last style)
+ * **Example** (Selecting data-first or data-last style with a predicate)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -588,7 +588,7 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * Each function passed after the initial value must accept a single argument,
  * because `pipe` calls each step with only the previous result.
  *
- * **Example** (Using pipeline syntax)
+ * **Example** (Piping values through functions)
  *
  * In this example, `1` is passed to the first function, and each result becomes
  * the input for the next function.

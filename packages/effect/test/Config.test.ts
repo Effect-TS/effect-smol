@@ -547,6 +547,37 @@ describe("Config", () => {
   at ["database"]["host"]`
           )
         })
+
+        it("config nested and provider nested compose lookup but not error paths", async () => {
+          const config = Config.string("host").pipe(Config.nested("database"))
+          const provider = ConfigProvider.fromEnv({
+            env: { app_database_host: "localhost" }
+          }).pipe(ConfigProvider.nested("app"))
+
+          await assertSuccess(config, provider, "localhost")
+          await assertFailure(
+            config,
+            ConfigProvider.fromEnv({ env: {} }).pipe(ConfigProvider.nested("app")),
+            `Expected string, got undefined
+  at ["database"]["host"]`
+          )
+        })
+
+        it("provider nested over orElse keeps the logical error path", async () => {
+          const provider = ConfigProvider.fromEnv({ env: { app_port: "abc" } }).pipe(
+            ConfigProvider.orElse(ConfigProvider.fromEnv({ env: {} })),
+            ConfigProvider.nested("app")
+          )
+
+          await assertFailure(
+            Config.number("port"),
+            provider,
+            `Expected a string representing a finite number, got "abc"
+  at ["port"]
+Expected "Infinity" | "-Infinity" | "NaN", got "abc"
+  at ["port"]`
+          )
+        })
       })
     })
 

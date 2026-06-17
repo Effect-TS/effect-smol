@@ -87,7 +87,7 @@ export interface Reducer<A> extends Combiner.Combiner<A> {
  *   `initialValue` is used.
  * - If `combineAll` is provided, it completely replaces the default fold.
  *
- * **Example** (Multiplication with short-circuit)
+ * **Example** (Multiplying with short-circuit)
  *
  * ```ts
  * import { Reducer } from "effect"

@@ -871,8 +871,8 @@ export const promise: <A>(
 ) => Effect<A> = internal.promise
 
 /**
- * Creates an `Effect` that represents an asynchronous computation that might
- * fail.
+ * Creates an `Effect` from an asynchronous computation that may throw or
+ * reject, mapping failures into the error channel.
  *
  * **When to use**
  *
@@ -882,19 +882,24 @@ export const promise: <A>(
  *
  * **Details**
  *
- * Error Handling:
+ * The promise thunk is evaluated when the effect runs. If it returns a promise
+ * that resolves, the resolved value becomes the success value. If the thunk
+ * throws before returning a promise, or if the returned promise rejects, the
+ * thrown or rejected value is mapped into the error channel.
  *
- * There are two ways to handle errors with `tryPromise`:
+ * Passing the thunk directly maps failures to {@link Cause.UnknownError}.
+ * Passing `{ try, catch }` uses `catch` to map failures to an error of type
+ * `E`.
  *
- * 1. If you don't provide a `catch` function, the error is caught and the
- *    effect fails with an `UnknownError`.
- * 2. If you provide a `catch` function, the error is caught and the `catch`
- *    function maps it to an error of type `E`.
+ * The thunk receives an `AbortSignal` that is aborted if the effect is
+ * interrupted. The underlying asynchronous operation only stops if it observes
+ * that signal.
  *
- * Interruptions:
+ * **Gotchas**
  *
- * An optional `AbortSignal` can be provided to allow for interruption of the
- * wrapped `Promise` API.
+ * If `catch` throws while mapping the error, that thrown value is treated as a
+ * defect. Return the error value you want in the error channel instead of
+ * throwing it.
  *
  * **Example** (Wrapping a fetch request that may fail)
  *
@@ -1581,7 +1586,7 @@ export const failCauseSync: <E>(
  * The error channel of the resulting effect is of type `never`, indicating that
  * it cannot recover from this failure.
  *
- * **Example** (Failing when division by zero)
+ * **Example** (Failing on division by zero)
  *
  * ```ts
  * import { Effect } from "effect"
@@ -1606,53 +1611,56 @@ export const failCauseSync: <E>(
  */
 export const die: (defect: unknown) => Effect<never> = internal.die
 
-const try_: <A, E>(options: {
-  try: LazyArg<A>
-  catch: (error: unknown) => E
-}) => Effect<A, E> = internal.try
+const try_: <A, E = Cause.UnknownError>(
+  options: {
+    readonly try: LazyArg<A>
+    readonly catch: (error: unknown) => E
+  } | LazyArg<A>
+) => Effect<A, E> = internal.try
 
 export {
   /**
-   * Creates an `Effect` that represents a synchronous computation that might
-   * fail.
+   * Creates an `Effect` from a synchronous computation that may throw, mapping
+   * thrown values into the error channel.
    *
    * **When to use**
    *
    * Use when you need to perform synchronous operations that might throw, such
-   * as parsing JSON, and convert thrown exceptions into typed Effect failures.
+   * as parsing JSON, and want thrown exceptions captured as Effect errors.
    *
    * **Details**
    *
-   * Error Handling:
+   * The thunk is evaluated when the effect runs. If it returns normally, the
+   * returned value becomes the success value. If it throws, the thrown value is
+   * mapped into the error channel.
    *
-   * There are two ways to handle errors with `try`:
+   * Passing the thunk directly maps failures to {@link Cause.UnknownError}.
+   * Passing `{ try, catch }` uses `catch` to map failures to an error of type
+   * `E`.
    *
-   * 1. If you don't provide a `catch` function, the error is caught and the
-   *    effect fails with an `UnknownError`.
-   * 2. If you provide a `catch` function, the error is caught and the `catch`
-   *    function maps it to an error of type `E`.
+   * **Gotchas**
    *
-   * **Example** (Parsing JSON with typed error mapping)
+   * If `catch` throws while mapping the error, that thrown value is treated as
+   * a defect. Return the error value you want in the error channel instead of
+   * throwing it.
+   *
+   * **Example** (Parsing JSON)
    *
    * ```ts
    * import { Effect } from "effect"
    *
    * const parseJSON = (input: string) =>
-   *   Effect.try({
-   *     try: () => JSON.parse(input),
-   *     catch: (error) => error as Error
-   *   })
+   *   Effect.try(() => JSON.parse(input))
    *
    * // Success case
    * Effect.runPromise(parseJSON("{\"name\": \"Alice\"}")).then(console.log)
    * // Output: { name: "Alice" }
    *
-   * // Failure case
+   * // Failure case maps the thrown value to UnknownError
    * Effect.runPromiseExit(parseJSON("invalid json")).then(console.log)
-   * // Output: Exit.failure with Error
    * ```
    *
-   * **Example** (Mapping synchronous exceptions to a tagged error)
+   * **Example** (Mapping exceptions to a tagged error)
    *
    * ```ts
    * import { Data, Effect } from "effect"
@@ -1809,6 +1817,42 @@ export const fromOption: <A>(
 ) => Effect<A, Cause.NoSuchElementError> = internal.fromOption
 
 /**
+ * Converts an `Option` of an `Effect` into an `Effect` of an `Option`.
+ *
+ * **When to use**
+ *
+ * Use when an effect should run only when an optional value is present, while
+ * preserving absence as a successful `None`.
+ *
+ * **Details**
+ *
+ * - `None` becomes an effect that succeeds with `None`
+ * - `Some(effect)` runs the inner effect and wraps its success value in `Some`
+ * - Inner failures are preserved in the resulting effect
+ *
+ * **Example** (Transposing an Option of an Effect)
+ *
+ * ```ts
+ * import { Effect, Option } from "effect"
+ *
+ * const some = Option.some(Effect.succeed(42))
+ *
+ * //      ┌─── Effect<Option<number>, never, never>
+ * //      ▼
+ * const program = Effect.transposeOption(some)
+ *
+ * Effect.runPromise(program).then(console.log)
+ * // Output: { _id: 'Option', _tag: 'Some', value: 42 }
+ * ```
+ *
+ * @category converting
+ * @since 3.13.0
+ */
+export const transposeOption: <A = never, E = never, R = never>(
+  self: Option<Effect<A, E, R>>
+) => Effect<Option<A>, E, R> = internal.transposeOption
+
+/**
  * Converts a nullable value to an `Effect`, failing with a `NoSuchElementError`
  * when the value is `null` or `undefined`.
  *
@@ -1859,7 +1903,7 @@ export const fromNullishOr: <A>(value: A) => Effect<NonNullable<A>, Cause.NoSuch
  * Since effects are immutable, `flatMap` always returns a new effect instead of
  * changing the original one.
  *
- * **Example** (Syntax)
+ * **Example** (Choosing flatMap syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -1957,7 +2001,7 @@ export const flatten: <A, E, R, E2, R2>(self: Effect<Effect<A, E, R>, E2, R2>) =
  * Failures or requirements from either effect are preserved in the returned
  * effect.
  *
- * **Example** (Syntax)
+ * **Example** (Choosing andThen syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -2266,7 +2310,7 @@ export const exit: <A, E, R>(
  * effect is not modified. Instead, a new effect is returned with the updated
  * value.
  *
- * **Example** (Syntax)
+ * **Example** (Choosing map syntax variants)
  *
  * ```ts
  * import { Effect, pipe } from "effect"
@@ -6526,7 +6570,7 @@ export const acquireDisposable: <A extends AsyncDisposable | Disposable, E, R>(
  * is not desired, errors produced by the `release` `Effect` value can be caught
  * and ignored.
  *
- * **Example** (Using a resource with cleanup)
+ * **Example** (Acquiring resources with cleanup)
  *
  * ```ts
  * import { Console, Effect, Exit } from "effect"

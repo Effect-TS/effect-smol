@@ -867,7 +867,7 @@ export const sync = <A>(evaluate: LazyArg<A>): Channel<A> => fromEffect(Effect.s
 /**
  * Represents a `Channel` that emits no elements.
  *
- * **Example** (Using empty channels)
+ * **Example** (Creating empty channels)
  *
  * ```ts
  * import { Channel } from "effect"
@@ -892,7 +892,7 @@ export const empty: Channel<never> = fromPull(Effect.succeed(Cause.done()))
 /**
  * Represents a `Channel` that never completes.
  *
- * **Example** (Using non-terminating channels)
+ * **Example** (Creating non-terminating channels)
  *
  * ```ts
  * import { Channel } from "effect"
@@ -2186,7 +2186,7 @@ export const tap: {
  * sequentially. Use `options.concurrency` and `options.bufferSize` to run child
  * channels concurrently.
  *
- * **Example** (FlatMapping channel output)
+ * **Example** (Flat mapping channel output)
  *
  * ```ts
  * import { Channel, Data } from "effect"

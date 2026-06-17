@@ -478,7 +478,7 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
         return result
       }
       const exit = yield* Effect.orDie(
-        Schema.decodeEffect(activity.exitSchema)(toJsonExit(result.exit))
+        Schema.decodeEffect(activity.exitSchemaPartial)(toJsonExit(result.exit))
       )
       return new Workflow.Complete({ exit })
     }),

@@ -63,6 +63,22 @@ describe("Schema", () => {
     strictEqual(String(result.cause.reasons[0]), "Fail(SchemaError(Expected string, got null))")
   })
 
+  describe("SchemaError", () => {
+    it("extends Error and exposes the issue", () => {
+      const result = SchemaParser.decodeUnknownResult(Schema.String)(null)
+      assertTrue(Result.isFailure(result))
+      const error = new Schema.SchemaError(result.failure)
+
+      assertTrue(error instanceof Error)
+      assertTrue(Schema.isSchemaError(error))
+      strictEqual(error._tag, "SchemaError")
+      strictEqual(error.name, "SchemaError")
+      strictEqual(error.issue, result.failure)
+      strictEqual(error.message, "Expected string, got null")
+      strictEqual(String(error), "SchemaError(Expected string, got null)")
+    })
+  })
+
   describe("parseOptions annotation", () => {
     it("Number", async () => {
       const schema = Schema.Number.check(Schema.isGreaterThan(0), Schema.isInt()).annotate({
@@ -3161,6 +3177,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
     })
   })
 
+  describe("make", () => {
+    it("should throw an error when the cause contains both a schema issue and a defect", () => {
+      const cause = Cause.combine(
+        Cause.fail(new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" }))),
+        Cause.die(new Error("defect"))
+      )
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.withConstructorDefault(Effect.failCause(cause)))
+      })
+
+      throws(() => schema.make({}), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Constructor adapter can only throw schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+    })
+  })
+
   describe("makeOption", () => {
     it("Struct", () => {
       const schema = Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })
@@ -3172,6 +3206,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       class A extends Schema.Class<A>("A")(Schema.Struct({ a: Schema.Number.check(Schema.isGreaterThan(0)) })) {}
       deepStrictEqual(A.makeOption({ a: 1 }), Option.some(new A({ a: 1 })))
       deepStrictEqual(A.makeOption({ a: -1 }), Option.none())
+    })
+
+    it("should throw an error when the cause is not a schema issue", () => {
+      const schema = Schema.Struct({
+        a: Schema.String.pipe(Schema.withConstructorDefault(Effect.die(new Error("make defect"))))
+      })
+      class A extends Schema.Class<A>("A")(schema) {}
+
+      throws(() => schema.makeOption({}), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+      throws(() => A.makeOption(), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
     })
   })
 
@@ -3196,6 +3248,26 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
         const failure = yield* A.makeEffect({ a: -1 }).pipe(Effect.flip)
         assertTrue(Schema.isSchemaError(failure))
+      }))
+
+    it.effect("should preserve mixed schema error and defect causes", () =>
+      Effect.gen(function*() {
+        const cause = Cause.combine(
+          Cause.fail(
+            new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" }))
+          ),
+          Cause.die(new Error("defect"))
+        )
+        const schema = Schema.Struct({
+          a: Schema.String.pipe(Schema.withConstructorDefault(Effect.failCause(cause)))
+        })
+
+        const exit = yield* schema.makeEffect({}).pipe(Effect.exit)
+        assertTrue(Exit.isFailure(exit))
+        assertTrue(Exit.hasDies(exit))
+        const error = Cause.findError(exit.cause)
+        assertTrue(Result.isSuccess(error))
+        assertTrue(Schema.isSchemaError(error.success))
       }))
   })
 
@@ -6881,13 +6953,108 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const r5 = await decodeUnknownPromiseIssue(null).then(Result.succeed, Result.fail)
       assertTrue(Result.isFailure(r5))
-      assertTrue(SchemaIssue.isIssue(r5.failure))
-      strictEqual(r5.failure.toString(), "Expected string, got null")
+      assertTrue(r5.failure instanceof Error)
+      strictEqual(r5.failure.message, "Expected string, got null")
 
       const r6 = await encodeUnknownPromiseIssue(null).then(Result.succeed, Result.fail)
       assertTrue(Result.isFailure(r6))
-      assertTrue(SchemaIssue.isIssue(r6.failure))
-      strictEqual(r6.failure.toString(), "Expected number, got null")
+      assertTrue(r6.failure instanceof Error)
+      strictEqual(r6.failure.message, "Expected number, got null")
+    })
+
+    it("should reject with an error when the cause contains both a schema issue and a defect", async () => {
+      const cause = Cause.combine(
+        Cause.fail(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" })),
+        Cause.die(new Error("defect"))
+      )
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.failCause(cause)),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.failCause(cause))
+      }))
+
+      const r1 = await Schema.decodeUnknownPromise(decodeSchema)("a").then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r1))
+      assertTrue(r1.failure instanceof Error)
+      strictEqual(r1.failure.message, "Promise adapter can only reject schema errors")
+      assertTrue(Cause.hasDies(r1.failure.cause as Cause.Cause<never>))
+
+      const r2 = await Schema.encodeUnknownPromise(encodeSchema)("a").then(Result.succeed, Result.fail)
+      assertTrue(Result.isFailure(r2))
+      assertTrue(r2.failure instanceof Error)
+      strictEqual(r2.failure.message, "Promise adapter can only reject schema errors")
+      assertTrue(Cause.hasDies(r2.failure.cause as Cause.Cause<never>))
+    })
+  })
+
+  describe("decodeUnknownOption / encodeUnknownOption", () => {
+    it("FiniteFromString", () => {
+      const schema = Schema.FiniteFromString
+      const decodeUnknownOption = Schema.decodeUnknownOption(schema)
+      const encodeUnknownOption = Schema.encodeUnknownOption(schema)
+
+      const r1 = decodeUnknownOption("1")
+      assertTrue(Option.isSome(r1))
+      strictEqual(r1.value, 1)
+
+      assertTrue(Option.isNone(decodeUnknownOption(null)))
+
+      const r2 = encodeUnknownOption(1)
+      assertTrue(Option.isSome(r2))
+      strictEqual(r2.value, "1")
+
+      assertTrue(Option.isNone(encodeUnknownOption(null)))
+    })
+
+    it("should throw an error when the cause is not a schema issue", () => {
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.die(new Error("decode defect"))),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.die(new Error("encode defect")))
+      }))
+
+      throws(() => Schema.decodeUnknownOption(decodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+      throws(() => Schema.encodeUnknownOption(encodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+    })
+
+    it("should throw an error when the cause contains both a schema issue and a defect", () => {
+      const cause = Cause.combine(
+        Cause.fail(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" })),
+        Cause.die(new Error("defect"))
+      )
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.failCause(cause)),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.failCause(cause))
+      }))
+
+      throws(() => Schema.decodeUnknownOption(decodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+      throws(() => Schema.encodeUnknownOption(encodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Option adapter can only return none for schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
     })
   })
 
@@ -6925,6 +7092,32 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       assertTrue(SchemaIssue.isIssue(r6.failure))
       strictEqual(r6.failure.toString(), "Expected number, got null")
     })
+
+    it("should throw an error when the cause contains both a schema issue and a defect", () => {
+      const cause = Cause.combine(
+        Cause.fail(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" })),
+        Cause.die(new Error("defect"))
+      )
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.failCause(cause)),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.failCause(cause))
+      }))
+
+      throws(() => Schema.decodeUnknownResult(decodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Result adapter can only return schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+      throws(() => Schema.encodeUnknownResult(encodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Result adapter can only return schema issues")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+    })
   })
 
   describe("decodeUnknownSync / encodeUnknownSync", () => {
@@ -6945,15 +7138,41 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       })
 
       throws(() => SchemaParser.decodeUnknownSync(schema)(null), (e) => {
-        ok(e instanceof Error)
+        assertTrue(e instanceof Error)
         assertTrue(SchemaIssue.isIssue(e.cause))
         strictEqual(e.cause.toString(), "Expected string, got null")
       })
 
       throws(() => SchemaParser.encodeUnknownSync(schema)(null), (e) => {
-        ok(e instanceof Error)
+        assertTrue(e instanceof Error)
         assertTrue(SchemaIssue.isIssue(e.cause))
         strictEqual(e.cause.toString(), "Expected number, got null")
+      })
+    })
+
+    it("should throw an error when the cause contains both a schema issue and a defect", () => {
+      const cause = Cause.combine(
+        Cause.fail(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" })),
+        Cause.die(new Error("defect"))
+      )
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.failCause(cause)),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.failCause(cause))
+      }))
+
+      throws(() => Schema.decodeUnknownSync(decodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Sync adapter can only throw schema errors")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
+      })
+      throws(() => Schema.encodeUnknownSync(encodeSchema)("a"), (e) => {
+        assertTrue(e instanceof Error)
+        strictEqual(e.message, "Sync adapter can only throw schema errors")
+        assertTrue(Cause.hasDies(e.cause as Cause.Cause<never>))
       })
     })
   })
@@ -6992,7 +7211,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   })
 
   describe("decodeUnknownExit", () => {
-    it("should throw on async decoding", () => {
+    it("should die on async decoding", () => {
       const AsyncString = Schema.String.pipe(Schema.decode({
         decode: new SchemaGetter.Getter((os: Option.Option<string>) =>
           Effect.gen(function*() {
@@ -7004,7 +7223,8 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       }))
       const schema = AsyncString
 
-      throws(() => SchemaParser.decodeUnknownExit(schema)("1"))
+      const exit = SchemaParser.decodeUnknownExit(schema)("1")
+      assertTrue(Exit.hasDies(exit))
     })
 
     it("should die on missing dependency", () => {
@@ -7021,6 +7241,37 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       const schema = DepString
       const exit = SchemaParser.decodeUnknownExit(schema as any)(1)
       assertTrue(Exit.hasDies(exit))
+    })
+  })
+
+  describe("decodeUnknownExit / encodeUnknownExit", () => {
+    it("should preserve mixed schema issue and defect causes", () => {
+      const cause = Cause.combine(
+        Cause.fail(new SchemaIssue.InvalidValue(Option.some("a"), { message: "schema issue" })),
+        Cause.die(new Error("defect"))
+      )
+      const decodeSchema = Schema.String.pipe(Schema.decode({
+        decode: new SchemaGetter.Getter(() => Effect.failCause(cause)),
+        encode: SchemaGetter.passthrough()
+      }))
+      const encodeSchema = Schema.String.pipe(Schema.encode({
+        decode: SchemaGetter.passthrough(),
+        encode: new SchemaGetter.Getter(() => Effect.failCause(cause))
+      }))
+
+      const decodeExit = Schema.decodeUnknownExit(decodeSchema)("a")
+      assertTrue(Exit.isFailure(decodeExit))
+      assertTrue(Exit.hasDies(decodeExit))
+      const decodeError = Cause.findError(decodeExit.cause)
+      assertTrue(Result.isSuccess(decodeError))
+      assertTrue(Schema.isSchemaError(decodeError.success))
+
+      const encodeExit = Schema.encodeUnknownExit(encodeSchema)("a")
+      assertTrue(Exit.isFailure(encodeExit))
+      assertTrue(Exit.hasDies(encodeExit))
+      const encodeError = Cause.findError(encodeExit.cause)
+      assertTrue(Result.isSuccess(encodeError))
+      assertTrue(Schema.isSchemaError(encodeError.success))
     })
   })
 
@@ -7944,6 +8195,30 @@ pointed message
       )
     })
 
+    it("Effect failing with SchemaError and a defect preserves the mixed cause", () => {
+      const cause = Cause.combine(
+        Cause.fail(
+          new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+        ),
+        Cause.die(new Error("defect"))
+      )
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefaultKey(Effect.failCause(cause)))
+      })
+
+      const exit = Schema.decodeUnknownExit(schema)({})
+      assertTrue(Exit.isFailure(exit))
+      assertTrue(Exit.hasDies(exit))
+      const error = Cause.findError(exit.cause)
+      assertTrue(Result.isSuccess(error))
+      assertTrue(Schema.isSchemaError(error.success))
+      strictEqual(
+        error.success.message,
+        `decoding default failed
+  at ["a"]`
+      )
+    })
+
     it("default Effect can require a service", async () => {
       class Service extends Context.Service<Service, { fallback: Effect.Effect<string> }>()("Service") {}
 
@@ -8019,6 +8294,30 @@ pointed message
       await decoding.succeed({ a: undefined }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: undefined } }, { a: { b: 1 } })
       await decoding.succeed({ a: { b: "2" } }, { a: { b: 2 } })
+    })
+
+    it("Effect failing with SchemaError and a defect preserves the mixed cause", () => {
+      const cause = Cause.combine(
+        Cause.fail(
+          new Schema.SchemaError(new SchemaIssue.InvalidValue(Option.none(), { message: "decoding default failed" }))
+        ),
+        Cause.die(new Error("defect"))
+      )
+      const schema = Schema.Struct({
+        a: Schema.FiniteFromString.pipe(Schema.withDecodingDefault(Effect.failCause(cause)))
+      })
+
+      const exit = Schema.decodeUnknownExit(schema)({})
+      assertTrue(Exit.isFailure(exit))
+      assertTrue(Exit.hasDies(exit))
+      const error = Cause.findError(exit.cause)
+      assertTrue(Result.isSuccess(error))
+      assertTrue(Schema.isSchemaError(error.success))
+      strictEqual(
+        error.success.message,
+        `decoding default failed
+  at ["a"]`
+      )
     })
 
     it("default Effect can require a service", async () => {

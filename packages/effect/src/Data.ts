@@ -195,7 +195,7 @@ export declare namespace TaggedEnum {
    * `this["A"]`, `this["B"]`, etc. as placeholders for the generics. The
    * `Count` parameter declares how many generics are used (up to 4).
    *
-   * **Example** (Generic tagged enum)
+   * **Example** (Defining a generic tagged enum)
    *
    * ```ts
    * import { Data } from "effect"
@@ -325,7 +325,7 @@ export declare namespace TaggedEnum {
    *
    * Use to select one full tagged-union variant by its `_tag` value.
    *
-   * **Example** (extracting a variant type)
+   * **Example** (Extracting a variant type)
    *
    * ```ts
    * import type { Data } from "effect"
@@ -537,7 +537,7 @@ export declare namespace TaggedEnum {
  *   on the tag being globally unique and the value being produced by your
  *   constructors. For untrusted input, validate with the `Schema` module first.
  *
- * **Example** (Basic usage)
+ * **Example** (Creating and matching tagged enum values)
  *
  * ```ts
  * import { Data } from "effect"
@@ -562,7 +562,7 @@ export declare namespace TaggedEnum {
  * console.log(msg) // "/missing not found"
  * ```
  *
- * **Example** (Generic tagged enum)
+ * **Example** (Defining a generic tagged enum)
  *
  * ```ts
  * import { Data } from "effect"
@@ -738,7 +738,7 @@ export const Error: new<A extends Record<string, any> = {}>(
  * The `_tag` is excluded from the constructor argument. Yielding an instance
  * inside `Effect.gen` fails the effect with this error.
  *
- * **Example** (Tag-based error recovery)
+ * **Example** (Recovering by tag)
  *
  * ```ts
  * import { Data, Effect } from "effect"

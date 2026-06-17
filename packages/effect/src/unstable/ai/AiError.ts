@@ -181,7 +181,7 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
  * Provider-specific metadata is namespaced by provider name. Each provider
  * value can contain arbitrary mutable JSON metadata or `null`.
  *
- * **Example** (Metadata shape)
+ * **Example** (Inspecting metadata shape)
  *
  * ```ts
  * const metadata = {
