@@ -5827,7 +5827,19 @@ const performanceNowNanos = (function() {
   const bigint1e6 = BigInt(1_000_000)
   if (typeof performance === "undefined" || typeof performance.now === "undefined") {
     return () => BigInt(Date.now()) * bigint1e6
-  } else if (typeof performance.timeOrigin === "number" && performance.timeOrigin === 0) {
+  } else if (
+    typeof performance.timeOrigin === "number"
+    && performance.timeOrigin === 0
+    && performance.now() > 86_400_000
+  ) {
+    // timeOrigin === 0 is normally the signal that performance.now() already
+    // returns wall-clock ms (e.g. browsers in cross-origin-isolated mode), so
+    // we can read it directly. On Miniflare / Cloudflare Workers with
+    // `nodejs_compat` it instead means performance.now() is unanchored from
+    // wall clock — performance.now() at module load is ~0 and grows from
+    // there, which would land every span near the Unix epoch. The
+    // performance.now() > 86_400_000 check confirms the value actually
+    // looks like wall-clock ms before trusting it (#2416).
     return () => BigInt(Math.round(performance.now() * 1_000_000))
   }
   const origin = (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
