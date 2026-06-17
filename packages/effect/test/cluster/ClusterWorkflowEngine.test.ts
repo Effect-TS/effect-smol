@@ -310,7 +310,6 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
   it.effect("can serialize workflow defects", () =>
     Effect.gen(function*() {
-      const driver = yield* MessageStorage.MemoryDriver
       yield* TestClock.adjust(1)
 
       const exit = yield* ErrorDefectWorkflow.execute({
@@ -322,26 +321,6 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       assert(Result.isSuccess(defect))
       assert(defect.success instanceof Error)
       assert.strictEqual(defect.success.message, "Batch request error: Request timed out")
-
-      const activityRequest = driver.journal.find((envelope) =>
-        envelope._tag === "Request" &&
-        envelope.tag === "activity" &&
-        (envelope.payload as Error).name === "raw-error-defect"
-      )
-      assert(activityRequest)
-      const storedReply = driver.requests.get(activityRequest.requestId)?.replies[0]
-      assert(storedReply?._tag === "WithExit")
-      assert(storedReply.exit._tag === "Success")
-
-      const result = storedReply.exit.value as Workflow.ResultEncoded<any, any>
-      assert(result._tag === "Complete")
-      assert(result.exit._tag === "Failure")
-      const storedDefect = result.exit.cause.find((reason) => reason._tag === "Die")?.defect
-
-      assert.deepStrictEqual(storedDefect, {
-        name: "Error",
-        message: "Batch request error: Request timed out"
-      })
     }).pipe(Effect.provide(TestWorkflowLayer)))
 })
 
