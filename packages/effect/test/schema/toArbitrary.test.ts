@@ -477,6 +477,16 @@ describe("Arbitrary generation", () => {
       verifyGeneration(schema)
     })
 
+    it("${number} excludes non-finite values", () => {
+      const schema = Schema.TemplateLiteral([Schema.Number])
+      assertInvariant(schema, (s) => s !== "NaN" && s !== "Infinity" && s !== "-Infinity")
+    })
+
+    it("${number | \"a\"} excludes non-finite values", () => {
+      const schema = Schema.TemplateLiteral([Schema.Union([Schema.Number, Schema.Literal("a")])])
+      assertInvariant(schema, (s) => s !== "NaN" && s !== "Infinity" && s !== "-Infinity")
+    })
+
     it("a", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a")])
       verifyGeneration(schema)
@@ -489,6 +499,11 @@ describe("Arbitrary generation", () => {
 
     it("a${string}b", () => {
       const schema = Schema.TemplateLiteral([Schema.Literal("a"), Schema.String, Schema.Literal("b")])
+      verifyGeneration(schema)
+    })
+
+    it("user_${uuid}", () => {
+      const schema = Schema.TemplateLiteral(["user_", Schema.String.check(Schema.isUUID())])
       verifyGeneration(schema)
     })
 
