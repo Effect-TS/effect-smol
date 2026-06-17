@@ -11,6 +11,14 @@ import type * as Effect from "./Effect.ts"
 import * as internal from "./internal/effect.ts"
 
 /**
+ * Represents the position of a `Latch`, which can be either `"open"` or `"closed"`.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type LatchPosition = "open" | "closed"
+
+/**
  * A reusable coordination primitive that lets fibers wait until they are
  * released by the latch.
  *
@@ -113,6 +121,15 @@ export interface Latch {
    * Use to gate an effect behind the latch signal.
    */
   whenOpen<A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R>
+
+  /**
+   * Polls the latch to check its state.
+   *
+   * ** When to use**
+   *
+   * Use to check the state of the latch without suspending or changing its state.
+   */
+  poll(this: Latch): LatchPosition
 }
 
 /**
@@ -371,3 +388,12 @@ export const whenOpen: {
   const [self, effect] = args
   return self.whenOpen(effect)
 }) as any
+
+/**
+ * Polls the latch to check its state.
+ *
+ * ** When to use**
+ *
+ * Use to check the state of the latch without suspending or changing its state.
+ */
+export const poll = (self: Latch): LatchPosition => self.poll()
