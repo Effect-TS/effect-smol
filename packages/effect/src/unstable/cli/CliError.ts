@@ -106,6 +106,7 @@ export type CliError =
   | MissingArgument
   | InvalidValue
   | UnknownSubcommand
+  | MutuallyExclusiveFlags
   | ShowHelp
   | UserError
 
@@ -492,6 +493,48 @@ export class UserError extends Schema.ErrorClass<UserError>(`${TypeId}/UserError
 }
 
 /**
+ * Error thrown when two or more mutually exclusive flags are set together.
+ *
+ * **Example** (Creating mutually exclusive flag errors)
+ *
+ * ```ts
+ * import { CliError } from "effect/unstable/cli"
+ *
+ * const conflictError = new CliError.MutuallyExclusiveFlags({
+ *   flags: ["use-api", "use-docker"]
+ * })
+ *
+ * console.log(conflictError.message)
+ * // "Flags --use-api, --use-docker are mutually exclusive"
+ * ```
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export class MutuallyExclusiveFlags extends Schema.ErrorClass<MutuallyExclusiveFlags>(
+  `${TypeId}/MutuallyExclusiveFlags`
+)({
+  _tag: Schema.tag("MutuallyExclusiveFlags"),
+  flags: Schema.Array(Schema.String)
+}) {
+  /**
+   * Marks this value as a CLI validation error for runtime guards.
+   *
+   * @since 4.0.0
+   */
+  readonly [TypeId] = TypeId
+
+  /**
+   * Formats the conflicting flags that cannot be combined.
+   *
+   * @since 4.0.0
+   */
+  override get message() {
+    return `Flags ${this.flags.map((flag) => `--${flag}`).join(", ")} are mutually exclusive`
+  }
+}
+
+/**
  * Schema for concrete CLI errors that can be reported together with help output.
  *
  * This excludes `ShowHelp` itself, allowing parse and validation errors to be
@@ -508,6 +551,7 @@ export const NonShowHelpErrors: Schema.Union<
     typeof MissingArgument,
     typeof InvalidValue,
     typeof UnknownSubcommand,
+    typeof MutuallyExclusiveFlags,
     typeof UserError
   ]
 > = Schema.Union([
@@ -517,6 +561,7 @@ export const NonShowHelpErrors: Schema.Union<
   MissingArgument,
   InvalidValue,
   UnknownSubcommand,
+  MutuallyExclusiveFlags,
   UserError
 ])
 

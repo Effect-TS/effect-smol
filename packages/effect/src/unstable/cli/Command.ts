@@ -566,6 +566,93 @@ export const withHandler: {
 ): Command<Name, A, ContextInput, E, Exclude<R, GlobalFlag.BuiltInSettingContext>> =>
   makeCommand({ ...toImpl(self), handle: handler } as any))
 
+/**
+ * Determines whether a parsed flag value should be treated as "set" for the
+ * purpose of mutual-exclusion checks: `true` booleans, `Some` options, and
+ * non-empty arrays count as present.
+ */
+const isFlagPresent = (value: unknown): boolean => {
+  if (typeof value === "boolean") return value
+  if (Option.isOption(value)) return Option.isSome(value)
+  if (Array.isArray(value)) return value.length > 0
+  return value !== undefined
+}
+
+/**
+ * Marks a set of the command's flags as mutually exclusive: at most one of them
+ * may be set on a single invocation.
+ *
+ * **Details**
+ *
+ * This is a validation combinator that runs after parsing. The keys refer to the
+ * command's top-level flag declarations. A flag counts as "set" when it is a
+ * `true` boolean, a `Some` option (see `Flag.optional`), or a non-empty variadic
+ * array, so it is most useful with boolean and optional flags. When more than one
+ * of the listed flags is set, parsing fails with
+ * {@link CliError.MutuallyExclusiveFlags} listing the conflicting `--flag` names.
+ *
+ * Apply it to the leaf command, before attaching subcommands.
+ *
+ * **Example** (At most one download strategy)
+ *
+ * ```ts
+ * import { Command, Flag } from "effect/unstable/cli"
+ *
+ * const download = Command.make("download", {
+ *   useApi: Flag.boolean("use-api"),
+ *   useDocker: Flag.boolean("use-docker"),
+ *   legacyBundle: Flag.boolean("legacy-bundle")
+ * }).pipe(
+ *   Command.mutuallyExclusive(["useApi", "useDocker", "legacyBundle"])
+ * )
+ * // `download --use-api --use-docker` fails with:
+ * //   "Flags --use-api, --use-docker are mutually exclusive"
+ * ```
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const mutuallyExclusive: {
+  <const K extends ReadonlyArray<string>>(
+    keys: K
+  ): <Name extends string, A extends { readonly [P in K[number]]: unknown }, ContextInput, E, R>(
+    self: Command<Name, A, ContextInput, E, R>
+  ) => Command<Name, A, ContextInput, E, R>
+  <Name extends string, A, ContextInput, E, R, const K extends ReadonlyArray<keyof A & string>>(
+    self: Command<Name, A, ContextInput, E, R>,
+    keys: K
+  ): Command<Name, A, ContextInput, E, R>
+} = dual(2, <Name extends string, A, ContextInput, E, R>(
+  self: Command<Name, A, ContextInput, E, R>,
+  keys: ReadonlyArray<keyof A & string>
+): Command<Name, A, ContextInput, E, R> => {
+  const impl = toImpl(self)
+  const flagName = (key: keyof A & string): string => {
+    const node = impl.config.tree[key]
+    if (node === undefined || node._tag !== "Param") {
+      throw new Error(
+        `Command.mutuallyExclusive: "${key}" is not a top-level flag of command "${self.name}"`
+      )
+    }
+    return Param.extractSingleParams(impl.config.orderedParams[node.index])[0].name
+  }
+  const names = new Map<keyof A & string, string>(keys.map((key) => [key, flagName(key)]))
+  const parse = (raw: ParsedTokens): Effect.Effect<A, CliError.CliError, Environment> =>
+    impl.parse(raw).pipe(
+      Effect.flatMap((parsed) => {
+        const present = keys.filter((key) => isFlagPresent(parsed[key]))
+        return present.length <= 1
+          ? Effect.succeed(parsed)
+          : Effect.fail(
+            new CliError.MutuallyExclusiveFlags({
+              flags: present.map((key) => names.get(key)!).sort()
+            })
+          )
+      })
+    )
+  return makeCommand({ ...impl, parse } as any)
+})
+
 interface SubcommandGroupInternal {
   readonly group: string | undefined
   readonly commands: NonEmptyReadonlyArray<Command.Any>

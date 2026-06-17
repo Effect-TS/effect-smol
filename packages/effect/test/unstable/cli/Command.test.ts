@@ -115,6 +115,78 @@ describe("Command", () => {
       }))
   })
 
+  describe("mutuallyExclusive", () => {
+    const makeDownload = (captured: Array<string>) =>
+      Command.make("download", {
+        useApi: Flag.boolean("use-api"),
+        useDocker: Flag.boolean("use-docker"),
+        legacyBundle: Flag.boolean("legacy-bundle")
+      }, (config) =>
+        Effect.sync(() => {
+          captured.push(
+            [
+              config.useApi ? "use-api" : undefined,
+              config.useDocker ? "use-docker" : undefined,
+              config.legacyBundle ? "legacy-bundle" : undefined
+            ].filter((flag) => flag !== undefined).join(",")
+          )
+        })).pipe(Command.mutuallyExclusive(["useApi", "useDocker", "legacyBundle"]))
+
+    it.effect("runs the handler when no listed flag is set", () =>
+      Effect.gen(function*() {
+        const captured: Array<string> = []
+        yield* Command.runWith(makeDownload(captured), { version: "1.0.0" })([])
+        assert.deepStrictEqual(captured, [""])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("runs the handler when exactly one flag is set", () =>
+      Effect.gen(function*() {
+        const captured: Array<string> = []
+        yield* Command.runWith(makeDownload(captured), { version: "1.0.0" })(["--use-docker"])
+        assert.deepStrictEqual(captured, ["use-docker"])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("fails with MutuallyExclusiveFlags when two flags are set", () =>
+      Effect.gen(function*() {
+        const captured: Array<string> = []
+        const error = yield* Command.runWith(makeDownload(captured), { version: "1.0.0" })([
+          "--use-docker",
+          "--use-api"
+        ]).pipe(Effect.flip)
+
+        if (error._tag !== "ShowHelp") {
+          return assert.fail(`expected ShowHelp, got ${error._tag}`)
+        }
+        assert.strictEqual(error.errors.length, 1)
+        const conflict = error.errors[0]
+        assert.strictEqual(conflict._tag, "MutuallyExclusiveFlags")
+        // names are sorted, independent of the order they appear on the command line
+        assert.strictEqual(conflict.message, "Flags --use-api, --use-docker are mutually exclusive")
+        assert.deepStrictEqual(captured, [])
+      }).pipe(Effect.provide(TestLayer)))
+
+    it.effect("treats Some optional flags as set", () =>
+      Effect.gen(function*() {
+        const command = Command.make("gen", {
+          local: Flag.boolean("local"),
+          projectId: Flag.string("project-id").pipe(Flag.optional)
+        }, () => Effect.void).pipe(Command.mutuallyExclusive(["local", "projectId"]))
+
+        const error = yield* Command.runWith(command, { version: "1.0.0" })([
+          "--local",
+          "--project-id",
+          "abc"
+        ]).pipe(Effect.flip)
+
+        if (error._tag !== "ShowHelp") {
+          return assert.fail(`expected ShowHelp, got ${error._tag}`)
+        }
+        const conflict = error.errors[0]
+        assert.strictEqual(conflict._tag, "MutuallyExclusiveFlags")
+        assert.strictEqual(conflict.message, "Flags --local, --project-id are mutually exclusive")
+      }).pipe(Effect.provide(TestLayer)))
+  })
+
   describe("run", () => {
     it.effect("should execute handler with parsed config", () =>
       Effect.gen(function*() {
