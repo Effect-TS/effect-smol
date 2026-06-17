@@ -573,7 +573,7 @@ export const negate = (self: Duration): Duration => {
 /**
  * A Duration representing zero time.
  *
- * **Example** (Using the zero duration)
+ * **Example** (Referencing the zero duration)
  *
  * ```ts
  * import { Duration } from "effect"
@@ -589,7 +589,7 @@ export const zero: Duration = make(0)
 /**
  * A Duration representing infinite time.
  *
- * **Example** (Using infinite duration)
+ * **Example** (Referencing infinite duration)
  *
  * ```ts
  * import { Duration } from "effect"
@@ -605,7 +605,7 @@ export const infinity: Duration = make(Infinity)
 /**
  * A Duration representing negative infinite time.
  *
- * **Example** (Using negative infinite duration)
+ * **Example** (Referencing negative infinite duration)
  *
  * ```ts
  * import { Duration } from "effect"

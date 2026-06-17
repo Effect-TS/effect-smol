@@ -1,5 +1,7 @@
+import * as Cause from "../../Cause.ts"
+import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
-import { flow } from "../../Function.ts"
+import * as Exit from "../../Exit.ts"
 import * as Pipeable from "../../Pipeable.ts"
 import type * as Schema from "../../Schema.ts"
 import * as SchemaAST from "../../SchemaAST.ts"
@@ -33,7 +35,8 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
   }
   self.ast = ast
   self.rebuild = (ast: SchemaAST.AST) => make(ast, options)
-  self.makeEffect = flow(SchemaParser.makeEffect(self), Effect.mapErrorEager((issue) => new SchemaError(issue)))
+  self.makeEffect = (input: S["~type.make.in"], options?: Schema.MakeOptions) =>
+    mapSchemaIssueEffect(SchemaParser.makeEffect(self)(input, options))
   self.make = SchemaParser.make(self)
   self.makeOption = SchemaParser.makeOption(self)
   return self
@@ -42,21 +45,44 @@ export function make<S extends Schema.Top>(ast: S["ast"], options?: object): S {
 /** @internal */
 export const SchemaErrorTypeId = "~effect/Schema/SchemaError"
 
-// not internal
-export class SchemaError {
-  readonly [SchemaErrorTypeId] = SchemaErrorTypeId
-  readonly _tag = "SchemaError"
-  readonly name: string = "SchemaError"
+// purposefully not internal
+export class SchemaError extends Data.TaggedError("SchemaError")<{
   readonly issue: Issue
+}> {
+  readonly [SchemaErrorTypeId]: typeof SchemaErrorTypeId = SchemaErrorTypeId
   constructor(issue: Issue) {
-    this.issue = issue
+    super({ issue })
   }
-  get message() {
+  override get message() {
     return this.issue.toString()
   }
-  toString() {
+  override toString() {
     return `SchemaError(${this.message})`
   }
+}
+
+/** @internal */
+export function mapSchemaIssueEffect<A, R>(
+  self: Effect.Effect<A, Issue, R>
+): Effect.Effect<A, SchemaError, R> {
+  return Effect.catchCause(
+    self,
+    (cause) => Effect.failCauseSync(() => Cause.map(cause, (issue) => new SchemaError(issue)))
+  )
+}
+
+/** @internal */
+export function mapSchemaErrorEffect<A, R>(
+  self: Effect.Effect<A, SchemaError, R>
+): Effect.Effect<A, Issue, R> {
+  return Effect.catchCause(self, (cause) => Effect.failCauseSync(() => Cause.map(cause, (error) => error.issue)))
+}
+
+/** @internal */
+export function mapSchemaIssueExit<A>(exit: Exit.Exit<A, Issue>): Exit.Exit<A, SchemaError> {
+  return Exit.isSuccess(exit)
+    ? Exit.succeed(exit.value)
+    : Exit.failCause(Cause.map(exit.cause, (issue) => new SchemaError(issue)))
 }
 
 /** @internal */

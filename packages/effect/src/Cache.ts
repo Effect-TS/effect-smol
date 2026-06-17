@@ -145,7 +145,7 @@ export interface Entry<A, E> {
  * The timeToLive function receives both the exit result and the key, allowing
  * for flexible TTL policies based on success/failure state and key characteristics.
  *
- * **Example** (Using dynamic time to live)
+ * **Example** (Configuring dynamic time to live)
  *
  * ```ts
  * import { Cache, Effect, Exit } from "effect"

@@ -2761,7 +2761,7 @@ export const makeGreaterThan = <T>(options: {
 
 A constructor creates a value of the schema's type, running all validations at the time of creation. If the value does not satisfy the schema, the constructor throws an error. Every schema exposes a `make` method for this purpose.
 
-For a non-throwing alternative, use `Schema.makeOption` (or `SchemaParser.makeOption`), which returns `Option.Some` on success and `Option.None` on failure.
+For an alternative that does not throw on schema validation failures, use `Schema.makeOption` (or `SchemaParser.makeOption`), which returns `Option.Some` on success and `Option.None` for schema issues. Non-schema failures, such as defects, still throw.
 
 ```ts
 import { Schema, SchemaParser } from "effect"

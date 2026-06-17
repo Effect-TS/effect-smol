@@ -46,7 +46,7 @@ import type * as Tool from "./Tool.ts"
  * enabling persistent conversational AI interactions with full context
  * management.
  *
- * **Example** (Using the Chat service)
+ * **Example** (Accessing the Chat service)
  *
  * ```ts
  * import { Effect } from "effect"

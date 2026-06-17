@@ -1508,7 +1508,7 @@ export const map: {
 /**
  * Applies a function to each element in an Iterable and returns a new Iterable containing the concatenated mapped elements.
  *
- * **Example** (FlatMapping iterables)
+ * **Example** (Flat mapping iterables)
  *
  * ```ts
  * import { Iterable } from "effect"
@@ -1950,7 +1950,7 @@ export const filter: {
  * Use when working with APIs or functions that return nullable values,
  * providing a clean way to filter out null or undefined while transforming.
  *
- * **Example** (FlatMapping nullable results)
+ * **Example** (Flat mapping nullable results)
  *
  * ```ts
  * import { Iterable } from "effect"

@@ -756,6 +756,45 @@ const prepareMessages = Effect.fnUntraced(
                   break
                 }
 
+                if (part.mediaType.startsWith("audio/")) {
+                  const format = audioFormats[part.mediaType.toLowerCase()]
+
+                  if (Predicate.isUndefined(format)) {
+                    return yield* AiError.make({
+                      module: "OpenRouterLanguageModel",
+                      method: "prepareMessages",
+                      reason: new AiError.InvalidUserInputError({
+                        description: `Detected unsupported media type for audio file: '${part.mediaType}' ` +
+                          `- OpenRouter supports ${supportedAudioFormats} audio`
+                      })
+                    })
+                  }
+
+                  if (part.data instanceof URL) {
+                    return yield* AiError.make({
+                      module: "OpenRouterLanguageModel",
+                      method: "prepareMessages",
+                      reason: new AiError.InvalidUserInputError({
+                        description: "Detected URL data for audio file - OpenRouter requires " +
+                          "audio to be provided as base64-encoded data"
+                      })
+                    })
+                  }
+
+                  content.push({
+                    type: "input_audio",
+                    input_audio: {
+                      data: part.data instanceof Uint8Array
+                        ? Encoding.encodeBase64(part.data)
+                        : getBase64FromDataUrl(part.data),
+                      format
+                    },
+                    ...(Predicate.isNotNull(partCacheControl) ? { cache_control: partCacheControl } : undefined)
+                  })
+
+                  break
+                }
+
                 const options = part.options.openrouter
                 const fileName = options?.fileName ?? part.fileName ?? ""
 
@@ -1757,6 +1796,32 @@ const getResponseFormat = Effect.fnUntraced(function*({ config, options, transfo
   }
   return undefined
 })
+
+/**
+ * Maps audio media types to the formats supported by OpenRouter.
+ *
+ * @see https://openrouter.ai/docs/guides/overview/multimodal/audio
+ */
+const audioFormats: Record<string, string> = {
+  "audio/aac": "aac",
+  "audio/aiff": "aiff",
+  "audio/x-aiff": "aiff",
+  "audio/flac": "flac",
+  "audio/x-flac": "flac",
+  "audio/l16": "pcm16",
+  "audio/l24": "pcm24",
+  "audio/m4a": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/mp4": "m4a",
+  "audio/mp3": "mp3",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav"
+}
+
+const supportedAudioFormats = Array.from(new Set(Object.values(audioFormats))).join(", ")
 
 const getMediaType = (dataUrl: string, defaultMediaType: string): string => {
   const match = dataUrl.match(/^data:([^;]+)/)

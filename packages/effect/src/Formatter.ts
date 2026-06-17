@@ -23,7 +23,7 @@ import { getRedacted, redact, symbolRedactable } from "./Redactable.ts"
  *
  * This is a pure callable type and carries no runtime implementation. It is contravariant in `Value` and covariant in `Format`.
  *
- * **Example** (Define a custom formatter)
+ * **Example** (Defining a custom formatter)
  *
  * ```ts
  * import type { Formatter } from "effect"
@@ -73,7 +73,7 @@ export interface Formatter<in Value, out Format = string> {
  *   `"\t"`). Defaults to `0` (compact).
  * - `ignoreToString` — skip calling `toString()`. Defaults to `false`.
  *
- * **Example** (Compact output)
+ * **Example** (Formatting compact output)
  *
  * ```ts
  * import { Formatter } from "effect"
@@ -97,7 +97,7 @@ export interface Formatter<in Value, out Format = string> {
  * // }
  * ```
  *
- * **Example** (Circular reference handling)
+ * **Example** (Handling circular references)
  *
  * ```ts
  * import { Formatter } from "effect"
@@ -257,7 +257,7 @@ function safeToString(input: any): string {
  * `Symbol`, `undefined`, and functions, follow standard `JSON.stringify`
  * behavior. The `space` parameter controls indentation and defaults to `0`.
  *
- * **Example** (Compact JSON)
+ * **Example** (Formatting compact JSON)
  *
  * ```ts
  * import { Formatter } from "effect"
@@ -266,7 +266,7 @@ function safeToString(input: any): string {
  * // {"name":"Alice","age":30}
  * ```
  *
- * **Example** (Circular reference handling)
+ * **Example** (Handling circular references)
  *
  * ```ts
  * import { Formatter } from "effect"

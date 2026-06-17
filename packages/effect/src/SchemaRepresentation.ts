@@ -22,7 +22,7 @@ import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
 import * as Schema from "./Schema.ts"
-import type * as SchemaAST from "./SchemaAST.ts"
+import * as SchemaAST from "./SchemaAST.ts"
 import * as SchemaGetter from "./SchemaGetter.ts"
 
 // -----------------------------------------------------------------------------
@@ -3091,11 +3091,11 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
 
   Object.entries(document.definitions).forEach(([identifier, definition]) => {
     visited = new Set<string>([identifier])
-    references[identifier] = recur(definition)
+    references[identifier] = unknownToJson(recur(definition))
   })
 
   visited = new Set<string>()
-  const representations = Arr.map(document.schemas, recur)
+  const representations = Arr.map(document.schemas, (schema) => unknownToJson(recur(schema)))
   return {
     representations,
     references
@@ -3529,6 +3529,60 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     }
     return out
   }
+
+  function unknownToJson(representation: Representation): Representation {
+    switch (representation._tag) {
+      case "Unknown":
+        return representation.annotations === undefined ?
+          json :
+          {
+            ...json,
+            annotations: {
+              ...json.annotations,
+              ...representation.annotations
+            }
+          }
+      case "Suspend": {
+        const thunk = unknownToJson(representation.thunk)
+        return thunk === representation.thunk ? representation : { ...representation, thunk }
+      }
+      case "String": {
+        if (representation.contentSchema === undefined) return representation
+        const contentSchema = unknownToJson(representation.contentSchema)
+        return contentSchema === representation.contentSchema ? representation : { ...representation, contentSchema }
+      }
+      case "Arrays": {
+        const elements = SchemaAST.mapOrSame(representation.elements, (element) => {
+          const type = unknownToJson(element.type)
+          return type === element.type ? element : { ...element, type }
+        })
+        const rest = SchemaAST.mapOrSame(representation.rest, unknownToJson)
+        return elements === representation.elements && rest === representation.rest ?
+          representation :
+          { ...representation, elements, rest }
+      }
+      case "Objects": {
+        const propertySignatures = SchemaAST.mapOrSame(representation.propertySignatures, (propertySignature) => {
+          const type = unknownToJson(propertySignature.type)
+          return type === propertySignature.type ? propertySignature : { ...propertySignature, type }
+        })
+        const indexSignatures = SchemaAST.mapOrSame(representation.indexSignatures, (indexSignature) => {
+          const type = unknownToJson(indexSignature.type)
+          return type === indexSignature.type ? indexSignature : { ...indexSignature, type }
+        })
+        return propertySignatures === representation.propertySignatures &&
+            indexSignatures === representation.indexSignatures ?
+          representation :
+          { ...representation, propertySignatures, indexSignatures }
+      }
+      case "Union": {
+        const types = SchemaAST.mapOrSame(representation.types, unknownToJson)
+        return types === representation.types ? representation : { ...representation, types }
+      }
+      default:
+        return representation
+    }
+  }
 }
 
 function asChecks<M>(
@@ -3654,6 +3708,22 @@ function collectArraysChecks(js: JsonSchema.JsonSchema): Array<Check<ArraysMeta>
 }
 
 const unknown: Unknown = { _tag: "Unknown" }
+const json: Declaration = {
+  _tag: "Declaration",
+  annotations: {
+    expected: "JSON value",
+    generation: {
+      Type: "Schema.Json",
+      runtime: "Schema.Json"
+    },
+    typeConstructor: {
+      _tag: "effect/Json"
+    }
+  },
+  checks: [],
+  encodedSchema: unknown,
+  typeParameters: []
+}
 const never: Never = { _tag: "Never" }
 const null_: Null = { _tag: "Null" }
 const string: String = { _tag: "String", checks: [] }

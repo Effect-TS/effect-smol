@@ -95,6 +95,15 @@ Use a normal multiline JSDoc comment in TypeScript source:
 - Do not use Markdown headings such as `# Heading` or ad hoc bold headings such as `**Notes**`; only the standard headings are allowed.
 - Examples must use `**Example** (Title)`, optional prose, and exactly one non-empty `ts` code fence.
 - Example titles must be unique after trimming and lowercasing.
+- Example titles should be short use-case phrases, not generic labels.
+- Prefer gerund or action-noun titles that read naturally after `for`, for
+  example `Parsing JSON`, `Creating a scoped runtime`, or `Comparing structs`.
+- Avoid imperative titles such as `Parse JSON`, vague labels such as `Syntax`
+  or `Basic usage`, and title-cased fragments such as `String Ordering`.
+- Preserve canonical technical capitalization inside the phrase, such as
+  `Option`, `Effect`, `Schema`, `DateTime`, `HashMap`, `Base64`, and `JSON`.
+- For multiple examples on the same API, make each title describe the distinct
+  use case shown by that example.
 - Prefer examples with stable, deterministic output. Avoid assertions or
   `console.log` comments that depend on stack traces, object inspection,
   `Error` formatting, concurrency order, timing, randomness, or

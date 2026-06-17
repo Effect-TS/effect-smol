@@ -149,7 +149,7 @@ export const get: {
  *
  * Symbol keys are excluded; only string keys are returned.
  *
- * **Example** (Typed keys)
+ * **Example** (Reading typed keys)
  *
  * ```ts
  * import { Struct } from "effect"

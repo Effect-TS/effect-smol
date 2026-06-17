@@ -78,7 +78,7 @@ export const Console: Context.Reference<Console> = effect.ConsoleRef
 /**
  * Creates an Effect that provides access to the current console service and lets you perform operations with it within an Effect context.
  *
- * **Example** (Using the current console service)
+ * **Example** (Accessing the current console service)
  *
  * ```ts
  * import { Console, Effect } from "effect"

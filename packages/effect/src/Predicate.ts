@@ -27,7 +27,7 @@ import type { TupleOf, TupleOfAtLeast } from "./Types.ts"
  * A predicate returns `true` or `false` and never throws by itself. It does not
  * narrow types unless you use `Refinement`.
  *
- * **Example** (Define a predicate)
+ * **Example** (Defining a predicate)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -91,7 +91,7 @@ export interface PredicateTypeLambda extends TypeLambda {
  * A refinement returns a type predicate (`a is B`). Use it with `if` or
  * `filter` to narrow types.
  *
- * **Example** (Narrow unknown)
+ * **Example** (Narrowing unknown values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -127,7 +127,7 @@ export interface Refinement<in A, out B extends A> {
  * These utilities are type-only, create no runtime values, and the namespace is
  * erased at runtime.
  *
- * **Example** (Extract predicate input)
+ * **Example** (Extracting predicate input)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -154,7 +154,7 @@ export declare namespace Predicate {
    * This is type-only and creates no runtime value. It resolves to `never` if
    * the type does not match `Predicate`.
    *
-   * **Example** (Infer input)
+   * **Example** (Inferring the input type)
    *
    * ```ts
    * import { Predicate } from "effect"
@@ -181,7 +181,7 @@ export declare namespace Predicate {
    *
    * This is type-only and creates no runtime value.
    *
-   * **Example** (Generic constraint)
+   * **Example** (Using generic constraints)
    *
    * ```ts
    * import { Predicate } from "effect"
@@ -209,7 +209,7 @@ export declare namespace Predicate {
  * These utilities are type-only, create no runtime values, and the namespace is
  * erased at runtime.
  *
- * **Example** (Extract refinement types)
+ * **Example** (Extracting refinement types)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -236,7 +236,7 @@ export declare namespace Refinement {
    * This is type-only and creates no runtime value. It resolves to `never` if
    * the type does not match `Refinement`.
    *
-   * **Example** (Infer input)
+   * **Example** (Inferring the input type)
    *
    * ```ts
    * import { Predicate } from "effect"
@@ -265,7 +265,7 @@ export declare namespace Refinement {
    * This is type-only and creates no runtime value. It resolves to `never` if
    * the type does not match `Refinement`.
    *
-   * **Example** (Infer output)
+   * **Example** (Inferring the output type)
    *
    * ```ts
    * import { Predicate } from "effect"
@@ -291,7 +291,7 @@ export declare namespace Refinement {
    *
    * This is type-only and creates no runtime value.
    *
-   * **Example** (Generic constraint)
+   * **Example** (Using generic constraints)
    *
    * ```ts
    * import { Predicate } from "effect"
@@ -320,7 +320,7 @@ export declare namespace Refinement {
  * Returns a new predicate that applies `f` before `self`. There is no
  * additional short-circuiting beyond what `self` does.
  *
- * **Example** (Check string length)
+ * **Example** (Checking string length)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -356,7 +356,7 @@ export const mapInput: {
  * This only checks length, not element types, and returns a refinement on the
  * array type.
  *
- * **Example** (Exact length)
+ * **Example** (Checking exact length)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -389,7 +389,7 @@ export const isTupleOf: {
  * This only checks length, not element types, and returns a refinement on the
  * array type.
  *
- * **Example** (Minimum length)
+ * **Example** (Checking minimum length)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -422,7 +422,7 @@ export const isTupleOfAtLeast: {
  * This uses `!!input` and treats `0`, `""`, `false`, `null`, and `undefined`
  * as false.
  *
- * **Example** (Filter truthy)
+ * **Example** (Filtering truthy values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -453,7 +453,7 @@ export function isTruthy(input: unknown): boolean {
  *
  * Uses `instanceof Set`.
  *
- * **Example** (Guard a Set)
+ * **Example** (Guarding a Set)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -485,7 +485,7 @@ export function isSet(input: unknown): input is Set<unknown> {
  *
  * Uses `instanceof Map`.
  *
- * **Example** (Guard a Map)
+ * **Example** (Guarding a Map)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -518,7 +518,7 @@ export function isMap(input: unknown): input is Map<unknown, unknown> {
  *
  * Uses `typeof input === "string"`.
  *
- * **Example** (Guard string)
+ * **Example** (Guarding strings)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -552,7 +552,7 @@ export function isString(input: unknown): input is string {
  *
  * Uses `typeof input === "number"` and does not exclude `NaN` or `Infinity`.
  *
- * **Example** (Guard number)
+ * **Example** (Guarding numbers)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -585,7 +585,7 @@ export function isNumber(input: unknown): input is number {
  *
  * Uses `typeof input === "boolean"`.
  *
- * **Example** (Guard boolean)
+ * **Example** (Guarding booleans)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -618,7 +618,7 @@ export function isBoolean(input: unknown): input is boolean {
  *
  * Uses `typeof input === "bigint"`.
  *
- * **Example** (Guard bigint)
+ * **Example** (Guarding bigints)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -650,7 +650,7 @@ export function isBigInt(input: unknown): input is bigint {
  *
  * Uses `typeof input === "symbol"`.
  *
- * **Example** (Guard symbol)
+ * **Example** (Guarding symbols)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -682,7 +682,7 @@ export function isSymbol(input: unknown): input is symbol {
  *
  * Uses `isString`, `isNumber`, and `isSymbol`.
  *
- * **Example** (Guard property key)
+ * **Example** (Guarding property keys)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -717,7 +717,7 @@ export function isPropertyKey(u: unknown): u is PropertyKey {
  *
  * Uses `typeof input === "function"`.
  *
- * **Example** (Guard function)
+ * **Example** (Guarding functions)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -749,7 +749,7 @@ export function isFunction(input: unknown): input is Function {
  *
  * Uses `input === undefined`.
  *
- * **Example** (Guard undefined)
+ * **Example** (Guarding undefined values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -780,7 +780,7 @@ export function isUndefined(input: unknown): input is undefined {
  *
  * Returns a refinement that excludes `undefined`.
  *
- * **Example** (Filter undefined)
+ * **Example** (Filtering undefined values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -811,7 +811,7 @@ export function isNotUndefined<A>(input: A): input is Exclude<A, undefined> {
  *
  * Uses `input === null`.
  *
- * **Example** (Guard null)
+ * **Example** (Guarding null values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -842,7 +842,7 @@ export function isNull(input: unknown): input is null {
  *
  * Returns a refinement that excludes `null`.
  *
- * **Example** (Filter null)
+ * **Example** (Filtering null values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -873,7 +873,7 @@ export function isNotNull<A>(input: A): input is Exclude<A, null> {
  *
  * Uses `input === null || input === undefined`.
  *
- * **Example** (Guard nullish)
+ * **Example** (Guarding nullish values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -906,7 +906,7 @@ export function isNullish<A>(input: A): input is A & (null | undefined) {
  *
  * Uses `input != null`.
  *
- * **Example** (Filter non-nullish)
+ * **Example** (Filtering non-nullish values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -934,7 +934,7 @@ export function isNotNullish<A>(input: A): input is NonNullable<A> {
  *
  * Use when you need a `Predicate` that never accepts, e.g. in default branches.
  *
- * **Example** (Never matches)
+ * **Example** (Matching no values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -957,7 +957,7 @@ export function isNever(_: unknown): _ is never {
  *
  * Use when you need a `Predicate` that always accepts, e.g. as a placeholder.
  *
- * **Example** (Always matches)
+ * **Example** (Matching every value)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -985,7 +985,7 @@ export function isUnknown(_: unknown): _ is unknown {
  *
  * Uses `typeof input === "object" && input !== null` and includes arrays.
  *
- * **Example** (Object or array)
+ * **Example** (Checking objects or arrays)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1016,7 +1016,7 @@ export function isObjectOrArray(input: unknown): input is { [x: PropertyKey]: un
  * also accepts object instances such as `Date`, `Map`, class instances, and
  * typed arrays. It excludes `null` and arrays.
  *
- * **Example** (Guard object)
+ * **Example** (Guarding objects)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1049,7 +1049,7 @@ export function isObject(input: unknown): input is { [x: PropertyKey]: unknown }
  * runtime. This delegates to `isObject`, so class instances and built-in object
  * instances are accepted.
  *
- * **Example** (Readonly object)
+ * **Example** (Checking readonly objects)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1079,7 +1079,7 @@ export function isReadonlyObject(input: unknown): input is { readonly [x: Proper
  *
  * Returns `true` for arrays and functions, and `false` for `null`.
  *
- * **Example** (Object keyword)
+ * **Example** (Checking object keywords)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1110,7 +1110,7 @@ export function isObjectKeyword(input: unknown): input is object {
  * Uses the `in` operator and `isObjectKeyword`. This does not check property
  * value types.
  *
- * **Example** (Guard property)
+ * **Example** (Guarding object properties)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1149,7 +1149,7 @@ export const hasProperty: {
  *
  * Uses `hasProperty` and strict equality on `_tag`.
  *
- * **Example** (Guard tagged)
+ * **Example** (Guarding tagged values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1182,7 +1182,7 @@ export const isTagged: {
  *
  * Uses `instanceof Error`.
  *
- * **Example** (Guard error)
+ * **Example** (Guarding errors)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1211,7 +1211,7 @@ export function isError(input: unknown): input is Error {
  *
  * Uses `instanceof Uint8Array`.
  *
- * **Example** (Guard Uint8Array)
+ * **Example** (Guarding Uint8Array values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1241,7 +1241,7 @@ export function isUint8Array(input: unknown): input is Uint8Array {
  *
  * Uses `instanceof Date`.
  *
- * **Example** (Guard Date)
+ * **Example** (Guarding Date values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1270,7 +1270,7 @@ export function isDate(input: unknown): input is Date {
  *
  * Accepts strings as iterable and uses `hasProperty` for `Symbol.iterator`.
  *
- * **Example** (Guard iterable)
+ * **Example** (Guarding iterables)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1300,7 +1300,7 @@ export function isIterable(input: unknown): input is Iterable<unknown> {
  *
  * Performs a structural check for `then` and `catch` functions.
  *
- * **Example** (Guard promise)
+ * **Example** (Guarding promises)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1330,7 +1330,7 @@ export function isPromise(input: unknown): input is Promise<unknown> {
  *
  * Performs a structural check for a callable `then`.
  *
- * **Example** (Guard promise-like)
+ * **Example** (Guarding promise-like values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1359,7 +1359,7 @@ export function isPromiseLike(input: unknown): input is PromiseLike<unknown> {
  *
  * Uses `instanceof RegExp`.
  *
- * **Example** (Guard RegExp)
+ * **Example** (Guarding RegExp values)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1390,7 +1390,7 @@ export function isRegExp(input: unknown): input is RegExp {
  * For refinements, the output type is narrowed by both checks. Evaluation
  * short-circuits on the first `false`.
  *
- * **Example** (Compose refinements)
+ * **Example** (Composing refinements)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1432,7 +1432,7 @@ export const compose: {
  * Returns a refinement if any element predicate is a refinement. Evaluation
  * stops at the first failing element.
  *
- * **Example** (Tuple predicate)
+ * **Example** (Checking tuples)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1478,7 +1478,7 @@ export function Tuple<const T extends ReadonlyArray<Predicate.Any>>(
  * Returns a refinement if any field predicate is a refinement. Only the
  * specified keys are checked, and extra keys are ignored.
  *
- * **Example** (Struct predicate)
+ * **Example** (Checking structs)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1526,7 +1526,7 @@ export function Struct<R extends Record<string, Predicate.Any>>(
  *
  * Returns a new predicate that flips the boolean result.
  *
- * **Example** (Negate)
+ * **Example** (Negating a predicate)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1559,7 +1559,7 @@ export function not<A>(self: Predicate<A>): Predicate<A> {
  * Evaluation short-circuits on the first `true`. For refinements, the output
  * type is a union.
  *
- * **Example** (Either condition)
+ * **Example** (Checking either condition)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1595,7 +1595,7 @@ export const or: {
  * Evaluation short-circuits on the first `false`. For refinements, the output
  * type is an intersection.
  *
- * **Example** (Both conditions)
+ * **Example** (Checking both conditions)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1636,7 +1636,7 @@ export const and: {
  *
  * Returns `true` when results differ.
  *
- * **Example** (Exclusive or)
+ * **Example** (Checking exclusive-or conditions)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1669,7 +1669,7 @@ export const xor: {
  *
  * Returns `true` when both results are equal.
  *
- * **Example** (Equivalence)
+ * **Example** (Defining equivalence)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1702,7 +1702,7 @@ export const eqv: {
  * Models constraints like "if A then B" and returns `true` when the antecedent
  * is `false`.
  *
- * **Example** (Implication)
+ * **Example** (Checking implication)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1738,7 +1738,7 @@ export const implies: {
  *
  * Returns the negation of `or`.
  *
- * **Example** (NOR)
+ * **Example** (Checking NOR conditions)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1772,7 +1772,7 @@ export const nor: {
  *
  * Returns the negation of `and`.
  *
- * **Example** (NAND)
+ * **Example** (Checking NAND conditions)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1807,7 +1807,7 @@ export const nand: {
  * Evaluation short-circuits on the first `false`. The collection is iterated
  * each time the predicate is called.
  *
- * **Example** (All checks)
+ * **Example** (Checking all predicates)
  *
  * ```ts
  * import { Predicate } from "effect"
@@ -1845,7 +1845,7 @@ export function every<A>(collection: Iterable<Predicate<A>>): Predicate<A> {
  * Evaluation short-circuits on the first `true`. The collection is iterated
  * each time the predicate is called.
  *
- * **Example** (Any check)
+ * **Example** (Checking any predicate)
  *
  * ```ts
  * import { Predicate } from "effect"

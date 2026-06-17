@@ -25,7 +25,7 @@ import * as Reducer from "./Reducer.ts"
  * - Returns `boolean`: `true` if values are equivalent, `false` otherwise
  * - Must satisfy reflexive, symmetric, and transitive properties
  *
- * **Example** (Simple number equivalence)
+ * **Example** (Defining simple number equivalence)
  *
  * ```ts
  * import type { Equivalence } from "effect"
@@ -36,7 +36,7 @@ import * as Reducer from "./Reducer.ts"
  * console.log(numberEq(1, 2)) // false
  * ```
  *
- * **Example** (Custom object equivalence)
+ * **Example** (Defining custom object equivalence)
  *
  * ```ts
  * import type { Equivalence } from "effect"
@@ -128,7 +128,7 @@ export interface EquivalenceTypeLambda extends TypeLambda {
  * console.log(caseInsensitive(str, str)) // true (fast path)
  * ```
  *
- * **Example** (Numeric tolerance equivalence)
+ * **Example** (Comparing numbers with tolerance)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -167,7 +167,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  *
  * `NaN !== NaN`, so `NaN` values are never considered equivalent.
  *
- * **Example** (Primitive types)
+ * **Example** (Comparing primitive types)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -179,7 +179,7 @@ const isStrictEquivalent = (x: unknown, y: unknown) => x === y
  * console.log(strictEq(NaN, NaN)) // false (NaN !== NaN)
  * ```
  *
- * **Example** (Reference equality for objects)
+ * **Example** (Comparing objects by reference)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -388,7 +388,7 @@ export const combine: {
  * console.log(point3DEq(point1, point3)) // false (different z)
  * ```
  *
- * **Example** (Empty collection edge case)
+ * **Example** (Handling empty collections)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -429,7 +429,7 @@ export const combineAll = <A>(collection: Iterable<Equivalence<A>>): Equivalence
  * - Useful for comparing by one property or normalizing values before
  *   comparison, such as case-insensitive strings
  *
- * **Example** (Equivalence based on object property)
+ * **Example** (Deriving equivalence from an object property)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -497,7 +497,7 @@ export const mapInput: {
  * respective equivalences, and it also satisfies reflexive, symmetric, and
  * transitive properties.
  *
- * **Example** (Homogeneous tuple equivalence)
+ * **Example** (Comparing homogeneous tuples)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -516,7 +516,7 @@ export const mapInput: {
  * console.log(stringTupleEq(tuple1, tuple3)) // false (different third element)
  * ```
  *
- * **Example** (Tuple with custom equivalences)
+ * **Example** (Comparing tuples with custom equivalences)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -586,7 +586,7 @@ export {
    * - Empty arrays are considered equivalent
    * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
    *
-   * **Example** (Number array equivalence)
+   * **Example** (Comparing number arrays)
    *
    * ```ts
    * import { Equivalence } from "effect"
@@ -638,7 +638,7 @@ export {
  * are equivalent according to their equivalences, and it also satisfies
  * reflexive, symmetric, and transitive properties.
  *
- * **Example** (Struct with different equivalences per field)
+ * **Example** (Comparing structs with different equivalences per field)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -668,7 +668,7 @@ export {
  * console.log(personEq(person1, person3)) // false (different age)
  * ```
  *
- * **Example** (Partial equivalence for specific fields)
+ * **Example** (Comparing specific fields)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -719,7 +719,7 @@ export function Struct<R extends Record<string, Equivalence<any>>>(
  * - Empty objects are considered equivalent
  * - The result is also an equivalence that satisfies reflexive, symmetric, and transitive properties
  *
- * **Example** (Record with string values)
+ * **Example** (Defining records with string values)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -736,7 +736,7 @@ export function Struct<R extends Record<string, Equivalence<any>>>(
  * console.log(stringRecordEq(record1, record4)) // false (different keys)
  * ```
  *
- * **Example** (Record with number values)
+ * **Example** (Defining records with number values)
  *
  * ```ts
  * import { Equivalence } from "effect"
@@ -846,7 +846,7 @@ export function makeReducer<A>() {
  * console.log(Equivalence.Date(invalidDate1, d1)) // false
  * ```
  *
- * **Example** (Reference vs value equality)
+ * **Example** (Comparing reference and value equality)
  *
  * ```ts
  * import { Equivalence } from "effect"
