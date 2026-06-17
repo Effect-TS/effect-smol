@@ -390,25 +390,8 @@ const finiteNumberConstraint: Constraint = {
 function finiteNumberContext(ctx: Context): Context {
   return {
     ...ctx,
-    constraint: mergeConstraint(ctx.constraint, finiteNumberConstraint)
+    constraint: finiteNumberConstraint
   }
-}
-
-function containsNumber(ast: SchemaAST.AST): boolean {
-  switch (ast._tag) {
-    case "Number":
-      return true
-    case "Union":
-      return ast.types.some(containsNumber)
-    default:
-      return false
-  }
-}
-
-function templateLiteralPart(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitraryWithContext<any> {
-  const arbitrary = recur(ast, path)
-  if (!containsNumber(ast)) return arbitrary
-  return same((fc, ctx, recursionStack) => arbitrary(fc, finiteNumberContext(ctx), recursionStack))
 }
 
 function reportChecks(report: MutableReport, checks: SchemaAST.Checks | undefined, path: ReadonlyArray<PropertyKey>) {
@@ -638,9 +621,9 @@ function base(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitra
     case "Enum":
       return recur(SchemaAST.enumsToLiterals(ast), path)
     case "TemplateLiteral": {
-      const parts = ast.parts.map((part, i) => templateLiteralPart(SchemaAST.toEncoded(part), [...path, i]))
+      const parts = ast.parts.map((part, i) => recur(SchemaAST.toEncoded(part), [...path, i]))
       return same((fc, ctx, recursionStack) =>
-        fc.tuple(...parts.map((part) => part(fc, ctx, recursionStack))).map((segments) =>
+        fc.tuple(...parts.map((part) => part(fc, finiteNumberContext(ctx), recursionStack))).map((segments) =>
           segments.map((segment) => globalThis.String(segment)).join("")
         )
       )
