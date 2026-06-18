@@ -306,6 +306,24 @@ describe("SchemaAST", () => {
     })
   })
 
+  describe("record", () => {
+    it("treats Never parameters as no keys", () => {
+      const ast = SchemaAST.record(Schema.Never.ast, Schema.Number.ast, undefined)
+      deepStrictEqual(ast.propertySignatures, [])
+      deepStrictEqual(ast.indexSignatures, [])
+    })
+
+    it("ignores Never arms in union parameters", () => {
+      const ast = SchemaAST.record(Schema.Union([Schema.String, Schema.Never]).ast, Schema.Number.ast, undefined)
+      const indexSignature = ast.indexSignatures[0]!
+
+      deepStrictEqual(ast.propertySignatures, [])
+      strictEqual(ast.indexSignatures.length, 1)
+      strictEqual(indexSignature.parameter, Schema.String.ast)
+      strictEqual(indexSignature.type, Schema.Number.ast)
+    })
+  })
+
   describe("IndexSignature", () => {
     it("accepts valid parameters on both type and encoded side", () => {
       doesNotThrow(() => new SchemaAST.IndexSignature(Schema.String.ast, Schema.Number.ast, undefined))

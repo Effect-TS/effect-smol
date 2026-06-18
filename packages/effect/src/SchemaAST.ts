@@ -3319,6 +3319,8 @@ function parseParameter(ast: AST): {
       case "UniqueSymbol":
         literals.push(ast.symbol)
         return
+      case "Never":
+        return
       case "Union":
         for (let i = 0; i < ast.types.length; i++) {
           go(ast.types[i])

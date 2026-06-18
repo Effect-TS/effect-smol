@@ -90,6 +90,15 @@ Use the narrowest validation that still covers the change:
 | JSDoc example changes            | `pnpm lint`; from the changed package directory, run `pnpm docgen`                      |
 | Docs-only changes                | `pnpm lint-fix`; no tests required unless examples or code changed                      |
 
+## Bundle Size Preview
+
+When asked to show bundle-size impact for a commit, use the existing bundle comparison workflow:
+
+1. For the latest commit, run `pnpm bundle-compare HEAD~1`.
+   For another base, run `pnpm bundle-compare <base-ref>`.
+2. Read the Markdown report from `tmp/bundle-stats.txt` and summarize the non-zero differences.
+3. Leave `tmp/bundle-base` in place unless cleanup is requested. To clean it up, run `git worktree remove --force tmp/bundle-base`.
+
 ## Coding Patterns
 
 Read `.patterns/effect.md` before changing Effect code. In particular:
