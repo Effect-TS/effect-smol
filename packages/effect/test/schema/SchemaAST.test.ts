@@ -1,4 +1,4 @@
-import { Schema, SchemaAST, SchemaGetter } from "effect"
+import { Schema, SchemaAST, SchemaGetter, SchemaTransformation } from "effect"
 import { describe, it } from "vitest"
 import { deepStrictEqual, doesNotThrow, strictEqual, throws } from "../utils/assert.ts"
 
@@ -259,6 +259,17 @@ describe("SchemaAST", () => {
         ),
         ["a", "ab"]
       )
+    })
+
+    it("transformed String with decoded checks", () => {
+      const schema = Schema.String.pipe(Schema.decode(SchemaTransformation.snakeToCamel())).check(
+        Schema.isPattern(/^aB$/)
+      )
+      const input = { a_b: 1, x_y: 2 }
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast, SchemaAST.defaultParseOptions), [
+        "a_b",
+        "x_y"
+      ])
     })
 
     it("TemplateLiteral", () => {

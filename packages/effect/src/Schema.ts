@@ -12852,11 +12852,7 @@ export function toFormatter<T>(schema: Schema<T>, options?: {
           // handle index signatures
           // ---------------------------------------------
           for (let i = 0; i < indexSignatures.length; i++) {
-            const keys = SchemaAST.getIndexSignatureKeys(
-              t,
-              ast.indexSignatures[i].parameter,
-              SchemaAST.defaultParseOptions
-            )
+            const keys = SchemaAST.getIndexSignatureKeys(t, ast.indexSignatures[i].parameter)
             for (const key of keys) {
               if (visited.has(key)) {
                 continue
@@ -13107,7 +13103,7 @@ function toCodecJsonBase(ast: SchemaAST.AST, recur: (ast: SchemaAST.AST) => Sche
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
-      return ast.recurWithIndexSignatureParameter(recur, SchemaAST.parameterFromString)
+      return ast.recur(recur, SchemaAST.parameterFromString)
     }
     case "Union": {
       const sortedTypes = InternalSchema.jsonReorder(ast.types)
@@ -13387,7 +13383,7 @@ function serializerTree(
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
-      return ast.recurWithIndexSignatureParameter(recur, SchemaAST.parameterFromString)
+      return ast.recur(recur, SchemaAST.parameterFromString)
     }
     case "Union": {
       const sortedTypes = treeReorder(ast.types)
