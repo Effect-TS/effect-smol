@@ -204,7 +204,7 @@ export const make = Effect.fnUntraced(function*(options: {
     )).toString()
   )
   const lockExpiresAt = sql.onDialectOrElse({
-    pg: () => sql`${sqlNow} - INTERVAL '${expiresSeconds} seconds'`,
+    pg: () => sql`${sqlNow} - (${expiresSeconds} * INTERVAL '1 second')`,
     mysql: () => sql`DATE_SUB(${sqlNow}, INTERVAL ${expiresSeconds} SECOND)`,
     mssql: () => sql`DATEADD(SECOND, -${expiresSeconds}, ${sqlNow})`,
     orElse: () => sql`datetime(${sqlNow}, '-${expiresSeconds} seconds')`

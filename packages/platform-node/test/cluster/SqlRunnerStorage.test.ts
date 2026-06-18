@@ -1,7 +1,7 @@
 import { NodeFileSystem } from "@effect/platform-node"
 import { SqliteClient } from "@effect/sql-sqlite-node"
 import { describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer } from "effect"
+import { Duration, Effect, FileSystem, Layer } from "effect"
 import {
   Runner,
   RunnerAddress,
@@ -88,9 +88,39 @@ describe("SqlRunnerStorage", () => {
         }))
     })
   })
+
+  it.layer(PgExpiringLocksLive, {
+    timeout: 60000
+  })("pg shard lock expiration", (it) => {
+    it.effect("allows another runner to acquire an expired shard lock", () =>
+      Effect.gen(function*() {
+        const storage = yield* RunnerStorage.RunnerStorage
+        const shard = ShardId.make("default", 1)
+
+        let acquired = yield* storage.acquire(runnerAddress1, [shard])
+        expect(acquired.map((_) => _.id)).toEqual([1])
+
+        acquired = yield* storage.acquire(runnerAddress2, [shard])
+        expect(acquired).toEqual([])
+
+        yield* Effect.promise(() => new Promise<void>((resolve) => setTimeout(resolve, 1000)))
+
+        acquired = yield* storage.acquire(runnerAddress2, [shard])
+        expect(acquired.map((_) => _.id)).toEqual([1])
+      }), 60_000)
+  })
 })
 
 const runnerAddress1 = RunnerAddress.make("localhost", 1234)
+const runnerAddress2 = RunnerAddress.make("localhost", 5678)
+
+const PgExpiringLocksLive = SqlRunnerStorage.layerWith({ prefix: "cluster_expiring_locks" }).pipe(
+  Layer.provideMerge(Layer.orDie(PgContainer.layerClient)),
+  Layer.provide(ShardingConfig.layer({
+    shardLockDisableAdvisory: true,
+    shardLockExpiration: Duration.millis(100)
+  }))
+)
 
 const SqliteLayer = Effect.gen(function*() {
   const fs = yield* FileSystem.FileSystem
