@@ -252,6 +252,8 @@ If you want to validate only valid dates, use `Schema.DateValid` instead.
 
 You can use `Schema.TemplateLiteral` to define structured string patterns made of multiple parts. Each part can be a literal or a schema, and **additional constraints** (such as `isMinLength` or `isMaxLength`) can be applied to individual parts.
 
+Template literal matching is based on the semantics of each part rather than only a generated regular expression. Checks on string, number, and bigint schema parts are applied while matching each segment.
+
 **Example** (Constraining parts of an email-like string)
 
 ```ts
@@ -280,8 +282,7 @@ Success("a@b.com")
 
 console.log(String(Schema.decodeUnknownExit(email)("@b.com")))
 /*
-Failure(Cause([Fail(SchemaError(Expected a value with a length of at least 1, got ""
-  at [0]))]))
+Failure(Cause([Fail(SchemaError(Expected a string matching template literal parts, got "@b.com"))]))
 */
 ```
 
@@ -1614,11 +1615,15 @@ console.log(String(Schema.decodeUnknownExit(schema)(["a", "b", "a"])))
 
 ## Records
 
-A record schema describes an object whose keys are dynamic (not known ahead of time). Every key must satisfy a key schema, and every value must satisfy a value schema.
+A record schema describes an object whose keys are dynamic (not known ahead of time). The key schema selects which own properties belong to the record, and the value schema validates the selected property values.
+
+Properties that are not selected by the key schema are ignored by that record. For example, `Schema.Record(Schema.String.check(Schema.isPattern(/^a/)), Schema.Number)` decodes only string keys that start with `"a"`.
 
 ### Key Transformations
 
 `Schema.Record` supports transforming keys during decoding and encoding. This can be useful when working with different naming conventions.
+
+When a key schema has a transformation, dynamic property selection is based on the encoded property names. The selected keys are then decoded using the key schema.
 
 **Example** (Transforming snake_case keys to camelCase)
 
@@ -1658,7 +1663,7 @@ import { Schema, SchemaTransformation } from "effect"
 const SnakeToCamel = Schema.String.pipe(Schema.decode(SchemaTransformation.snakeToCamel()))
 
 const schema = Schema.Record(SnakeToCamel, Schema.Number, {
-  key: {
+  keyValueCombiner: {
     decode: {
       // When decoding, combine values of conflicting keys by summing them
       combine: ([_, v1], [k2, v2]) => [k2, v1 + v2] // you can pass a Semigroup to combine keys
@@ -1691,9 +1696,12 @@ const schema = Schema.Record(Schema.Int, Schema.String)
 console.log(String(Schema.decodeUnknownExit(schema)({ 1: "a", 2: "b" })))
 // Success({"1":"a","2":"b"})
 
-console.log(String(Schema.decodeUnknownExit(schema)({ 1.1: "a" })))
-// Failure(Cause([Fail(SchemaError(Expected an integer, got 1.1
-//  at ["1.1"]))]))
+console.log(String(Schema.decodeUnknownExit(schema)({ 1.1: "ignored" })))
+// Success({})
+
+console.log(String(Schema.decodeUnknownExit(schema)({ 1: null })))
+// Failure(Cause([Fail(SchemaError(Expected string, got null
+//  at ["1"]))]))
 ```
 
 ### Mutability

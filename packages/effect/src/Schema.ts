@@ -2569,13 +2569,19 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
 }
 
 /**
- * Creates a schema that validates strings matching a template literal pattern. Each part can be
- * a literal string/number/bigint or a schema whose encoded type is a string, number, or bigint.
+ * Creates a schema that validates strings by matching ordered template literal
+ * parts.
  *
  * **When to use**
  *
  * Use when the decoded value should remain the matched string and you do not
  * need the individual template parts parsed into a tuple.
+ *
+ * **Details**
+ *
+ * Each part can be a literal `string`, `number`, or `bigint`, or a schema whose
+ * encoded type is `string`, `number`, or `bigint`. Checks on string, number,
+ * and bigint schema parts are applied while matching each segment.
  *
  * **Example** (Defining a URL path pattern)
  *
@@ -2640,7 +2646,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 }
 
 /**
- * Schema for parsing template literal matches into typed tuple parts.
+ * Schema for parsing matched template literal strings into typed tuple parts.
  *
  * **When to use**
  *
@@ -2650,7 +2656,8 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  * **Details**
  *
  * Unlike {@link TemplateLiteral}, this schema decodes the matched string into a
- * readonly tuple with one element per schema part.
+ * readonly tuple with one element per schema part. Checks on string, number,
+ * and bigint schema parts are applied while matching each segment.
  *
  * **Example** (Parsing path parameters)
  *
@@ -3587,7 +3594,18 @@ export interface $Record<Key extends Record.Key, Value extends Top> extends
 }
 
 /**
- * Defines a record (dictionary) schema with typed keys and values.
+ * Defines a record schema whose dynamic properties are selected by a key schema
+ * and decoded with a value schema.
+ *
+ * **Details**
+ *
+ * For dynamic keys, the key schema selects matching own properties and the
+ * value schema decodes or encodes only those selected properties. Checks on
+ * string, number, symbol, and template literal key schemas narrow which
+ * properties are selected.
+ *
+ * For transformed key schemas, property selection is based on encoded property
+ * names before the selected key is decoded.
  *
  * **Example** (Defining a string-keyed record of numbers)
  *
