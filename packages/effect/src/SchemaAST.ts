@@ -1129,6 +1129,10 @@ export class TemplateLiteral extends Base {
     return "string"
   }
   /** @internal */
+  matchPart(s: string, options: ParseOptions): string | undefined {
+    return segmentTemplateLiteralParts(this.encodedParts, s, options) === undefined ? undefined : s
+  }
+  /** @internal */
   asTemplateLiteralParser(): Arrays {
     const tuple = new Arrays(false, this.parts.map(partFromString), [])
     return decodeTo(
@@ -1246,6 +1250,10 @@ export class Literal extends Base {
     return fromConst(this, this.literal)
   }
   /** @internal */
+  matchPart(s: string, _options: ParseOptions): LiteralValue | undefined {
+    return s === globalThis.String(this.literal) ? this.literal : undefined
+  }
+  /** @internal */
   toCodecJson(): AST {
     return typeof this.literal === "bigint" ? literalToString(this) : this
   }
@@ -1286,6 +1294,10 @@ export class String extends Base {
   /** @internal */
   getParser() {
     return fromRefinement(this, Predicate.isString)
+  }
+  /** @internal */
+  matchPart(s: string, options: ParseOptions): string | undefined {
+    return applyTemplateLiteralPartChecks(this, s, options)
   }
   /** @internal */
   getExpected(): string {
@@ -1332,6 +1344,19 @@ export class Number extends Base {
   /** @internal */
   getParser() {
     return fromRefinement(this, Predicate.isNumber)
+  }
+  /** @internal */
+  matchKey(s: string, options: ParseOptions): number | undefined {
+    return this._match(isStringNumberRegExp, s, options)
+  }
+  /** @internal */
+  matchPart(s: string, options: ParseOptions): number | undefined {
+    return this._match(isStringFiniteRegExp, s, options)
+  }
+  private _match(regexp: RegExp, s: string, options: ParseOptions): number | undefined {
+    return regexp.test(s)
+      ? applyTemplateLiteralPartChecks(this, globalThis.Number(s), options)
+      : undefined
   }
   /** @internal */
   toCodecJson(): AST {
@@ -1443,6 +1468,10 @@ export class Symbol extends Base {
     return fromRefinement(this, Predicate.isSymbol)
   }
   /** @internal */
+  matchKey(s: symbol, options: ParseOptions): symbol | undefined {
+    return applyTemplateLiteralPartChecks(this, s, options)
+  }
+  /** @internal */
   toCodecStringTree(): AST {
     return replaceEncoding(this, [symbolToString])
   }
@@ -1490,6 +1519,12 @@ export class BigInt extends Base {
   /** @internal */
   getParser() {
     return fromRefinement(this, Predicate.isBigInt)
+  }
+  /** @internal */
+  matchPart(s: string, options: ParseOptions): bigint | undefined {
+    return isStringBigIntRegExp.test(s)
+      ? applyTemplateLiteralPartChecks(this, globalThis.BigInt(s), options)
+      : undefined
   }
   /** @internal */
   toCodecStringTree(): AST {
@@ -1797,16 +1832,12 @@ export function getIndexSignatureKeys(
     switch (parameter._tag) {
       case "String":
       case "TemplateLiteral":
-        return (stringKeys ??= Object.keys(input)).filter((k) =>
-          matchTemplateLiteralPart(parameter, k, options) !== undefined
-        )
+        return (stringKeys ??= Object.keys(input)).filter((k) => parameter.matchPart(k, options) !== undefined)
       case "Number":
-        return (stringKeys ??= Object.keys(input)).filter((k) =>
-          matchNumber(isStringNumberRegExp, parameter, k, options) !== undefined
-        )
+        return (stringKeys ??= Object.keys(input)).filter((k) => parameter.matchKey(k, options) !== undefined)
       case "Symbol":
         return (symbolKeys ??= Object.getOwnPropertySymbols(input)).filter((k) =>
-          applyTemplateLiteralPartChecks(parameter, k, options) !== undefined
+          parameter.matchKey(k, options) !== undefined
         )
       case "Union":
         return [...new Set(parameter.types.flatMap(go))]
@@ -2647,6 +2678,14 @@ export class Union<A extends AST = AST> extends Base {
     return this._rebuild(recur, this.encodingChecks, this.checks)
   }
   /** @internal */
+  matchPart(s: string, options: ParseOptions): LiteralValue | undefined {
+    for (const type of this.types) {
+      const out = (type as TemplateLiteralPart).matchPart(s, options)
+      if (out !== undefined) return out
+    }
+    return undefined
+  }
+  /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
     const expected = this.annotations?.expected
     if (typeof expected === "string") return expected
@@ -3478,44 +3517,6 @@ function applyTemplateLiteralPartChecks<A>(ast: AST, value: A, options: ParseOpt
   return issues.length === 0 ? value : undefined
 }
 
-function matchNumber(
-  regexp: RegExp,
-  ast: Number,
-  s: string,
-  options: ParseOptions
-): number | undefined {
-  return regexp.test(s)
-    ? applyTemplateLiteralPartChecks(ast, globalThis.Number(s), options)
-    : undefined
-}
-
-function matchTemplateLiteralPart(
-  part: TemplateLiteralPart,
-  s: string,
-  options: ParseOptions
-): LiteralValue | undefined {
-  switch (part._tag) {
-    case "String":
-      return applyTemplateLiteralPartChecks(part, s, options)
-    case "Number":
-      return matchNumber(isStringFiniteRegExp, part, s, options)
-    case "BigInt":
-      return isStringBigIntRegExp.test(s)
-        ? applyTemplateLiteralPartChecks(part, globalThis.BigInt(s), options)
-        : undefined
-    case "Literal":
-      return s === globalThis.String(part.literal) ? part.literal : undefined
-    case "TemplateLiteral":
-      return segmentTemplateLiteralParts(part.encodedParts, s, options) === undefined ? undefined : s
-    case "Union":
-      for (const type of part.types) {
-        const out = matchTemplateLiteralPart(type, s, options)
-        if (out !== undefined) return out
-      }
-      return undefined
-  }
-}
-
 function segmentTemplateLiteralParts(
   parts: ReadonlyArray<TemplateLiteralPart>,
   input: string,
@@ -3530,7 +3531,7 @@ function segmentTemplateLiteralParts(
     const part = parts[i]
     if (i === parts.length - 1) {
       const s = input.slice(pos)
-      if (matchTemplateLiteralPart(part, s, options) !== undefined) {
+      if (part.matchPart(s, options) !== undefined) {
         out[i] = s
         return true
       }
@@ -3543,7 +3544,7 @@ function segmentTemplateLiteralParts(
     } else {
       for (let end = input.length; end >= pos; end--) {
         const s = input.slice(pos, end)
-        if (matchTemplateLiteralPart(part, s, options) !== undefined && go(i + 1, end)) {
+        if (part.matchPart(s, options) !== undefined && go(i + 1, end)) {
           out[i] = s
           return true
         }
