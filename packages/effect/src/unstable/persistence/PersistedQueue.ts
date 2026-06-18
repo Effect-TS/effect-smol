@@ -508,7 +508,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             id,
             JSON.stringify({ id, element, attempts: 0 })
           )
-          : redis.send("LPUSH", `${prefix}${name}`, JSON.stringify({ id, element, attempts: 0 })),
+          : redis.send("RPUSH", `${prefix}${name}`, JSON.stringify({ id, element, attempts: 0 })),
         ({ cause }) =>
           new PersistedQueueError({
             message: "Failed to offer element to persisted queue",
