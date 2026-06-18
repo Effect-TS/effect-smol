@@ -1,6 +1,6 @@
-import { Schema, SchemaAST } from "effect"
+import { Schema, SchemaAST, SchemaGetter } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../utils/assert.ts"
+import { deepStrictEqual, doesNotThrow, strictEqual, throws } from "../utils/assert.ts"
 
 describe("SchemaAST", () => {
   it("isJson", () => {
@@ -243,38 +243,100 @@ describe("SchemaAST", () => {
     it("String", () => {
       const sym = Symbol.for("sym")
       const input: { readonly [x: PropertyKey]: number } = { a: 1, b: 2, [sym]: 3 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.String.ast), ["a", "b"])
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.String.ast, SchemaAST.defaultParseOptions), [
+        "a",
+        "b"
+      ])
+    })
+
+    it("String with checks", () => {
+      const input = { a: 1, ab: 2, b: 3 }
+      deepStrictEqual(
+        SchemaAST.getIndexSignatureKeys(
+          input,
+          Schema.String.check(Schema.isPattern(/^a/)).ast,
+          SchemaAST.defaultParseOptions
+        ),
+        ["a", "ab"]
+      )
     })
 
     it("TemplateLiteral", () => {
       const schema = Schema.TemplateLiteral(["a"])
       const input = { a: 1, ab: 2, b: 3 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast), ["a"])
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast, SchemaAST.defaultParseOptions), ["a"])
+    })
+
+    it("TemplateLiteral with checked parts", () => {
+      const schema = Schema.TemplateLiteral(["a", Schema.NonEmptyString])
+      const input = { a: 1, ab: 2, b: 3 }
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast, SchemaAST.defaultParseOptions), ["ab"])
     })
 
     it("Symbol", () => {
       const a = Symbol.for("a")
       const b = Symbol.for("b")
       const input: { readonly [x: PropertyKey]: number } = { c: 1, [a]: 2, [b]: 3 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.Symbol.ast), [a, b])
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.Symbol.ast, SchemaAST.defaultParseOptions), [a, b])
     })
 
     it("Number", () => {
       const input = { "1": 1, "1.5": 2, "-2": 3, a: 4, NaN: 5 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.Number.ast), ["1", "1.5", "-2", "NaN"])
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.Number.ast, SchemaAST.defaultParseOptions), [
+        "1",
+        "1.5",
+        "-2",
+        "NaN"
+      ])
+    })
+
+    it("Number with checks", () => {
+      const input = { "1": 1, "1.5": 2, "-2": 3, a: 4, NaN: 5 }
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.Int.ast, SchemaAST.defaultParseOptions), [
+        "1",
+        "-2"
+      ])
     })
 
     it("Union", () => {
       const schema = Schema.Union([Schema.Symbol, Schema.Number])
       const sym = Symbol.for("sym")
       const input: { readonly [x: PropertyKey]: number } = { "1": 1, b: 2, [sym]: 3 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast), [sym, "1"])
+      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, schema.ast, SchemaAST.defaultParseOptions), [sym, "1"])
+    })
+  })
+
+  describe("IndexSignature", () => {
+    it("accepts valid parameters on both type and encoded side", () => {
+      doesNotThrow(() => new SchemaAST.IndexSignature(Schema.String.ast, Schema.Number.ast, undefined))
+      doesNotThrow(() => new SchemaAST.IndexSignature(Schema.NumberFromString.ast, Schema.Number.ast, undefined))
+      doesNotThrow(() =>
+        new SchemaAST.IndexSignature(
+          Schema.Union([Schema.String, Schema.NumberFromString]).ast,
+          Schema.Number.ast,
+          undefined
+        )
+      )
     })
 
-    it("default", () => {
-      const sym = Symbol.for("sym")
-      const input: { readonly [x: PropertyKey]: number } = { a: 1, b: 2, [sym]: 3 }
-      deepStrictEqual(SchemaAST.getIndexSignatureKeys(input, Schema.ObjectKeyword.ast), [])
+    it("rejects invalid type side parameters", () => {
+      throws(
+        () => new SchemaAST.IndexSignature(Schema.Literal("a").ast, Schema.Number.ast, undefined),
+        new Error("Invalid index signature parameter Literal")
+      )
+    })
+
+    it("rejects invalid encoded side parameters", () => {
+      const StringFromBoolean = Schema.Boolean.pipe(
+        Schema.decodeTo(Schema.String, {
+          decode: SchemaGetter.transform((b: boolean) => globalThis.String(b)),
+          encode: SchemaGetter.transform((s: string) => s === "true")
+        })
+      )
+      throws(
+        () => new SchemaAST.IndexSignature(StringFromBoolean.ast, Schema.Number.ast, undefined),
+        new Error("Invalid index signature parameter String")
+      )
     })
   })
 })

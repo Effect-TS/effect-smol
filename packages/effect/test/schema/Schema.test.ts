@@ -3551,6 +3551,19 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed({ a: undefined })
     })
 
+    it("Record(String.check, Number) should use the key checks to select keys", async () => {
+      const schema = Schema.Record(Schema.String.check(Schema.isPattern(/^a/)), Schema.Number)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: 1, ab: 2, b: "ignored" }, { a: 1, ab: 2 })
+      await decoding.fail(
+        { a: "bad", b: 1 },
+        `Expected number, got "bad"
+  at ["a"]`
+      )
+    })
+
     it("Record(Symbol, Number)", async () => {
       const schema = Schema.Record(Schema.Symbol, Schema.Number)
       const asserts = new TestSchema.Asserts(schema)
@@ -3576,6 +3589,24 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
   at [Symbol(a)]`
       )
       await encoding.fail(null, "Expected object, got null")
+    })
+
+    it("Record(Symbol.check, Number) should use the key checks to select keys", async () => {
+      const a = Symbol.for("a")
+      const b = Symbol.for("b")
+      const schema = Schema.Record(
+        Schema.Symbol.check(Schema.makeFilter((symbol) => Symbol.keyFor(symbol)?.startsWith("a") ?? false)),
+        Schema.Number
+      )
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ [a]: 1, [b]: "ignored" }, { [a]: 1 })
+      await decoding.fail(
+        { [a]: "bad", [b]: 1 },
+        `Expected number, got "bad"
+  at [Symbol(a)]`
+      )
     })
 
     it("Record(SnakeToCamel, NumberFromString)", async () => {
@@ -3714,6 +3745,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       const decoding = asserts.decoding()
       await decoding.succeed({ 1: "1" }, { "1": 1 })
+      await decoding.succeed({ 1: "1", "1.1": "ignored", Infinity: "ignored", NaN: "ignored" }, { "1": 1 })
       await decoding.fail(
         { 1: null },
         `Expected string, got null
@@ -3724,20 +3756,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected a finite number, got NaN
   at ["1"]`
       )
+    })
+
+    it("Record(TemplateLiteral with checked part, Number) should use the part checks to select keys", async () => {
+      const schema = Schema.Record(Schema.TemplateLiteral(["a", Schema.NonEmptyString]), Schema.Number)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "ignored", ab: 1 }, { ab: 1 })
       await decoding.fail(
-        { Infinity: "1" },
-        `Expected a string representing a finite number, got "Infinity"
-  at ["Infinity"]`
-      )
-      await decoding.fail(
-        { NaN: "1" },
-        `Expected a string representing a finite number, got "NaN"
-  at ["NaN"]`
-      )
-      await decoding.fail(
-        { "-Infinity": "1" },
-        `Expected a string representing a finite number, got "-Infinity"
-  at ["-Infinity"]`
+        { a: 1, ab: "bad" },
+        `Expected number, got "bad"
+  at ["ab"]`
       )
     })
 
@@ -5192,59 +5222,28 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       deepStrictEqual(schema.parts, parts)
     })
 
-    it("getTemplateLiteralRegExp", () => {
-      const assertSource = (
-        parts: Schema.TemplateLiteral.Parts,
-        source: string
-      ) => {
-        strictEqual(SchemaAST.getTemplateLiteralRegExp(Schema.TemplateLiteral(parts).ast).source, source)
-      }
+    it(`NonEmptyString + String`, async () => {
+      const schema = Schema.TemplateLiteral([Schema.NonEmptyString, Schema.String])
+      const asserts = new TestSchema.Asserts(schema)
 
-      assertSource(["a"], "^(a)$")
-      assertSource(["a", "b"], "^(a)(b)$")
-      assertSource([Schema.Literals(["a", "b"]), "c"], "^(a|b)(c)$")
-      assertSource(
-        [Schema.Literals(["a", "b"]), "c", Schema.Literals(["d", "e"])],
-        "^(a|b)(c)(d|e)$"
+      const decoding = asserts.decoding()
+      await decoding.succeed("a")
+    })
+
+    it("rejects checks on Literal, TemplateLiteral, and Union parts", () => {
+      const check = Schema.makeFilter(() => true)
+
+      throws(
+        () => Schema.TemplateLiteral([Schema.Literal("a").check(check)]),
+        "Invalid TemplateLiteral part Literal"
       )
-      assertSource(
-        [Schema.Literals(["a", "b"]), Schema.String, Schema.Literals(["d", "e"])],
-        "^(a|b)([\\s\\S]*?)(d|e)$"
+      throws(
+        () => Schema.TemplateLiteral([Schema.TemplateLiteral(["a"]).check(check)]),
+        "Invalid TemplateLiteral part TemplateLiteral"
       )
-      assertSource(["a", Schema.String], "^(a)([\\s\\S]*?)$")
-      assertSource(["a", Schema.String, "b"], "^(a)([\\s\\S]*?)(b)$")
-      assertSource(
-        ["a", Schema.String, "b", Schema.Number],
-        "^(a)([\\s\\S]*?)(b)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$"
-      )
-      assertSource(["a", Schema.Number], "^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$")
-      assertSource([Schema.String, "a"], "^([\\s\\S]*?)(a)$")
-      assertSource([Schema.Number, "a"], "^([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)(a)$")
-      assertSource(
-        [Schema.Union([Schema.String, Schema.Literal(1)]), Schema.Union([Schema.Number, Schema.Literal("true")])],
-        "^([\\s\\S]*?|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$"
-      )
-      assertSource(
-        [Schema.Union([Schema.Literals(["a", "b"]), Schema.Literals([1, 2])])],
-        "^(a|b|1|2)$"
-      )
-      assertSource(
-        ["c", Schema.Union([Schema.TemplateLiteral(["a", Schema.String, "b"]), Schema.Literal("e")]), "d"],
-        "^(c)(a[\\s\\S]*?b|e)(d)$"
-      )
-      assertSource(
-        ["<", Schema.TemplateLiteral(["h", Schema.Literals([1, 2])]), ">"],
-        "^(<)(h(?:1|2))(>)$"
-      )
-      assertSource(
-        [
-          "-",
-          Schema.Union([
-            Schema.TemplateLiteral(["a", Schema.Literals(["b", "c"])]),
-            Schema.TemplateLiteral(["d", Schema.Literals(["e", "f"])])
-          ])
-        ],
-        "^(-)(a(?:b|c)|d(?:e|f))$"
+      throws(
+        () => Schema.TemplateLiteral([Schema.Union([Schema.Literal("a"), Schema.Literal("b")]).check(check)]),
+        "Invalid TemplateLiteral part Union"
       )
     })
 
@@ -5257,11 +5256,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.fail(null, "Expected string, got null")
       await decoding.fail(
         "ab",
-        `Expected a value matching ^(a)$, got "ab"`
+        `Expected a string matching template literal parts, got "ab"`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
     })
 
@@ -5274,7 +5273,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a  b",
-        `Expected a value matching ^(a)( )(b)$, got "a  b"`
+        `Expected a string matching template literal parts, got "a  b"`
       )
     })
 
@@ -5287,7 +5286,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a",
-        `Expected a value matching ^(\\[)([\\s\\S]*?)(\\])$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
     })
 
@@ -5305,7 +5304,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
     })
 
@@ -5338,11 +5337,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         "aa",
-        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)$, got "aa"`
+        `Expected a string matching template literal parts, got "aa"`
       )
     })
 
@@ -5361,19 +5360,19 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)(-?\\d+)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         "aa",
-        `Expected a value matching ^(a)(-?\\d+)$, got "aa"`
+        `Expected a string matching template literal parts, got "aa"`
       )
       await decoding.fail(
         "a1.2",
-        `Expected a value matching ^(a)(-?\\d+)$, got "a1.2"`
+        `Expected a string matching template literal parts, got "a1.2"`
       )
       await decoding.fail(
         "a+1",
-        `Expected a value matching ^(a)(-?\\d+)$, got "a+1"`
+        `Expected a string matching template literal parts, got "a+1"`
       )
     })
 
@@ -5400,7 +5399,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("\na")
       await decoding.fail(
         "a",
-        `Expected a value matching ^(\\n)([\\s\\S]*?)$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
     })
 
@@ -5423,15 +5422,15 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("abb")
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         "a",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
       await decoding.fail(
         "b",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)$, got "b"`
+        `Expected a string matching template literal parts, got "b"`
       )
 
       const encoding = asserts.encoding()
@@ -5448,11 +5447,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("acbd")
       await decoding.fail(
         "a",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
       await decoding.fail(
         "b",
-        `Expected a value matching ^(a)([\\s\\S]*?)(b)([\\s\\S]*?)$, got "b"`
+        `Expected a string matching template literal parts, got "b"`
       )
     })
 
@@ -5470,7 +5469,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "_id",
-        `Expected a value matching ^(welcome_email|email_heading|footer_title|footer_sendoff)(_id)$, got "_id"`
+        `Expected a string matching template literal parts, got "_id"`
       )
     })
 
@@ -5482,7 +5481,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a0")
       await decoding.fail(
         "a",
-        `Expected a value matching ^([\\s\\S]*?)(0)$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
     })
 
@@ -5494,7 +5493,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a1")
       await decoding.fail(
         "a",
-        `Expected a value matching ^([\\s\\S]*?)(1)$, got "a"`
+        `Expected a string matching template literal parts, got "a"`
       )
     })
 
@@ -5507,7 +5506,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("aa")
       await decoding.fail(
         "b",
-        `Expected a value matching ^([\\s\\S]*?)(a|0)$, got "b"`
+        `Expected a string matching template literal parts, got "b"`
       )
     })
 
@@ -5524,7 +5523,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("10.1")
       await decoding.fail(
         "",
-        `Expected a value matching ^([\\s\\S]*?|1)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?|true)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
     })
 
@@ -5541,7 +5540,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ca  bd")
       await decoding.fail(
         "",
-        `Expected a value matching ^(c)(a[\\s\\S]*?b|e)(d)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
     })
 
@@ -5554,7 +5553,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>")
       await decoding.fail(
         "<h3>",
-        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
+        `Expected a string matching template literal parts, got "<h3>"`
       )
     })
 
@@ -5570,12 +5569,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         "a",
-        `Expected a value with a length of at least 1, got ""
-  at [1]`
+        `Expected a string matching template literal parts, got "a"`
       )
     })
 
@@ -5593,7 +5591,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)([\\s\\S]*?)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         "ab",
@@ -5610,6 +5608,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       deepStrictEqual(schema.parts, parts)
     })
 
+    it(`NonEmptyString + String`, async () => {
+      const schema = Schema.TemplateLiteralParser([Schema.NonEmptyString, Schema.String])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("a", ["a", ""])
+    })
+
     it(`"a"`, async () => {
       const schema = Schema.TemplateLiteralParser(["a"])
       const asserts = new TestSchema.Asserts(schema)
@@ -5618,11 +5624,11 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("a", ["a"])
       await decoding.fail(
         "ab",
-        `Expected a value matching ^(a)$, got "ab"`
+        `Expected a string matching template literal parts, got "ab"`
       )
       await decoding.fail(
         "",
-        `Expected a value matching ^(a)$, got ""`
+        `Expected a string matching template literal parts, got ""`
       )
       await decoding.fail(
         null,
@@ -5639,7 +5645,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
 
       await decoding.fail(
         "a  b",
-        `Expected a value matching ^(a)( )(b)$, got "a  b"`
+        `Expected a string matching template literal parts, got "a  b"`
       )
     })
 
@@ -5651,8 +5657,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("1a", [1, "a"])
       await decoding.fail(
         "1.1a",
-        `Expected an integer, got 1.1
-  at [0]`
+        `Expected a string matching template literal parts, got "1.1a"`
       )
 
       const encoding = asserts.encoding()
@@ -5662,6 +5667,14 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected an integer, got 1.1
   at [0]`
       )
+    })
+
+    it(`Int + String`, async () => {
+      const schema = Schema.TemplateLiteralParser([Schema.Number.check(Schema.isInt()), Schema.String])
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1.2", [1, ".2"])
     })
 
     it(`NumberFromString + "a" + NonEmptyString`, async () => {
@@ -5707,12 +5720,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ced", ["c", "e", "d"])
       await decoding.fail(
         "cabd",
-        `Expected a value with a length of at least 1, got ""
-  at [1][1]`
+        `Expected a string matching template literal parts, got "ab"
+  at [1]`
       )
       await decoding.fail(
         "ed",
-        `Expected a value matching ^(c)([\\s\\S]*?|e)(d)$, got "ed"`
+        `Expected a string matching template literal parts, got "ed"`
       )
     })
 
@@ -5732,12 +5745,12 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("ca1bd", ["c", ["a", 1, "b"], "d"])
       await decoding.fail(
         "ca1.1bd",
-        `Expected an integer, got 1.1
-  at [1][1]`
+        `Expected a string matching template literal parts, got "a1.1b"
+  at [1]`
       )
       await decoding.fail(
         "ca-bd",
-        `Expected a value matching ^(a)([+-]?\\d*\\.?\\d+(?:[Ee][+-]?\\d+)?)(b)$, got "a-b"
+        `Expected a string matching template literal parts, got "a-b"
   at [1]`
       )
     })
@@ -5751,7 +5764,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>", ["<", "h2", ">"])
       await decoding.fail(
         "<h3>",
-        `Expected a value matching ^(<)(h(?:1|2))(>)$, got "<h3>"`
+        `Expected a string matching template literal parts, got "<h3>"`
       )
     })
 
@@ -5768,7 +5781,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await decoding.succeed("<h2>", ["<", ["h", 2], ">"])
       await decoding.fail(
         "<h3>",
-        `Expected a value matching ^(h)(1|2)$, got "h3"
+        `Expected a string matching template literal parts, got "h3"
   at [1]`
       )
     })

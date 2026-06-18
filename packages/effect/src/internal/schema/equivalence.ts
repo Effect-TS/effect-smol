@@ -119,8 +119,8 @@ function recur(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): Equivalenc
         // ---------------------------------------------
         for (let i = 0; i < indexSignatures.length; i++) {
           const is = ast.indexSignatures[i]
-          const aKeys = SchemaAST.getIndexSignatureKeys(a, is.parameter)
-          const bKeys = SchemaAST.getIndexSignatureKeys(b, is.parameter)
+          const aKeys = SchemaAST.getIndexSignatureKeys(a, is.parameter, SchemaAST.defaultParseOptions)
+          const bKeys = SchemaAST.getIndexSignatureKeys(b, is.parameter, SchemaAST.defaultParseOptions)
 
           if (aKeys.length !== bKeys.length) return false
 
