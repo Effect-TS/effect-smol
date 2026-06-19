@@ -923,6 +923,14 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
       }
 
       let hasResponse = false
+      // The request is only complete once a terminal frame arrives in-band
+      // (Exit / Defect / ClientProtocolError). The HTTP connection ending is
+      // NOT a terminal signal: a proxy idle-timeout can close the stream mid
+      // body after a 200 was already committed (it cannot send a 504 then).
+      // Without this guard such a truncated stream ends the runForEachArray
+      // normally, `send` succeeds, and the per-request queue is never closed —
+      // the consumer hangs forever instead of seeing an error.
+      let sawTerminal = false
       yield* Stream.runForEachArray(response.stream, (chunk) =>
         Effect.try({
           try: () => chunk.flatMap(parser.decode) as Array<FromServerEncoded>,
@@ -934,7 +942,17 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
             let i = 0
             return Effect.whileLoop({
               while: () => i < responses.length,
-              body: () => writeResponse(clientId, responses[i++]),
+              body: () => {
+                const response = responses[i++]
+                if (
+                  response._tag === "Exit" ||
+                  response._tag === "Defect" ||
+                  response._tag === "ClientProtocolError"
+                ) {
+                  sawTerminal = true
+                }
+                return writeResponse(clientId, response)
+              },
               step: constVoid
             })
           })
@@ -943,6 +961,12 @@ export const makeProtocolHttp = (client: HttpClient.HttpClient): Effect.Effect<
         )
       if (!hasResponse) {
         return yield* emptyResponseError(request)
+      }
+      if (!sawTerminal) {
+        return yield* protocolDefect(
+          "RPC response stream closed before completion (no terminal frame received)",
+          request
+        )
       }
     })
 
