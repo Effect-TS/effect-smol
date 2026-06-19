@@ -1,10 +1,13 @@
 import { fireEvent, render } from "@testing-library/svelte"
+import * as Schema from "effect/Schema"
 import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import * as Hydration from "effect/unstable/reactivity/Hydration"
 import { describe, expect, it } from "vitest"
 import Counter from "./Counter.svelte"
+import Hydrated from "./Hydrated.svelte"
 import Reader from "./Reader.svelte"
 import RefPropReader from "./RefPropReader.svelte"
 import RefReader from "./RefReader.svelte"
@@ -95,6 +98,26 @@ describe("useAtomRefPropValue", () => {
     ref.set({ count: 2, label: "a" })
     await Promise.resolve()
     expect(span.textContent).toBe("2")
+  })
+})
+
+describe("hydrateAtoms", () => {
+  it("restores dehydrated serializable atom state before children read it", () => {
+    const countAtom = Atom.make(0).pipe(
+      Atom.serializable({ key: "count", schema: Schema.Number })
+    )
+
+    // Server: produce dehydrated state from a registry that holds a value.
+    const serverRegistry = AtomRegistry.make()
+    serverRegistry.mount(countAtom)
+    serverRegistry.set(countAtom, 42)
+    const state = Hydration.dehydrate(serverRegistry)
+
+    // Client: a fresh registry hydrated before the child reads the atom.
+    const registry = AtomRegistry.make()
+    const { getByTestId } = render(Hydrated, { props: { registry, state, atom: () => countAtom } })
+
+    expect(getByTestId("hydrated").textContent).toBe("42")
   })
 })
 

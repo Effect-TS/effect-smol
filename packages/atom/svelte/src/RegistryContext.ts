@@ -8,6 +8,7 @@
  */
 import type * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
+import * as Hydration from "effect/unstable/reactivity/Hydration"
 import { getContext, setContext } from "svelte"
 
 /**
@@ -88,4 +89,29 @@ export const useAtomInitialValues = (
       ;(registry as any).ensureNode(atom).setValue(value)
     }
   }
+}
+
+/**
+ * Applies dehydrated atom state to the current registry, restoring serializable
+ * atom values produced on the server by `Hydration.dehydrate`.
+ *
+ * **When to use**
+ *
+ * Use to rehydrate server-rendered atom state on the client under SSR. Call it
+ * during component initialisation — typically in the root `+layout.svelte`,
+ * right after {@link setRegistry} — so the values are preloaded before
+ * descendant components read the atoms.
+ *
+ * **Details**
+ *
+ * Encoded values are preloaded by serialization key. Entries dehydrated while in
+ * an `AsyncResult.Initial` state with a pending `resultPromise` update the
+ * matching atom once that promise resolves. The `Hydration` module is re-exported
+ * from the package index for producing the dehydrated state on the server.
+ *
+ * @category hydration
+ * @since 4.0.0
+ */
+export const hydrateAtoms = (state: Iterable<Hydration.DehydratedAtom>): void => {
+  Hydration.hydrate(injectRegistry(), state)
 }

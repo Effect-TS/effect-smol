@@ -38,6 +38,12 @@ export * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 
 /**
  * @since 4.0.0
+ * @category modules
+ */
+export * as Hydration from "effect/unstable/reactivity/Hydration"
+
+/**
+ * @since 4.0.0
  * @category re-exports
  */
 export * as AtomHttpApi from "effect/unstable/reactivity/AtomHttpApi"

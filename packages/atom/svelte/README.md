@@ -82,6 +82,40 @@ With Svelte's experimental async feature enabled, `await` it directly inside a `
 
 `useAtomRef` reads an `AtomRef`; `useAtomRefProp` derives a child ref for one property, and `useAtomRefPropValue` reads that property's value reactively.
 
+### SSR hydration
+
+For atoms marked with `Atom.serializable`, dehydrate their values on the server and restore them on the client so the first client render matches the server without refetching.
+
+On the server (e.g. a SvelteKit `load`), populate a registry and dehydrate it:
+
+```ts
+import { Atom, AtomRegistry, Hydration } from "@effect/atom-svelte"
+
+export async function load() {
+  const registry = AtomRegistry.make()
+  // ...drive the serializable atoms you want to ship...
+  return { dehydrated: Hydration.dehydrate(registry) }
+}
+```
+
+On the client, hydrate the current registry once, in the root layout, right after providing it:
+
+```svelte
+<!-- +layout.svelte -->
+<script lang="ts">
+  import { hydrateAtoms, setRegistry } from "@effect/atom-svelte"
+
+  let { data, children } = $props()
+
+  setRegistry()
+  hydrateAtoms(data.dehydrated)
+</script>
+
+{@render children()}
+```
+
+`hydrateAtoms` runs during component initialisation, so values are in place before any descendant reads them. For non-serializable, raw seeding (e.g. plain client state) use `useAtomInitialValues`.
+
 ## Notes
 
 - **SSR.** Call `setRegistry()` in the root layout so each request gets an isolated registry. The module-level `defaultRegistry` is shared across requests on the server, so request state would otherwise leak.
