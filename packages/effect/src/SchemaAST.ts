@@ -2322,14 +2322,10 @@ const parseProperties = iterateEager<{
   }
 })
 
-function mergeChecks(checks: Checks | undefined, b: AST): Checks | undefined {
-  if (!checks) {
-    return b.checks
-  }
-  if (!b.checks) {
-    return checks
-  }
-  return [...checks, ...b.checks]
+function combineChecks(a: Checks | undefined, b: Checks | undefined): Checks | undefined {
+  if (!a) return b
+  if (!b) return a
+  return [...a, ...b]
 }
 
 /** @internal */
@@ -2378,10 +2374,10 @@ export function structWithRest(ast: Objects, records: ReadonlyArray<Objects>): O
   let propertySignatures = ast.propertySignatures
   let indexSignatures = ast.indexSignatures
   let checks = ast.checks
-  for (const r of records) {
-    propertySignatures = propertySignatures.concat(r.propertySignatures)
-    indexSignatures = indexSignatures.concat(r.indexSignatures)
-    checks = mergeChecks(checks, r)
+  for (const record of records) {
+    propertySignatures = propertySignatures.concat(record.propertySignatures)
+    indexSignatures = indexSignatures.concat(record.indexSignatures)
+    checks = combineChecks(checks, record.checks)
   }
   return new Objects(propertySignatures, indexSignatures, undefined, checks)
 }
@@ -3125,8 +3121,8 @@ export function replaceChecks<A extends AST>(ast: A, checks: Checks | undefined)
 }
 
 /** @internal */
-export function appendChecks<A extends AST>(ast: A, checks: Checks): A {
-  return replaceChecks(ast, ast.checks ? [...ast.checks, ...checks] : checks)
+export function appendChecks<A extends AST>(ast: A, checks: Checks | undefined): A {
+  return replaceChecks(ast, combineChecks(ast.checks, checks))
 }
 
 function updateLastLink(encoding: Encoding, f: (ast: AST) => AST): Encoding {
