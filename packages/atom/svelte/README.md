@@ -40,6 +40,48 @@ Read and write atoms from a component:
 
 For effectful atoms, `count.current` is an `AsyncResult`; match on it with `AsyncResult.isInitial` / `AsyncResult.isSuccess` / `AsyncResult.isFailure`.
 
+### Two-way binding
+
+`useAtomState` returns a handle whose `current` is both readable and assignable, so it works with `bind:` for `Writable<A, A>` atoms:
+
+```svelte
+<script lang="ts">
+  import { Atom, useAtomState } from "@effect/atom-svelte"
+
+  const nameAtom = Atom.make("")
+  const name = useAtomState(() => nameAtom)
+</script>
+
+<input bind:value={name.current} />
+```
+
+### Async / Suspense
+
+`useAtomSuspense` turns an `AsyncResult` atom into a handle whose `current` is a promise — pending on `Initial`, resolved on success, rejected on failure. Read it from an `{#await}` block:
+
+```svelte
+<script lang="ts">
+  import { useAtomSuspense } from "@effect/atom-svelte"
+  import { userAtom } from "./atoms.ts"
+
+  const user = useAtomSuspense(() => userAtom)
+</script>
+
+{#await user.current}
+  <p>Loading…</p>
+{:then value}
+  <p>{value.name}</p>
+{:catch error}
+  <p>{error.message}</p>
+{/await}
+```
+
+With Svelte's experimental async feature enabled, `await` it directly inside a `<svelte:boundary>` whose `pending` snippet renders the loading state.
+
+### AtomRef properties
+
+`useAtomRef` reads an `AtomRef`; `useAtomRefProp` derives a child ref for one property, and `useAtomRefPropValue` reads that property's value reactively.
+
 ## Notes
 
 - **SSR.** Call `setRegistry()` in the root layout so each request gets an isolated registry. The module-level `defaultRegistry` is shared across requests on the server, so request state would otherwise leak.

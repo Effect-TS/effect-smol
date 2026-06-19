@@ -19,7 +19,7 @@
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
-import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import type * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
@@ -39,6 +39,18 @@ export interface AtomValue<A> {
 }
 
 /**
+ * A two-way reactive handle whose `current` property is both readable and
+ * assignable, so it can be driven by Svelte's `bind:` directive — e.g.
+ * `<input bind:value={state.current} />`.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface AtomState<A> {
+  current: A
+}
+
+/**
  * A reactive read handle over an external source that exposes a value and a
  * `subscribe`/unsubscribe pair, keyed by the identity of the selected source.
  *
@@ -46,6 +58,12 @@ export interface AtomValue<A> {
  * before mount. `createSubscriber` establishes the subscription lazily (only
  * while `current` is read reactively) and tears it down automatically. When the
  * selected source changes between reads, the subscription is moved across.
+ *
+ * The value is read before `track()` registers the subscription: reading a
+ * source can lazily initialise it and synchronously notify listeners, so doing
+ * it first keeps that notification out of `createSubscriber`'s setup. That makes
+ * `current` safe to read from a `$derived` / `{#await}` / `{#if}` expression, not
+ * just from a template or `$effect`.
  */
 const reactiveValue = <S, A>(
   select: () => S,
@@ -69,13 +87,14 @@ const reactiveValue = <S, A>(
   return {
     get current() {
       const source = select()
+      const value = read(source)
       track()
       if (notify !== undefined && source !== active) {
         unsubscribe?.()
         active = source
         unsubscribe = subscribe(source, notify)
       }
-      return read(source)
+      return value
     }
   }
 }
@@ -170,6 +189,28 @@ export const useAtom = <R, W, Mode extends "value" | "promise" | "promiseExit" =
 }
 
 /**
+ * Reads and writes a writable atom whose read and write types match, returning
+ * a two-way {@link AtomState} handle. Assigning to `current` writes the atom, so
+ * the handle can be bound directly with `bind:`, e.g.
+ * `<input bind:value={state.current} />`.
+ *
+ * @category hooks
+ * @since 4.0.0
+ */
+export const useAtomState = <A>(atom: () => Atom.Writable<A, A>): AtomState<A> => {
+  const registry = injectRegistry()
+  const value = reactiveValue(atom, (a) => registry.get(a), subscribeAtom(registry))
+  return {
+    get current() {
+      return value.current
+    },
+    set current(next: A) {
+      registry.set(atom(), next)
+    }
+  }
+}
+
+/**
  * Returns a setter for a writable atom, keeping it mounted for the lifetime of
  * the calling component.
  *
@@ -212,6 +253,51 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
   return () => registry.refresh(atom())
 }
 
+const constPending: Promise<never> = new Promise<never>(() => {})
+
+const resultToPromise = <A, E>(
+  result: AsyncResult.AsyncResult<A, E>,
+  suspendOnWaiting: boolean
+): Promise<A> => {
+  if (AsyncResult.isInitial(result) || (suspendOnWaiting && result.waiting)) {
+    return constPending
+  } else if (AsyncResult.isSuccess(result)) {
+    return Promise.resolve(result.value)
+  }
+  return Promise.reject(Cause.squash(result.cause))
+}
+
+/**
+ * Reads an `AsyncResult` atom as a reactive handle whose `current` is a promise
+ * for the success value.
+ *
+ * **Details**
+ *
+ * The promise stays pending while the result is `Initial` (and, when
+ * `suspendOnWaiting` is set, while it is re-running), resolves with the success
+ * value, or rejects with the squashed failure cause. As the Suspense analogue
+ * for Svelte, read `current` from an `{#await}` block — or, with the
+ * experimental async feature enabled, `await` it inside a `<svelte:boundary>`
+ * whose `pending` snippet renders the loading state. The promise identity
+ * changes when the result changes, so the awaiting block re-runs on every
+ * transition.
+ *
+ * @category hooks
+ * @since 4.0.0
+ */
+export const useAtomSuspense = <A, E>(
+  atom: () => Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+  options?: { readonly suspendOnWaiting?: boolean | undefined }
+): AtomValue<Promise<A>> => {
+  const result = useAtomValue(atom)
+  const suspendOnWaiting = options?.suspendOnWaiting ?? false
+  return {
+    get current() {
+      return resultToPromise(result.current, suspendOnWaiting)
+    }
+  }
+}
+
 /**
  * Reads an `AtomRef` value as a reactive handle.
  *
@@ -220,3 +306,39 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
  */
 export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): AtomValue<A> =>
   reactiveValue(atomRef, (ref) => ref.value, (ref, notify) => ref.subscribe(notify))
+
+/**
+ * Derives an `AtomRef` for one property of an object-valued `AtomRef`, returning
+ * a thunk suitable for passing to {@link useAtomRef}. The child ref is recreated
+ * only when the source ref changes, so the result is referentially stable.
+ *
+ * @category hooks
+ * @since 4.0.0
+ */
+export const useAtomRefProp = <A, K extends keyof A>(
+  ref: () => AtomRef.AtomRef<A>,
+  prop: K
+): () => AtomRef.AtomRef<A[K]> => {
+  let parent = ref()
+  let child = parent.prop(prop)
+  return () => {
+    const current = ref()
+    if (current !== parent) {
+      parent = current
+      child = current.prop(prop)
+    }
+    return child
+  }
+}
+
+/**
+ * Reads the value of one property of an object-valued `AtomRef` as a reactive
+ * handle, composing {@link useAtomRefProp} with {@link useAtomRef}.
+ *
+ * @category hooks
+ * @since 4.0.0
+ */
+export const useAtomRefPropValue = <A, K extends keyof A>(
+  ref: () => AtomRef.AtomRef<A>,
+  prop: K
+): AtomValue<A[K]> => useAtomRef(useAtomRefProp(ref, prop))

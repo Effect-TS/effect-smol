@@ -1,11 +1,15 @@
 import { fireEvent, render } from "@testing-library/svelte"
+import * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
 import * as Atom from "effect/unstable/reactivity/Atom"
 import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import { describe, expect, it } from "vitest"
 import Counter from "./Counter.svelte"
 import Reader from "./Reader.svelte"
+import RefPropReader from "./RefPropReader.svelte"
 import RefReader from "./RefReader.svelte"
+import StateInput from "./StateInput.svelte"
+import Suspense from "./Suspense.svelte"
 
 describe("useAtom", () => {
   it("reads the initial value and updates on set", async () => {
@@ -48,6 +52,26 @@ describe("useAtomValue", () => {
   })
 })
 
+describe("useAtomState", () => {
+  it("reads via current, writes through bind:, and reflects external writes", async () => {
+    const registry = AtomRegistry.make()
+    const atom = Atom.make("a")
+    const { getByTestId } = render(StateInput, { props: { registry, atom: () => atom } })
+
+    const input = getByTestId("input") as HTMLInputElement
+    const value = getByTestId("value")
+    expect(input.value).toBe("a")
+
+    await fireEvent.input(input, { target: { value: "b" } })
+    expect(registry.get(atom)).toBe("b")
+    expect(value.textContent).toBe("b")
+
+    registry.set(atom, "c")
+    await Promise.resolve()
+    expect(input.value).toBe("c")
+  })
+})
+
 describe("useAtomRef", () => {
   it("reads the initial ref value and updates on change", async () => {
     const ref = AtomRef.make(0)
@@ -58,5 +82,37 @@ describe("useAtomRef", () => {
     ref.set(1)
     await Promise.resolve()
     expect(span.textContent).toBe("1")
+  })
+})
+
+describe("useAtomRefPropValue", () => {
+  it("reads a property value and updates when the prop changes", async () => {
+    const ref = AtomRef.make({ count: 0, label: "a" })
+    const { getByTestId } = render(RefPropReader, { props: { atomRef: () => ref } })
+
+    const span = getByTestId("count")
+    expect(span.textContent).toBe("0")
+    ref.set({ count: 2, label: "a" })
+    await Promise.resolve()
+    expect(span.textContent).toBe("2")
+  })
+})
+
+describe("useAtomSuspense", () => {
+  it("resolves to the success value", async () => {
+    const registry = AtomRegistry.make()
+    const atom = Atom.make(AsyncResult.success<number, Error>(5))
+    const { findByText } = render(Suspense, { props: { registry, atom: () => atom } })
+
+    expect(await findByText("5")).toBeTruthy()
+  })
+
+  it("stays pending on an initial result", async () => {
+    const registry = AtomRegistry.make()
+    const atom = Atom.make(AsyncResult.initial<number, Error>())
+    const { getByTestId } = render(Suspense, { props: { registry, atom: () => atom } })
+
+    await Promise.resolve()
+    expect(getByTestId("state").textContent).toBe("pending")
   })
 })
