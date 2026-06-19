@@ -16,6 +16,7 @@
     "LLMS.md",
     "**/dist",
     "**/build",
+    "**/.svelte-kit",
     "**/docs",
     "**/coverage",
     "packages/**/CHANGELOG.md",

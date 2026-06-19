@@ -5,6 +5,7 @@
     "LLMS.md",
     "**/dist",
     "**/build",
+    "**/.svelte-kit",
     "**/docs",
     "**/.tsbuildinfo",
     "packages/**/CHANGELOG.md",

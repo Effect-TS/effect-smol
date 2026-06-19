@@ -7,6 +7,7 @@
   "exclude": [
     "**/node_modules/**",
     "packages/tools/**",
+    "packages/atom/svelte/src/**",
     "packages/**/src/index.ts",
     "packages/**/src/*Generated.ts",
     "packages/**/src/internal/**",
