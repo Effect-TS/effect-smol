@@ -5,7 +5,7 @@
 /**
  * @since 4.0.0
  */
-export * from "./Hooks.svelte.ts"
+export * from "./Hooks.ts"
 
 /**
  * @since 4.0.0

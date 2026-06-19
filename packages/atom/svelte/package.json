@@ -48,9 +48,10 @@
     }
   },
   "scripts": {
-    "build": "svelte-package --input src --output dist && node ./scripts/rewrite-dist-imports.mjs",
-    "build:tsgo": "svelte-package --input src --output dist && node ./scripts/rewrite-dist-imports.mjs",
-    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "build": "tsc -b tsconfig.json && pnpm babel",
+    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
+    "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
+    "check": "tsc -b tsconfig.json",
     "test": "vitest",
     "coverage": "vitest --coverage"
   },
@@ -59,13 +60,11 @@
     "svelte": "^5.7.0"
   },
   "devDependencies": {
-    "@sveltejs/package": "^2.5.0",
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.0",
     "effect": "workspace:^",
     "jsdom": "^29.1.1",
-    "svelte": "^5.7.0",
-    "svelte-check": "^4.3.0"
+    "svelte": "^5.7.0"
   }
 }

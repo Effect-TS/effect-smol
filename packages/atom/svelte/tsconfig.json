@@ -4,11 +4,5 @@
   "include": ["src"],
   "references": [
     { "path": "../../effect" }
-  ],
-  "compilerOptions": {
-    "paths": {
-      "effect": ["../../effect/src/index.ts"],
-      "effect/*": ["../../effect/src/*.ts"]
-    }
-  }
+  ]
 }

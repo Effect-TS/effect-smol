@@ -12,6 +12,7 @@
     { "path": "packages/atom/react" },
     { "path": "packages/atom/vue" },
     { "path": "packages/atom/solid" },
+    { "path": "packages/atom/svelte" },
     { "path": "packages/opentelemetry" },
     { "path": "packages/platform-browser" },
     { "path": "packages/platform-bun" },
