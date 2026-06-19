@@ -6078,6 +6078,25 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         await decoding.succeed({ a: "a", b: 2 }, new B({ a: "a", b: 2 }))
       })
 
+      it("Struct argument", async () => {
+        class A extends Schema.Class<A>("A")(
+          Schema.Struct({
+            a: Schema.Number
+          }).check(Schema.makeFilter(({ a }) => a > 0, { expected: "positive a" }))
+        ) {}
+        class B extends A.extend<B>("B")(
+          Schema.Struct({
+            b: Schema.Number
+          }).check(Schema.makeFilter(({ b }) => b > 0, { expected: "positive b" }))
+        ) {}
+        const asserts = new TestSchema.Asserts(B)
+
+        const make = asserts.make()
+        await make.succeed({ a: 1, b: 1 }, new B({ a: 1, b: 1 }))
+        await make.fail({ a: 0, b: 1 }, `Expected positive a, got {"a":0,"b":1}`)
+        await make.fail({ a: 1, b: 0 }, `Expected positive b, got {"a":1,"b":0}`)
+      })
+
       it("static members", async () => {
         class A extends Schema.Class<A>("A")({
           a: Schema.String
