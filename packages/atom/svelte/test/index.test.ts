@@ -6,13 +6,13 @@ import * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
 import * as Hydration from "effect/unstable/reactivity/Hydration"
 import { describe, expect, it } from "vitest"
+import Awaited from "./Awaited.svelte"
 import Counter from "./Counter.svelte"
 import Hydrated from "./Hydrated.svelte"
 import Reader from "./Reader.svelte"
 import RefPropReader from "./RefPropReader.svelte"
 import RefReader from "./RefReader.svelte"
 import StateInput from "./StateInput.svelte"
-import Suspense from "./Suspense.svelte"
 
 describe("useAtom", () => {
   it("reads the initial value and updates on set", async () => {
@@ -55,7 +55,7 @@ describe("useAtomValue", () => {
   })
 })
 
-describe("useAtomState", () => {
+describe("useAtomBindable", () => {
   it("reads via current, writes through bind:, and reflects external writes", async () => {
     const registry = AtomRegistry.make()
     const atom = Atom.make("a")
@@ -121,11 +121,11 @@ describe("hydrateAtoms", () => {
   })
 })
 
-describe("useAtomSuspense", () => {
+describe("useAtomPromise", () => {
   it("resolves to the success value", async () => {
     const registry = AtomRegistry.make()
     const atom = Atom.make(AsyncResult.success<number, Error>(5))
-    const { findByText } = render(Suspense, { props: { registry, atom: () => atom } })
+    const { findByText } = render(Awaited, { props: { registry, atom: () => atom } })
 
     expect(await findByText("5")).toBeTruthy()
   })
@@ -133,7 +133,7 @@ describe("useAtomSuspense", () => {
   it("stays pending on an initial result", async () => {
     const registry = AtomRegistry.make()
     const atom = Atom.make(AsyncResult.initial<number, Error>())
-    const { getByTestId } = render(Suspense, { props: { registry, atom: () => atom } })
+    const { getByTestId } = render(Awaited, { props: { registry, atom: () => atom } })
 
     await Promise.resolve()
     expect(getByTestId("state").textContent).toBe("pending")

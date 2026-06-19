@@ -42,29 +42,29 @@ For effectful atoms, `count.current` is an `AsyncResult`; match on it with `Asyn
 
 ### Two-way binding
 
-`useAtomState` returns a handle whose `current` is both readable and assignable, so it works with `bind:` for `Writable<A, A>` atoms:
+`useAtomBindable` returns a handle whose `current` is both readable and assignable, so it works with `bind:` for `Writable<A, A>` atoms:
 
 ```svelte
 <script lang="ts">
-  import { Atom, useAtomState } from "@effect/atom-svelte"
+  import { Atom, useAtomBindable } from "@effect/atom-svelte"
 
   const nameAtom = Atom.make("")
-  const name = useAtomState(() => nameAtom)
+  const name = useAtomBindable(() => nameAtom)
 </script>
 
 <input bind:value={name.current} />
 ```
 
-### Async / Suspense
+### Async atoms
 
-`useAtomSuspense` turns an `AsyncResult` atom into a handle whose `current` is a promise — pending on `Initial`, resolved on success, rejected on failure. Read it from an `{#await}` block:
+`useAtomPromise` turns an `AsyncResult` atom into a handle whose `current` is a promise — pending on `Initial`, resolved on success, rejected on failure. Read it from an `{#await}` block:
 
 ```svelte
 <script lang="ts">
-  import { useAtomSuspense } from "@effect/atom-svelte"
+  import { useAtomPromise } from "@effect/atom-svelte"
   import { userAtom } from "./atoms.ts"
 
-  const user = useAtomSuspense(() => userAtom)
+  const user = useAtomPromise(() => userAtom)
 </script>
 
 {#await user.current}

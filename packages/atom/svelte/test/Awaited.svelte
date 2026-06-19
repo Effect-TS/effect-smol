@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { setRegistry, useAtomSuspense } from "@effect/atom-svelte"
+  import { setRegistry, useAtomPromise } from "@effect/atom-svelte"
   import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
   import type * as Atom from "effect/unstable/reactivity/Atom"
   import type * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
@@ -13,7 +13,7 @@
   } = $props()
 
   setRegistry(registry)
-  const value = useAtomSuspense(atom)
+  const value = useAtomPromise(atom)
 </script>
 
 {#await value.current}

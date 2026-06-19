@@ -1,8 +1,8 @@
 /**
- * Svelte context helpers for the Atom registry used by Effect Atom hooks. The
- * registry stores atom values, schedules update work, and cleans up unused
- * atoms. Sharing one registry through Svelte context lets components in the same
- * tree read and write the same atom state.
+ * Svelte context helpers for the Atom registry used by the Effect Atom
+ * bindings. The registry stores atom values, schedules update work, and cleans
+ * up unused atoms. Sharing one registry through Svelte context lets components
+ * in the same tree read and write the same atom state.
  *
  * @since 4.0.0
  */
