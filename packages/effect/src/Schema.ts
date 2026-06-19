@@ -3821,24 +3821,52 @@ export declare namespace StructWithRest {
     [I in keyof Records]: Records[I][Side] extends object ? IncompatibleKeys<S[Side], Records[I][Side]> : never
   }[number]
 
-  /**
-   * Validates that the records are compatible with the struct.
-   *
-   * @category utility types
-   * @since 4.0.0
-   */
-  export type ValidateRecords<S extends Objects, Records extends StructWithRest.Records> = [
+  type IncompatibleRecords<S extends Objects, Records extends StructWithRest.Records> =
     | IncompatibleSideKeys<S, Records, "Type">
     | IncompatibleSideKeys<S, Records, "Encoded">
     | IncompatibleSideKeys<S, Records, "Iso">
     | IncompatibleSideKeys<S, Records, "~type.make">
-  ] extends [never] ? unknown
+
+  /**
+   * Checks whether fixed fields are compatible with the rest record schemas.
+   *
+   * **Details**
+   *
+   * Returns `true` when all fixed fields can also satisfy the matching rest
+   * index signatures. Returns a diagnostic object when TypeScript would make
+   * the resulting intersection too narrow for one or more fixed keys.
+   *
+   * **Example** (Checking record compatibility)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * const user = Schema.Struct({ id: Schema.String })
+   * const stringExtras = [Schema.Record(Schema.String, Schema.String)] as const
+   *
+   * type UserCheck = Schema.StructWithRest.ValidateRecords<typeof user, typeof stringExtras>
+   *
+   * const userCheck: UserCheck = true
+   * void userCheck
+   *
+   * const counter = Schema.Struct({ count: Schema.NumberFromString })
+   *
+   * type CounterCheck = Schema.StructWithRest.ValidateRecords<typeof counter, typeof stringExtras>
+   * //    ^? { "incompatible index signatures": "count" }
+   *
+   * const counterCheck = null as unknown as CounterCheck
+   * void counterCheck
+   * ```
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ValidateRecords<
+    S extends Objects,
+    Records extends StructWithRest.Records
+  > = [IncompatibleRecords<S, Records>] extends [never] ? true
     : {
-      "incompatible index signatures":
-        | IncompatibleSideKeys<S, Records, "Type">
-        | IncompatibleSideKeys<S, Records, "Encoded">
-        | IncompatibleSideKeys<S, Records, "Iso">
-        | IncompatibleSideKeys<S, Records, "~type.make">
+      "incompatible index signatures": IncompatibleRecords<S, Records>
     }
 }
 
@@ -3872,6 +3900,13 @@ export interface StructWithRest<
  * Extends a struct schema with one or more record (index-signature) schemas,
  * producing a schema whose decoded type intersects the struct and all records.
  *
+ * **Gotchas**
+ *
+ * TypeScript index signatures also apply to fixed keys. `StructWithRest` does
+ * not reject incompatible fixed fields at the call site; use
+ * `StructWithRest.ValidateRecords` when you want an explicit type-level
+ * compatibility check.
+ *
  * **Example** (Defining structs with string-indexed extra keys)
  *
  * ```ts
@@ -3894,7 +3929,7 @@ export function StructWithRest<
   const Records extends StructWithRest.Records
 >(
   schema: S,
-  records: Records & StructWithRest.ValidateRecords<S, Records>
+  records: Records
 ): StructWithRest<S, Records> {
   return make(SchemaAST.structWithRest(schema.ast, records.map(SchemaAST.getAST)), { schema, records })
 }

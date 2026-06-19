@@ -690,32 +690,42 @@ describe("StructWithRest", () => {
     >()
   })
 
-  it("rejects decoded fields incompatible with string index signatures", () => {
-    expect(Schema.StructWithRest).type.not.toBeCallableWith(
-      Schema.Struct({ count: Schema.NumberFromString }),
-      [Schema.Record(Schema.String, Schema.String)]
-    )
+  it("reports decoded fields incompatible with string index signatures", () => {
+    const schema = Schema.Struct({ count: Schema.NumberFromString })
+    const records = [Schema.Record(Schema.String, Schema.String)] as const
+
+    expect(Schema.StructWithRest).type.toBeCallableWith(schema, records)
+    expect<Schema.StructWithRest.ValidateRecords<typeof schema, typeof records>>().type.toBe<{
+      "incompatible index signatures": "count"
+    }>()
   })
 
-  it("rejects encoded fields incompatible with string index signatures", () => {
-    expect(Schema.StructWithRest).type.not.toBeCallableWith(
-      Schema.Struct({ count: Schema.NumberFromString }),
-      [Schema.Record(Schema.String, Schema.Number)]
-    )
+  it("reports encoded fields incompatible with string index signatures", () => {
+    const schema = Schema.Struct({ count: Schema.NumberFromString })
+    const records = [Schema.Record(Schema.String, Schema.Number)] as const
+
+    expect(Schema.StructWithRest).type.toBeCallableWith(schema, records)
+    expect<Schema.StructWithRest.ValidateRecords<typeof schema, typeof records>>().type.toBe<{
+      "incompatible index signatures": "count"
+    }>()
   })
 
   it("allows optionalKey fields compatible with string index signatures", () => {
-    expect(Schema.StructWithRest).type.toBeCallableWith(
-      Schema.Struct({ a: Schema.optionalKey(Schema.String) }),
-      [Schema.Record(Schema.String, Schema.String)]
-    )
+    const schema = Schema.Struct({ a: Schema.optionalKey(Schema.String) })
+    const records = [Schema.Record(Schema.String, Schema.String)] as const
+
+    expect(Schema.StructWithRest).type.toBeCallableWith(schema, records)
+    expect<Schema.StructWithRest.ValidateRecords<typeof schema, typeof records>>().type.toBe<true>()
   })
 
-  it("rejects optional fields incompatible with string index signatures", () => {
-    expect(Schema.StructWithRest).type.not.toBeCallableWith(
-      Schema.Struct({ a: Schema.optional(Schema.String) }),
-      [Schema.Record(Schema.String, Schema.String)]
-    )
+  it("reports optional fields incompatible with string index signatures", () => {
+    const schema = Schema.Struct({ a: Schema.optional(Schema.String) })
+    const records = [Schema.Record(Schema.String, Schema.String)] as const
+
+    expect(Schema.StructWithRest).type.toBeCallableWith(schema, records)
+    expect<Schema.StructWithRest.ValidateRecords<typeof schema, typeof records>>().type.toBe<{
+      "incompatible index signatures": "a"
+    }>()
   })
 
   it("records mutability and optionality", () => {

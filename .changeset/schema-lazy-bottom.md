@@ -22,3 +22,7 @@ Focused `tsc --extendedDiagnostics` audit, using delta instantiations over a min
 | Nested union of five structs with 20-field children | `schema.Type` |  13213 |  7440 | -43.7% |
 
 Reading every schema surface remains intentionally expensive. For example, a flat union where the fixture asks for `Type`, `Encoded`, `Iso`, make input, and both service views stays roughly flat (`21887` -> `21950`, `+0.3%`), because all views are actually requested.
+
+This also makes `Schema.StructWithRest` cheaper to instantiate by removing the eager fixed-field/index-signature compatibility check from the constructor signature. The check is still available as the opt-in `Schema.StructWithRest.ValidateRecords<S, Records>` type, which returns `true` for compatible records or a diagnostic object with the incompatible keys.
+
+This keeps normal schema construction on the cheap path and moves the expensive compatibility proof to the call sites that explicitly ask for it. On a focused fixture with 200 fixed fields and 3 rest records, constructing `Schema.StructWithRest` drops from `66081` to `14124` delta instantiations (`-78.6%`). Explicitly requesting `Schema.StructWithRest.ValidateRecords` remains expensive (`66302` delta instantiations), as expected for the opt-in diagnostic path.
