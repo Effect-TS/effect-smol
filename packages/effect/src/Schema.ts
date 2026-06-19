@@ -3091,7 +3091,20 @@ export declare namespace Struct {
    * @category utility types
    * @since 3.10.0
    */
-  export type Type<F extends Fields> = Simplify<Type_<F>>
+  export type Type<
+    F extends Fields,
+    O extends keyof F = TypeOptionalKeys<F>,
+    M extends keyof F = TypeMutableKeys<F>
+  > = [O | M] extends [never] ? { readonly [K in keyof F]: F[K]["Type"] }
+    : [M] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends O ? never : K]: F[K]["Type"] }
+        & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["Type"] }
+      >
+    : [O] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends M ? never : K]: F[K]["Type"] }
+        & { -readonly [K in keyof F as K extends M ? K : never]: F[K]["Type"] }
+      >
+    : Simplify<Type_<F, O, M>>
 
   type Iso_<
     F extends Fields,
@@ -3115,7 +3128,20 @@ export declare namespace Struct {
    * @category utility types
    * @since 4.0.0
    */
-  export type Iso<F extends Fields> = Simplify<Iso_<F>>
+  export type Iso<
+    F extends Fields,
+    O extends keyof F = TypeOptionalKeys<F>,
+    M extends keyof F = TypeMutableKeys<F>
+  > = [O | M] extends [never] ? { readonly [K in keyof F]: F[K]["Iso"] }
+    : [M] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends O ? never : K]: F[K]["Iso"] }
+        & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["Iso"] }
+      >
+    : [O] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends M ? never : K]: F[K]["Iso"] }
+        & { -readonly [K in keyof F as K extends M ? K : never]: F[K]["Iso"] }
+      >
+    : Simplify<Iso_<F, O, M>>
 
   type EncodedOptionalKeys<Fields extends Struct.Fields> = {
     [K in keyof Fields]: Fields[K] extends { readonly "~encoded.optionality": "optional" } ? K
@@ -3149,7 +3175,20 @@ export declare namespace Struct {
    * @category utility types
    * @since 3.10.0
    */
-  export type Encoded<F extends Fields> = Simplify<Encoded_<F>>
+  export type Encoded<
+    F extends Fields,
+    O extends keyof F = EncodedOptionalKeys<F>,
+    M extends keyof F = EncodedMutableKeys<F>
+  > = [O | M] extends [never] ? { readonly [K in keyof F]: F[K]["Encoded"] }
+    : [M] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends O ? never : K]: F[K]["Encoded"] }
+        & { readonly [K in keyof F as K extends O ? K : never]?: F[K]["Encoded"] }
+      >
+    : [O] extends [never] ? Simplify<
+        & { readonly [K in keyof F as K extends M ? never : K]: F[K]["Encoded"] }
+        & { -readonly [K in keyof F as K extends M ? K : never]: F[K]["Encoded"] }
+      >
+    : Simplify<Encoded_<F, O, M>>
 
   /**
    * Union of all decoding service requirements needed by the schemas in a struct
@@ -3192,7 +3231,10 @@ export declare namespace Struct {
    * @category utility types
    * @since 4.0.0
    */
-  export type MakeIn<F extends Fields> = Simplify<MakeIn_<F>>
+  export type MakeIn<
+    F extends Fields,
+    O extends keyof F = TypeOptionalKeys<F> | TypeConstructorDefaultedKeys<F>
+  > = [O] extends [never] ? { readonly [K in keyof F]: F[K]["~type.make"] } : Simplify<MakeIn_<F, O>>
 }
 
 /**
