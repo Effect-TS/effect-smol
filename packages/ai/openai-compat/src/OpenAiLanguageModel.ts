@@ -112,7 +112,6 @@ export class Config extends Context.Service<
        * Defaults to `true`.
        */
       readonly strictJsonSchema?: boolean | undefined
-      readonly [x: string]: unknown
     }
   >
 >()("@effect/ai-openai-compat/OpenAiLanguageModel/Config") {}
