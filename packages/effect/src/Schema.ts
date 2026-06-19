@@ -2569,13 +2569,19 @@ function templateLiteralFromParts<Parts extends TemplateLiteral.Parts>(parts: Pa
 }
 
 /**
- * Creates a schema that validates strings matching a template literal pattern. Each part can be
- * a literal string/number/bigint or a schema whose encoded type is a string, number, or bigint.
+ * Creates a schema that validates strings by matching ordered template literal
+ * parts.
  *
  * **When to use**
  *
  * Use when the decoded value should remain the matched string and you do not
  * need the individual template parts parsed into a tuple.
+ *
+ * **Details**
+ *
+ * Each part can be a literal `string`, `number`, or `bigint`, or a schema whose
+ * encoded type is `string`, `number`, or `bigint`. Checks on string, number,
+ * and bigint schema parts are applied while matching each segment.
  *
  * **Example** (Defining a URL path pattern)
  *
@@ -2640,7 +2646,7 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
 }
 
 /**
- * Schema for parsing template literal matches into typed tuple parts.
+ * Schema for parsing matched template literal strings into typed tuple parts.
  *
  * **When to use**
  *
@@ -2650,7 +2656,8 @@ export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> exte
  * **Details**
  *
  * Unlike {@link TemplateLiteral}, this schema decodes the matched string into a
- * readonly tuple with one element per schema part.
+ * readonly tuple with one element per schema part. Checks on string, number,
+ * and bigint schema parts are applied while matching each segment.
  *
  * **Example** (Parsing path parameters)
  *
@@ -3587,7 +3594,18 @@ export interface $Record<Key extends Record.Key, Value extends Top> extends
 }
 
 /**
- * Defines a record (dictionary) schema with typed keys and values.
+ * Defines a record schema whose dynamic properties are selected by a key schema
+ * and decoded with a value schema.
+ *
+ * **Details**
+ *
+ * For dynamic keys, the key schema selects matching own properties and the
+ * value schema decodes or encodes only those selected properties. Checks on
+ * string, number, symbol, and template literal key schemas narrow which
+ * properties are selected.
+ *
+ * For transformed key schemas, property selection is based on encoded property
+ * names before the selected key is decoded.
  *
  * **Example** (Defining a string-keyed record of numbers)
  *
@@ -12194,15 +12212,48 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     } | undefined
   ): Struct<Simplify<Readonly<To>>>
 
+  /**
+   * Returns a function that creates a schema-backed subclass with this class's
+   * fields plus additional fields.
+   *
+   * **When to use**
+   *
+   * Use when you need a subclass whose constructor validates both inherited
+   * fields and newly added fields.
+   *
+   * **Details**
+   *
+   * The returned function accepts either a field map or a `Struct`. When you
+   * pass a `Struct`, checks attached to that extension schema are preserved and
+   * combined with checks from the base class schema.
+   *
+   * **Gotchas**
+   *
+   * Checks from a `Struct` argument are evaluated against the full subclass
+   * value after inherited and extension fields are merged. Object-wide checks
+   * such as `isMaxProperties` count inherited fields too.
+   */
   extend<Extended = never, Static = {}, Brand = {}>(
     identifier: string
-  ): <NewFields extends Struct.Fields>(
-    fields: NewFields,
-    annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
-  ) => [Extended] extends [never] ? MissingSelfGeneric<"Base.extend"> : InheritStaticMembers<
-    Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
-    Static
-  >
+  ): {
+    <NewFields extends Struct.Fields>(
+      fields: NewFields,
+      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
+    ): [Extended] extends [never] ? MissingSelfGeneric<"Base.extend"> : InheritStaticMembers<
+      Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self & Brand>,
+      Static
+    >
+    <Extension extends Struct<Struct.Fields>>(
+      schema: Extension,
+      annotations?: Annotations.Declaration<
+        Extended,
+        readonly [Struct<Simplify<Assign<S["fields"], Extension["fields"]>>>]
+      >
+    ): [Extended] extends [never] ? MissingSelfGeneric<"Base.extend"> : InheritStaticMembers<
+      Class<Extended, Struct<Simplify<Assign<S["fields"], Extension["fields"]>>>, Self & Brand>,
+      Static
+    >
+  }
 }
 
 // Merges custom static members from a parent class onto the extended class,
@@ -12270,18 +12321,20 @@ function makeClass<
     static check(...checks: readonly [SchemaAST.Check<Self>, ...Array<SchemaAST.Check<Self>>]) {
       return this.rebuild(SchemaAST.appendChecks(this.ast, checks))
     }
-    static extend<Extended>(
+    static extend(
       identifier: string
-    ): <NewFields extends Struct.Fields>(
-      fields: NewFields,
-      annotations?: Annotations.Declaration<Extended, readonly [Struct<Simplify<Assign<S["fields"], NewFields>>>]>
-    ) => Class<Extended, Struct<Simplify<Assign<S["fields"], NewFields>>>, Self> {
-      return (newFields, annotations) => {
-        const fields = { ...struct.fields, ...newFields }
+    ) {
+      return (
+        schema: Struct.Fields | Struct<Struct.Fields>,
+        annotations?: Annotations.Declaration<any, readonly [any]>
+      ) => {
+        const extension = isStruct(schema) ? schema : Struct(schema)
+        const fields = { ...struct.fields, ...extension.fields }
+        const ast = SchemaAST.struct(fields, struct.ast.checks, { identifier })
         return makeClass(
           this,
           identifier,
-          makeStruct(SchemaAST.struct(fields, struct.ast.checks, { identifier }), fields),
+          makeStruct(SchemaAST.appendChecks(ast, extension.ast.checks), fields),
           annotations,
           proto
         )
@@ -13103,7 +13156,7 @@ function toCodecJsonBase(ast: SchemaAST.AST, recur: (ast: SchemaAST.AST) => Sche
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
-      return ast.recur(recur)
+      return ast.recur(recur, SchemaAST.parameterFromString)
     }
     case "Union": {
       const sortedTypes = InternalSchema.jsonReorder(ast.types)
@@ -13383,7 +13436,7 @@ function serializerTree(
       if (ast.propertySignatures.some((ps) => typeof ps.name !== "string")) {
         throw new globalThis.Error("Objects property names must be strings", { cause: ast })
       }
-      return ast.recur(recur)
+      return ast.recur(recur, SchemaAST.parameterFromString)
     }
     case "Union": {
       const sortedTypes = treeReorder(ast.types)

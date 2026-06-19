@@ -1,5 +1,65 @@
 # effect
 
+## 4.0.0-beta.84
+
+### Patch Changes
+
+- [#2420](https://github.com/Effect-TS/effect-smol/pull/2420) [`87f52ba`](https://github.com/Effect-TS/effect-smol/commit/87f52ba16c4370ffa3f84bf8e53038e1419c284e) Thanks @tim-smart! - Add `Effect.transposeOption` for converting an `Option<Effect<A, E, R>>` into an `Effect<Option<A>, E, R>`.
+
+- [#2374](https://github.com/Effect-TS/effect-smol/pull/2374) [`b8ee07f`](https://github.com/Effect-TS/effect-smol/commit/b8ee07ffda8903b5ec2e45a786ddcba59f128fda) Thanks @gcanti! - Import unconstrained JSON Schema nodes as `Schema.Json` instead of `Schema.Unknown`.
+
+- [#2407](https://github.com/Effect-TS/effect-smol/pull/2407) [`867c0d7`](https://github.com/Effect-TS/effect-smol/commit/867c0d70a09079b040260d45a1e92ff04dbfbf2f) Thanks @gcanti! - Normalize error behavior for Schema and SchemaParser boundary APIs.
+
+  `SchemaError` now extends `Data.TaggedError`, so it is also a native `Error`.
+  SchemaParser Promise APIs now reject an `Error` whose cause is the
+  `SchemaIssue.Issue` for schema failures.
+
+  Schema and SchemaParser `Effect` and `Exit` adapters now preserve full causes
+  while mapping schema issue failures to their public error type. The `is`,
+  `asserts`, `Promise`, `Sync`, `Result`, `Option`, `make`, and `makeOption`
+  adapters now distinguish schema issues from non-schema causes. Schema-only
+  failures are converted to the adapter's normal representation (`false`,
+  rejected or thrown schema error, `Result.fail`, or `None`), while non-schema
+  causes throw or reject with an `Error` whose cause is the underlying `Cause`.
+
+- [#2409](https://github.com/Effect-TS/effect-smol/pull/2409) [`b93bc6c`](https://github.com/Effect-TS/effect-smol/commit/b93bc6c9cb27b909a41d094c97c4f9d25bbc6d6b) Thanks @tim-smart! - Fix Stream.runForEachWhile so it continues across chunk boundaries while the predicate returns true and stops when the predicate returns false.
+
+- [#2424](https://github.com/Effect-TS/effect-smol/pull/2424) [`57d387f`](https://github.com/Effect-TS/effect-smol/commit/57d387f92c30ab63e15e3e641f0a903b65886610) Thanks @tim-smart! - Fix cluster workflow activity defect hydration
+
+- [#2403](https://github.com/Effect-TS/effect-smol/pull/2403) [`bacca41`](https://github.com/Effect-TS/effect-smol/commit/bacca4141c2400effae1eabfdb36c89a459cf246) Thanks @lloydrichards! - align ProcessInput.Input runtime field name with type definition on Prompt.custom
+
+- [#2423](https://github.com/Effect-TS/effect-smol/pull/2423) [`0f8ac79`](https://github.com/Effect-TS/effect-smol/commit/0f8ac7959d29ed68c68ce25aabd6bf0cb7e63ecc) Thanks @tim-smart! - RpcGroup.toHandlers is definition first
+
+- [#2383](https://github.com/Effect-TS/effect-smol/pull/2383) [`25b4482`](https://github.com/Effect-TS/effect-smol/commit/25b448270c01317703f25107e1480d4cd0246d9a) Thanks @gcanti! - Fix config path composition and directory-backed lookup behavior.
+
+  `ConfigProvider.orElse` now keeps each side's own `nested` and `mapInput`
+  behavior. Applying `nested` or `mapInput` to a combined provider now applies the
+  same transformation to both sides.
+
+  `ConfigProvider` path transformations now compose as a single path function.
+  This makes `nested` and `mapInput` behave consistently with normal function
+  composition.
+
+  `Config.nested` now tracks the logical config path in `Config` itself instead of
+  wrapping the provider. This keeps lookup paths and schema error paths aligned.
+  The low-level `Config.make` constructor is no longer exported; use config
+  constructors and combinators, or implement custom lookup behavior with
+  `ConfigProvider.make`.
+
+  `ConfigProvider.fromDir` now returns `undefined` when neither a file nor a
+  directory exists at the requested path, so `orElse` can fall back instead of
+  failing with `SourceError`.
+
+- [#2415](https://github.com/Effect-TS/effect-smol/pull/2415) [`9cf3a25`](https://github.com/Effect-TS/effect-smol/commit/9cf3a25c66b0c44a52be9829870c44517ea52db2) Thanks @gcanti! - Fix `Effect.try` thunk usage and `Effect.tryPromise` mapper and signal handling defects.
+
+  `Effect.try` now supports passing a thunk directly, matching `Effect.tryPromise`. Thrown values from direct-thunk usage are mapped to `Cause.UnknownError`.
+
+  When a promise handled by `Effect.tryPromise` rejected and the custom `catch` mapper threw while mapping that rejection, the effect could remain pending and produce an unhandled rejection. The mapper is now guarded consistently with the synchronous throw path, so a thrown mapper error becomes an Effect defect. The JSDoc for `Effect.try` and `Effect.tryPromise` was also corrected.
+
+  `Effect.tryPromise` now also only creates an `AbortController` when the wrapped thunk declares an `AbortSignal` parameter.
+
+- [#2417](https://github.com/Effect-TS/effect-smol/pull/2417) [`8def767`](https://github.com/Effect-TS/effect-smol/commit/8def7674b1787f91035298cda4d122937e87ef72) Thanks @tim-smart! - deduplicate SqlResolver.findById requests
+
 ## 4.0.0-beta.83
 
 ### Patch Changes

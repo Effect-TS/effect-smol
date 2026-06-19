@@ -303,14 +303,13 @@ const RpcGroupProto = {
       const services = yield* Effect.context<never>()
       const handlers = Effect.isEffect(build) ? yield* build : build
       const contextMap = new Map<string, unknown>()
-      for (const [tag, handler] of Object.entries(handlers)) {
-        const rpc = self.requests.get(tag)!
+      self.requests.forEach((rpc, tag) => {
         contextMap.set(rpc.key, {
           tag: rpc._tag,
-          handler,
+          handler: handlers[tag],
           context: services
         })
-      }
+      })
       return Context.makeUnsafe(contextMap)
     })
   },
