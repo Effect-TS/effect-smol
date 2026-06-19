@@ -4,10 +4,15 @@
  * whose `current` getter participates in Svelte reactivity, keep atoms mounted
  * for cleanup, and read `AtomRef` values.
  *
- * Each hook calls `injectRegistry()` and uses `$effect`, so each must be called
- * during component initialisation (the same rule as Svelte's `getContext`).
- * Reading the returned `current` getter later — in templates, `$effect`, or
- * `$derived` — is unrestricted.
+ * Reactive read handles are backed by `createSubscriber` from
+ * `svelte/reactivity`: the value is pulled synchronously in the `current`
+ * getter (so server render and the first client render are correct), and a
+ * subscription is established only while `current` is read from a reactive
+ * context (template, `$derived`, or `$effect`).
+ *
+ * Each hook calls `injectRegistry()` (and the mounting hooks call `onDestroy`),
+ * so each must be called during component initialisation — the same rule as
+ * Svelte's own `getContext`.
  *
  * @since 4.0.0
  */
@@ -15,15 +20,16 @@ import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Exit from "effect/Exit"
 import type * as AsyncResult from "effect/unstable/reactivity/AsyncResult"
-import * as Atom from "effect/unstable/reactivity/Atom"
+import type * as Atom from "effect/unstable/reactivity/Atom"
 import type * as AtomRef from "effect/unstable/reactivity/AtomRef"
 import * as AtomRegistry from "effect/unstable/reactivity/AtomRegistry"
-import { untrack } from "svelte"
+import { onDestroy } from "svelte"
+import { createSubscriber } from "svelte/reactivity"
 import { injectRegistry } from "./RegistryContext.ts"
 
 /**
  * A reactive read handle. Reading `current` inside a Svelte effect, `$derived`,
- * or template subscribes the reader to the atom.
+ * or template subscribes the reader to the underlying source.
  *
  * @category models
  * @since 4.0.0
@@ -32,27 +38,50 @@ export interface AtomValue<A> {
   readonly current: A
 }
 
-const makeReactive = <A>(
-  registry: AtomRegistry.AtomRegistry,
-  atom: () => Atom.Atom<A>
+/**
+ * A reactive read handle over an external source that exposes a value and a
+ * `subscribe`/unsubscribe pair, keyed by the identity of the selected source.
+ *
+ * The value is read synchronously in the getter, so it is correct under SSR and
+ * before mount. `createSubscriber` establishes the subscription lazily (only
+ * while `current` is read reactively) and tears it down automatically. When the
+ * selected source changes between reads, the subscription is moved across.
+ */
+const reactiveValue = <S, A>(
+  select: () => S,
+  read: (source: S) => A,
+  subscribe: (source: S, notify: () => void) => () => void
 ): AtomValue<A> => {
-  const selected = $derived(atom())
-  // Synchronous seed so server render and the first client render are correct;
-  // Svelte `$effect` does not run on the server or before mount. The seed is a
-  // one-off read, so `untrack` keeps it out of any caller's reactive graph.
-  let value = $state<A>(untrack(() => registry.get(selected)))
-  $effect(() => {
-    value = registry.get(selected)
-    return registry.subscribe(selected, (next) => {
-      value = next
-    })
+  let active: S | undefined
+  let unsubscribe: (() => void) | undefined
+  let notify: (() => void) | undefined
+  const track = createSubscriber((update) => {
+    notify = update
+    active = select()
+    unsubscribe = subscribe(active, update)
+    return () => {
+      unsubscribe?.()
+      unsubscribe = undefined
+      notify = undefined
+      active = undefined
+    }
   })
   return {
     get current() {
-      return value
+      const source = select()
+      track()
+      if (notify !== undefined && source !== active) {
+        unsubscribe?.()
+        active = source
+        unsubscribe = subscribe(source, notify)
+      }
+      return read(source)
     }
   }
 }
+
+const subscribeAtom = (registry: AtomRegistry.AtomRegistry) => <A>(atom: Atom.Atom<A>, notify: () => void): () => void =>
+  registry.subscribe(atom, notify)
 
 /**
  * Reads an atom's value as a reactive handle.
@@ -65,7 +94,10 @@ export const useAtomValue: {
   <A, B>(atom: () => Atom.Atom<A>, f: (_: A) => B): AtomValue<B>
 } = <A, B>(atom: () => Atom.Atom<A>, f?: (_: A) => B): AtomValue<A> | AtomValue<B> => {
   const registry = injectRegistry()
-  return f ? makeReactive(registry, () => Atom.map(atom(), f)) : makeReactive(registry, atom)
+  const subscribe = subscribeAtom(registry)
+  return f
+    ? reactiveValue(atom, (a) => f(registry.get(a)), subscribe)
+    : reactiveValue(atom, (a) => registry.get(a), subscribe)
 }
 
 const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
@@ -73,57 +105,55 @@ const flattenExit = <A, E>(exit: Exit.Exit<A, E>): A => {
   throw Cause.squash(exit.cause)
 }
 
+/**
+ * The setter returned by {@link useAtom} and {@link useAtomSet}. For plain
+ * atoms it accepts a value or an updater function; for `AsyncResult` atoms the
+ * `promise` and `promiseExit` modes return a promise for the success value or
+ * the full `Exit`.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type AtomSetter<R, W, Mode> = "promise" extends Mode ? (
+    (value: W, options?: { readonly signal?: AbortSignal | undefined } | undefined) =>
+      Promise<AsyncResult.AsyncResult.Success<R>>
+  ) :
+  "promiseExit" extends Mode ? (
+      (value: W, options?: { readonly signal?: AbortSignal | undefined } | undefined) =>
+        Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
+    ) :
+  ((value: W | ((value: R) => W)) => void)
+
 function setAtom<R, W, Mode extends "value" | "promise" | "promiseExit" = never>(
   registry: AtomRegistry.AtomRegistry,
   atom: () => Atom.Writable<R, W>,
   options?: {
     readonly mode?: ([R] extends [AsyncResult.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
-): "promise" extends Mode ? (
-    (
-      value: W,
-      options?: {
-        readonly signal?: AbortSignal | undefined
-      } | undefined
-    ) => Promise<AsyncResult.AsyncResult.Success<R>>
-  ) :
-  "promiseExit" extends Mode ? (
-      (
-        value: W,
-        options?: {
-          readonly signal?: AbortSignal | undefined
-        } | undefined
-      ) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-    ) :
-  ((value: W | ((value: R) => W)) => void)
-{
+): AtomSetter<R, W, Mode> {
   if (options?.mode === "promise" || options?.mode === "promiseExit") {
-    return ((value: W, opts?: any) => {
-      const a = atom()
-      registry.set(a, value)
+    const write = (value: W, opts?: { readonly signal?: AbortSignal | undefined } | undefined) => {
+      const result = atom() as Atom.Writable<AsyncResult.AsyncResult<unknown, unknown>, W>
+      registry.set(result, value)
       const promise = Effect.runPromiseExit(
-        AtomRegistry.getResult(
-          registry,
-          a as Atom.Atom<AsyncResult.AsyncResult<any, any>>,
-          { suspendOnWaiting: true }
-        ),
+        AtomRegistry.getResult(registry, result, { suspendOnWaiting: true }),
         opts
       )
-      return options!.mode === "promise" ? promise.then(flattenExit) : promise
-    }) as any
+      return options.mode === "promise" ? promise.then(flattenExit) : promise
+    }
+    return write as AtomSetter<R, W, Mode>
   }
-  return ((value: W | ((value: R) => W)) => {
-    const a = atom()
-    registry.set(a, typeof value === "function" ? (value as any)(registry.get(a)) : value)
-  }) as any
+  const write = (value: W | ((value: R) => W)) => {
+    const writable = atom()
+    registry.set(writable, typeof value === "function" ? (value as (value: R) => W)(registry.get(writable)) : value)
+  }
+  return write as AtomSetter<R, W, Mode>
 }
 
 /**
  * Reads a writable atom's value as a reactive handle and returns a setter.
  *
- * The setter accepts either a write value or an updater function. For
- * `AsyncResult` atoms, the `promise` and `promiseExit` modes return promises for
- * the success value or the full `Exit`.
+ * @see {@link AtomSetter} for the setter's behaviour and modes.
  *
  * @category hooks
  * @since 4.0.0
@@ -133,23 +163,17 @@ export const useAtom = <R, W, Mode extends "value" | "promise" | "promiseExit" =
   options?: {
     readonly mode?: ([R] extends [AsyncResult.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
-): readonly [
-  AtomValue<R>,
-  write: "promise" extends Mode ? (
-      (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-    ) :
-    "promiseExit" extends Mode ? (
-        (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-      ) :
-    ((value: W | ((value: R) => W)) => void)
-] => {
+): readonly [value: AtomValue<R>, write: AtomSetter<R, W, Mode>] => {
   const registry = injectRegistry()
-  return [makeReactive(registry, atom), setAtom(registry, atom, options)] as const
+  const value = reactiveValue(atom, (a) => registry.get(a), subscribeAtom(registry))
+  return [value, setAtom(registry, atom, options)] as const
 }
 
 /**
  * Returns a setter for a writable atom, keeping it mounted for the lifetime of
- * the calling component. Re-mounts if the selected atom changes.
+ * the calling component.
+ *
+ * @see {@link AtomSetter} for the setter's behaviour and modes.
  *
  * @category hooks
  * @since 4.0.0
@@ -159,17 +183,9 @@ export const useAtomSet = <R, W, Mode extends "value" | "promise" | "promiseExit
   options?: {
     readonly mode?: ([R] extends [AsyncResult.AsyncResult<any, any>] ? Mode : "value") | undefined
   }
-): "promise" extends Mode ? (
-    (value: W) => Promise<AsyncResult.AsyncResult.Success<R>>
-  ) :
-  "promiseExit" extends Mode ? (
-      (value: W) => Promise<Exit.Exit<AsyncResult.AsyncResult.Success<R>, AsyncResult.AsyncResult.Failure<R>>>
-    ) :
-  ((value: W | ((value: R) => W)) => void) =>
-{
+): AtomSetter<R, W, Mode> => {
   const registry = injectRegistry()
-  const selected = $derived(atom())
-  $effect(() => registry.mount(selected))
+  onDestroy(registry.mount(atom()))
   return setAtom(registry, atom, options)
 }
 
@@ -182,8 +198,7 @@ export const useAtomSet = <R, W, Mode extends "value" | "promise" | "promiseExit
  */
 export const useAtomMount = <A>(atom: () => Atom.Atom<A>): void => {
   const registry = injectRegistry()
-  const selected = $derived(atom())
-  $effect(() => registry.mount(selected))
+  onDestroy(registry.mount(atom()))
 }
 
 /**
@@ -203,18 +218,5 @@ export const useAtomRefresh = <A>(atom: () => Atom.Atom<A>): () => void => {
  * @category hooks
  * @since 4.0.0
  */
-export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): AtomValue<A> => {
-  const ref = $derived(atomRef())
-  let value = $state<A>(untrack(() => ref.value))
-  $effect(() => {
-    value = ref.value
-    return ref.subscribe((next) => {
-      value = next
-    })
-  })
-  return {
-    get current() {
-      return value
-    }
-  }
-}
+export const useAtomRef = <A>(atomRef: () => AtomRef.ReadonlyRef<A>): AtomValue<A> =>
+  reactiveValue(atomRef, (ref) => ref.value, (ref, notify) => ref.subscribe(notify))

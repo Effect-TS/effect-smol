@@ -10,8 +10,7 @@ pnpm add @effect/atom-svelte effect svelte
 
 ## Usage
 
-Provide a registry once, near the root of your app (in SvelteKit, the root
-`+layout.svelte`):
+Provide a registry once, near the root of your app (in SvelteKit, the root `+layout.svelte`):
 
 ```svelte
 <!-- +layout.svelte -->
@@ -39,17 +38,12 @@ Read and write atoms from a component:
 <button onclick={() => setCount((n) => n + 1)}>{count.current}</button>
 ```
 
-For effectful atoms, `count.current` is an `AsyncResult`; match on it with
-`AsyncResult.isInitial` / `AsyncResult.isSuccess` / `AsyncResult.isFailure`.
+For effectful atoms, `count.current` is an `AsyncResult`; match on it with `AsyncResult.isInitial` / `AsyncResult.isSuccess` / `AsyncResult.isFailure`.
 
 ## Notes
 
-- **SSR.** Call `setRegistry()` in the root layout so each request gets an
-  isolated registry. The module-level `defaultRegistry` is shared across
-  requests on the server, so request state would otherwise leak.
-- **Hooks are init-time.** Like Svelte's own `getContext`, the `use*` hooks
-  must be called at the top of `<script>`, not inside event handlers, after an
-  `await`, or at module scope.
+- **SSR.** Call `setRegistry()` in the root layout so each request gets an isolated registry. The module-level `defaultRegistry` is shared across requests on the server, so request state would otherwise leak.
+- **Hooks are init-time.** Like Svelte's own `getContext`, the `use*` hooks must be called at the top of `<script>`, not inside event handlers, after an `await`, or at module scope.
 
 ## Documentation
 
