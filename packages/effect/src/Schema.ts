@@ -249,6 +249,60 @@ export interface Bottom<
 }
 
 /**
+ * Lazy `Bottom` variant for schema implementations that compute their public
+ * views on demand.
+ *
+ * **When to use**
+ *
+ * Use as an implementation base for schema interfaces that must expose
+ * `Bottom` behavior without forcing TypeScript to eagerly evaluate expensive
+ * `Type`, `Encoded`, or service views.
+ *
+ * **Details**
+ *
+ * The laziness is purely type-level; runtime behavior is unchanged.
+ * `BottomLazy` keeps the structural operations inherited from `Bottom`, but
+ * erases the expensive schema views to `unknown`. Concrete schema interfaces can
+ * then redeclare the precise views they expose. This keeps wide schemas such as
+ * `Struct` and `Union` cheaper when generic code reads a single view, while
+ * preserving their exact public types.
+ *
+ * @see {@link Bottom} for the fully parameterized schema interface when every
+ * view must be supplied directly.
+ *
+ * @category utility types
+ * @since 4.0.0
+ */
+export interface BottomLazy<
+  out Ast extends SchemaAST.AST,
+  out Rebuild extends Top,
+  in out TypeParameters extends ReadonlyArray<Top> = readonly [],
+  out TypeMutability extends Mutability = "readonly",
+  out TypeOptionality extends Optionality = "required",
+  out TypeConstructorDefault extends ConstructorDefault = "no-default",
+  out EncodedMutability extends Mutability = "readonly",
+  out EncodedOptionality extends Optionality = "required"
+> extends
+  Bottom<
+    unknown,
+    unknown,
+    unknown,
+    unknown,
+    Ast,
+    Rebuild,
+    unknown,
+    unknown,
+    TypeParameters,
+    unknown,
+    TypeMutability,
+    TypeOptionality,
+    TypeConstructorDefault,
+    EncodedMutability,
+    EncodedOptionality
+  >
+{}
+
+/**
  * Type-level representation returned by {@link declareConstructor}.
  *
  * @category constructors
@@ -2087,17 +2141,10 @@ export function isSchema(u: unknown): u is Top {
  * @since 4.0.0
  */
 export interface optionalKey<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     optionalKey<S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     "optional",
     S["~type.constructor.default"],
@@ -2105,6 +2152,13 @@ export interface optionalKey<S extends Top> extends
     "optional"
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -2234,17 +2288,10 @@ export const required = Struct_.lambda<requiredLambda>((self) => self.schema.mem
  * @since 4.0.0
  */
 export interface mutableKey<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     mutableKey<S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     "mutable",
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2252,6 +2299,13 @@ export interface mutableKey<S extends Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -2297,24 +2351,25 @@ export const readonlyKey = Struct_.lambda<readonlyKeyLambda>((self) => self.sche
  * @since 4.0.0
  */
 export interface toType<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Type"],
-    never,
-    never,
+  BottomLazy<
     S["ast"],
     toType<S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Type"]
+  readonly "DecodingServices": never
+  readonly "EncodingServices": never
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
+}
 
 interface toTypeLambda extends Lambda {
   <S extends Top>(self: S): toType<S>
@@ -2337,24 +2392,25 @@ export const toType = Struct_.lambda<toTypeLambda>((schema) => make(SchemaAST.to
  * @since 4.0.0
  */
 export interface toEncoded<S extends Top> extends
-  Bottom<
-    S["Encoded"],
-    S["Encoded"],
-    never,
-    never,
+  BottomLazy<
     SchemaAST.AST,
     toEncoded<S>,
-    S["Encoded"],
-    S["Encoded"],
     ReadonlyArray<Top>,
-    S["Encoded"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "Type": S["Encoded"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": never
+  readonly "EncodingServices": never
+  readonly "~type.make.in": S["Encoded"]
+  readonly "~type.make": S["Encoded"]
+  readonly "Iso": S["Encoded"]
+}
 
 interface toEncodedLambda extends Lambda {
   <S extends Top>(self: S): toEncoded<S>
@@ -2379,17 +2435,10 @@ const FlipTypeId = "~effect/Schema/flip"
  * @since 4.0.0
  */
 export interface flip<S extends Top> extends
-  Bottom<
-    S["Encoded"],
-    S["Type"],
-    S["EncodingServices"],
-    S["DecodingServices"],
+  BottomLazy<
     SchemaAST.AST,
     flip<S>,
-    S["Encoded"],
-    S["Encoded"],
     ReadonlyArray<Top>,
-    S["Encoded"],
     S["~encoded.mutability"],
     S["~encoded.optionality"],
     ConstructorDefault,
@@ -2397,6 +2446,13 @@ export interface flip<S extends Top> extends
     S["~type.optionality"]
   >
 {
+  readonly "Type": S["Encoded"]
+  readonly "Encoded": S["Type"]
+  readonly "DecodingServices": S["EncodingServices"]
+  readonly "EncodingServices": S["DecodingServices"]
+  readonly "~type.make.in": S["Encoded"]
+  readonly "~type.make": S["Encoded"]
+  readonly "Iso": S["Encoded"]
   readonly [FlipTypeId]: typeof FlipTypeId
   readonly schema: S
 }
@@ -2633,15 +2689,18 @@ export declare namespace TemplateLiteralParser {
  * @since 3.10.0
  */
 export interface TemplateLiteralParser<Parts extends TemplateLiteral.Parts> extends
-  Bottom<
-    TemplateLiteralParser.Type<Parts>,
-    TemplateLiteral.Encoded<Parts>,
-    never,
-    never,
+  BottomLazy<
     SchemaAST.Arrays,
     TemplateLiteralParser<Parts>
   >
 {
+  readonly "Type": TemplateLiteralParser.Type<Parts>
+  readonly "Encoded": TemplateLiteral.Encoded<Parts>
+  readonly "DecodingServices": never
+  readonly "EncodingServices": never
+  readonly "~type.make.in": TemplateLiteralParser.Type<Parts>
+  readonly "~type.make": TemplateLiteralParser.Type<Parts>
+  readonly "Iso": TemplateLiteralParser.Type<Parts>
   readonly parts: Parts
 }
 
@@ -3142,18 +3201,14 @@ export declare namespace Struct {
  * @category models
  * @since 3.10.0
  */
-export interface Struct<Fields extends Struct.Fields> extends
-  Bottom<
-    Struct.Type<Fields>,
-    Struct.Encoded<Fields>,
-    Struct.DecodingServices<Fields>,
-    Struct.EncodingServices<Fields>,
-    SchemaAST.Objects,
-    Struct<Fields>,
-    Struct.MakeIn<Fields>,
-    Struct.Iso<Fields>
-  >
-{
+export interface Struct<Fields extends Struct.Fields> extends BottomLazy<SchemaAST.Objects, Struct<Fields>> {
+  readonly "Type": Struct.Type<Fields>
+  readonly "Encoded": Struct.Encoded<Fields>
+  readonly "DecodingServices": Struct.DecodingServices<Fields>
+  readonly "EncodingServices": Struct.EncodingServices<Fields>
+  readonly "~type.make.in": Struct.MakeIn<Fields>
+  readonly "~type.make": Struct.MakeIn<Fields>
+  readonly "Iso": Struct.Iso<Fields>
   /**
    * The field definitions of this struct. Spread them into a new struct to
    * reuse fields across schemas.
@@ -3578,17 +3633,18 @@ export declare namespace Record {
  * @since 4.0.0
  */
 export interface $Record<Key extends Record.Key, Value extends Top> extends
-  Bottom<
-    Record.Type<Key, Value>,
-    Record.Encoded<Key, Value>,
-    Record.DecodingServices<Key, Value>,
-    Record.EncodingServices<Key, Value>,
+  BottomLazy<
     SchemaAST.Objects,
-    $Record<Key, Value>,
-    Simplify<Record.MakeIn<Key, Value>>,
-    Record.Iso<Key, Value>
+    $Record<Key, Value>
   >
 {
+  readonly "Type": Record.Type<Key, Value>
+  readonly "Encoded": Record.Encoded<Key, Value>
+  readonly "DecodingServices": Record.DecodingServices<Key, Value>
+  readonly "EncodingServices": Record.EncodingServices<Key, Value>
+  readonly "~type.make.in": Simplify<Record.MakeIn<Key, Value>>
+  readonly "~type.make": Simplify<Record.MakeIn<Key, Value>>
+  readonly "Iso": Record.Iso<Key, Value>
   readonly key: Key
   readonly value: Value
 }
@@ -3796,17 +3852,18 @@ export interface StructWithRest<
   S extends StructWithRest.Objects,
   Records extends StructWithRest.Records
 > extends
-  Bottom<
-    Simplify<StructWithRest.Type<S, Records>>,
-    Simplify<StructWithRest.Encoded<S, Records>>,
-    StructWithRest.DecodingServices<S, Records>,
-    StructWithRest.EncodingServices<S, Records>,
+  BottomLazy<
     SchemaAST.Objects,
-    StructWithRest<S, Records>,
-    Simplify<StructWithRest.MakeIn<S, Records>>,
-    Simplify<StructWithRest.Iso<S, Records>>
+    StructWithRest<S, Records>
   >
 {
+  readonly "Type": Simplify<StructWithRest.Type<S, Records>>
+  readonly "Encoded": Simplify<StructWithRest.Encoded<S, Records>>
+  readonly "DecodingServices": StructWithRest.DecodingServices<S, Records>
+  readonly "EncodingServices": StructWithRest.EncodingServices<S, Records>
+  readonly "~type.make.in": Simplify<StructWithRest.MakeIn<S, Records>>
+  readonly "~type.make": Simplify<StructWithRest.MakeIn<S, Records>>
+  readonly "Iso": Simplify<StructWithRest.Iso<S, Records>>
   readonly schema: S
   readonly records: Records
 }
@@ -3980,17 +4037,18 @@ export declare namespace Tuple {
  * @since 3.10.0
  */
 export interface Tuple<Elements extends Tuple.Elements> extends
-  Bottom<
-    Tuple.Type<Elements>,
-    Tuple.Encoded<Elements>,
-    Tuple.DecodingServices<Elements>,
-    Tuple.EncodingServices<Elements>,
+  BottomLazy<
     SchemaAST.Arrays,
-    Tuple<Elements>,
-    Tuple.MakeIn<Elements>,
-    Tuple.Iso<Elements>
+    Tuple<Elements>
   >
 {
+  readonly "Type": Tuple.Type<Elements>
+  readonly "Encoded": Tuple.Encoded<Elements>
+  readonly "DecodingServices": Tuple.DecodingServices<Elements>
+  readonly "EncodingServices": Tuple.EncodingServices<Elements>
+  readonly "~type.make.in": Tuple.MakeIn<Elements>
+  readonly "~type.make": Tuple.MakeIn<Elements>
+  readonly "Iso": Tuple.Iso<Elements>
   readonly elements: Elements
   /**
    * Returns a new tuple with the elements modified by the provided function.
@@ -4186,17 +4244,18 @@ export interface TupleWithRest<
   S extends TupleWithRest.TupleType,
   Rest extends TupleWithRest.Rest
 > extends
-  Bottom<
-    TupleWithRest.Type<S["Type"], Rest>,
-    TupleWithRest.Encoded<S["Encoded"], Rest>,
-    S["DecodingServices"] | Rest[number]["DecodingServices"],
-    S["EncodingServices"] | Rest[number]["EncodingServices"],
+  BottomLazy<
     SchemaAST.Arrays,
-    TupleWithRest<S, Rest>,
-    TupleWithRest.MakeIn<S["~type.make"], Rest>,
-    TupleWithRest.Iso<S["Iso"], Rest>
+    TupleWithRest<S, Rest>
   >
 {
+  readonly "Type": TupleWithRest.Type<S["Type"], Rest>
+  readonly "Encoded": TupleWithRest.Encoded<S["Encoded"], Rest>
+  readonly "DecodingServices": S["DecodingServices"] | Rest[number]["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"] | Rest[number]["EncodingServices"]
+  readonly "~type.make.in": TupleWithRest.MakeIn<S["~type.make"], Rest>
+  readonly "~type.make": TupleWithRest.MakeIn<S["~type.make"], Rest>
+  readonly "Iso": TupleWithRest.Iso<S["Iso"], Rest>
   readonly schema: S
   readonly rest: Rest
 }
@@ -4245,17 +4304,18 @@ export function TupleWithRest<S extends Tuple<Tuple.Elements>, const Rest extend
  * @since 4.0.0
  */
 export interface $Array<S extends Top> extends
-  Bottom<
-    ReadonlyArray<S["Type"]>,
-    ReadonlyArray<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     SchemaAST.Arrays,
-    $Array<S>,
-    ReadonlyArray<S["~type.make"]>,
-    ReadonlyArray<S["Iso"]>
+    $Array<S>
   >
 {
+  readonly "Type": ReadonlyArray<S["Type"]>
+  readonly "Encoded": ReadonlyArray<S["Encoded"]>
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": ReadonlyArray<S["~type.make"]>
+  readonly "~type.make": ReadonlyArray<S["~type.make"]>
+  readonly "Iso": ReadonlyArray<S["Iso"]>
   readonly value: S
 }
 
@@ -4301,17 +4361,18 @@ export {
  * @since 3.10.0
  */
 export interface NonEmptyArray<S extends Top> extends
-  Bottom<
-    readonly [S["Type"], ...Array<S["Type"]>],
-    readonly [S["Encoded"], ...Array<S["Encoded"]>],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     SchemaAST.Arrays,
-    NonEmptyArray<S>,
-    readonly [S["~type.make"], ...Array<S["~type.make"]>],
-    readonly [S["Iso"], ...Array<S["Iso"]>]
+    NonEmptyArray<S>
   >
 {
+  readonly "Type": readonly [S["Type"], ...Array<S["Type"]>]
+  readonly "Encoded": readonly [S["Encoded"], ...Array<S["Encoded"]>]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": readonly [S["~type.make"], ...Array<S["~type.make"]>]
+  readonly "~type.make": readonly [S["~type.make"], ...Array<S["~type.make"]>]
+  readonly "Iso": readonly [S["Iso"], ...Array<S["Iso"]>]
   readonly value: S
 }
 
@@ -4420,18 +4481,10 @@ export function UniqueArray<S extends Top>(item: S): UniqueArray<S> {
  * @since 3.10.0
  */
 export interface mutable<S extends Top & { readonly "ast": SchemaAST.Arrays }> extends
-  Bottom<
-    Mutable<S["Type"]>,
-    Mutable<S["Encoded"]>,
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     mutable<S>,
-    // "~type.make" and "~type.make.in" as they are because they are contravariant
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -4439,6 +4492,14 @@ export interface mutable<S extends Top & { readonly "ast": SchemaAST.Arrays }> e
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": Mutable<S["Type"]>
+  readonly "Encoded": Mutable<S["Encoded"]>
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  // "~type.make" and "~type.make.in" as they are because they are contravariant
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -4477,17 +4538,18 @@ export const mutable = Struct_.lambda<mutableLambda>((schema) => {
  * @since 3.10.0
  */
 export interface Union<Members extends ReadonlyArray<Top>> extends
-  Bottom<
-    { [K in keyof Members]: Members[K]["Type"] }[number],
-    { [K in keyof Members]: Members[K]["Encoded"] }[number],
-    { [K in keyof Members]: Members[K]["DecodingServices"] }[number],
-    { [K in keyof Members]: Members[K]["EncodingServices"] }[number],
+  BottomLazy<
     SchemaAST.Union<{ [K in keyof Members]: Members[K]["ast"] }[number]>,
-    Union<Members>,
-    { [K in keyof Members]: Members[K]["~type.make"] }[number],
-    { [K in keyof Members]: Members[K]["Iso"] }[number]
+    Union<Members>
   >
 {
+  readonly "Type": { [K in keyof Members]: Members[K]["Type"] }[number]
+  readonly "Encoded": { [K in keyof Members]: Members[K]["Encoded"] }[number]
+  readonly "DecodingServices": { [K in keyof Members]: Members[K]["DecodingServices"] }[number]
+  readonly "EncodingServices": { [K in keyof Members]: Members[K]["EncodingServices"] }[number]
+  readonly "~type.make.in": { [K in keyof Members]: Members[K]["~type.make"] }[number]
+  readonly "~type.make": { [K in keyof Members]: Members[K]["~type.make"] }[number]
+  readonly "Iso": { [K in keyof Members]: Members[K]["Iso"] }[number]
   readonly members: Members
   /**
    * Returns a new union with the members modified by the provided function.
@@ -4703,24 +4765,25 @@ export const NullishOr = Struct_.lambda<NullishOrLambda>((self) => Union([self, 
  * @since 3.10.0
  */
 export interface suspend<S extends Top> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     SchemaAST.Suspend,
     suspend<S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
     S["~encoded.mutability"],
     S["~encoded.optionality"]
   >
-{}
+{
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
+}
 
 /**
  * Creates a suspended schema that defers evaluation until needed. This is
@@ -4780,17 +4843,10 @@ export function check<S extends Top>(
  * @since 3.10.0
  */
 export interface refine<T extends S["Type"], S extends Top> extends
-  Bottom<
-    T,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     refine<T, S>,
-    S["~type.make.in"],
-    T,
     S["~type.parameters"],
-    T,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -4798,6 +4854,13 @@ export interface refine<T extends S["Type"], S extends Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": T
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": T
+  readonly "Iso": T
   readonly schema: S
 }
 
@@ -4833,17 +4896,10 @@ type DistributeBrands<B> = UnionToIntersection<B extends infer U extends string 
  * @since 3.10.0
  */
 export interface brand<S extends Top, B> extends
-  Bottom<
-    S["Type"] & DistributeBrands<B>,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     brand<S, B>,
-    S["~type.make.in"],
-    S["Type"] & DistributeBrands<B>,
     S["~type.parameters"],
-    S["Type"] & DistributeBrands<B>,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -4851,6 +4907,13 @@ export interface brand<S extends Top, B> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"] & DistributeBrands<B>
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["Type"] & DistributeBrands<B>
+  readonly "Iso": S["Type"] & DistributeBrands<B>
   readonly schema: S
   readonly identifier: string
 }
@@ -4901,17 +4964,10 @@ export function fromBrand<A extends Brand.Brand<any>>(identifier: string, ctor: 
  * @since 4.0.0
  */
 export interface middlewareDecoding<S extends Top, RD> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    RD,
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     middlewareDecoding<S, RD>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -4919,6 +4975,13 @@ export interface middlewareDecoding<S extends Top, RD> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": RD
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -4967,17 +5030,10 @@ export function middlewareDecoding<S extends Top, RD>(
  * @since 4.0.0
  */
 export interface middlewareEncoding<S extends Top, RE> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    RE,
+  BottomLazy<
     S["ast"],
     middlewareEncoding<S, RE>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -4985,6 +5041,13 @@ export interface middlewareEncoding<S extends Top, RE> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": RE
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -5133,17 +5196,10 @@ export function catchEncodingWithContext<S extends Top, R = never>(
  * @since 4.0.0
  */
 export interface decodeTo<To extends Top, From extends Top, RD = never, RE = never> extends
-  Bottom<
-    To["Type"],
-    From["Encoded"],
-    To["DecodingServices"] | From["DecodingServices"] | RD,
-    To["EncodingServices"] | From["EncodingServices"] | RE,
+  BottomLazy<
     To["ast"],
     decodeTo<To, From, RD, RE>,
-    To["~type.make.in"],
-    To["Iso"],
     To["~type.parameters"],
-    To["~type.make"],
     To["~type.mutability"],
     To["~type.optionality"],
     To["~type.constructor.default"],
@@ -5151,6 +5207,13 @@ export interface decodeTo<To extends Top, From extends Top, RD = never, RE = nev
     From["~encoded.optionality"]
   >
 {
+  readonly "Type": To["Type"]
+  readonly "Encoded": From["Encoded"]
+  readonly "DecodingServices": To["DecodingServices"] | From["DecodingServices"] | RD
+  readonly "EncodingServices": To["EncodingServices"] | From["EncodingServices"] | RE
+  readonly "~type.make.in": To["~type.make.in"]
+  readonly "~type.make": To["~type.make"]
+  readonly "Iso": To["Iso"]
   readonly from: From
   readonly to: To
 }
@@ -5401,17 +5464,10 @@ export interface WithoutConstructorDefault {
  * @since 3.10.0
  */
 export interface withConstructorDefault<S extends Top & WithoutConstructorDefault> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     withConstructorDefault<S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     "with-default",
@@ -5419,6 +5475,13 @@ export interface withConstructorDefault<S extends Top & WithoutConstructorDefaul
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly schema: S
 }
 
@@ -5951,16 +6014,18 @@ export function toTaggedUnion<const Tag extends PropertyKey>(tag: Tag) {
  * @since 4.0.0
  */
 export interface TaggedUnion<Cases extends Record<string, Top>> extends
-  Bottom<
-    { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases],
-    { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases],
+  BottomLazy<
     SchemaAST.Union<SchemaAST.Objects>,
-    TaggedUnion<Cases>,
-    { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
+    TaggedUnion<Cases>
   >
 {
+  readonly "Type": { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases]
+  readonly "Encoded": { [K in keyof Cases]: Cases[K]["Encoded"] }[keyof Cases]
+  readonly "DecodingServices": { [K in keyof Cases]: Cases[K]["DecodingServices"] }[keyof Cases]
+  readonly "EncodingServices": { [K in keyof Cases]: Cases[K]["EncodingServices"] }[keyof Cases]
+  readonly "~type.make.in": { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
+  readonly "~type.make": { [K in keyof Cases]: Cases[K]["~type.make"] }[keyof Cases]
+  readonly "Iso": { [K in keyof Cases]: Cases[K]["Type"] }[keyof Cases]
   readonly cases: Cases
   readonly isAnyOf: <const Keys>(
     keys: ReadonlyArray<Keys>
@@ -6023,17 +6088,10 @@ export function TaggedUnion<const CasesByTag extends Record<string, Struct.Field
  * @since 4.0.0
  */
 export interface Opaque<Self, S extends Top, Brand> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     S["Rebuild"],
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -6041,6 +6099,13 @@ export interface Opaque<Self, S extends Top, Brand> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": Self
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   new(_: never): S["Type"] & Brand
 }
 
@@ -12164,17 +12229,10 @@ export const DateTimeZonedFromString: DateTimeZonedFromString = DateTimeZonedStr
  * @since 3.10.0
  */
 export interface Class<Self, S extends Top & { readonly fields: Struct.Fields }, Inherited> extends
-  Bottom<
-    Self,
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     SchemaAST.Declaration,
     decodeTo<declareConstructor<Self, S["Encoded"], readonly [S], S["Iso"]>, S>,
-    RequiredKeys<S["~type.make.in"]> extends never ? void | S["~type.make.in"] : S["~type.make.in"],
-    S["Iso"],
     readonly [S],
-    Self,
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -12182,6 +12240,14 @@ export interface Class<Self, S extends Top & { readonly fields: Struct.Fields },
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": Self
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": RequiredKeys<S["~type.make.in"]> extends never ? void | S["~type.make.in"]
+    : S["~type.make.in"]
+  readonly "~type.make": Self
+  readonly "Iso": S["Iso"]
   new(
     ...args: {} extends S["~type.make.in"] ? [props?: S["~type.make.in"], options?: MakeOptions]
       : [props: S["~type.make.in"], options?: MakeOptions]
@@ -13585,17 +13651,10 @@ export function toIsoFocus<S extends Top>(_: S): Optic_.Iso<S["Iso"], S["Iso"]> 
  * @since 4.0.0
  */
 export interface overrideToCodecIso<S extends Top, Iso> extends
-  Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  BottomLazy<
     S["ast"],
     overrideToCodecIso<S, Iso>,
-    S["~type.make.in"],
-    Iso,
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -13603,6 +13662,13 @@ export interface overrideToCodecIso<S extends Top, Iso> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": Iso
   readonly schema: S
 }
 

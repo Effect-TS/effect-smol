@@ -51,16 +51,19 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
  * @since 4.0.0
  */
 export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
-  Schema.Bottom<
-    Stream_.Stream<A["Type"], E["Type"]>,
-    Stream_.Stream<A["Encoded"], E["Encoded"]>,
-    A["DecodingServices"] | E["DecodingServices"],
-    A["EncodingServices"] | E["EncodingServices"],
+  Schema.BottomLazy<
     SchemaAST.Declaration,
     Stream<A, E>
   >
 {
+  readonly "Type": Stream_.Stream<A["Type"], E["Type"]>
+  readonly "Encoded": Stream_.Stream<A["Encoded"], E["Encoded"]>
+  readonly "DecodingServices": A["DecodingServices"] | E["DecodingServices"]
+  readonly "EncodingServices": A["EncodingServices"] | E["EncodingServices"]
   readonly "Rebuild": Stream<A, E>
+  readonly "~type.make.in": Stream_.Stream<A["Type"], E["Type"]>
+  readonly "~type.make": Stream_.Stream<A["Type"], E["Type"]>
+  readonly "Iso": Stream_.Stream<A["Type"], E["Type"]>
   readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly success: A
   readonly error: E

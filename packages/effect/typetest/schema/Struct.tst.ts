@@ -150,6 +150,26 @@ describe("Struct", () => {
     >()
   })
 
+  it("schema views remain precise", () => {
+    const schema = Schema.Struct({
+      a: Schema.FiniteFromString
+    })
+    const asSchema = <T>(schema: Schema.Schema<T>) => schema
+    const asCodec = <T, E, RD, RE>(schema: Schema.Codec<T, E, RD, RE>) => schema
+
+    expect(schema).type.toBeAssignableTo<Schema.Schema<{ readonly a: number }>>()
+    expect(schema).type.toBeAssignableTo<Schema.Codec<{ readonly a: number }, { readonly a: string }, never, never>>()
+
+    const schemaView = asSchema(schema)
+    expect(schemaView.Type).type.toBe<{ readonly a: number }>()
+
+    const codecView = asCodec(schema)
+    expect(codecView.Type).type.toBe<{ readonly a: number }>()
+    expect(codecView.Encoded).type.toBe<{ readonly a: string }>()
+    expect(codecView.DecodingServices).type.toBe<never>()
+    expect(codecView.EncodingServices).type.toBe<never>()
+  })
+
   describe("mapFields", () => {
     describe("assign", () => {
       it("non-overlapping fields", () => {

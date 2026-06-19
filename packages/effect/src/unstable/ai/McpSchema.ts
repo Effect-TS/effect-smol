@@ -2476,17 +2476,10 @@ export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top>
  * @since 4.0.0
  */
 export interface Param<Name extends string, S extends Schema.Top> extends
-  Schema.Bottom<
-    S["Type"],
-    S["Encoded"],
-    S["DecodingServices"],
-    S["EncodingServices"],
+  Schema.BottomLazy<
     S["ast"],
     Param<Name, S>,
-    S["~type.make.in"],
-    S["Iso"],
     S["~type.parameters"],
-    S["~type.make"],
     S["~type.mutability"],
     S["~type.optionality"],
     S["~type.constructor.default"],
@@ -2494,7 +2487,14 @@ export interface Param<Name extends string, S extends Schema.Top> extends
     S["~encoded.optionality"]
   >
 {
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
   readonly "Rebuild": Param<Name, S>
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
   readonly [ParamSchemaTypeId]: typeof ParamSchemaTypeId
   readonly name: Name
   readonly schema: S

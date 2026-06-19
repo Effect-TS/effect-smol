@@ -295,16 +295,19 @@ export interface StreamSse<
   Error extends Schema.Top,
   Value = Events["Type"]
 > extends
-  Schema.Bottom<
-    Stream.Stream<Value, Error["Type"], never>,
-    Stream.Stream<Value, Error["Type"], never>,
-    Events["DecodingServices"] | Error["DecodingServices"],
-    Events["EncodingServices"] | Error["EncodingServices"],
+  Schema.BottomLazy<
     SchemaAST.Declaration,
     StreamSse<Events, Error, Value>
   >
 {
+  readonly "Type": Stream.Stream<Value, Error["Type"], never>
+  readonly "Encoded": Stream.Stream<Value, Error["Type"], never>
+  readonly "DecodingServices": Events["DecodingServices"] | Error["DecodingServices"]
+  readonly "EncodingServices": Events["EncodingServices"] | Error["EncodingServices"]
   readonly "Rebuild": StreamSse<Events, Error, Value>
+  readonly "~type.make.in": Stream.Stream<Value, Error["Type"], never>
+  readonly "~type.make": Stream.Stream<Value, Error["Type"], never>
+  readonly "Iso": Stream.Stream<Value, Error["Type"], never>
   readonly [StreamSchemaTypeId]: typeof StreamSchemaTypeId
   readonly _tag: "StreamSse"
   readonly mode: "sse"
