@@ -23,11 +23,11 @@ describe("Latch", () => {
     Effect.gen(function*() {
       const latch = yield* Latch.make(false)
 
-      assert.strictEqual(latch.poll(), "closed")
+      assert.isFalse(latch.isOpen())
 
       yield* latch.open
       yield* Effect.yieldNow
 
-      assert.strictEqual(latch.poll(), "open")
+      assert.isTrue(latch.isOpen())
     }))
 })

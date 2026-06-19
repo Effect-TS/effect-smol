@@ -5360,10 +5360,10 @@ const succeedFalse = succeed(false)
 class Latch implements _Latch.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
-  private isOpen: boolean
+  private _isOpen: boolean
 
   constructor(isOpen: boolean) {
-    this.isOpen = isOpen
+    this._isOpen = isOpen
   }
 
   private scheduleUnsafe(fiber: Fiber.Fiber<unknown, unknown>) {
@@ -5384,19 +5384,19 @@ class Latch implements _Latch.Latch {
   }
 
   open = withFiber<boolean>((fiber) => {
-    if (this.isOpen) return succeedFalse
-    this.isOpen = true
+    if (this._isOpen) return succeedFalse
+    this._isOpen = true
     return this.scheduleUnsafe(fiber)
   })
-  release = withFiber<boolean>((fiber) => this.isOpen ? succeedFalse : this.scheduleUnsafe(fiber))
+  release = withFiber<boolean>((fiber) => this._isOpen ? succeedFalse : this.scheduleUnsafe(fiber))
   openUnsafe() {
-    if (this.isOpen) return false
-    this.isOpen = true
+    if (this._isOpen) return false
+    this._isOpen = true
     this.flushWaiters()
     return true
   }
   await = callback<void>((resume) => {
-    if (this.isOpen) {
+    if (this._isOpen) {
       return resume(void_)
     }
     this.waiters.push(resume)
@@ -5408,13 +5408,15 @@ class Latch implements _Latch.Latch {
     })
   })
   closeUnsafe() {
-    if (!this.isOpen) return false
-    this.isOpen = false
+    if (!this._isOpen) return false
+    this._isOpen = false
     return true
   }
   close = sync(() => this.closeUnsafe())
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => flatMap(this.await, () => self)
-  poll = (): _Latch.LatchPosition => this.isOpen ? 'open' : 'closed'
+  isOpen() {
+   return this._isOpen
+  }
 }
 
 /** @internal */
