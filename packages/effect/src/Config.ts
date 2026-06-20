@@ -557,10 +557,17 @@ const recur: (
       }
       case "Arrays": {
         const stat = yield* provider.load(path)
-        if (stat && stat._tag === "Value") return stat.value
+        if (stat && stat._tag === "Value") return stat.value === "" ? [] : stat.value.split(",")
+        if (stat && stat._tag === "Array" && stat.value !== undefined) {
+          return stat.value === "" ? [] : stat.value.split(",")
+        }
         const out: Array<Schema.StringTree> = []
-        for (let i = 0; i < ast.elements.length; i++) {
-          out.push(yield* recur(ast.elements[i], provider, [...path, i]))
+        const length = stat && stat._tag === "Array" ? stat.length : ast.elements.length
+        for (let i = 0; i < length; i++) {
+          const element = ast.elements[i] ?? ast.rest[0]
+          if (element !== undefined) {
+            out.push(yield* recur(element, provider, [...path, i]))
+          }
         }
         return out
       }
