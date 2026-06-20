@@ -12,19 +12,16 @@
  */
 import * as Config from "../../Config.ts"
 import * as Effect from "../../Effect.ts"
-import type * as FileSystem from "../../FileSystem.ts"
 import { dual, identity } from "../../Function.ts"
 import * as Option from "../../Option.ts"
-import type * as Path from "../../Path.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import type * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
-import type * as Terminal from "../../Terminal.ts"
 import type { Covariant } from "../../Types.ts"
-import type { ChildProcessSpawner } from "../process/ChildProcessSpawner.ts"
 import * as CliError from "./CliError.ts"
+import type { Environment } from "./Command.ts"
 import * as Primitive from "./Primitive.ts"
 import * as Prompt from "./Prompt.ts"
 
@@ -55,15 +52,6 @@ export interface Param<Kind extends ParamKind, out A> extends Param.Variance<A> 
  * @since 4.0.0
  */
 export type ParamKind = "argument" | "flag"
-
-/**
- * Services that parameter parsing can require, such as filesystem, path,
- * terminal, and child-process support.
- *
- * @category models
- * @since 4.0.0
- */
-export type Environment = FileSystem.FileSystem | Path.Path | Terminal.Terminal | ChildProcessSpawner
 
 /**
  * Defines the kind discriminator for positional argument parameters.
@@ -859,7 +847,7 @@ export const fileParse = <Kind extends ParamKind>(
 export const fileSchema = <Kind extends ParamKind, A>(
   kind: Kind,
   name: string,
-  schema: Schema.Decoder<A>,
+  schema: Schema.Decoder<A, Environment>,
   options?: Primitive.FileSchemaOptions | undefined
 ): Param<Kind, A> =>
   makeSingle({
@@ -1799,8 +1787,15 @@ export const withMetavar: {
  * @since 4.0.0
  */
 export const withSchema: {
-  <A, B>(schema: Schema.Codec<B, A>): <Kind extends ParamKind>(self: Param<Kind, A>) => Param<Kind, B>
-  <Kind extends ParamKind, A, B>(self: Param<Kind, A>, schema: Schema.Codec<B, A>): Param<Kind, B>
+  <A, B>(
+    schema: Schema.Codec<B, A, Environment, Environment>
+  ): <Kind extends ParamKind>(
+    self: Param<Kind, A>
+  ) => Param<Kind, B>
+  <Kind extends ParamKind, A, B>(
+    self: Param<Kind, A>,
+    schema: Schema.Codec<B, A, Environment, Environment>
+  ): Param<Kind, B>
 } = dual(2, <Kind extends ParamKind, A, B>(
   self: Param<Kind, A>,
   schema: Schema.Codec<B, A>
