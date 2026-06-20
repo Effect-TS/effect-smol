@@ -760,7 +760,7 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * @category schemas
  * @since 4.0.0
  */
-export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V, options?: {
+export const Record = <K extends Schema.Record.Key, V extends Schema.Constraint>(key: K, value: V, options?: {
   readonly separator?: string | undefined
   readonly keyValueSeparator?: string | undefined
 }) => {
@@ -780,7 +780,7 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  * @category schemas
  * @since 4.0.0
  */
-const ArrayConfig = <V extends Schema.Top>(value: V, options?: {
+const ArrayConfig = <V extends Schema.Constraint>(value: V, options?: {
   readonly separator?: string | undefined
 }) => {
   const array = Schema.Array(value)

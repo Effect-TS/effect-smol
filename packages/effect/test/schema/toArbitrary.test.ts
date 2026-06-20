@@ -129,7 +129,7 @@ describe("Arbitrary generation", () => {
   })
 
   it("should pass the constraint to the override annotation", () => {
-    let constraint: Schema.Annotations.ToArbitrary.Constraint | undefined
+    let constraint: Schema.Annotations.ToArbitrary.GenerationConstraint | undefined
     const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 100 })).annotate({
       toArbitrary: () => (fc, ctx) => {
         constraint = ctx.constraint
@@ -187,7 +187,7 @@ describe("Arbitrary generation", () => {
 
   describe("report and candidates", () => {
     it("should use filter candidates with the merged constraint context", () => {
-      let constraint: Schema.Annotations.ToArbitrary.Constraint | undefined
+      let constraint: Schema.Annotations.ToArbitrary.GenerationConstraint | undefined
       const schema = Schema.String.check(
         Schema.isMinLength(9),
         Schema.makeFilter((s: string) => s === "candidate", {

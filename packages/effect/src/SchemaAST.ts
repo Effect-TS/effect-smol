@@ -2345,7 +2345,7 @@ export function struct<Fields extends Schema.Struct.Fields>(
 }
 
 /** @internal */
-export function getAST<S extends Schema.Top>(self: S): S["ast"] {
+export function getAST<S extends { readonly ast: AST }>(self: S): S["ast"] {
   return self.ast
 }
 
@@ -2358,7 +2358,7 @@ export function tuple<Elements extends Schema.Tuple.Elements>(
 }
 
 /** @internal */
-export function union<Members extends ReadonlyArray<Schema.Top>>(
+export function union<Members extends ReadonlyArray<{ readonly ast: AST }>>(
   members: Members,
   mode: "anyOf" | "oneOf",
   checks: Checks | undefined

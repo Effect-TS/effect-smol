@@ -233,7 +233,7 @@ export const Accepted: Accepted = Empty(202)
  * @category schemas
  * @since 4.0.0
  */
-export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
+export interface asNoContent<S extends Schema.Constraint> extends Schema.decodeTo<Schema.toType<S>, Schema.Void> {}
 
 /**
  * Marks a schema as a no-content response while preserving a decoded client value.
@@ -249,7 +249,7 @@ export interface asNoContent<S extends Schema.Top> extends Schema.decodeTo<Schem
  * @category encoding
  * @since 4.0.0
  */
-export function asNoContent<S extends Schema.Top>(options: {
+export function asNoContent<S extends Schema.Constraint>(options: {
   readonly decode: LazyArg<S["Type"]>
 }) {
   return (self: S): asNoContent<S> => {

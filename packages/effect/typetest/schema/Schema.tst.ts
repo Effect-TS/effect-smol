@@ -952,7 +952,7 @@ describe("Schema", () => {
     it("should allow partial application", () => {
       const f = Schema.decodeTo(Schema.String)
       expect(f).type.toBe<
-        <From extends Schema.Top>(from: From) => Schema.compose<Schema.String, From>
+        <From extends Schema.Constraint>(from: From) => Schema.compose<Schema.String, From>
       >()
 
       expect(f(Schema.Number)).type.toBe<Schema.compose<Schema.String, Schema.Number>>()
@@ -1825,6 +1825,34 @@ describe("Schema", () => {
 
       expect(A.decodeUnknownSync("1")).type.toBe<number>()
       expect(A.encodeSync(1)).type.toBe<string>()
+    })
+  })
+
+  describe("OptionFrom", () => {
+    it("preserves concrete wrapper types", () => {
+      const nullOr = Schema.OptionFromNullOr(Schema.FiniteFromString)
+      expect(nullOr).type.toBe<Schema.OptionFromNullOr<typeof Schema.FiniteFromString>>()
+      expect(nullOr.annotate({})).type.toBe<Schema.OptionFromNullOr<typeof Schema.FiniteFromString>>()
+
+      const undefinedOr = Schema.OptionFromUndefinedOr(Schema.FiniteFromString)
+      expect(undefinedOr).type.toBe<Schema.OptionFromUndefinedOr<typeof Schema.FiniteFromString>>()
+      expect(undefinedOr.annotate({})).type.toBe<Schema.OptionFromUndefinedOr<typeof Schema.FiniteFromString>>()
+
+      const nullishOr = Schema.OptionFromNullishOr(Schema.FiniteFromString)
+      expect(nullishOr).type.toBe<Schema.OptionFromNullishOr<typeof Schema.FiniteFromString>>()
+      expect(nullishOr.annotate({})).type.toBe<Schema.OptionFromNullishOr<typeof Schema.FiniteFromString>>()
+
+      const optionalKey = Schema.OptionFromOptionalKey(Schema.FiniteFromString)
+      expect(optionalKey).type.toBe<Schema.OptionFromOptionalKey<typeof Schema.FiniteFromString>>()
+      expect(optionalKey.annotate({})).type.toBe<Schema.OptionFromOptionalKey<typeof Schema.FiniteFromString>>()
+
+      const optional = Schema.OptionFromOptional(Schema.FiniteFromString)
+      expect(optional).type.toBe<Schema.OptionFromOptional<typeof Schema.FiniteFromString>>()
+      expect(optional.annotate({})).type.toBe<Schema.OptionFromOptional<typeof Schema.FiniteFromString>>()
+
+      const optionalNullOr = Schema.OptionFromOptionalNullOr(Schema.FiniteFromString)
+      expect(optionalNullOr).type.toBe<Schema.OptionFromOptionalNullOr<typeof Schema.FiniteFromString>>()
+      expect(optionalNullOr.annotate({})).type.toBe<Schema.OptionFromOptionalNullOr<typeof Schema.FiniteFromString>>()
     })
   })
 

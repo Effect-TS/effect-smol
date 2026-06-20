@@ -67,7 +67,7 @@ const recurDefaults = memoize((ast: SchemaAST.AST): SchemaAST.AST => {
  * @category constructors
  * @since 4.0.0
  */
-export function makeEffect<S extends Schema.Top>(schema: S) {
+export function makeEffect<S extends Schema.Constraint>(schema: S) {
   const ast = recurDefaults(SchemaAST.toType(schema.ast))
   const parser = run<S["Type"], never>(ast)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Effect.Effect<S["Type"], SchemaIssue.Issue> => {
@@ -98,7 +98,7 @@ export function makeEffect<S extends Schema.Top>(schema: S) {
  * @category constructors
  * @since 4.0.0
  */
-export function makeOption<S extends Schema.Top>(schema: S) {
+export function makeOption<S extends Schema.Constraint>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): Option.Option<S["Type"]> => {
     const exit = Effect.runSyncExit(parser(input, options))
@@ -132,7 +132,7 @@ export function makeOption<S extends Schema.Top>(schema: S) {
  * @category constructors
  * @since 4.0.0
  */
-export function make<S extends Schema.Top>(schema: S) {
+export function make<S extends Schema.Constraint>(schema: S) {
   const parser = makeEffect(schema)
   return (input: S["~type.make.in"], options?: Schema.MakeOptions): S["Type"] => {
     const exit = Effect.runSyncExit(parser(input, options))
@@ -222,7 +222,7 @@ export function _issue<T>(ast: SchemaAST.AST) {
  * @category Asserting
  * @since 4.0.0
  */
-export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts input is I & S["Type"] {
+export function asserts<S extends Schema.Constraint, I>(schema: S, input: I): asserts input is I & S["Type"] {
   const parser = asExit(run<S["Type"], never>(SchemaAST.toType(schema.ast)))
   const exit = parser(input, SchemaAST.defaultParseOptions)
   if (Exit.isFailure(exit)) {
@@ -255,7 +255,7 @@ export function asserts<S extends Schema.Top, I>(schema: S, input: I): asserts i
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownEffect<S extends Schema.Top>(
+export function decodeUnknownEffect<S extends Schema.Constraint>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (
@@ -290,7 +290,7 @@ export function decodeUnknownEffect<S extends Schema.Top>(
  * @category decoding
  * @since 4.0.0
  */
-export const decodeEffect: <S extends Schema.Top>(
+export const decodeEffect: <S extends Schema.Constraint>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (
@@ -594,7 +594,7 @@ export const decodeSync: <S extends Schema.Decoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownEffect<S extends Schema.Top>(
+export function encodeUnknownEffect<S extends Schema.Constraint>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (
@@ -628,7 +628,7 @@ export function encodeUnknownEffect<S extends Schema.Top>(
  * @category encoding
  * @since 4.0.0
  */
-export const encodeEffect: <S extends Schema.Top>(
+export const encodeEffect: <S extends Schema.Constraint>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (

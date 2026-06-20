@@ -1056,7 +1056,7 @@ export const registerPrompt = <
   }
 ): Effect.Effect<void, never, Exclude<Schema.Struct.DecodingServices<Params> | R, McpServerClient> | McpServer> => {
   const args = Arr.empty<typeof PromptArgument.Type>()
-  const props: Record<string, Schema.Top> = options.parameters ?? {}
+  const props: Record<string, Schema.Constraint> = options.parameters ?? {}
   for (const [name, prop] of Object.entries(props)) {
     args.push({
       name,
