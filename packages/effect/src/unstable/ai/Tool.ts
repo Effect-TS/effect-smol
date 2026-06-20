@@ -1664,7 +1664,7 @@ export const getJsonSchema = <Tool extends Any>(tool: Tool, options?: {
  * @category converting
  * @since 4.0.0
  */
-export const getJsonSchemaFromSchema = <S extends Schema.Top>(schema: S, options?: {
+export const getJsonSchemaFromSchema = <S extends Schema.Constraint>(schema: S, options?: {
   readonly transformer?: CodecTransformer
 }): JsonSchema.JsonSchema => {
   if (Predicate.isNotUndefined(options?.transformer)) {

@@ -1180,14 +1180,14 @@ export const prompt = <
  * @category elicitation
  * @since 4.0.0
  */
-export const elicit: <S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
+export const elicit: <S extends Schema.ConstraintEncoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
   readonly schema: S
 }) => Effect.Effect<
   S["Type"],
   ElicitationDeclined,
   McpServerClient | S["DecodingServices"]
-> = Effect.fnUntraced(function*<S extends Schema.Encoder<Record<string, unknown>, unknown>>(options: {
+> = Effect.fnUntraced(function*<S extends Schema.ConstraintEncoder<Record<string, unknown>, unknown>>(options: {
   readonly message: string
   readonly schema: S
 }) {

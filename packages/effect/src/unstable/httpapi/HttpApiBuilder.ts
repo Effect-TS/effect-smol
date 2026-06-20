@@ -929,21 +929,25 @@ function makeSchemaError(issue: SchemaIssue.Issue): Schema.SchemaError {
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
-function makeSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
+function makeSuccessSchema(
+  endpoint: HttpApiEndpoint.AnyWithProps
+): Schema.ConstraintEncoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getSuccessSchemas(endpoint).map(toResponseSuccessSchema)
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
-function makeErrorSchema(endpoint: HttpApiEndpoint.AnyWithProps): Schema.Encoder<HttpServerResponse, unknown> {
+function makeErrorSchema(
+  endpoint: HttpApiEndpoint.AnyWithProps
+): Schema.ConstraintEncoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
   if (schemas.length === 0) return Schema.Never
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
-  const cache = new WeakMap<SchemaAST.AST, Schema.Top>()
+  const cache = new WeakMap<SchemaAST.AST, Schema.Constraint>()
 
-  return (schema: Schema.Top): Schema.Encoder<HttpServerResponse, unknown> => {
+  return (schema: Schema.Constraint): Schema.ConstraintEncoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)
     if (cached !== undefined) {
       return cached as any
@@ -958,7 +962,7 @@ function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
 
 function getResponseTransformation(
   getStatus: (ast: SchemaAST.AST) => number,
-  schema: Schema.Top
+  schema: Schema.Constraint
 ): SchemaTransformation.Transformation<unknown, Response.HttpServerResponse> {
   const ast = schema.ast
   const encode = getResponseEncode(

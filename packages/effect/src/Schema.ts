@@ -948,33 +948,6 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
 }
 
 /**
- * A {@link Codec} view for APIs that only *encode* values.
- *
- * **Details**
- *
- * Use `Encoder<E, RE>` to accept "any schema that can encode to `E`" without
- * constraining or depending on the decoded `Type` (`Type` is `unknown`) or
- * decoding services.
- *
- * **Example** (Accepting schemas that only need to encode)
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * declare function serialize<E>(encoder: Schema.Encoder<E>): (value: unknown) => E
- *
- * serialize(Schema.String)          // ok — encodes to string
- * serialize(Schema.NumberFromString) // ok — encodes number to string
- * ```
- *
- * @category models
- * @since 4.0.0
- */
-export interface Encoder<out E, out RE = never> extends Codec<unknown, E, unknown, RE> {
-  readonly "Rebuild": Encoder<E, RE>
-}
-
-/**
  * Returns a codec widened to the full {@link Codec} interface, prompting
  * TypeScript to infer all four type parameters (`T`, `E`, `RD`, `RE`).
  *
@@ -2194,7 +2167,7 @@ export const encodeSync: <S extends ConstraintEncoder<unknown>>(
  * @category constructors
  * @since 3.10.0
  */
-export const make: <S extends Top>(ast: S["ast"], options?: object) => S = InternalSchema.make
+export const make: <S extends Constraint>(ast: S["ast"], options?: object) => S = InternalSchema.make
 
 /**
  * Transforms a schema into a class that can be extended with `extends`. The

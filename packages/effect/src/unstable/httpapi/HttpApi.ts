@@ -239,8 +239,8 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
-      readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
-      readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
+      readonly successes: ReadonlyMap<number, readonly [Schema.Constraint, ...Array<Schema.Constraint>]>
+      readonly errors: ReadonlyMap<number, readonly [Schema.Constraint, ...Array<Schema.Constraint>]>
     }) => void
   }
 ) => {
@@ -281,16 +281,16 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Any>(
 // -------------------------------------------------------------------------------------
 
 const extractResponseContent = (
-  schemas: Array<Schema.Top>,
+  schemas: Array<Schema.Constraint>,
   getStatus: (ast: SchemaAST.AST) => number
-): ReadonlyMap<number, [Schema.Top, ...Array<Schema.Top>]> => {
-  const map = new Map<number, [Schema.Top, ...Array<Schema.Top>]>()
+): ReadonlyMap<number, [Schema.Constraint, ...Array<Schema.Constraint>]> => {
+  const map = new Map<number, [Schema.Constraint, ...Array<Schema.Constraint>]>()
 
   schemas.forEach(add)
 
   return map
 
-  function add(schema: Schema.Top) {
+  function add(schema: Schema.Constraint) {
     if (HttpApiSchema.isStreamSchema(schema)) return
     const ast = schema.ast
     const status = getStatus(ast)
@@ -312,5 +312,5 @@ const extractResponseContent = (
  */
 export class AdditionalSchemas extends Context.Service<
   AdditionalSchemas,
-  ReadonlyArray<Schema.Top>
+  ReadonlyArray<Schema.Constraint>
 >()("effect/httpapi/HttpApi/AdditionalSchemas") {}
