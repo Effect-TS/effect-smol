@@ -14,6 +14,8 @@ The arbitrary-generation annotation constraint is now named
 `Annotations.ToArbitrary.GenerationConstraint` to avoid ambiguity with schema
 constraints. New lightweight constraint views support codec, decoder, and
 encoder boundaries without requiring the full schema protocol, and canonical
-codec helpers now return dedicated lazy schema interfaces. Canonical codec,
-channel, SQL, HTTP body, persistence, and RPC worker helpers now use lightweight
-schema constraints where they only read schema views.
+codec helpers now return dedicated lazy schema interfaces. `toCodecStringTree`
+now preserves the canonical StringTree shape for arrays; single-value array
+input coercion is available explicitly through `Schema.toCodecArrayFromSingle`.
+Canonical codec, channel, SQL, HTTP body, persistence, and RPC worker helpers
+now use lightweight schema constraints where they only read schema views.

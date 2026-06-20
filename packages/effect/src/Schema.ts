@@ -2073,7 +2073,10 @@ export const encodeResult: <S extends ConstraintEncoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export function encodeUnknownPromise<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function encodeUnknownPromise<S extends ConstraintEncoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) {
   const parser = encodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Encoded"]> => {
     return runSchemaErrorPromise(parser(input, options))
@@ -13479,7 +13482,7 @@ export type StringTree = Tree<string | undefined>
  */
 export interface toCodecStringTree<S extends Constraint, Encoded = StringTree> extends
   BottomLazy<
-    SchemaAST.AST,
+    S["ast"],
     toCodecStringTree<S, Encoded>,
     ReadonlyArray<Constraint>,
     S["~type.mutability"],
@@ -13530,12 +13533,59 @@ export function toCodecStringTree<S extends Constraint>(
   options?: { readonly keepDeclarations?: boolean | undefined }
 ): toCodecStringTree<S, unknown> {
   return make(
-    toCodecEnsureArray(
-      options?.keepDeclarations === true
-        ? serializerStringTreeKeepDeclarations(schema.ast)
-        : serializerStringTree(schema.ast)
-    )
+    options?.keepDeclarations === true
+      ? serializerStringTreeKeepDeclarations(schema.ast)
+      : serializerStringTree(schema.ast)
   )
+}
+
+/**
+ * Type-level representation returned by {@link toCodecArrayFromSingle}.
+ *
+ * @category Canonical Codecs
+ * @since 4.0.0
+ */
+export interface toCodecArrayFromSingle<S extends Constraint> extends
+  BottomLazy<
+    S["ast"],
+    toCodecArrayFromSingle<S>,
+    S["~type.parameters"],
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  readonly "Type": S["Type"]
+  readonly "Encoded": S["Encoded"]
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
+}
+
+/**
+ * Allows array schemas to decode from either an array input or a single value
+ * input.
+ *
+ * **When to use**
+ *
+ * Use when you need to accept transport formats that may represent a
+ * single-item array as a bare value, such as query-string or form-data adapters.
+ *
+ * **Gotchas**
+ *
+ * This combinator is intentionally not part of `toCodecStringTree`; it adds a
+ * decoding convenience rather than a canonical StringTree representation. It
+ * does not parse comma-separated strings.
+ *
+ * @category Canonical Codecs
+ * @since 4.0.0
+ */
+export function toCodecArrayFromSingle<S extends Constraint>(schema: S): toCodecArrayFromSingle<S> {
+  return make(toCodecArrayFromSingleTop(schema.ast))
 }
 
 type XmlEncoderOptions = {
@@ -13751,7 +13801,16 @@ const booleanToString = new SchemaAST.Link(
   )
 )
 
+const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
+
+function isSerializerArrayFromSingle(ast: SchemaAST.AST): boolean {
+  return SchemaAST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY] === true
+}
+
 const serializerStringTree = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
+  if (isSerializerArrayFromSingle(ast)) {
+    return ast
+  }
   const out = serializerTree(ast, serializerStringTree, (ast) => SchemaAST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
@@ -13768,6 +13827,9 @@ const unknownToUndefined = new SchemaAST.Link(
 )
 
 const serializerStringTreeKeepDeclarations = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
+  if (isSerializerArrayFromSingle(ast)) {
+    return ast
+  }
   const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
@@ -13775,35 +13837,48 @@ const serializerStringTreeKeepDeclarations = SchemaAST.applyToSelfOrLastLinkEnco
   return out
 })
 
-const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
+function toArrayFromSingleInputElement(ast: SchemaAST.AST): SchemaAST.AST {
+  return SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(SchemaAST.unknown) : SchemaAST.unknown
+}
 
-const toCodecEnsureArray = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
-  if (SchemaAST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
+const toCodecArrayFromSingleTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
+  if (isSerializerArrayFromSingle(ast)) {
     return ast
   }
-  const out = onSerializerEnsureArray(ast)
+  const out = onSerializerArrayFromSingle(ast)
   if (SchemaAST.isArrays(out)) {
-    const ensure = new SchemaAST.Union(
+    const arrayInput = new SchemaAST.Arrays(
+      out.isMutable,
+      out.elements.map(toArrayFromSingleInputElement),
+      out.rest.map(toArrayFromSingleInputElement)
+    )
+    const ensure = SchemaAST.replaceEncoding(
+      out,
       [
-        out,
-        SchemaAST.decodeTo(
-          SchemaAST.string,
-          out,
+        new SchemaAST.Link(
+          new SchemaAST.Union(
+            [
+              arrayInput,
+              SchemaAST.string
+            ],
+            "anyOf",
+            { [SERIALIZER_ENSURE_ARRAY]: true }
+          ),
           new SchemaTransformation.Transformation(
-            SchemaGetter.split(),
+            SchemaGetter.transform((input: ReadonlyArray<unknown> | string) =>
+              typeof input === "string" ? [input] : input
+            ),
             SchemaGetter.passthrough()
           )
         )
-      ],
-      "anyOf",
-      { [SERIALIZER_ENSURE_ARRAY]: true }
+      ]
     )
     return SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(ensure) : ensure
   }
   return out
 })
 
-function onSerializerEnsureArray(ast: SchemaAST.AST): SchemaAST.AST {
+function onSerializerArrayFromSingle(ast: SchemaAST.AST): SchemaAST.AST {
   switch (ast._tag) {
     default:
       return ast
@@ -13812,7 +13887,7 @@ function onSerializerEnsureArray(ast: SchemaAST.AST): SchemaAST.AST {
     case "Objects":
     case "Union":
     case "Suspend":
-      return ast.recur(toCodecEnsureArray)
+      return ast.recur(toCodecArrayFromSingleTop)
   }
 }
 

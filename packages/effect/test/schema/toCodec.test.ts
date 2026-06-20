@@ -2292,6 +2292,20 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
         )
       })
 
+      it("Array(Finite) preserves the top-level AST", async () => {
+        const serializer = Schema.toCodecStringTree(Schema.Array(Schema.Finite))
+        strictEqual(serializer.ast._tag, "Arrays")
+
+        const asserts = new TestSchema.Asserts(serializer)
+
+        const encoding = asserts.encoding()
+        await encoding.succeed([1, 2], ["1", "2"])
+
+        const decoding = asserts.decoding()
+        await decoding.fail("1,2", `Expected array, got "1,2"`)
+        await decoding.succeed(["1", "2"], [1, 2])
+      })
+
       describe("Union", () => {
         it("NullOr(Date)", async () => {
           const schema = Schema.NullOr(Schema.String)
@@ -2631,7 +2645,75 @@ Expected "Infinity" | "-Infinity" | "NaN", got "a"`
       const decoding = asserts.decoding()
       await decoding.succeed({})
       await decoding.succeed({ a: ["a"] })
+      await decoding.fail({ a: "a" }, `Expected array, got "a"\n  at ["a"]`)
+    })
+  })
+
+  describe("toCodecArrayFromSingle", () => {
+    it("accepts string and array inputs for a top-level array", async () => {
+      const serializer = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Array(Schema.Finite)))
+      strictEqual(serializer.ast._tag, "Arrays")
+
+      const asserts = new TestSchema.Asserts(serializer)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed([1, 2], ["1", "2"])
+      await encoding.fail(1 as any, "Expected array, got 1")
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", [1])
+      await decoding.fail("1,2", `Expected a string representing a finite number, got "1,2"\n  at [0]`)
+      await decoding.succeed(["1", "2"], [1, 2])
+    })
+
+    it("accepts string and array inputs for required array fields", async () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Struct({
+        a: Schema.Array(Schema.Finite)
+      })))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({ a: "1" }, { a: [1] })
+      await decoding.succeed({ a: ["1", "2"] }, { a: [1, 2] })
+    })
+
+    it("accepts string and array inputs for nested optional array fields", async () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Struct({
+        a: Schema.optionalKey(Schema.NonEmptyArray(Schema.String))
+      })))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed({})
+      await decoding.succeed({ a: ["a"] })
       await decoding.succeed({ a: "a" }, { a: ["a"] })
+    })
+
+    it("accepts string and array inputs for tuples with optional elements", async () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Tuple([
+        Schema.optionalKey(Schema.String)
+      ])))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed([])
+      await decoding.succeed("a", ["a"])
+      await decoding.succeed(["a"])
+    })
+
+    it("applies recursively to nested arrays", async () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Array(Schema.Array(Schema.Finite))))
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.succeed("1", [[1]])
+      await decoding.succeed(["1", "2"], [[1], [2]])
+      await decoding.succeed([["1", "2"]], [[1, 2]])
+    })
+
+    it("is idempotent", () => {
+      const schema = Schema.toCodecArrayFromSingle(Schema.toCodecStringTree(Schema.Array(Schema.Finite)))
+      strictEqual(schema.ast, Schema.toCodecArrayFromSingle(schema).ast)
     })
   })
 

@@ -498,7 +498,12 @@ describe("Schema", () => {
   describe("toCodecStringTree", () => {
     it("ast type", () => {
       const schema = Schema.toCodecStringTree(Schema.FiniteFromString)
-      expect(schema.ast).type.toBe<SchemaAST.AST>()
+      expect(schema.ast).type.toBe<SchemaAST.Number>()
+    })
+
+    it("Array ast type", () => {
+      const schema = Schema.toCodecStringTree(Schema.Array(Schema.FiniteFromString))
+      expect(schema.ast).type.toBe<SchemaAST.Arrays>()
     })
 
     it("revealCodec + annotate", () => {
@@ -512,6 +517,18 @@ describe("Schema", () => {
       const schema = Schema.toCodecStringTree(Schema.FiniteFromString, { keepDeclarations: true })
       expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, unknown, never, never>>()
       expect(schema).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString, unknown>>()
+    })
+  })
+
+  describe("toCodecArrayFromSingle", () => {
+    it("revealCodec + annotate", () => {
+      const stringTree = Schema.toCodecStringTree(Schema.Array(Schema.FiniteFromString))
+      const schema = Schema.toCodecArrayFromSingle(stringTree)
+      expect(Schema.revealCodec(schema)).type.toBe<
+        Schema.Codec<ReadonlyArray<number>, Schema.StringTree, never, never>
+      >()
+      expect(schema).type.toBe<Schema.toCodecArrayFromSingle<typeof stringTree>>()
+      expect(schema.annotate({})).type.toBe<Schema.toCodecArrayFromSingle<typeof stringTree>>()
     })
   })
 
