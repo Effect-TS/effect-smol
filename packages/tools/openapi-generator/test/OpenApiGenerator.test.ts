@@ -416,11 +416,11 @@ export const make = (
       : (request) => Effect.flatMap(httpClient.execute(request), withOptionalResponse)
   }
   const decodeSuccess =
-    <Schema extends Schema.Top>(schema: Schema) =>
+    <Schema extends Schema.Constraint>(schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
       HttpClientResponse.schemaBodyJson(schema)(response)
   const decodeError =
-    <const Tag extends string, Schema extends Schema.Top>(tag: Tag, schema: Schema) =>
+    <const Tag extends string, Schema extends Schema.Constraint>(tag: Tag, schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
       Effect.flatMap(
         HttpClientResponse.schemaBodyJson(schema)(response),

@@ -970,7 +970,7 @@ export const make = <
  * }
  *
  * // The type definition for the transformed success schema.
- * export interface Paginated<S extends Schema.Top> extends
+ * export interface Paginated<S extends Schema.Constraint> extends
  *   Schema.Struct<{
  *     readonly offset: Schema.Number
  *     readonly total: Schema.Number
@@ -1002,9 +1002,9 @@ export const custom = <Def extends Custom>(
 ) =>
 <
   const Tag extends string,
-  Payload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never,
+  Payload extends Schema.Constraint | Schema.Struct.Fields = Schema.Void,
+  Success extends Schema.Constraint = Schema.Void,
+  Error extends Schema.Constraint = Schema.Never,
   const Stream extends boolean = false,
   Out extends Custom.OutDefault = Custom.Kind<Def, Success, Error>
 >(tag: Tag, options?: {
@@ -1085,7 +1085,7 @@ export declare namespace Custom {
    * @category constructors
    * @since 4.0.0
    */
-  export type OutDefault = Out<Schema.Top, Schema.Top>
+  export type OutDefault = Out<Schema.Constraint, Schema.Constraint>
 
   /**
    * Applies a custom constructor definition to concrete success and error
@@ -1096,8 +1096,8 @@ export declare namespace Custom {
    */
   export type Kind<
     Def extends Custom,
-    Success extends Schema.Top,
-    Error extends Schema.Top
+    Success extends Schema.Constraint,
+    Error extends Schema.Constraint
   > = (Def & {
     readonly success: Success
     readonly error: Error
