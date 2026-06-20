@@ -322,7 +322,7 @@ export const decodeEffect: <S extends Schema.Constraint>(
  * @category decoding
  * @since 3.10.0
  */
-export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
+export function decodeUnknownPromise<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<S["Type"]> {
@@ -354,7 +354,7 @@ export function decodeUnknownPromise<S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export function decodePromise<S extends Schema.Decoder<unknown>>(
+export function decodePromise<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Promise<S["Type"]> {
@@ -390,7 +390,7 @@ export function decodePromise<S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
+export function decodeUnknownExit<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Exit.Exit<S["Type"], SchemaIssue.Issue> {
@@ -423,14 +423,14 @@ export function decodeUnknownExit<S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export const decodeExit: <S extends Schema.Decoder<unknown>>(
+export const decodeExit: <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Exit.Exit<S["Type"], SchemaIssue.Issue> =
   decodeUnknownExit
 
 /** @internal */
-export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
+export function decodeUnknownOption<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Option.Option<S["Type"]> {
@@ -438,7 +438,7 @@ export function decodeUnknownOption<S extends Schema.Decoder<unknown>>(
 }
 
 /** @internal */
-export const decodeOption: <S extends Schema.Decoder<unknown>>(
+export const decodeOption: <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option.Option<S["Type"]> = decodeUnknownOption
@@ -469,7 +469,7 @@ export const decodeOption: <S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
+export function decodeUnknownResult<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Result.Result<S["Type"], SchemaIssue.Issue> {
@@ -502,7 +502,7 @@ export function decodeUnknownResult<S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export const decodeResult: <S extends Schema.Decoder<unknown>>(
+export const decodeResult: <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Result.Result<S["Type"], SchemaIssue.Issue> =
@@ -534,7 +534,7 @@ export const decodeResult: <S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
+export function decodeUnknownSync<S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => S["Type"] {
@@ -568,7 +568,7 @@ export function decodeUnknownSync<S extends Schema.Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export const decodeSync: <S extends Schema.Decoder<unknown>>(
+export const decodeSync: <S extends Schema.ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => S["Type"] = decodeUnknownSync

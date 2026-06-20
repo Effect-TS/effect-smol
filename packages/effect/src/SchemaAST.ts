@@ -3141,6 +3141,25 @@ export function applyToLastLink(f: (ast: AST) => AST) {
 }
 
 /** @internal */
+export function applyToLastLinkEncoding(f: (ast: AST) => AST): <A extends AST>(ast: A) => A {
+  function inner(ast: AST): AST {
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, inner)) : f(ast)
+  }
+  function outer<A extends AST>(ast: A): A {
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, inner)) : ast
+  }
+  return memoize(outer)
+}
+
+/** @internal */
+export function applyToSelfOrLastLinkEncoding(f: (ast: AST) => AST) {
+  function out(ast: AST): AST {
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
+  }
+  return memoize(out)
+}
+
+/** @internal */
 export function middlewareDecoding(
   ast: AST,
   middleware: SchemaTransformation.Middleware<any, any, any, any, any, any>
@@ -3560,15 +3579,7 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-/** @internal */
-export function toCodec(f: (ast: AST) => AST) {
-  function out(ast: AST): AST {
-    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
-  }
-  return memoize(out)
-}
-
-const parameterFromPropertyKey = toCodec((ast) => {
+const parameterFromPropertyKey = applyToLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3580,7 +3591,7 @@ const parameterFromPropertyKey = toCodec((ast) => {
 })
 
 /** @internal */
-export const parameterFromString = toCodec((ast) => {
+export const parameterFromString = applyToLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3592,7 +3603,7 @@ export const parameterFromString = toCodec((ast) => {
   }
 })
 
-const partFromString = toCodec((ast) => {
+const partFromString = applyToLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast

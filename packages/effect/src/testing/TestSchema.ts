@@ -12,6 +12,7 @@
 import * as assert from "node:assert"
 import type * as Context from "../Context.ts"
 import * as Effect from "../Effect.ts"
+import { pipe } from "../Function.ts"
 import * as Record from "../Record.ts"
 import * as Result from "../Result.ts"
 import * as Schema from "../Schema.ts"
@@ -313,7 +314,7 @@ export class Asserts<S extends Schema.Top> {
  * @category testing
  * @since 4.0.0
  */
-export class Decoding<S extends Schema.Top> {
+export class Decoding<S extends Schema.Constraint> {
   readonly schema: S
   readonly decodeUnknownEffect: (
     input: unknown,
@@ -350,16 +351,16 @@ export class Decoding<S extends Schema.Top> {
    *
    * @see {@link fail} for asserting decoding failures
    */
-  async succeed<S extends Schema.Decoder<unknown, never>>(
+  async succeed<S extends Schema.ConstraintDecoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown
   ): Promise<void>
-  async succeed<S extends Schema.Decoder<unknown, never>>(
+  async succeed<S extends Schema.ConstraintDecoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     expected: S["Type"]
   ): Promise<void>
-  async succeed<S extends Schema.Decoder<unknown, never>>(
+  async succeed<S extends Schema.ConstraintDecoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     expected?: S["Type"]
@@ -393,7 +394,7 @@ export class Decoding<S extends Schema.Top> {
    *
    * @see {@link succeed} for asserting successful decoding
    */
-  async fail<S extends Schema.Decoder<unknown, never>>(
+  async fail<S extends Schema.ConstraintDecoder<unknown, never>>(
     this: Decoding<S>,
     input: unknown,
     message: string
@@ -420,7 +421,7 @@ export class Decoding<S extends Schema.Top> {
     implementation: Service
   ): Decoding<Schema.middlewareDecoding<S, Exclude<S["DecodingServices"], Id>>> {
     return new Decoding(
-      this.schema.pipe(Schema.middlewareDecoding(Effect.provideService(service, implementation))),
+      pipe(this.schema, Schema.middlewareDecoding(Effect.provideService(service, implementation))),
       this.options
     )
   }

@@ -12,5 +12,8 @@ compatibility checking is now available as an opt-in type helper, and common
 `Struct` projections use cheaper specialized paths for typical field shapes.
 The arbitrary-generation annotation constraint is now named
 `Annotations.ToArbitrary.GenerationConstraint` to avoid ambiguity with schema
-constraints. `ConstraintRebuildable` covers APIs that need `Rebuild` without
-requiring the full schema protocol.
+constraints. New lightweight constraint views support codec, decoder, and
+encoder boundaries without requiring the full schema protocol, and canonical
+codec helpers now return dedicated lazy schema interfaces. Canonical codec,
+channel, SQL, HTTP body, persistence, and RPC worker helpers now use lightweight
+schema constraints where they only read schema views.

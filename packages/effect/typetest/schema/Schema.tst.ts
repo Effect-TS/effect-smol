@@ -481,6 +481,40 @@ describe("Schema", () => {
     })
   })
 
+  describe("toCodecJson", () => {
+    it("ast type", () => {
+      const schema = Schema.toCodecJson(Schema.FiniteFromString)
+      expect(schema.ast).type.toBe<SchemaAST.Number>()
+    })
+
+    it("revealCodec + annotate", () => {
+      const schema = Schema.toCodecJson(Schema.FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, Schema.Json, never, never>>()
+      expect(schema).type.toBe<Schema.toCodecJson<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.toCodecJson<Schema.FiniteFromString>>()
+    })
+  })
+
+  describe("toCodecStringTree", () => {
+    it("ast type", () => {
+      const schema = Schema.toCodecStringTree(Schema.FiniteFromString)
+      expect(schema.ast).type.toBe<SchemaAST.AST>()
+    })
+
+    it("revealCodec + annotate", () => {
+      const schema = Schema.toCodecStringTree(Schema.FiniteFromString)
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, Schema.StringTree, never, never>>()
+      expect(schema).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString>>()
+      expect(schema.annotate({})).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString>>()
+    })
+
+    it("keepDeclarations", () => {
+      const schema = Schema.toCodecStringTree(Schema.FiniteFromString, { keepDeclarations: true })
+      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, unknown, never, never>>()
+      expect(schema).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString, unknown>>()
+    })
+  })
+
   describe("annotateEncoded", () => {
     it("non-transforming schema should return Rebuild", () => {
       const schema = Schema.String.pipe(

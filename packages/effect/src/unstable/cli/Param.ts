@@ -847,7 +847,7 @@ export const fileParse = <Kind extends ParamKind>(
 export const fileSchema = <Kind extends ParamKind, A>(
   kind: Kind,
   name: string,
-  schema: Schema.Decoder<A, Environment>,
+  schema: Schema.ConstraintDecoder<A, Environment>,
   options?: Primitive.FileSchemaOptions | undefined
 ): Param<Kind, A> =>
   makeSingle({

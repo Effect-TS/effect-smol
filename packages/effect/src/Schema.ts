@@ -614,8 +614,8 @@ export function annotateKey<S extends Top>(annotations: Annotations.Key<S["Type"
  * In user code prefer the narrower interfaces:
  * - {@link Schema}`<T>` — when you only care about the decoded type
  * - {@link Codec}`<T, E, RD, RE>` — when you need the encoded type and service requirements
- * - {@link Decoder}`<T, RD>` — for decode-only APIs
- * - {@link Encoder}`<E, RE>` — for encode-only APIs
+ * - {@link ConstraintDecoder}`<T, RD>` — for decode-only APIs
+ * - {@link ConstraintEncoder}`<E, RE>` — for encode-only APIs
  *
  * @category models
  * @since 4.0.0
@@ -682,6 +682,67 @@ export interface Constraint {
   readonly "~encoded.optionality": Optionality
   readonly "~encoded.mutability": Mutability
 }
+
+/**
+ * Lightweight structural constraint for APIs that need codec type views but do
+ * not need the full schema protocol.
+ *
+ * **When to use**
+ *
+ * Use when you need to preserve decoded type, encoded type, and service
+ * requirements for a schema value, but the API does not call schema methods
+ * such as `annotate`, `check`, `rebuild`, `make`, or `makeEffect`.
+ *
+ * @see {@link Constraint} for the generic lightweight schema constraint.
+ * @see {@link Codec} for the full schema protocol with codec type views.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ConstraintCodec<out T, out E = T, out RD = never, out RE = never> extends Constraint {
+  readonly "Type": T
+  readonly "Encoded": E
+  readonly "DecodingServices": RD
+  readonly "EncodingServices": RE
+}
+
+/**
+ * Lightweight structural constraint for APIs that need decoder type views but
+ * do not need the full schema protocol.
+ *
+ * **When to use**
+ *
+ * Use when you need to preserve a schema's decoded type and decoding services,
+ * but the API does not constrain the encoded type, encoding services, or call
+ * schema methods such as `annotate`, `check`, `rebuild`, `make`, or
+ * `makeEffect`.
+ *
+ * @see {@link ConstraintCodec} for APIs that need both decoded and encoded codec views.
+ * @see {@link Codec} for the full schema protocol with codec type views.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ConstraintDecoder<out T, out RD = never> extends ConstraintCodec<T, unknown, RD, unknown> {}
+
+/**
+ * Lightweight structural constraint for APIs that need encoder type views but
+ * do not need the full schema protocol.
+ *
+ * **When to use**
+ *
+ * Use when you need to preserve a schema's encoded type and encoding services,
+ * but the API does not constrain the decoded type, decoding services, or call
+ * schema methods such as `annotate`, `check`, `rebuild`, `make`, or
+ * `makeEffect`.
+ *
+ * @see {@link ConstraintCodec} for APIs that need both decoded and encoded codec views.
+ * @see {@link Codec} for the full schema protocol with codec type views.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ConstraintEncoder<out E, out RE = never> extends ConstraintCodec<unknown, E, unknown, RE> {}
 
 /**
  * Lightweight structural constraint for APIs that need schema views and the
@@ -857,8 +918,8 @@ export interface Optic<out T, out Iso> extends Schema<T> {
  * Most concrete schemas produced by this module implement `Codec`.
  *
  * For APIs that only need one direction, prefer the narrower views:
- * - {@link Decoder}`<T, RD>` — decode-only
- * - {@link Encoder}`<E, RE>` — encode-only
+ * - {@link ConstraintDecoder}`<T, RD>` — decode-only
+ * - {@link ConstraintEncoder}`<E, RE>` — encode-only
  * - {@link Schema}`<T>` — type-only (no encoded representation)
  *
  * **Example** (Accepting a codec that decodes to `number` from `string`)
@@ -884,33 +945,6 @@ export interface Codec<out T, out E = T, out RD = never, out RE = never> extends
   readonly "DecodingServices": RD
   readonly "EncodingServices": RE
   readonly "Rebuild": Codec<T, E, RD, RE>
-}
-
-/**
- * A {@link Codec} view for APIs that only *decode* (parse/validate) values.
- *
- * **Details**
- *
- * Use `Decoder<T, RD>` to accept "any schema that can decode to `T`" without
- * constraining or depending on the encoded representation (`Encoded` is
- * `unknown`) or encoding services.
- *
- * **Example** (Accepting schemas that only need to decode)
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * declare function validate<T>(decoder: Schema.Decoder<T>): (input: unknown) => T
- *
- * validate(Schema.String)          // ok
- * validate(Schema.NumberFromString) // ok
- * ```
- *
- * @category models
- * @since 4.0.0
- */
-export interface Decoder<out T, out RD = never> extends Codec<T, unknown, RD, unknown> {
-  readonly "Rebuild": Decoder<T, RD>
 }
 
 /**
@@ -1097,7 +1131,7 @@ function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): St
  * @category Standard Schema
  * @since 4.0.0
  */
-export function toStandardSchemaV1<S extends Decoder<unknown>>(
+export function toStandardSchemaV1<S extends ConstraintDecoder<unknown>>(
   self: S,
   options?: {
     readonly leafHook?: SchemaIssue.LeafHook | undefined
@@ -1416,7 +1450,7 @@ function runSchemaErrorSync<A>(
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function decodeUnknownExit<S extends ConstraintDecoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.decodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
     return InternalSchema.mapSchemaIssueExit(parser(input, options))
@@ -1453,7 +1487,7 @@ export function decodeUnknownExit<S extends Decoder<unknown>>(schema: S, options
  * @category decoding
  * @since 4.0.0
  */
-export const decodeExit: <S extends Decoder<unknown>>(
+export const decodeExit: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Exit_.Exit<S["Type"], SchemaError> = decodeUnknownExit
@@ -1484,7 +1518,7 @@ export const decodeExit: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export const decodeUnknownOption: <S extends Decoder<unknown>>(
+export const decodeUnknownOption: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: unknown, options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = SchemaParser.decodeUnknownOption
@@ -1514,7 +1548,7 @@ export const decodeUnknownOption: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export const decodeOption: <S extends Decoder<unknown>>(
+export const decodeOption: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = decodeUnknownOption
@@ -1548,7 +1582,7 @@ export const decodeOption: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownResult<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function decodeUnknownResult<S extends ConstraintDecoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.decodeUnknownResult(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Result_.Result<S["Type"], SchemaError> => {
     return Result_.mapError(parser(input, options), (issue) => new SchemaError(issue))
@@ -1583,7 +1617,7 @@ export function decodeUnknownResult<S extends Decoder<unknown>>(schema: S, optio
  * @category decoding
  * @since 4.0.0
  */
-export const decodeResult: <S extends Decoder<unknown>>(
+export const decodeResult: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Result_.Result<S["Type"], SchemaError> =
@@ -1616,7 +1650,10 @@ export const decodeResult: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 3.10.0
  */
-export function decodeUnknownPromise<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function decodeUnknownPromise<S extends ConstraintDecoder<unknown>>(
+  schema: S,
+  options?: SchemaAST.ParseOptions
+) {
   const parser = decodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Type"]> => {
     return runSchemaErrorPromise(parser(input, options))
@@ -1650,7 +1687,7 @@ export function decodeUnknownPromise<S extends Decoder<unknown>>(schema: S, opti
  * @category decoding
  * @since 3.10.0
  */
-export const decodePromise: <S extends Decoder<unknown>>(
+export const decodePromise: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Promise<S["Type"]> = decodeUnknownPromise
@@ -1699,7 +1736,7 @@ export const decodePromise: <S extends Decoder<unknown>>(
  * @category decoding
  * @since 4.0.0
  */
-export function decodeUnknownSync<S extends Decoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function decodeUnknownSync<S extends ConstraintDecoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = decodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): S["Type"] => {
     return runSchemaErrorSync(parser(input, options))
@@ -1732,7 +1769,7 @@ export function decodeUnknownSync<S extends Decoder<unknown>>(schema: S, options
  * @category decoding
  * @since 4.0.0
  */
-export const decodeSync: <S extends Decoder<unknown>>(
+export const decodeSync: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => S["Type"] = decodeUnknownSync
@@ -13292,17 +13329,44 @@ export function toJsonSchemaDocument(
 // -----------------------------------------------------------------------------
 
 /**
+ * Type-level representation returned by {@link toCodecJson}.
+ *
+ * @category Canonical Codecs
+ * @since 4.0.0
+ */
+export interface toCodecJson<S extends Constraint> extends
+  BottomLazy<
+    S["ast"],
+    toCodecJson<S>,
+    S["~type.parameters"],
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  readonly "Type": S["Type"]
+  readonly "Encoded": Json
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
+}
+
+/**
  * Derives a canonical JSON codec from a schema. The encoded form is `Json`, and
  * decoding produces the schema's `Type`.
  *
  * @category Canonical Codecs
  * @since 4.0.0
  */
-export function toCodecJson<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, Json, RD, RE> {
+export function toCodecJson<S extends Constraint>(schema: S): toCodecJson<S> {
   return make(toCodecJsonTop(schema.ast))
 }
 
-const toCodecJsonTop = SchemaAST.toCodec((ast) => {
+const toCodecJsonTop = SchemaAST.applyToLastLinkEncoding((ast) => {
   const out = toCodecJsonBase(ast, toCodecJsonTop)
   return out !== ast && SchemaAST.isOptional(ast) ? SchemaAST.optionalKeyLastLink(out) : out
 })
@@ -13408,6 +13472,33 @@ function toCodecIsoBase(ast: SchemaAST.AST, recur: (ast: SchemaAST.AST) => Schem
 export type StringTree = Tree<string | undefined>
 
 /**
+ * Type-level representation returned by {@link toCodecStringTree}.
+ *
+ * @category Canonical Codecs
+ * @since 4.0.0
+ */
+export interface toCodecStringTree<S extends Constraint, Encoded = StringTree> extends
+  BottomLazy<
+    SchemaAST.AST,
+    toCodecStringTree<S, Encoded>,
+    ReadonlyArray<Constraint>,
+    S["~type.mutability"],
+    S["~type.optionality"],
+    S["~type.constructor.default"],
+    S["~encoded.mutability"],
+    S["~encoded.optionality"]
+  >
+{
+  readonly "Type": S["Type"]
+  readonly "Encoded": Encoded
+  readonly "DecodingServices": S["DecodingServices"]
+  readonly "EncodingServices": S["EncodingServices"]
+  readonly "~type.make.in": S["~type.make.in"]
+  readonly "~type.make": S["~type.make"]
+  readonly "Iso": S["Iso"]
+}
+
+/**
  * Converts a schema to the StringTree canonical codec, where every leaf value
  * becomes a string while preserving the original structure.
  *
@@ -13427,15 +13518,17 @@ export type StringTree = Tree<string | undefined>
  * @category Canonical Codecs
  * @since 4.0.0
  */
-export function toCodecStringTree<T, E, RD, RE>(schema: Codec<T, E, RD, RE>): Codec<T, StringTree, RD, RE>
-export function toCodecStringTree<T, E, RD, RE>(
-  schema: Codec<T, E, RD, RE>,
+export function toCodecStringTree<S extends Constraint>(
+  schema: S
+): toCodecStringTree<S>
+export function toCodecStringTree<S extends Constraint>(
+  schema: S,
   options: { readonly keepDeclarations: true } // Used in FormData
-): Codec<T, unknown, RD, RE>
-export function toCodecStringTree<T, E, RD, RE>(
-  schema: Codec<T, E, RD, RE>,
+): toCodecStringTree<S, unknown>
+export function toCodecStringTree<S extends Constraint>(
+  schema: S,
   options?: { readonly keepDeclarations?: boolean | undefined }
-): Codec<T, unknown, RD, RE> {
+): toCodecStringTree<S, unknown> {
   return make(
     toCodecEnsureArray(
       options?.keepDeclarations === true
@@ -13658,7 +13751,7 @@ const booleanToString = new SchemaAST.Link(
   )
 )
 
-const serializerStringTree = SchemaAST.toCodec((ast) => {
+const serializerStringTree = SchemaAST.applyToLastLinkEncoding((ast) => {
   const out = serializerTree(ast, serializerStringTree, (ast) => SchemaAST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
@@ -13674,7 +13767,7 @@ const unknownToUndefined = new SchemaAST.Link(
   )
 )
 
-const serializerStringTreeKeepDeclarations = SchemaAST.toCodec((ast) => {
+const serializerStringTreeKeepDeclarations = SchemaAST.applyToLastLinkEncoding((ast) => {
   const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
@@ -13684,7 +13777,7 @@ const serializerStringTreeKeepDeclarations = SchemaAST.toCodec((ast) => {
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
 
-const toCodecEnsureArray = SchemaAST.toCodec((ast) => {
+const toCodecEnsureArray = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   if (SchemaAST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY]) {
     return ast
   }

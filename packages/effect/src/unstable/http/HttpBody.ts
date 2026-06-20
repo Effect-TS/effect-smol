@@ -317,7 +317,7 @@ export const json = (body: unknown, contentType?: string): Effect.Effect<Uint8Ar
  * @category constructors
  * @since 4.0.0
  */
-export const jsonSchema = <S extends Schema.Top>(
+export const jsonSchema = <S extends Schema.Constraint>(
   schema: S,
   options?: ParseOptions | undefined
 ) => {

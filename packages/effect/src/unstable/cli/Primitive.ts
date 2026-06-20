@@ -613,7 +613,7 @@ export type FileSchemaOptions = Struct.Simplify<
  * @since 4.0.0
  */
 export const fileSchema = <A>(
-  schema: Schema.Decoder<A, Environment>,
+  schema: Schema.ConstraintDecoder<A, Environment>,
   options?: FileSchemaOptions | undefined
 ): Primitive<A> => {
   const decode = Schema.decodeUnknownEffect(schema)
