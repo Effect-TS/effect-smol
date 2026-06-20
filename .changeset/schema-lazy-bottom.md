@@ -18,4 +18,6 @@ codec helpers now return dedicated lazy schema interfaces. `toCodecStringTree`
 now preserves the canonical StringTree shape for arrays; single-value array
 input coercion is available explicitly through `Schema.toCodecArrayFromSingle`.
 Canonical codec, channel, SQL, HTTP body, persistence, and RPC worker helpers
-now use lightweight schema constraints where they only read schema views.
+now use lightweight schema constraints where they only read schema views. Schema
+error-recovery helpers also avoid requiring the full schema protocol when they
+only need schema view properties.

@@ -5221,9 +5221,9 @@ export function middlewareEncoding<S extends Constraint, RE>(
  * @category error handling
  * @since 4.0.0
  */
-export function catchDecoding<S extends Top>(
+export function catchDecoding<S extends Constraint>(
   f: (issue: SchemaIssue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, SchemaIssue.Issue>
-): (self: S) => S["Rebuild"] {
+): (self: S) => middlewareDecoding<S, S["DecodingServices"]> {
   return catchDecodingWithContext(f)
 }
 
@@ -5247,11 +5247,11 @@ export function catchDecoding<S extends Top>(
  * @category error handling
  * @since 4.0.0
  */
-export function catchDecodingWithContext<S extends Top, R = never>(
+export function catchDecodingWithContext<S extends Constraint, R = never>(
   f: (issue: SchemaIssue.Issue) => Effect.Effect<Option_.Option<S["Type"]>, SchemaIssue.Issue, R>
 ) {
   return (self: S): middlewareDecoding<S, S["DecodingServices"] | R> =>
-    self.pipe(middlewareDecoding(Effect.catchEager(f)))
+    middlewareDecoding<S, S["DecodingServices"] | R>(Effect.catchEager(f))(self)
 }
 
 /**
@@ -5266,9 +5266,9 @@ export function catchDecodingWithContext<S extends Top, R = never>(
  * @category error handling
  * @since 4.0.0
  */
-export function catchEncoding<S extends Top>(
+export function catchEncoding<S extends Constraint>(
   f: (issue: SchemaIssue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, SchemaIssue.Issue>
-): (self: S) => S["Rebuild"] {
+): (self: S) => middlewareEncoding<S, S["EncodingServices"]> {
   return catchEncodingWithContext(f)
 }
 
@@ -5292,11 +5292,11 @@ export function catchEncoding<S extends Top>(
  * @category error handling
  * @since 4.0.0
  */
-export function catchEncodingWithContext<S extends Top, R = never>(
+export function catchEncodingWithContext<S extends Constraint, R = never>(
   f: (issue: SchemaIssue.Issue) => Effect.Effect<Option_.Option<S["Encoded"]>, SchemaIssue.Issue, R>
 ) {
   return (self: S): middlewareEncoding<S, S["EncodingServices"] | R> =>
-    self.pipe(middlewareEncoding(Effect.catchEager(f)))
+    middlewareEncoding<S, S["EncodingServices"] | R>(Effect.catchEager(f))(self)
 }
 
 /**

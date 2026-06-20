@@ -26,14 +26,14 @@ const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
  * @category streams
  * @since 4.0.0
  */
-export function isStreamSchema(schema: Schema.Top): schema is Stream<Schema.Top, Schema.Top> {
+export function isStreamSchema(schema: Schema.Constraint): schema is Stream<Schema.Constraint, Schema.Constraint> {
   return Predicate.hasProperty(schema, StreamSchemaTypeId)
 }
 
 /** @internal */
-export function getStreamSchemas(schema: Schema.Top): Option.Option<{
-  readonly success: Schema.Top
-  readonly error: Schema.Top
+export function getStreamSchemas(schema: Schema.Constraint): Option.Option<{
+  readonly success: Schema.Constraint
+  readonly error: Schema.Constraint
 }> {
   return isStreamSchema(schema) ?
     Option.some({
@@ -50,7 +50,7 @@ export function getStreamSchemas(schema: Schema.Top): Option.Option<{
  * @category streams
  * @since 4.0.0
  */
-export interface Stream<A extends Schema.Top, E extends Schema.Top> extends
+export interface Stream<A extends Schema.Constraint, E extends Schema.Constraint> extends
   Schema.BottomLazy<
     SchemaAST.Declaration,
     Stream<A, E>
@@ -78,7 +78,7 @@ const schema = Schema.declare(Stream_.isStream)
  * @category streams
  * @since 4.0.0
  */
-export function Stream<A extends Schema.Top, E extends Schema.Top>(success: A, error: E): Stream<A, E> {
+export function Stream<A extends Schema.Constraint, E extends Schema.Constraint>(success: A, error: E): Stream<A, E> {
   return Schema.make(schema.ast, { [StreamSchemaTypeId]: StreamSchemaTypeId, success, error })
 }
 

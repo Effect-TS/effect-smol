@@ -2477,7 +2477,7 @@ export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top>
  * @category parameters
  * @since 4.0.0
  */
-export interface Param<Name extends string, S extends Schema.Top> extends
+export interface Param<Name extends string, S extends Schema.Constraint> extends
   Schema.BottomLazy<
     S["ast"],
     Param<Name, S>,

@@ -50,8 +50,7 @@ export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasPrope
  * @category models
  * @since 4.0.0
  */
-export interface DefectSchema extends Schema.Top {
-  readonly Type: unknown
+export interface DefectSchema extends Schema.Constraint {
   make(input: null, options?: Schema.MakeOptions): unknown
   make(input: undefined, options?: Schema.MakeOptions): unknown
   make(input: {}, options?: Schema.MakeOptions): unknown
@@ -72,9 +71,9 @@ export interface DefectSchema extends Schema.Top {
  */
 export interface Rpc<
   in out Tag extends string,
-  out Payload extends Schema.Top = Schema.Void,
-  out Success extends Schema.Top = Schema.Void,
-  out Error extends Schema.Top = Schema.Never,
+  out Payload extends Schema.Constraint = Schema.Void,
+  out Success extends Schema.Constraint = Schema.Void,
+  out Error extends Schema.Constraint = Schema.Never,
   out Middleware extends RpcMiddleware.AnyService = never,
   out Requires = never
 > extends Pipeable {
@@ -86,7 +85,7 @@ export interface Rpc<
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly defectSchema: Schema.Top
+  readonly defectSchema: Schema.Constraint
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Middleware>
   readonly "~requires": Requires
@@ -94,7 +93,7 @@ export interface Rpc<
   /**
    * Set the schema for the success response of the rpc.
    */
-  setSuccess<S extends Schema.Top>(schema: S): Rpc<
+  setSuccess<S extends Schema.Constraint>(schema: S): Rpc<
     Tag,
     Payload,
     S,
@@ -106,7 +105,7 @@ export interface Rpc<
   /**
    * Set the schema for the error response of the rpc.
    */
-  setError<E extends Schema.Top>(schema: E): Rpc<
+  setError<E extends Schema.Constraint>(schema: E): Rpc<
     Tag,
     Payload,
     Success,
@@ -118,7 +117,7 @@ export interface Rpc<
   /**
    * Set the schema for the payload of the rpc.
    */
-  setPayload<P extends Schema.Top | Schema.Struct.Fields>(
+  setPayload<P extends Schema.Constraint | Schema.Struct.Fields>(
     schema: P
   ): Rpc<
     Tag,
@@ -250,9 +249,9 @@ export interface AnyWithProps extends Pipeable {
   readonly _tag: string
   readonly key: string
   readonly payloadSchema: Schema.Top
-  readonly successSchema: Schema.Top
-  readonly errorSchema: Schema.Top
-  readonly defectSchema: Schema.Top
+  readonly successSchema: Schema.Constraint
+  readonly errorSchema: Schema.Constraint
+  readonly defectSchema: Schema.Constraint
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<RpcMiddleware.AnyServiceWithProps>
   readonly "~requires": any
@@ -560,7 +559,7 @@ export type MiddlewareClient<R> = R extends Rpc<
  * @category models
  * @since 4.0.0
  */
-export type AddError<R extends Any, Error extends Schema.Top> = R extends Rpc<
+export type AddError<R extends Any, Error extends Schema.Constraint> = R extends Rpc<
   infer _Tag,
   infer _Payload,
   infer _Success,
@@ -784,7 +783,7 @@ const Proto = {
   },
   setSuccess(
     this: AnyWithProps,
-    successSchema: Schema.Top
+    successSchema: Schema.Constraint
   ) {
     return makeProto({
       _tag: this._tag,
@@ -796,7 +795,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  setError(this: AnyWithProps, errorSchema: Schema.Top) {
+  setError(this: AnyWithProps, errorSchema: Schema.Constraint) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: this.payloadSchema,
@@ -807,7 +806,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  setPayload(this: AnyWithProps, payloadSchema: Schema.Struct<any> | Schema.Struct.Fields) {
+  setPayload(this: AnyWithProps, payloadSchema: Schema.Struct<Schema.Struct.Fields> | Schema.Struct.Fields) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: Schema.isSchema(payloadSchema) ? payloadSchema as any : Schema.Struct(payloadSchema as any),
@@ -866,9 +865,9 @@ const Proto = {
 
 const makeProto = <
   const Tag extends string,
-  Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top,
+  Payload extends Schema.Constraint,
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint,
   Middleware extends RpcMiddleware.AnyService,
   Requires
 >(options: {
@@ -876,7 +875,7 @@ const makeProto = <
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly defectSchema: Schema.Top
+  readonly defectSchema: Schema.Constraint
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Middleware>
 }): Rpc<Tag, Payload, Success, Error, Middleware, Requires> => {
@@ -902,9 +901,9 @@ const makeProto = <
  */
 export const make = <
   const Tag extends string,
-  Payload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never,
+  Payload extends Schema.Constraint | Schema.Struct.Fields = Schema.Void,
+  Success extends Schema.Constraint = Schema.Void,
+  Error extends Schema.Constraint = Schema.Never,
   const Stream extends boolean = false
 >(tag: Tag, options?: {
   readonly payload?: Payload
@@ -1053,8 +1052,8 @@ export const custom = <Def extends Custom>(
  */
 export interface Custom {
   readonly out: Custom.OutDefault
-  readonly success: Schema.Top
-  readonly error: Schema.Top
+  readonly success: Schema.Constraint
+  readonly error: Schema.Constraint
   readonly defect: DefectSchema
 }
 
@@ -1071,8 +1070,8 @@ export declare namespace Custom {
    * @since 4.0.0
    */
   export interface Out<
-    Success extends Schema.Top,
-    Error extends Schema.Top
+    Success extends Schema.Constraint,
+    Error extends Schema.Constraint
   > {
     readonly success: Success
     readonly error: Error
@@ -1105,7 +1104,7 @@ export declare namespace Custom {
   })["out"]
 }
 
-const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Top, Schema.Top, DefectSchema>>()
+const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Constraint, Schema.Constraint, DefectSchema>>()
 
 /**
  * Builds the `Schema.Exit` used to encode and decode RPC results.
@@ -1130,7 +1129,7 @@ export const exitSchema = <R extends Any>(
     return exitSchemaCache.get(self) as any
   }
   const rpc = self as any as AnyWithProps
-  const failures = new Set<Schema.Top>([rpc.errorSchema])
+  const failures = new Set<Schema.Constraint>([rpc.errorSchema])
   const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
   if (Option.isSome(streamSchemas)) {
     failures.add(streamSchemas.value.error)

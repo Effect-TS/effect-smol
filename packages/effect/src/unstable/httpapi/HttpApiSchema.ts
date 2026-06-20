@@ -292,7 +292,7 @@ export type StreamSseMode = "events" | "data"
  */
 export interface StreamSse<
   Events extends Sse.EventCodec,
-  Error extends Schema.Top,
+  Error extends Schema.Constraint,
   Value = Events["Type"]
 > extends
   Schema.BottomLazy<
@@ -324,7 +324,7 @@ export interface StreamSse<
  * @category models
  * @since 4.0.0
  */
-export interface SseEventFromData<Data extends Schema.Top> extends
+export interface SseEventFromData<Data extends Schema.Constraint> extends
   Schema.Codec<
     {
       readonly id: string | undefined
@@ -385,7 +385,7 @@ export type StreamMetadata =
     readonly sseMode: StreamSseMode
     readonly contentType: string
     readonly events: Sse.EventCodec
-    readonly error: Schema.Top
+    readonly error: Schema.Constraint
   }
   | {
     readonly mode: "uint8array"
@@ -401,12 +401,12 @@ const streamSchema = Schema.declare(Stream.isStream)
  * @since 4.0.0
  */
 export const StreamSse: {
-  <Events extends Sse.EventCodec, Error extends Schema.Top = Schema.Never>(options: {
+  <Events extends Sse.EventCodec, Error extends Schema.Constraint = Schema.Never>(options: {
     readonly contentType?: string | undefined
     readonly events: Events
     readonly error?: Error | undefined
   }): StreamSse<Events, Error, Events["Type"]>
-  <Data extends Schema.Top, Error extends Schema.Top = Schema.Never>(options: {
+  <Data extends Schema.Constraint, Error extends Schema.Constraint = Schema.Never>(options: {
     readonly contentType?: string | undefined
     readonly data: Data
     readonly error?: Error | undefined
@@ -414,9 +414,9 @@ export const StreamSse: {
 } = (options: {
   readonly contentType?: string | undefined
   readonly events?: Sse.EventCodec | undefined
-  readonly data?: Schema.Top | undefined
-  readonly error?: Schema.Top | undefined
-}): StreamSse<Sse.EventCodec, Schema.Top, unknown> => {
+  readonly data?: Schema.Constraint | undefined
+  readonly error?: Schema.Constraint | undefined
+}): StreamSse<Sse.EventCodec, Schema.Constraint, unknown> => {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
     event: Schema.String,
