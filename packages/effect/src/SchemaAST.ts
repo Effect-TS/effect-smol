@@ -3141,17 +3141,6 @@ export function applyToLastLink(f: (ast: AST) => AST) {
 }
 
 /** @internal */
-export function applyToLastLinkEncoding(f: (ast: AST) => AST): <A extends AST>(ast: A) => A {
-  function inner(ast: AST): AST {
-    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, inner)) : f(ast)
-  }
-  function outer<A extends AST>(ast: A): A {
-    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, inner)) : ast
-  }
-  return memoize(outer)
-}
-
-/** @internal */
 export function applyToSelfOrLastLinkEncoding(f: (ast: AST) => AST) {
   function out(ast: AST): AST {
     return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
@@ -3579,7 +3568,7 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-const parameterFromPropertyKey = applyToLastLinkEncoding((ast) => {
+const parameterFromPropertyKey = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3591,7 +3580,7 @@ const parameterFromPropertyKey = applyToLastLinkEncoding((ast) => {
 })
 
 /** @internal */
-export const parameterFromString = applyToLastLinkEncoding((ast) => {
+export const parameterFromString = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3603,7 +3592,7 @@ export const parameterFromString = applyToLastLinkEncoding((ast) => {
   }
 })
 
-const partFromString = applyToLastLinkEncoding((ast) => {
+const partFromString = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast

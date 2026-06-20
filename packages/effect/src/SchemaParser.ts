@@ -660,7 +660,7 @@ export const encodeEffect: <S extends Schema.Constraint>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
+export const encodeUnknownPromise = <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> =>
@@ -691,7 +691,7 @@ export const encodeUnknownPromise = <S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodePromise: <S extends Schema.Encoder<unknown>>(
+export const encodePromise: <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
@@ -722,7 +722,7 @@ export const encodePromise: <S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
+export function encodeUnknownExit<S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Exit.Exit<S["Encoded"], SchemaIssue.Issue> {
@@ -755,14 +755,14 @@ export function encodeUnknownExit<S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export const encodeExit: <S extends Schema.Encoder<unknown>>(
+export const encodeExit: <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Exit.Exit<S["Encoded"], SchemaIssue.Issue> =
   encodeUnknownExit
 
 /** @internal */
-export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
+export function encodeUnknownOption<S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Option.Option<S["Encoded"]> {
@@ -770,7 +770,7 @@ export function encodeUnknownOption<S extends Schema.Encoder<unknown>>(
 }
 
 /** @internal */
-export const encodeOption: <S extends Schema.Encoder<unknown>>(
+export const encodeOption: <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option.Option<S["Encoded"]> = encodeUnknownOption
@@ -803,7 +803,7 @@ export const encodeOption: <S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
+export function encodeUnknownResult<S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => Result.Result<S["Encoded"], SchemaIssue.Issue> {
@@ -836,7 +836,7 @@ export function encodeUnknownResult<S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export const encodeResult: <S extends Schema.Encoder<unknown>>(
+export const encodeResult: <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Result.Result<S["Encoded"], SchemaIssue.Issue> =
@@ -867,7 +867,7 @@ export const encodeResult: <S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
+export function encodeUnknownSync<S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ): (input: unknown, options?: SchemaAST.ParseOptions) => S["Encoded"] {
@@ -901,7 +901,7 @@ export function encodeUnknownSync<S extends Schema.Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodeSync: <S extends Schema.Encoder<unknown>>(
+export const encodeSync: <S extends Schema.ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => S["Encoded"] = encodeUnknownSync

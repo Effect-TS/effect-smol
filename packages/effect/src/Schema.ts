@@ -1874,7 +1874,7 @@ export const encodeEffect: <S extends Constraint>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function encodeUnknownExit<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.encodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
     return InternalSchema.mapSchemaIssueExit(parser(input, options))
@@ -1911,7 +1911,7 @@ export function encodeUnknownExit<S extends Encoder<unknown>>(schema: S, options
  * @category encoding
  * @since 4.0.0
  */
-export const encodeExit: <S extends Encoder<unknown>>(
+export const encodeExit: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Exit_.Exit<S["Encoded"], SchemaError> = encodeUnknownExit
@@ -1942,7 +1942,7 @@ export const encodeExit: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodeUnknownOption: <S extends Encoder<unknown>>(
+export const encodeUnknownOption: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: unknown, options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> =
@@ -1973,7 +1973,7 @@ export const encodeUnknownOption: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export const encodeOption: <S extends Encoder<unknown>>(
+export const encodeOption: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = encodeUnknownOption
@@ -2006,7 +2006,7 @@ export const encodeOption: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownResult<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function encodeUnknownResult<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.encodeUnknownResult(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Result_.Result<S["Encoded"], SchemaError> => {
     return Result_.mapError(parser(input, options), (issue) => new SchemaError(issue))
@@ -2041,7 +2041,7 @@ export function encodeUnknownResult<S extends Encoder<unknown>>(schema: S, optio
  * @category encoding
  * @since 4.0.0
  */
-export const encodeResult: <S extends Encoder<unknown>>(
+export const encodeResult: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Result_.Result<S["Encoded"], SchemaError> =
@@ -2073,7 +2073,7 @@ export const encodeResult: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 3.10.0
  */
-export function encodeUnknownPromise<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function encodeUnknownPromise<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = encodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Promise<S["Encoded"]> => {
     return runSchemaErrorPromise(parser(input, options))
@@ -2107,7 +2107,7 @@ export function encodeUnknownPromise<S extends Encoder<unknown>>(schema: S, opti
  * @category encoding
  * @since 3.10.0
  */
-export const encodePromise: <S extends Encoder<unknown>>(
+export const encodePromise: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Promise<S["Encoded"]> = encodeUnknownPromise
@@ -2138,7 +2138,7 @@ export const encodePromise: <S extends Encoder<unknown>>(
  * @category encoding
  * @since 4.0.0
  */
-export function encodeUnknownSync<S extends Encoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
+export function encodeUnknownSync<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = encodeUnknownEffect(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): S["Encoded"] => {
     return runSchemaErrorSync(parser(input, options) as Effect.Effect<S["Encoded"], SchemaError>)
@@ -2169,7 +2169,7 @@ export function encodeUnknownSync<S extends Encoder<unknown>>(schema: S, options
  * @category encoding
  * @since 4.0.0
  */
-export const encodeSync: <S extends Encoder<unknown>>(
+export const encodeSync: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
 ) => (input: S["Type"], options?: SchemaAST.ParseOptions) => S["Encoded"] = encodeUnknownSync
@@ -13366,7 +13366,7 @@ export function toCodecJson<S extends Constraint>(schema: S): toCodecJson<S> {
   return make(toCodecJsonTop(schema.ast))
 }
 
-const toCodecJsonTop = SchemaAST.applyToLastLinkEncoding((ast) => {
+const toCodecJsonTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   const out = toCodecJsonBase(ast, toCodecJsonTop)
   return out !== ast && SchemaAST.isOptional(ast) ? SchemaAST.optionalKeyLastLink(out) : out
 })
@@ -13751,7 +13751,7 @@ const booleanToString = new SchemaAST.Link(
   )
 )
 
-const serializerStringTree = SchemaAST.applyToLastLinkEncoding((ast) => {
+const serializerStringTree = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   const out = serializerTree(ast, serializerStringTree, (ast) => SchemaAST.replaceEncoding(ast, [unknownToUndefined]))
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
@@ -13767,7 +13767,7 @@ const unknownToUndefined = new SchemaAST.Link(
   )
 )
 
-const serializerStringTreeKeepDeclarations = SchemaAST.applyToLastLinkEncoding((ast) => {
+const serializerStringTreeKeepDeclarations = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
   if (out !== ast && SchemaAST.isOptional(ast)) {
     return SchemaAST.optionalKeyLastLink(out)
