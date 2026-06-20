@@ -13803,9 +13803,8 @@ const booleanToString = new SchemaAST.Link(
 
 const SERIALIZER_ENSURE_ARRAY = "~effect/Schema/SERIALIZER_ENSURE_ARRAY"
 
-function isSerializerArrayFromSingle(ast: SchemaAST.AST): boolean {
-  return SchemaAST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY] === true
-}
+const isSerializerArrayFromSingle = (ast: SchemaAST.AST): boolean =>
+  SchemaAST.isUnion(ast) && ast.annotations?.[SERIALIZER_ENSURE_ARRAY] === true
 
 const serializerStringTree = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   if (isSerializerArrayFromSingle(ast)) {
@@ -13837,9 +13836,13 @@ const serializerStringTreeKeepDeclarations = SchemaAST.applyToSelfOrLastLinkEnco
   return out
 })
 
-function toArrayFromSingleInputElement(ast: SchemaAST.AST): SchemaAST.AST {
-  return SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(SchemaAST.unknown) : SchemaAST.unknown
-}
+const toArrayFromSingleInputElement = (ast: SchemaAST.AST): SchemaAST.AST =>
+  SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(SchemaAST.unknown) : SchemaAST.unknown
+
+const arrayFromSingleTransformation = new SchemaTransformation.Transformation(
+  SchemaGetter.transform((input: ReadonlyArray<unknown> | string) => typeof input === "string" ? [input] : input),
+  SchemaGetter.passthrough()
+)
 
 const toCodecArrayFromSingleTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
   if (isSerializerArrayFromSingle(ast)) {
@@ -13847,31 +13850,21 @@ const toCodecArrayFromSingleTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) 
   }
   const out = onSerializerArrayFromSingle(ast)
   if (SchemaAST.isArrays(out)) {
-    const arrayInput = new SchemaAST.Arrays(
-      out.isMutable,
-      out.elements.map(toArrayFromSingleInputElement),
-      out.rest.map(toArrayFromSingleInputElement)
-    )
-    const ensure = SchemaAST.replaceEncoding(
-      out,
-      [
-        new SchemaAST.Link(
-          new SchemaAST.Union(
-            [
-              arrayInput,
-              SchemaAST.string
-            ],
-            "anyOf",
-            { [SERIALIZER_ENSURE_ARRAY]: true }
+    const ensure = SchemaAST.decodeTo(
+      new SchemaAST.Union(
+        [
+          new SchemaAST.Arrays(
+            out.isMutable,
+            out.elements.map(toArrayFromSingleInputElement),
+            out.rest.map(toArrayFromSingleInputElement)
           ),
-          new SchemaTransformation.Transformation(
-            SchemaGetter.transform((input: ReadonlyArray<unknown> | string) =>
-              typeof input === "string" ? [input] : input
-            ),
-            SchemaGetter.passthrough()
-          )
-        )
-      ]
+          SchemaAST.string
+        ],
+        "anyOf",
+        { [SERIALIZER_ENSURE_ARRAY]: true }
+      ),
+      out,
+      arrayFromSingleTransformation
     )
     return SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(ensure) : ensure
   }
@@ -13879,16 +13872,10 @@ const toCodecArrayFromSingleTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) 
 })
 
 function onSerializerArrayFromSingle(ast: SchemaAST.AST): SchemaAST.AST {
-  switch (ast._tag) {
-    default:
-      return ast
-    case "Declaration":
-    case "Arrays":
-    case "Objects":
-    case "Union":
-    case "Suspend":
-      return ast.recur(toCodecArrayFromSingleTop)
-  }
+  return ast._tag === "Declaration" || ast._tag === "Arrays" || ast._tag === "Objects" || ast._tag === "Union" ||
+      ast._tag === "Suspend"
+    ? ast.recur(toCodecArrayFromSingleTop)
+    : ast
 }
 
 // -----------------------------------------------------------------------------
