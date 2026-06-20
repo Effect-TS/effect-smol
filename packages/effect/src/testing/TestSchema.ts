@@ -49,7 +49,7 @@ import * as FastCheck from "../testing/FastCheck.ts"
  * @category testing
  * @since 4.0.0
  */
-export class Asserts<S extends Schema.Top> {
+export class Asserts<S extends Schema.Constraint> {
   /**
    * Static helpers for comparing schema AST structures.
    *
