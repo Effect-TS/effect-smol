@@ -80,7 +80,7 @@ type SuccessType<S> = S extends HttpApiSchema.StreamSse<
     never
   >
   : S extends HttpApiSchema.StreamUint8Array ? Stream.Stream<Uint8Array, HttpClientError.HttpClientError, never>
-  : S extends Schema.Top ? S["Type"]
+  : S extends Schema.Constraint ? S["Type"]
   : never
 
 type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
@@ -91,7 +91,7 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
     | _Events["DecodingServices"]
     | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["DecodingServices"]
+  : S extends Schema.Constraint ? S["DecodingServices"]
   : never
 
 /**
@@ -795,7 +795,7 @@ function streamToResponse(streamSchema: HttpApiSchema.StreamSchema) {
 
 function decodeSseStream(
   stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
-  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Top, unknown>
+  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>
 ): Stream.Stream<unknown, unknown, unknown> {
   const Event = Schema.Union([
     declaration.events,
@@ -940,7 +940,7 @@ const $HttpBody = Schema.declare(HttpBody.isHttpBody)
 function getEncodePayloadSchema(
   schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>],
   method: HttpMethod.HttpMethod
-): Schema.Top {
+): Schema.Constraint {
   return Schema.Union(schemas.map((s) => getEncodePayloadSchemaFromBody(s, method)))
 }
 

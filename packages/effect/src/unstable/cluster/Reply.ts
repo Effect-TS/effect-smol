@@ -161,7 +161,7 @@ export interface ChunkEncoded {
   readonly values: NonEmptyReadonlyArray<unknown>
 }
 
-const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
+const schemaCache = new WeakMap<Rpc.Any, Schema.Constraint>()
 
 /**
  * Represents a streaming RPC reply chunk for a request, carrying a non-empty
@@ -234,7 +234,7 @@ export class Chunk<R extends Rpc.Any> extends Data.TaggedClass("Chunk")<{
    *
    * @since 4.0.0
    */
-  static schemaFrom<Success extends Schema.Top>(
+  static schemaFrom<Success extends Schema.Constraint>(
     success: Success
   ): Schema.declareConstructor<Chunk<Rpc.Any>, Chunk<Rpc.Any>, readonly [Success]> {
     // TODO: extract to a helper function

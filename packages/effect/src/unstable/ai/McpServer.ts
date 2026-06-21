@@ -782,7 +782,7 @@ export type ValidateCompletions<Completions, Keys extends string> =
  * @category models
  * @since 4.0.0
  */
-export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Top>> = {
+export type ResourceCompletions<Schemas extends ReadonlyArray<Schema.Constraint>> = {
   readonly [
     K in Extract<keyof Schemas, `${number}`> as Schemas[K] extends Param<infer Id, infer _S> ? Id
       : `param${K}`
@@ -818,7 +818,7 @@ export const registerResource: {
     >
     readonly annotations?: Context.Context<never> | undefined
   }): Effect.Effect<void, never, Exclude<R, McpServerClient> | McpServer>
-  <const Schemas extends ReadonlyArray<Schema.Top>>(segments: TemplateStringsArray, ...schemas: Schemas): <
+  <const Schemas extends ReadonlyArray<Schema.Constraint>>(segments: TemplateStringsArray, ...schemas: Schemas): <
     E,
     R,
     const Completions extends Partial<ResourceCompletions<Schemas>> = {}
@@ -979,7 +979,7 @@ export const resource: {
       R
     >
   }): Layer.Layer<never, never, Exclude<R, McpServerClient>>
-  <const Schemas extends ReadonlyArray<Schema.Top>>(segments: TemplateStringsArray, ...schemas: Schemas): <
+  <const Schemas extends ReadonlyArray<Schema.Constraint>>(segments: TemplateStringsArray, ...schemas: Schemas): <
     E,
     R,
     const Completions extends Partial<ResourceCompletions<Schemas>> = {}
@@ -1241,13 +1241,13 @@ const makeUriMatcher = <A>() => {
   return { add, find } as const
 }
 
-const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: ReadonlyArray<Schema.Top>) => {
+const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: ReadonlyArray<Schema.Constraint>) => {
   let routerPath = segments[0].replace(":", "::")
   let uriPath = segments[0]
-  const params: Record<string, Schema.Top> = {}
-  let pathSchema = Schema.Tuple([]) as Schema.Top
+  const params: Record<string, Schema.Constraint> = {}
+  let pathSchema = Schema.Tuple([]) as Schema.Constraint
   if (schemas.length > 0) {
-    const arr: Array<Schema.Top> = []
+    const arr: Array<Schema.Constraint> = []
     for (let i = 0; i < schemas.length; i++) {
       const toCodecStringTree = Schema.toCodecStringTree(schemas[i])
       const segment = segments[i + 1]
@@ -1255,7 +1255,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       arr.push(toCodecStringTree)
       routerPath += `:${key}${segment.replace(":", "::")}`
       const schema = schemas[i]
-      const paramName = isParam(schema) ? (schema as Param<string, Schema.Top>).name : `param${key}`
+      const paramName = isParam(schema) ? (schema as Param<string, Schema.Constraint>).name : `param${key}`
       params[paramName] = toCodecStringTree
       uriPath += `{${paramName}}${segment}`
     }

@@ -180,8 +180,8 @@ export const AllParts = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
   Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
 > => {
-  const toolCalls: Array<Schema.Top> = []
-  const toolResults: Array<Schema.Top> = []
+  const toolCalls: Array<Schema.Constraint> = []
+  const toolResults: Array<Schema.Constraint> = []
   for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
     const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
     const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)
@@ -269,8 +269,8 @@ export const Part = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
   Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
 > => {
-  const toolCalls: Array<Schema.Top> = []
-  const toolResults: Array<Schema.Top> = []
+  const toolCalls: Array<Schema.Constraint> = []
+  const toolResults: Array<Schema.Constraint> = []
   for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
     const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
     const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)
@@ -361,8 +361,8 @@ export const StreamPart = <T extends Toolkit.Any | Toolkit.WithHandler<any>>(
   Tool.ResultDecodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>,
   Tool.ResultEncodingServices<Toolkit.Tools<T>[keyof Toolkit.Tools<T>]>
 > => {
-  const toolCalls: Array<Schema.Top> = []
-  const toolResults: Array<Schema.Top> = []
+  const toolCalls: Array<Schema.Constraint> = []
+  const toolResults: Array<Schema.Constraint> = []
   for (const tool of Object.values(toolkit.tools as Record<string, Tool.Any>)) {
     const toolCall = ToolCallPart(tool.name, tool.parametersSchema)
     const toolResult = ToolResultPart(tool.name, tool.successSchema, tool.failureSchema)

@@ -52,9 +52,9 @@ export const isEvent = (u: unknown): u is Event<any, any, any, any> => Predicate
  */
 export interface Event<
   out Tag extends string,
-  in out Payload extends Schema.Top = typeof Schema.Void,
-  in out Success extends Schema.Top = typeof Schema.Void,
-  in out Error extends Schema.Top = typeof Schema.Never
+  in out Payload extends Schema.Constraint = typeof Schema.Void,
+  in out Success extends Schema.Constraint = typeof Schema.Void,
+  in out Error extends Schema.Constraint = typeof Schema.Never
 > {
   readonly [TypeId]: TypeId
   readonly tag: Tag
@@ -96,10 +96,10 @@ export interface Any {
   readonly [TypeId]: TypeId
   readonly tag: string
   readonly primaryKey: (payload: any) => string
-  readonly payload: Schema.Top
-  readonly payloadMsgPack: Msgpack.schema<Schema.Top>
-  readonly success: Schema.Top
-  readonly error: Schema.Top
+  readonly payload: Schema.Constraint
+  readonly payloadMsgPack: Msgpack.schema<Schema.Constraint>
+  readonly success: Schema.Constraint
+  readonly error: Schema.Constraint
 }
 
 /**
@@ -168,7 +168,7 @@ export type Error<A extends Any> = Schema.Schema.Type<ErrorSchema<A>>
  * @category models
  * @since 4.0.0
  */
-export type AddError<A extends Any, Error extends Schema.Top> = A extends Event<
+export type AddError<A extends Any, Error extends Schema.Constraint> = A extends Event<
   infer _Tag,
   infer _Payload,
   infer _Success,
@@ -391,9 +391,9 @@ const Proto = {
  */
 export function make<
   Tag extends string,
-  Payload extends Schema.Top = typeof Schema.Void,
-  Success extends Schema.Top = typeof Schema.Void,
-  Error extends Schema.Top = typeof Schema.Never
+  Payload extends Schema.Constraint = typeof Schema.Void,
+  Success extends Schema.Constraint = typeof Schema.Void,
+  Error extends Schema.Constraint = typeof Schema.Never
 >(options: {
   readonly tag: Tag
   readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
@@ -403,11 +403,11 @@ export function make<
 }): Event<Tag, Payload, Success, Error>
 export function make(options: {
   readonly tag: string
-  readonly primaryKey: (payload: Schema.Schema.Type<Schema.Top>) => string
-  readonly payload?: Schema.Top | undefined
-  readonly success?: Schema.Top | undefined
-  readonly error?: Schema.Top | undefined
-}): Event<string, Schema.Top, Schema.Top, typeof Schema.Never> {
+  readonly primaryKey: (payload: Schema.Schema.Type<Schema.Constraint>) => string
+  readonly payload?: Schema.Constraint | undefined
+  readonly success?: Schema.Constraint | undefined
+  readonly error?: Schema.Constraint | undefined
+}): Event<string, Schema.Constraint, Schema.Constraint, typeof Schema.Never> {
   const payload = options.payload ?? Schema.Void
   const success = options.success ?? Schema.Void
   const error = options.error ?? Schema.Never
@@ -432,11 +432,11 @@ export function make(options: {
  * @category constructors
  * @since 4.0.0
  */
-export function addError<A extends Any, Error2 extends Schema.Top>(
+export function addError<A extends Any, Error2 extends Schema.Constraint>(
   event: A,
   error: Error2
 ): AddError<A, Error2>
-export function addError(event: Any, error: Schema.Top): Any {
+export function addError(event: Any, error: Schema.Constraint): Any {
   return make({
     tag: event.tag,
     primaryKey: event.primaryKey,

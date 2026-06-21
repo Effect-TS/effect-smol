@@ -2462,7 +2462,7 @@ const ParamSchemaTypeId = "~effect/ai/McpSchema/ParamSchema"
  * @category parameters
  * @since 4.0.0
  */
-export function isParam(schema: Schema.Top): schema is Param<string, Schema.Top> {
+export function isParam(schema: Schema.Constraint): schema is Param<string, Schema.Constraint> {
   return Predicate.hasProperty(schema, ParamSchemaTypeId)
 }
 
@@ -2508,7 +2508,7 @@ export interface Param<Name extends string, S extends Schema.Constraint> extends
  * @category parameters
  * @since 4.0.0
  */
-export function param<const Name extends string, S extends Schema.Top>(
+export function param<const Name extends string, S extends Schema.Constraint>(
   name: Name,
   schema: S
 ): Param<Name, S> {

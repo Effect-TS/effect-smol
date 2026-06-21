@@ -870,7 +870,7 @@ interface SseStreamEncoder {
   readonly encodeCause: (input: unknown) => Effect.Effect<string, Schema.SchemaError, unknown>
 }
 
-function makeSseEncoder<Events extends Sse.EventCodec, Error extends Schema.Top>(
+function makeSseEncoder<Events extends Sse.EventCodec, Error extends Schema.Constraint>(
   streamSchema: HttpApiSchema.StreamSse<Events, Error, unknown>
 ): SseStreamEncoder {
   const CauseSchema = Schema.toCodecJson(Schema.Cause(streamSchema.error, Schema.Defect()))

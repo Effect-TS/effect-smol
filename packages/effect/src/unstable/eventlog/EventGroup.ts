@@ -62,9 +62,9 @@ export interface EventGroup<
    */
   add<
     Tag extends string,
-    Payload extends Schema.Top = typeof Schema.Void,
-    Success extends Schema.Top = typeof Schema.Void,
-    Error extends Schema.Top = typeof Schema.Never
+    Payload extends Schema.Constraint = typeof Schema.Void,
+    Success extends Schema.Constraint = typeof Schema.Void,
+    Error extends Schema.Constraint = typeof Schema.Never
   >(options: {
     readonly tag: Tag
     readonly primaryKey: (payload: Schema.Schema.Type<Payload>) => string
@@ -76,7 +76,7 @@ export interface EventGroup<
   /**
    * Add an error schema to all the events in the `EventGroup`.
    */
-  addError<Error extends Schema.Top>(error: Error): EventGroup<Event.AddError<Events, Error>>
+  addError<Error extends Schema.Constraint>(error: Error): EventGroup<Event.AddError<Events, Error>>
 }
 
 /**
@@ -142,9 +142,9 @@ const makeProto = <
     events: options.events,
     add<
       Tag extends string,
-      Payload extends Schema.Top = typeof Schema.Void,
-      Success extends Schema.Top = typeof Schema.Void,
-      Error extends Schema.Top = typeof Schema.Never
+      Payload extends Schema.Constraint = typeof Schema.Void,
+      Success extends Schema.Constraint = typeof Schema.Void,
+      Error extends Schema.Constraint = typeof Schema.Never
     >(
       this: EventGroup<Events>,
       addOptions: {
@@ -162,7 +162,7 @@ const makeProto = <
         }
       })
     },
-    addError<Error extends Schema.Top>(
+    addError<Error extends Schema.Constraint>(
       this: EventGroup<Events>,
       error: Error
     ): EventGroup<Event.AddError<Events, Error>> {

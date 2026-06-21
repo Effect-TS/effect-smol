@@ -297,7 +297,7 @@ interface QueryKey {
   serializationKey: string | undefined
 }
 
-const makeErrorSchema = (rpc: Rpc.AnyWithProps): Schema.Top =>
+const makeErrorSchema = (rpc: Rpc.AnyWithProps): Schema.Constraint =>
   Schema.Union([
     rpc.errorSchema,
     ...Array.from(rpc.middlewares, (middleware) => middleware.error),

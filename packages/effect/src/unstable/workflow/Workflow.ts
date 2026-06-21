@@ -45,8 +45,8 @@ const TypeId = "~effect/workflow/Workflow"
 export interface Workflow<
   Tag extends string,
   Payload extends AnyStructSchema,
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 > {
   new(_: never): {}
 
@@ -222,8 +222,8 @@ export interface Any {
   readonly _tag: string
   readonly executionId: (payload: any) => Effect.Effect<string>
   readonly payloadSchema: AnyStructSchema
-  readonly successSchema: Schema.Top
-  readonly errorSchema: Schema.Top
+  readonly successSchema: Schema.Constraint
+  readonly errorSchema: Schema.Constraint
   readonly annotations: Context.Context<never>
   readonly idempotencyKey: (payload: any) => string
   readonly suspendedRetrySchedule?: Schedule.Schedule<any, unknown> | undefined
@@ -238,8 +238,8 @@ export interface Any {
  */
 export interface AnyWithProps extends Any {
   readonly payloadSchema: AnyStructSchema
-  readonly successSchema: Schema.Top
-  readonly errorSchema: Schema.Top
+  readonly successSchema: Schema.Constraint
+  readonly errorSchema: Schema.Constraint
   readonly execute: (
     payload: any,
     options?: { readonly discard?: boolean }
@@ -369,7 +369,7 @@ const Proto = {
       )
     ) as any
   },
-  poll(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, executionId: string) {
+  poll(this: Workflow<string, AnyStructSchema, Schema.Constraint, Schema.Constraint>, executionId: string) {
     return Effect.flatMap(EngineTag, (engine) => engine.poll(this, executionId)).pipe(
       Effect.withSpan(`${this._tag}.poll`, { attributes: { executionId } }, { captureStackTrace: false })
     )
@@ -379,12 +379,12 @@ const Proto = {
       Effect.withSpan(`${this._tag}.interrupt`, { attributes: { executionId } }, { captureStackTrace: false })
     )
   },
-  resume(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, executionId: string) {
+  resume(this: Workflow<string, AnyStructSchema, Schema.Constraint, Schema.Constraint>, executionId: string) {
     return Effect.flatMap(EngineTag, (engine) => engine.resume(this, executionId)).pipe(
       Effect.withSpan(`${this._tag}.resume`, { attributes: { executionId } }, { captureStackTrace: false })
     )
   },
-  toLayer(this: Workflow<string, AnyStructSchema, Schema.Top, Schema.Top>, execute: any) {
+  toLayer(this: Workflow<string, AnyStructSchema, Schema.Constraint, Schema.Constraint>, execute: any) {
     return Layer.effectDiscard(
       Effect.flatMap(EngineTag, (engine) => engine.register(this, execute))
     )
@@ -401,8 +401,8 @@ const Proto = {
 const makeProto = <
   const Tag extends string,
   Payload extends AnyStructSchema,
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 >(options: {
   readonly _tag: Tag
   readonly payloadSchema: Payload
@@ -429,8 +429,8 @@ const makeProto = <
 export const make = <
   const Tag extends string,
   Payload extends Schema.Struct.Fields | AnyStructSchema,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never
+  Success extends Schema.Constraint = Schema.Void,
+  Error extends Schema.Constraint = Schema.Never
 >(tag: Tag, options: {
   readonly payload: Payload
   readonly idempotencyKey: (
@@ -511,8 +511,8 @@ export interface CompleteEncoded<A, E> {
  * @since 4.0.0
  */
 export interface CompleteSchema<
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 > extends
   Schema.declareConstructor<
     Complete<Success["Type"], Error["Type"]>,
@@ -545,7 +545,7 @@ export class Complete<A, E> extends Data.TaggedClass("Complete")<{
    *
    * @since 4.0.0
    */
-  static Schema<Success extends Schema.Top, Error extends Schema.Top>(options: {
+  static Schema<Success extends Schema.Constraint, Error extends Schema.Constraint>(options: {
     readonly success: Success
     readonly error: Error
   }): CompleteSchema<Success, Error> {
@@ -624,8 +624,8 @@ export class Suspended extends Schema.Class<Suspended>(
  * @since 4.0.0
  */
 export const Result = <
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 >(options: {
   readonly success: Success
   readonly error: Error

@@ -45,8 +45,8 @@ export const TypeId: TypeId = "~effect/workflow/DurableQueue"
  */
 export interface DurableQueue<
   Payload extends Schema.Top,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never
+  Success extends Schema.Constraint = Schema.Void,
+  Error extends Schema.Constraint = Schema.Never
 > {
   readonly [TypeId]: TypeId
   readonly name: string
@@ -114,8 +114,8 @@ export interface DurableQueue<
  */
 export const make = <
   Payload extends Schema.Top | Schema.Struct.Fields,
-  Success extends Schema.Top = Schema.Void,
-  Error extends Schema.Top = Schema.Never
+  Success extends Schema.Constraint = Schema.Void,
+  Error extends Schema.Constraint = Schema.Never
 >(options: {
   readonly name: string
   readonly payload: Payload
@@ -142,9 +142,9 @@ export const make = <
   })
 })
 
-const queueSchemas = new WeakMap<Schema.Top, Schema.Top>()
+const queueSchemas = new WeakMap<Schema.Constraint, Schema.Constraint>()
 
-const getQueueSchema = <Payload extends Schema.Top>(
+const getQueueSchema = <Payload extends Schema.Constraint>(
   payload: Payload
 ): Schema.Struct<{
   token: typeof DurableDeferred.Token
@@ -175,8 +175,8 @@ const getQueueSchema = <Payload extends Schema.Top>(
  */
 export const process: <
   Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 >(
   self: DurableQueue<Payload, Success, Error>,
   payload: Payload["~type.make.in"],
@@ -195,8 +195,8 @@ export const process: <
   | Error["DecodingServices"]
 > = Effect.fnUntraced(function*<
   Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint
 >(self: DurableQueue<Payload, Success, Error>, fields: Payload["~type.make.in"], options?: {
   readonly retrySchedule?: Schedule.Schedule<any, PersistedQueue.PersistedQueueError> | undefined
 }) {
@@ -251,8 +251,8 @@ const defaultRetrySchedule = Schedule.exponential(500, 1.5).pipe(
  */
 export const makeWorker: <
   Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top,
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint,
   R
 >(
   self: DurableQueue<Payload, Success, Error>,
@@ -270,8 +270,8 @@ export const makeWorker: <
   | Error["EncodingServices"]
 > = Effect.fnUntraced(function*<
   Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top,
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint,
   R
 >(
   self: DurableQueue<Payload, Success, Error>,
@@ -338,8 +338,8 @@ export const makeWorker: <
  */
 export const worker: <
   Payload extends Schema.Top,
-  Success extends Schema.Top,
-  Error extends Schema.Top,
+  Success extends Schema.Constraint,
+  Error extends Schema.Constraint,
   R
 >(
   self: DurableQueue<Payload, Success, Error>,

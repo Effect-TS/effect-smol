@@ -78,7 +78,7 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Value
 > ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Constraint ? S["DecodingServices"]
+  : S extends Schema.Top ? S["DecodingServices"]
   : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<Schema.Constraint> ? S[number] : S

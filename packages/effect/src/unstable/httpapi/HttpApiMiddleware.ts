@@ -43,10 +43,10 @@ const SecurityTypeId = "~effect/httpapi/HttpApiMiddleware/Security"
  */
 export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasProperty(u, SecurityTypeId)
 
-type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
+type ErrorConstraint = Schema.Constraint | ReadonlyArray<Schema.Constraint>
 
-type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[number]
-  : E extends Schema.Top ? E
+type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Constraint> ? E[number]
+  : E extends Schema.Constraint ? E
   : never
 
 /**
@@ -142,7 +142,7 @@ export interface ForClient<Id> {
 export interface AnyService extends Context.Key<any, any> {
   readonly [TypeId]: typeof TypeId
   readonly provides: any
-  readonly error: ReadonlySet<Schema.Top>
+  readonly error: ReadonlySet<Schema.Constraint>
   readonly requiredForClient: boolean
   readonly "~ClientError": any
 }
@@ -296,7 +296,7 @@ export type ServiceClass<
       }
     }
     readonly [TypeId]: typeof TypeId
-    readonly error: ReadonlySet<Schema.Top>
+    readonly error: ReadonlySet<Schema.Constraint>
     readonly requiredForClient: Config["requiredForClient"]
     readonly "~ClientError": Config["clientError"]
   }
@@ -378,7 +378,7 @@ export const Service = <
   return self
 }
 
-function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Top> {
+function getError(error: ErrorConstraint | undefined): ReadonlySet<Schema.Constraint> {
   if (error === undefined) return new Set()
   return new Set(Array.isArray(error) ? error : [error])
 }
