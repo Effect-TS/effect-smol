@@ -642,9 +642,9 @@ export const isDynamic = (u: unknown): u is Dynamic<string, any> => Predicate.ha
  */
 export interface Any extends
   Tool<any, {
-    readonly parameters: Schema.Constraint
-    readonly success: Schema.Constraint
-    readonly failure: Schema.Constraint
+    readonly parameters: Schema.Top
+    readonly success: Schema.Top
+    readonly failure: Schema.Top
     readonly failureMode: FailureMode
   }, any>
 {}
@@ -657,10 +657,10 @@ export interface Any extends
  */
 export interface AnyProviderDefined extends
   ProviderDefined<any, any, {
-    readonly args: Schema.Constraint
-    readonly parameters: Schema.Constraint
-    readonly success: Schema.Constraint
-    readonly failure: Schema.Constraint
+    readonly args: Schema.Top
+    readonly parameters: Schema.Top
+    readonly success: Schema.Top
+    readonly failure: Schema.Top
     readonly failureMode: FailureMode
   }, any>
 {}
@@ -673,9 +673,9 @@ export interface AnyProviderDefined extends
  */
 export interface AnyDynamic extends
   Dynamic<any, {
-    readonly parameters: Schema.Constraint | JsonSchema.JsonSchema
-    readonly success: Schema.Constraint
-    readonly failure: Schema.Constraint
+    readonly parameters: Schema.Top | JsonSchema.JsonSchema
+    readonly success: Schema.Top
+    readonly failure: Schema.Top
     readonly failureMode: FailureMode
   }, any>
 {}

@@ -26,14 +26,14 @@ const StreamSchemaTypeId = "~effect/rpc/RpcSchema/StreamSchema"
  * @category streams
  * @since 4.0.0
  */
-export function isStreamSchema(schema: Schema.Constraint): schema is Stream<Schema.Constraint, Schema.Constraint> {
+export function isStreamSchema(schema: Schema.Constraint): schema is Stream<Schema.Top, Schema.Top> {
   return Predicate.hasProperty(schema, StreamSchemaTypeId)
 }
 
 /** @internal */
 export function getStreamSchemas(schema: Schema.Constraint): Option.Option<{
-  readonly success: Schema.Constraint
-  readonly error: Schema.Constraint
+  readonly success: Schema.Top
+  readonly error: Schema.Top
 }> {
   return isStreamSchema(schema) ?
     Option.some({

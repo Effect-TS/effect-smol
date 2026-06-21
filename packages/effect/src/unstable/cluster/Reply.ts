@@ -161,7 +161,7 @@ export interface ChunkEncoded {
   readonly values: NonEmptyReadonlyArray<unknown>
 }
 
-const schemaCache = new WeakMap<Rpc.Any, Schema.Constraint>()
+const schemaCache = new WeakMap<Rpc.Any, Schema.Top>()
 
 /**
  * Represents a streaming RPC reply chunk for a request, carrying a non-empty

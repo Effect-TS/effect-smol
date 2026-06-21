@@ -51,7 +51,7 @@ export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, an
  */
 export type PayloadMap = ReadonlyMap<string, {
   readonly encoding: HttpApiSchema.PayloadEncoding
-  readonly schemas: [Schema.Constraint, ...Array<Schema.Constraint>]
+  readonly schemas: [Schema.Top, ...Array<Schema.Top>]
 }>
 
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
@@ -78,7 +78,7 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   infer _Value
 > ? _Events["DecodingServices"] | _Error["DecodingServices"]
   : S extends HttpApiSchema.StreamUint8Array ? never
-  : S extends Schema.Top ? S["DecodingServices"]
+  : S extends Schema.Constraint ? S["DecodingServices"]
   : never
 
 type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<Schema.Constraint> ? S[number] : S
@@ -107,12 +107,12 @@ export interface HttpApiEndpoint<
   out Name extends string,
   out Method extends HttpMethod,
   out Path extends string,
-  out Params extends Schema.Constraint = never,
-  out Query extends Schema.Constraint = never,
-  out Payload extends Schema.Constraint = never,
-  out Headers extends Schema.Constraint = never,
-  out Success extends Schema.Constraint = typeof HttpApiSchema.NoContent,
-  out Error extends Schema.Constraint = never,
+  out Params extends Schema.Top = never,
+  out Query extends Schema.Top = never,
+  out Payload extends Schema.Top = never,
+  out Headers extends Schema.Top = never,
+  out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
+  out Error extends Schema.Top = never,
   in out Middleware = never,
   out MiddlewareR = never
 > extends Pipeable {
@@ -129,12 +129,12 @@ export interface HttpApiEndpoint<
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly params: Schema.Constraint | undefined
-  readonly query: Schema.Constraint | undefined
-  readonly headers: Schema.Constraint | undefined
+  readonly params: Schema.Top | undefined
+  readonly query: Schema.Top | undefined
+  readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
-  readonly success: ReadonlySet<Schema.Constraint>
-  readonly error: ReadonlySet<Schema.Constraint>
+  readonly success: ReadonlySet<Schema.Top>
+  readonly error: ReadonlySet<Schema.Top>
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
 
@@ -215,8 +215,8 @@ export interface HttpApiEndpoint<
 }
 
 /** @internal */
-export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Constraint> {
-  const result: Array<Schema.Constraint> = []
+export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
+  const result: Array<Schema.Top> = []
   for (const { schemas } of endpoint.payload.values()) {
     result.push(...schemas)
   }
@@ -224,14 +224,14 @@ export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Constrai
 }
 
 /** @internal */
-export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Constraint, ...Array<Schema.Constraint>] {
+export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
   const schemas = Array.from(endpoint.success)
   return Arr.isArrayNonEmpty(schemas) ? schemas : [HttpApiSchema.NoContent]
 }
 
 /** @internal */
-export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Constraint> {
-  const schemas = new Set<Schema.Constraint>(endpoint.error)
+export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
+  const schemas = new Set<Schema.Top>(endpoint.error)
   for (const middleware of endpoint.middlewares) {
     const key = middleware as any as HttpApiMiddleware.AnyService
     for (const schema of key.error) {
@@ -251,8 +251,8 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Constraint
 export interface Any extends Pipeable {
   readonly [TypeId]: any
   readonly name: string
-  readonly ["~Success"]: Schema.Constraint
-  readonly ["~Error"]: Schema.Constraint
+  readonly ["~Success"]: Schema.Top
+  readonly ["~Error"]: Schema.Top
 }
 
 /**
@@ -262,8 +262,18 @@ export interface Any extends Pipeable {
  * @category models
  * @since 4.0.0
  */
-export interface AnyWithProps
-  extends HttpApiEndpoint<string, HttpMethod, string, Schema.Top, Schema.Top, Schema.Top, Schema.Top, any, any>
+export interface AnyWithProps extends
+  HttpApiEndpoint<
+    string,
+    HttpMethod,
+    string,
+    Schema.Top,
+    Schema.Top,
+    Schema.Top,
+    Schema.Top,
+    any,
+    any
+  >
 {}
 
 /**
@@ -983,24 +993,24 @@ function makeProto<
   Name extends string,
   Method extends HttpMethod,
   const Path extends string,
-  Params extends Schema.Constraint,
-  Query extends Schema.Constraint,
-  Payload extends Schema.Constraint,
-  Headers extends Schema.Constraint,
-  Success extends Schema.Constraint,
-  Error extends Schema.Constraint,
+  Params extends Schema.Top,
+  Query extends Schema.Top,
+  Payload extends Schema.Top,
+  Headers extends Schema.Top,
+  Success extends Schema.Top,
+  Error extends Schema.Top,
   Middleware,
   MiddlewareR
 >(options: {
   readonly name: Name
   readonly path: Path
   readonly method: Method
-  readonly params: Schema.Constraint | undefined
-  readonly query: Schema.Constraint | undefined
-  readonly headers: Schema.Constraint | undefined
+  readonly params: Schema.Top | undefined
+  readonly query: Schema.Top | undefined
+  readonly headers: Schema.Top | undefined
   readonly payload: PayloadMap
-  readonly success: ReadonlySet<Schema.Constraint>
-  readonly error: ReadonlySet<Schema.Constraint>
+  readonly success: ReadonlySet<Schema.Top>
+  readonly error: ReadonlySet<Schema.Top>
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
 }): HttpApiEndpoint<
@@ -1027,8 +1037,8 @@ function makeProto<
  * @since 4.0.0
  */
 export type ParamsConstraint =
-  | Record<string, Schema.ConstraintEncoder<string | undefined, unknown>>
-  | Schema.ConstraintEncoder<Record<string, string | undefined>, unknown>
+  | Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+  | Schema.Codec<unknown, Record<string, string | undefined>, unknown, unknown>
 
 /**
  * Constraint for header schemas: each header must encode to `string | undefined`,
@@ -1038,8 +1048,8 @@ export type ParamsConstraint =
  * @since 4.0.0
  */
 export type HeadersConstraint =
-  | Record<string, Schema.ConstraintEncoder<string | undefined, unknown>>
-  | Schema.ConstraintEncoder<Record<string, string | undefined>, unknown>
+  | Record<string, Schema.Codec<unknown, string | undefined, unknown, unknown>>
+  | Schema.Codec<unknown, Record<string, string | undefined>, unknown, unknown>
 
 /**
  * Constraint for query schemas: each field must encode to `string`, an array of
@@ -1049,8 +1059,8 @@ export type HeadersConstraint =
  * @since 4.0.0
  */
 export type QueryConstraint =
-  | Record<string, Schema.ConstraintEncoder<string | ReadonlyArray<string> | undefined, unknown>>
-  | Schema.ConstraintEncoder<Record<string, string | ReadonlyArray<string> | undefined>, unknown>
+  | Record<string, Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>>
+  | Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
 
 /**
  * Payload schema depends on the HTTP method:
@@ -1065,9 +1075,9 @@ export type QueryConstraint =
  */
 export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMethod.NoBody ? Record<
     string,
-    Schema.ConstraintEncoder<string | ReadonlyArray<string> | undefined, unknown>
+    Schema.Codec<unknown, string | ReadonlyArray<string> | undefined, unknown, unknown>
   > :
-  Schema.Constraint | ReadonlyArray<Schema.Constraint>
+  Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * Payload constraint used when automatic codecs are enabled: no-body methods
@@ -1078,8 +1088,8 @@ export type PayloadConstraint<Method extends HttpMethod> = Method extends HttpMe
  * @since 4.0.0
  */
 export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends HttpMethod.NoBody ?
-  Record<string, Schema.Constraint> :
-  Schema.Constraint | ReadonlyArray<Schema.Constraint>
+  Record<string, Schema.Top> :
+  Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * Constraint for success response schemas, allowing either a single schema or a
@@ -1088,7 +1098,7 @@ export type PayloadConstraintCodecs<Method extends HttpMethod> = Method extends 
  * @category constraints
  * @since 4.0.0
  */
-export type SuccessConstraint = Schema.Constraint | ReadonlyArray<Schema.Constraint>
+export type SuccessConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 /**
  * Constraint for error response schemas, allowing either a single schema or a
@@ -1097,7 +1107,7 @@ export type SuccessConstraint = Schema.Constraint | ReadonlyArray<Schema.Constra
  * @category constraints
  * @since 4.0.0
  */
-export type ErrorConstraint = Schema.Constraint | ReadonlyArray<Schema.Constraint>
+export type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
 type ErrorNoStream<S extends ErrorConstraint> = [
   Extract<
@@ -1119,12 +1129,12 @@ export const make = <Method extends HttpMethod>(method: Method): {
   <
     const Name extends string,
     const Path extends HttpRouter.PathInput,
-    Params extends Schema.Constraint | Schema.Struct.Fields = never,
-    Query extends Schema.Constraint | Schema.Struct.Fields = never,
+    Params extends Schema.Top | Schema.Struct.Fields = never,
+    Query extends Schema.Top | Schema.Struct.Fields = never,
     Payload extends PayloadConstraintCodecs<Method> = never,
-    Headers extends Schema.Constraint | Schema.Struct.Fields = never,
+    Headers extends Schema.Top | Schema.Struct.Fields = never,
     const Success extends SuccessConstraint = HttpApiSchema.NoContent,
-    const Error extends Schema.Constraint | ReadonlyArray<Schema.Constraint> = never
+    const Error extends Schema.Top | ReadonlyArray<Schema.Top> = never
   >(
     name: Name,
     path: Path,
@@ -1268,7 +1278,7 @@ export interface StringTree<S extends Schema.Constraint> extends
 function ensureStruct(
   params: Schema.Struct.Fields | Schema.Constraint | undefined,
   transform: typeof Schema.toCodecJson | typeof Schema.toCodecStringTree
-): Schema.Constraint | undefined {
+): Schema.Top | undefined {
   if (params === undefined) return undefined
   if (Schema.isSchema(params)) return transform(params)
   return transform(Schema.Struct(params as Schema.Struct.Fields))
@@ -1281,10 +1291,10 @@ function getPayload(
 ): PayloadMap {
   const result: Map<
     string,
-    { encoding: HttpApiSchema.PayloadEncoding; schemas: [Schema.Constraint, ...Array<Schema.Constraint>] }
+    { encoding: HttpApiSchema.PayloadEncoding; schemas: [Schema.Top, ...Array<Schema.Top>] }
   > = new Map()
   if (payload === undefined) return result
-  const schemas: Array<Schema.Constraint> = Array.isArray(payload)
+  const schemas: Array<Schema.Top> = Array.isArray(payload)
     ? payload
     : Schema.isSchema(payload)
     ? [payload]
@@ -1312,10 +1322,10 @@ function getPayload(
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
 function getSuccessResponse(
-  success: Schema.Constraint | ReadonlyArray<Schema.Constraint> | undefined,
+  success: Schema.Top | ReadonlyArray<Schema.Top> | undefined,
   method: HttpMethod,
   disableCodecs: boolean
-): Set<Schema.Constraint> {
+): Set<Schema.Top> {
   if (success === undefined) return new Set()
   const schemas = Arr.ensure(success)
   validateSuccessResponse(schemas, method)
@@ -1327,9 +1337,9 @@ function getSuccessResponse(
 }
 
 function getErrorResponse(
-  error: Schema.Constraint | ReadonlyArray<Schema.Constraint> | undefined,
+  error: Schema.Top | ReadonlyArray<Schema.Top> | undefined,
   disableCodecs: boolean
-): Set<Schema.Constraint> {
+): Set<Schema.Top> {
   if (error === undefined) return new Set()
   const schemas = Arr.ensure(error)
   for (const schema of schemas) {
@@ -1459,7 +1469,7 @@ function hasReservedEventLiteral(ast: AST.AST, seen: Set<AST.AST>): boolean {
   return false
 }
 
-function transformResponse(schema: Schema.Constraint): Schema.Constraint {
+function transformResponse(schema: Schema.Top): Schema.Top {
   const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
   switch (encoding._tag) {
     case "Json":
@@ -1472,7 +1482,7 @@ function transformResponse(schema: Schema.Constraint): Schema.Constraint {
   }
 }
 
-function transformPayload(schema: Schema.Constraint, method: HttpMethod): Schema.Constraint {
+function transformPayload(schema: Schema.Top, method: HttpMethod): Schema.Top {
   const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, method)
   switch (encoding._tag) {
     case "Json":

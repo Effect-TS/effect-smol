@@ -1244,10 +1244,10 @@ const makeUriMatcher = <A>() => {
 const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: ReadonlyArray<Schema.Constraint>) => {
   let routerPath = segments[0].replace(":", "::")
   let uriPath = segments[0]
-  const params: Record<string, Schema.Constraint> = {}
-  let pathSchema = Schema.Tuple([]) as Schema.Constraint
+  const params: Record<string, Schema.Top> = {}
+  let pathSchema = Schema.Tuple([]) as Schema.Top
   if (schemas.length > 0) {
-    const arr: Array<Schema.Constraint> = []
+    const arr: Array<Schema.Top> = []
     for (let i = 0; i < schemas.length; i++) {
       const toCodecStringTree = Schema.toCodecStringTree(schemas[i])
       const segment = segments[i + 1]
@@ -1255,7 +1255,7 @@ const compileUriTemplate = (segments: TemplateStringsArray, ...schemas: Readonly
       arr.push(toCodecStringTree)
       routerPath += `:${key}${segment.replace(":", "::")}`
       const schema = schemas[i]
-      const paramName = isParam(schema) ? (schema as Param<string, Schema.Constraint>).name : `param${key}`
+      const paramName = isParam(schema) ? (schema as Param<string, Schema.Top>).name : `param${key}`
       params[paramName] = toCodecStringTree
       uriPath += `{${paramName}}${segment}`
     }

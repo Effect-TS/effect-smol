@@ -258,8 +258,8 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
       readonly endpoint: HttpApiEndpoint.AnyWithProps
       readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
-      readonly successes: ReadonlyMap<number, readonly [Schema.Constraint, ...Array<Schema.Constraint>]>
-      readonly errors: ReadonlyMap<number, readonly [Schema.Constraint, ...Array<Schema.Constraint>]>
+      readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
+      readonly errors: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
       readonly endpointFn: Function
     }) => void
     readonly transformResponse?:
@@ -636,10 +636,10 @@ export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
       const makeUrl = compilePath(endpoint.path)
       const encodeParams = endpoint.params === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.params as Schema.ConstraintEncoder<unknown>)
+        : Schema.encodeSync(endpoint.params as Schema.Codec<unknown, unknown>)
       const encodeQuery = endpoint.query === undefined
         ? undefined
-        : Schema.encodeSync(endpoint.query as Schema.ConstraintEncoder<unknown>)
+        : Schema.encodeSync(endpoint.query as Schema.Codec<unknown, unknown>)
 
       const endpointBuilder = (request?: {
         readonly params?: unknown
@@ -730,9 +730,9 @@ function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): 
 }
 
 function groupSchemasByContentType(
-  schemas: Arr.NonEmptyReadonlyArray<Schema.Constraint>
-): Map<string, Arr.NonEmptyReadonlyArray<Schema.Constraint>> {
-  const grouped = new Map<string, [Schema.Constraint, ...Array<Schema.Constraint>]>()
+  schemas: Arr.NonEmptyReadonlyArray<Schema.Top>
+): Map<string, Arr.NonEmptyReadonlyArray<Schema.Top>> {
+  const grouped = new Map<string, [Schema.Top, ...Array<Schema.Top>]>()
   for (const schema of schemas) {
     const contentType = HttpApiSchema.getResponseEncoding(schema.ast).contentType
     const existing = grouped.get(contentType)
@@ -893,7 +893,7 @@ const UnknownFromArrayBuffer = StringFromArrayBuffer.pipe(Schema.decodeTo(
   ])
 ))
 
-function toCodecArrayBuffer(schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>]): Schema.Constraint {
+function toCodecArrayBuffer(schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>]): Schema.Top {
   return Schema.Union(schemas.map(onSchema))
 
   function onSchema(schema: Schema.Constraint) {
@@ -940,16 +940,16 @@ const $HttpBody = Schema.declare(HttpBody.isHttpBody)
 function getEncodePayloadSchema(
   schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>],
   method: HttpMethod.HttpMethod
-): Schema.Constraint {
+): Schema.Top {
   return Schema.Union(schemas.map((s) => getEncodePayloadSchemaFromBody(s, method)))
 }
 
-const bodyFromPayloadCache = new WeakMap<SchemaAST.AST, Schema.Constraint>()
+const bodyFromPayloadCache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
 function getEncodePayloadSchemaFromBody(
   schema: Schema.Constraint,
   method: HttpMethod.HttpMethod
-): Schema.Constraint {
+): Schema.Top {
   const ast = schema.ast
   const cached = bodyFromPayloadCache.get(ast)
   if (cached !== undefined) {

@@ -124,7 +124,7 @@ export interface Service {
    */
   readonly generateObject: <
     ObjectEncoded extends Record<string, any>,
-    StructuredOutputSchema extends Schema.ConstraintEncoder<ObjectEncoded, unknown>,
+    StructuredOutputSchema extends Schema.Codec<unknown, ObjectEncoded, unknown, unknown>,
     Options extends NoExcessProperties<
       GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
@@ -285,7 +285,7 @@ type GenerateTextOptionsWithoutToolkit = Omit<GenerateTextOptions<{}>, "toolkit"
  */
 export interface GenerateObjectOptions<
   Tools extends Record<string, Tool.Any>,
-  StructuredOutputSchema extends Schema.Constraint
+  StructuredOutputSchema extends Schema.Top
 > extends GenerateTextOptions<Tools> {
   /**
    * The name of the structured output that should be generated. Used by some
@@ -677,7 +677,7 @@ export interface ProviderOptions {
     | {
       readonly type: "json"
       readonly objectName: string
-      readonly schema: Schema.Constraint
+      readonly schema: Schema.Top
     }
 
   /**
@@ -835,7 +835,7 @@ export const make: (params: {
 
   const generateObject = <
     ObjectEncoded extends Record<string, any>,
-    StructuredOutputSchema extends Schema.ConstraintEncoder<ObjectEncoded, unknown>,
+    StructuredOutputSchema extends Schema.Codec<unknown, ObjectEncoded, unknown, unknown>,
     Options extends NoExcessProperties<
       GenerateObjectOptions<any, StructuredOutputSchema>,
       Options
@@ -1691,7 +1691,7 @@ export const generateText: {
  */
 export const generateObject = <
   ObjectEncoded extends Record<string, any>,
-  StructuredOutputSchema extends Schema.ConstraintEncoder<ObjectEncoded, unknown>,
+  StructuredOutputSchema extends Schema.Codec<unknown, ObjectEncoded, unknown, unknown>,
   Options extends NoExcessProperties<
     GenerateObjectOptions<any, StructuredOutputSchema>,
     Options

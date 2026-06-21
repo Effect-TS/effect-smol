@@ -945,7 +945,7 @@ function makeErrorSchema(
 }
 
 function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
-  const cache = new WeakMap<SchemaAST.AST, Schema.Constraint>()
+  const cache = new WeakMap<SchemaAST.AST, Schema.Top>()
 
   return (schema: Schema.Constraint): Schema.ConstraintEncoder<HttpServerResponse, unknown> => {
     const cached = cache.get(schema.ast)

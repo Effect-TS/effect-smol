@@ -549,7 +549,7 @@ function recur(ast: SchemaAST.AST, path: ReadonlyArray<PropertyKey>): LazyArbitr
   // handle annotations
   // ---------------------------------------------
   const annotation = InternalAnnotations.resolve(ast)?.toArbitrary as
-    | Schema.Annotations.ToArbitrary.Declaration<any, ReadonlyArray<Schema.Constraint>>
+    | Schema.Annotations.ToArbitrary.Declaration<any, ReadonlyArray<Schema.Top>>
     | undefined
   if (annotation) {
     const typeParameters = SchemaAST.isDeclaration(ast) ? ast.typeParameters.map((tp) => recur(tp, path)) : []

@@ -24,7 +24,7 @@ describe("HttpApiMiddleware", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.String
       }).middleware(M)
-      expect(M.error).type.toBe<ReadonlySet<Schema.Constraint>>()
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<string>()
       expect(M.security).type.toBe<never>()
     })
@@ -51,7 +51,7 @@ describe("HttpApiMiddleware", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.String
       }).middleware(M)
-      expect(M.error).type.toBe<ReadonlySet<Schema.Constraint>>()
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<never>()
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
@@ -69,7 +69,7 @@ describe("HttpApiMiddleware", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.String
       }).middleware(M)
-      expect(M.error).type.toBe<ReadonlySet<Schema.Constraint>>()
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<string>()
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
@@ -81,7 +81,7 @@ describe("HttpApiMiddleware", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.String
       }).middleware(M)
-      expect(M.error).type.toBe<ReadonlySet<Schema.Constraint>>()
+      expect(M.error).type.toBe<ReadonlySet<Schema.Top>>()
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<
         HttpApiError.Unauthorized | HttpApiError.Forbidden
       >()

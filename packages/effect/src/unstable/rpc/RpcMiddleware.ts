@@ -126,7 +126,7 @@ export interface AnyId {
   readonly [TypeId]: {
     readonly provides: any
     readonly requires: any
-    readonly error: Schema.Constraint
+    readonly error: Schema.Top
     readonly clientError: any
   }
 }
@@ -228,7 +228,7 @@ export type ErrorServicesDecode<A> = ErrorSchema<A>["DecodingServices"]
  */
 export interface AnyService extends Context.Key<any, any> {
   readonly [TypeId]: typeof TypeId
-  readonly error: Schema.Constraint
+  readonly error: Schema.Top
   readonly requiredForClient: boolean
   readonly "~ClientError": any
 }
@@ -242,7 +242,7 @@ export interface AnyService extends Context.Key<any, any> {
  */
 export interface AnyServiceWithProps extends Context.Key<any, RpcMiddleware<any, any, any>> {
   readonly [TypeId]: typeof TypeId
-  readonly error: Schema.Constraint
+  readonly error: Schema.Top
   readonly requiredForClient: boolean
   readonly "~ClientError": any
 }
@@ -268,7 +268,7 @@ export const Service = <
   }
 >(): <
   const Name extends string,
-  Error extends Schema.Constraint = Schema.Never,
+  Error extends Schema.Top = Schema.Never,
   const RequiredForClient extends boolean = false
 >(
   id: Name,
@@ -288,7 +288,7 @@ export const Service = <
 (
   id: string,
   options?: {
-    readonly error?: Schema.Constraint | undefined
+    readonly error?: Schema.Top | undefined
     readonly requiredForClient?: boolean | undefined
   }
 ) => {

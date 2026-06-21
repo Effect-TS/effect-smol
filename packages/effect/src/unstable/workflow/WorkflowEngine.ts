@@ -43,8 +43,8 @@ export class WorkflowEngine extends Context.Service<
     readonly register: <
       Name extends string,
       Payload extends Workflow.AnyStructSchema,
-      Success extends Schema.Constraint,
-      Error extends Schema.Constraint,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
       R
     >(
       workflow: Workflow.Workflow<Name, Payload, Success, Error>,
@@ -77,8 +77,8 @@ export class WorkflowEngine extends Context.Service<
     readonly execute: <
       Name extends string,
       Payload extends Workflow.AnyStructSchema,
-      Success extends Schema.Constraint,
-      Error extends Schema.Constraint,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
       const Discard extends boolean = false
     >(
       workflow: Workflow.Workflow<Name, Payload, Success, Error>,
@@ -104,8 +104,8 @@ export class WorkflowEngine extends Context.Service<
     readonly poll: <
       Name extends string,
       Payload extends Workflow.AnyStructSchema,
-      Success extends Schema.Constraint,
-      Error extends Schema.Constraint
+      Success extends Schema.Top,
+      Error extends Schema.Top
     >(
       workflow: Workflow.Workflow<Name, Payload, Success, Error>,
       executionId: string
@@ -390,8 +390,8 @@ export const makeUnsafe = (options: Encoded): WorkflowEngine["Service"] =>
     execute: Effect.fnUntraced(function*<
       Name extends string,
       Payload extends Workflow.AnyStructSchema,
-      Success extends Schema.Constraint,
-      Error extends Schema.Constraint,
+      Success extends Schema.Top,
+      Error extends Schema.Top,
       const Discard extends boolean = false
     >(
       self: Workflow.Workflow<Name, Payload, Success, Error>,

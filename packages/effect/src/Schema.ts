@@ -12995,14 +12995,14 @@ export function overrideToFormatter<S extends Top>(toFormatter: () => Formatter<
  * @category Formatter
  * @since 4.0.0
  */
-export function toFormatter<T>(schema: Schema<T>, options?: {
+export function toFormatter<S extends Constraint>(schema: S, options?: {
   readonly onBefore?:
     | ((ast: SchemaAST.AST, recur: (ast: SchemaAST.AST) => Formatter<any>) => Formatter<any> | undefined)
     | undefined
-}): Formatter<T> {
+}): Formatter<S["Type"]> {
   return recur(schema.ast)
 
-  function recur(ast: SchemaAST.AST): Formatter<T> {
+  function recur(ast: SchemaAST.AST): Formatter<S["Type"]> {
     // ---------------------------------------------
     // handle annotation
     // ---------------------------------------------

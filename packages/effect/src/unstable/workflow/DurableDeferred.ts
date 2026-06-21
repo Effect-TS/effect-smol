@@ -43,7 +43,7 @@ export interface DurableDeferred<
   readonly name: string
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly exitSchema: Schema.Exit<Schema.Constraint, Schema.Constraint, Schema.Constraint>
+  readonly exitSchema: Schema.Exit<Schema.Top, Schema.Top, Schema.Top>
   readonly withActivityAttempt: Effect.Effect<DurableDeferred<Success, Error>>
 }
 
@@ -69,8 +69,8 @@ export interface Any {
 export interface AnyWithProps {
   readonly [TypeId]: typeof TypeId
   readonly name: string
-  readonly successSchema: Schema.Constraint
-  readonly errorSchema: Schema.Constraint
+  readonly successSchema: Schema.Top
+  readonly errorSchema: Schema.Top
   readonly exitSchema: Schema.Exit<any, any, any>
 }
 

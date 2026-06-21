@@ -108,8 +108,8 @@ export interface Any {
 export interface AnyWithProps {
   readonly [TypeId]: typeof TypeId
   readonly name: string
-  readonly successSchema: Schema.Constraint
-  readonly errorSchema: Schema.Constraint
+  readonly successSchema: Schema.Top
+  readonly errorSchema: Schema.Top
   readonly executeEncoded: Effect.Effect<any, any, any>
 }
 
