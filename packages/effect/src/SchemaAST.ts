@@ -680,7 +680,7 @@ export class Declaration extends Base {
   }
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const tps = mapOrSame(this.typeParameters, recur)
-    return tps === this.typeParameters ?
+    return tps === this.typeParameters && checks === this.checks && encodingChecks === this.encodingChecks ?
       this :
       new Declaration(tps, this.run, this.annotations, checks, undefined, this.context, encodingChecks)
   }
@@ -1704,7 +1704,8 @@ export class Arrays extends Base {
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const elements = mapOrSame(this.elements, recur)
     const rest = mapOrSame(this.rest, recur)
-    return elements === this.elements && rest === this.rest ?
+    return elements === this.elements && rest === this.rest && checks === this.checks &&
+        encodingChecks === this.encodingChecks ?
       this :
       new Arrays(
         this.isMutable,
@@ -2245,7 +2246,8 @@ export class Objects extends Base {
         : new IndexSignature(p, t, merge)
     })
 
-    return props === this.propertySignatures && indexes === this.indexSignatures
+    return props === this.propertySignatures && indexes === this.indexSignatures && checks === this.checks &&
+        encodingChecks === this.encodingChecks
       ? this
       : new Objects(
         props,
@@ -2345,7 +2347,7 @@ export function struct<Fields extends Schema.Struct.Fields>(
 }
 
 /** @internal */
-export function getAST<S extends Schema.Top>(self: S): S["ast"] {
+export function getAST<S extends { readonly ast: AST }>(self: S): S["ast"] {
   return self.ast
 }
 
@@ -2358,7 +2360,7 @@ export function tuple<Elements extends Schema.Tuple.Elements>(
 }
 
 /** @internal */
-export function union<Members extends ReadonlyArray<Schema.Top>>(
+export function union<Members extends ReadonlyArray<{ readonly ast: AST }>>(
   members: Members,
   mode: "anyOf" | "oneOf",
   checks: Checks | undefined
@@ -2661,7 +2663,7 @@ export class Union<A extends AST = AST> extends Base {
   }
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const types = mapOrSame(this.types, recur)
-    return types === this.types ?
+    return types === this.types && checks === this.checks && encodingChecks === this.encodingChecks ?
       this :
       new Union(types, this.mode, this.annotations, checks, undefined, this.context, encodingChecks)
   }
@@ -2857,19 +2859,6 @@ export class Suspend extends Base {
   /** @internal */
   getExpected(getExpected: (ast: AST) => string): string {
     return getExpected(this.thunk())
-  }
-}
-
-/** @internal */
-export function getEncodingChecks(ast: AST): Checks | undefined {
-  switch (ast._tag) {
-    case "Declaration":
-    case "Arrays":
-    case "Objects":
-    case "Union":
-      return ast.encodingChecks
-    default:
-      return undefined
   }
 }
 
@@ -3141,6 +3130,14 @@ export function applyToLastLink(f: (ast: AST) => AST) {
 }
 
 /** @internal */
+export function applyToSelfOrLastLinkEncoding(f: (ast: AST) => AST) {
+  function out(ast: AST): AST {
+    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
+  }
+  return memoize(out)
+}
+
+/** @internal */
 export function middlewareDecoding(
   ast: AST,
   middleware: SchemaTransformation.Middleware<any, any, any, any, any, any>
@@ -3384,9 +3381,13 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
   }
   const out: any = ast
   const type = out.recur?.(toType) ?? out
-  if (getEncodingChecks(type)) {
+  const encodingChecks = type.encodingChecks
+  if (encodingChecks) {
     return modifyOwnPropertyDescriptors(type, (d) => {
       d.encodingChecks.value = undefined
+      if (type === ast) {
+        d.checks.value = combineChecks(type.checks, encodingChecks)
+      }
     })
   }
   return type
@@ -3560,15 +3561,7 @@ export const enumsToLiterals = memoize((ast: Enum): Union<Literal> => {
   )
 })
 
-/** @internal */
-export function toCodec(f: (ast: AST) => AST) {
-  function out(ast: AST): AST {
-    return ast.encoding ? replaceEncoding(ast, updateLastLink(ast.encoding, out)) : f(ast)
-  }
-  return memoize(out)
-}
-
-const parameterFromPropertyKey = toCodec((ast) => {
+const parameterFromPropertyKey = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3580,7 +3573,7 @@ const parameterFromPropertyKey = toCodec((ast) => {
 })
 
 /** @internal */
-export const parameterFromString = toCodec((ast) => {
+export const parameterFromString = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3592,7 +3585,7 @@ export const parameterFromString = toCodec((ast) => {
   }
 })
 
-const partFromString = toCodec((ast) => {
+const partFromString = applyToSelfOrLastLinkEncoding((ast) => {
   switch (ast._tag) {
     default:
       return ast
@@ -3970,10 +3963,7 @@ const StringTree = new Declaration(
     isStringTree(input) ?
       Effect.succeed(input) :
       Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input))),
-  {
-    expected: "StringTree",
-    toCodecStringTree: () => new Link(unknown, SchemaTransformation.passthrough())
-  }
+  { expected: "StringTree" }
 )
 
 /** @internal */

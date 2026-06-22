@@ -17,7 +17,7 @@ const baseAjvOptions: AjvOptions = {
 const ajvDraft2020_12 = new Ajv2020.default(baseAjvOptions)
 
 function assertUnsupportedSchema(
-  schema: Schema.Top,
+  schema: Schema.Constraint,
   message: string,
   options?: Schema.ToJsonSchemaOptions
 ) {

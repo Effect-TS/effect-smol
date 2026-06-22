@@ -557,10 +557,17 @@ const recur: (
       }
       case "Arrays": {
         const stat = yield* provider.load(path)
-        if (stat && stat._tag === "Value") return stat.value
+        if (stat && stat._tag === "Value") return stat.value === "" ? [] : stat.value.split(",")
+        if (stat && stat._tag === "Array" && stat.value !== undefined) {
+          return stat.value === "" ? [] : stat.value.split(",")
+        }
         const out: Array<Schema.StringTree> = []
-        for (let i = 0; i < ast.elements.length; i++) {
-          out.push(yield* recur(ast.elements[i], provider, [...path, i]))
+        const length = stat && stat._tag === "Array" ? stat.length : ast.elements.length
+        for (let i = 0; i < length; i++) {
+          const element = ast.elements[i] ?? ast.rest[0]
+          if (element !== undefined) {
+            out.push(yield* recur(element, provider, [...path, i]))
+          }
         }
         return out
       }
@@ -760,7 +767,7 @@ export const LogLevel = Schema.Literals(LogLevel_.values)
  * @category schemas
  * @since 4.0.0
  */
-export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K, value: V, options?: {
+export const Record = <K extends Schema.Record.Key, V extends Schema.Constraint>(key: K, value: V, options?: {
   readonly separator?: string | undefined
   readonly keyValueSeparator?: string | undefined
 }) => {
@@ -780,7 +787,7 @@ export const Record = <K extends Schema.Record.Key, V extends Schema.Top>(key: K
  * @category schemas
  * @since 4.0.0
  */
-const ArrayConfig = <V extends Schema.Top>(value: V, options?: {
+const ArrayConfig = <V extends Schema.Constraint>(value: V, options?: {
   readonly separator?: string | undefined
 }) => {
   const array = Schema.Array(value)

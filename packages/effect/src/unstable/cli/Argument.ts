@@ -262,7 +262,7 @@ export const fileParse = (
  */
 export const fileSchema = <A>(
   name: string,
-  schema: Schema.Decoder<A, Environment>,
+  schema: Schema.ConstraintDecoder<A, Environment>,
   options?: Primitive.FileSchemaOptions | undefined
 ): Argument<A> => Param.fileSchema(Param.argumentKind, name, schema, options)
 
