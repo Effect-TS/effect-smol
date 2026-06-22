@@ -1524,7 +1524,7 @@ export const decodeUnknownOption: <S extends ConstraintDecoder<unknown>>(
 export const decodeOption: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
-) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = decodeUnknownOption
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = SchemaParser.decodeOption
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
@@ -1949,7 +1949,7 @@ export const encodeUnknownOption: <S extends ConstraintEncoder<unknown>>(
 export const encodeOption: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
-) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = encodeUnknownOption
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = SchemaParser.encodeOption
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
@@ -8882,6 +8882,7 @@ export interface Redacted<S extends Constraint> extends
  *   into JSON, it will fail with an error. This is useful when the wrapped schema is
  *   sensitive and should not be exposed in JSON.
  *
+ * @see {@link RedactedFromValue} for decoding raw values and wrapping them in `Redacted`.
  * @category Redacted
  * @since 3.10.0
  */
@@ -8984,6 +8985,7 @@ export function redact<S extends Constraint>(schema: S): middlewareDecoding<S, S
  * expects the input to already be a `Redacted` instance, this schema decodes
  * the raw value and wraps it.
  *
+ * @see {@link Redacted} for schemas whose input is already a `Redacted` value.
  * @category Redacted
  * @since 4.0.0
  */

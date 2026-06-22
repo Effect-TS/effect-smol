@@ -3155,23 +3155,6 @@ export const unwrapReason: {
 )
 
 /** @internal */
-export const mapErrorCause: {
-  <E, E2>(
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E2, R>
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R>
-} = dual(
-  2,
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R> => catchCause(self, (cause) => failCauseSync(() => f(cause)))
-)
-
-/** @internal */
 export const mapError: {
   <E, E2>(
     f: (e: E) => E2
