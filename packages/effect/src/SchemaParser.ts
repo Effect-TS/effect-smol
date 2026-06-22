@@ -1007,12 +1007,14 @@ export interface Parser {
 const recur = memoize(
   (ast: SchemaAST.AST): Parser => {
     let parser: Parser
+    const checks = ast.checks
+    const encoding = ast.encoding
+    const links = encoding
+    const len = links?.length ?? 0
     const encodingChecks = (ast as any).encodingChecks
-    const resolvedChecks = ast.checks ?? encodingChecks
-    // TODO: is this correct?
-    const astOptions = (resolvedChecks ? resolvedChecks[resolvedChecks.length - 1].annotations : ast.annotations)
+    const astOptions = (checks ? checks[checks.length - 1].annotations : ast.annotations)
       ?.["parseOptions"]
-    if (!ast.context && !ast.encoding && !ast.checks && !encodingChecks) {
+    if (!ast.context && !encoding && !checks && !encodingChecks) {
       return (ou, options) => {
         parser ??= ast.getParser(recur)
         if (astOptions) {
@@ -1023,15 +1025,15 @@ const recur = memoize(
     }
     const isStructural = SchemaAST.isArrays(ast) || SchemaAST.isObjects(ast) ||
       (SchemaAST.isDeclaration(ast) && ast.typeParameters.length > 0)
+    const structuralChecks = checks && isStructural ?
+      checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]) :
+      undefined
     return (ou, options) => {
       if (astOptions) {
         options = { ...options, ...astOptions }
       }
-      const encoding = ast.encoding
       let srou: Effect.Effect<Option.Option<unknown>, SchemaIssue.Issue, unknown> | undefined
-      if (encoding) {
-        const links = encoding
-        const len = links.length
+      if (links) {
         for (let i = len - 1; i >= 0; i--) {
           const link = links[i]
           const to = link.to
@@ -1066,13 +1068,12 @@ const recur = memoize(
           })
         }
 
-        if (ast.checks && !options?.disableChecks) {
-          const checks = ast.checks
-          if (options?.errors === "all" && isStructural && Option.isSome(localOu)) {
+        if (checks && !options?.disableChecks) {
+          if (options?.errors === "all" && structuralChecks && structuralChecks.length > 0 && Option.isSome(localOu)) {
             sroa = mapSchemaIssueEffect(sroa, (issue) => {
               const issues: Array<SchemaIssue.Issue> = []
               SchemaAST.collectIssues(
-                checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]),
+                structuralChecks,
                 localOu.value,
                 issues,
                 ast,

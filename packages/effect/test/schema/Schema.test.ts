@@ -111,6 +111,31 @@ Expected an integer, got -1.2`
   at ["b"]["c"]`
       )
     })
+
+    it("should not read parseOptions from encodingChecks", async () => {
+      const schema = Schema.Struct({
+        a: Schema.String,
+        b: Schema.String
+      }).pipe(
+        Schema.flip,
+        Schema.check(Schema.isMaxProperties(1)),
+        Schema.annotate({ parseOptions: { errors: "first" } }),
+        Schema.flip
+      )
+      assertTrue(SchemaAST.isObjects(schema.ast))
+      strictEqual(schema.ast.checks, undefined)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding({ parseOptions: { errors: "all" } })
+      await decoding.fail(
+        {},
+        `Missing key
+  at ["a"]
+Missing key
+  at ["b"]`
+      )
+    })
   })
 
   describe("parse options", () => {
