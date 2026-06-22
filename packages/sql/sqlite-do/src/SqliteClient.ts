@@ -160,6 +160,9 @@ export const make = (
         executeValues(sql, params) {
           return runValues(sql, params)
         },
+        executeValuesUnprepared(sql, params) {
+          return runValues(sql, params)
+        },
         executeUnprepared(sql, params, transformRows) {
           return transformRows
             ? Effect.map(runStatement(sql, params), transformRows)
