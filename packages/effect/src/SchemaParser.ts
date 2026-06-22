@@ -1007,7 +1007,7 @@ export interface Parser {
 const recur = memoize(
   (ast: SchemaAST.AST): Parser => {
     let parser: Parser
-    const encodingChecks = SchemaAST.getEncodingChecks(ast)
+    const encodingChecks = SchemaAST.isContainer(ast) ? ast.encodingChecks : undefined
     const resolvedChecks = ast.checks ?? encodingChecks
     // TODO: is this correct?
     const astOptions = (resolvedChecks ? resolvedChecks[resolvedChecks.length - 1].annotations : ast.annotations)

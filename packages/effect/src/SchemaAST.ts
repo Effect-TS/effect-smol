@@ -372,6 +372,22 @@ export const isObjects = makeGuard("Objects")
  */
 export const isUnion = makeGuard("Union")
 
+/** @internal */
+export type Container = Declaration | Arrays | Objects | Union
+
+/** @internal */
+export function isContainer(ast: AST): ast is Container {
+  switch (ast._tag) {
+    case "Declaration":
+    case "Arrays":
+    case "Objects":
+    case "Union":
+      return true
+    default:
+      return false
+  }
+}
+
 /**
  * Narrows an {@link AST} to {@link Suspend}.
  *
@@ -2862,19 +2878,6 @@ export class Suspend extends Base {
   }
 }
 
-/** @internal */
-export function getEncodingChecks(ast: AST): Checks | undefined {
-  switch (ast._tag) {
-    case "Declaration":
-    case "Arrays":
-    case "Objects":
-    case "Union":
-      return ast.encodingChecks
-    default:
-      return undefined
-  }
-}
-
 // -----------------------------------------------------------------------------
 // Checks
 // -----------------------------------------------------------------------------
@@ -3393,15 +3396,15 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
     return toType(replaceEncoding(ast, undefined))
   }
   const out: any = ast
-  const type: A = out.recur?.(toType) ?? out
-  const encodingChecks = getEncodingChecks(type)
-  if (encodingChecks) {
+  const type = out.recur?.(toType) ?? out
+  if (isContainer(type) && type.encodingChecks) {
+    const encodingChecks = type.encodingChecks
     return modifyOwnPropertyDescriptors(type, (d) => {
-      ;(d as any).encodingChecks.value = undefined
+      d.encodingChecks.value = undefined
       if (type === ast) {
         d.checks.value = combineChecks(type.checks, encodingChecks)
       }
-    })
+    }) as A
   }
   return type
 })
