@@ -1620,7 +1620,7 @@ const makeResponse = Effect.fnUntraced(
             const callerInfo = Predicate.isNotNullish(caller)
               ? {
                 type: caller.type,
-                toolId: "tool_id" in caller ? caller.tool_id : undefined
+                toolId: "tool_id" in caller ? caller.tool_id : null
               }
               : undefined
 
