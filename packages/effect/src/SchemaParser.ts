@@ -1047,22 +1047,32 @@ const recur = memoize(
       }
 
       parser ??= ast.getParser(recur)
-      let sroa = srou ? Effect.flatMapEager(srou, (ou) => parser(ou, options)) : parser(ou, options)
+      let sroua: Effect.Effect<readonly [Option.Option<unknown>, Option.Option<unknown>], SchemaIssue.Issue, unknown>
+      if (srou) {
+        sroua = Effect.flatMapEager(
+          srou,
+          (localOu) => Effect.mapEager(parser(localOu, options), (oa) => [localOu, oa] as const)
+        )
+      } else {
+        sroua = Effect.mapEager(parser(ou, options), (oa) => [ou, oa] as const)
+      }
 
       if (encodingChecks && !options?.disableChecks) {
-        sroa = Effect.flatMapEager(sroa, (oa) => {
-          if (Option.isSome(ou) && Option.isSome(oa)) {
+        sroua = Effect.flatMapEager(sroua, ([localOu, oa]) => {
+          if (Option.isSome(localOu) && Option.isSome(oa)) {
             const issues: Array<SchemaIssue.Issue> = []
 
-            SchemaAST.collectIssues(encodingChecks, ou.value, issues, ast, options)
+            SchemaAST.collectIssues(encodingChecks, localOu.value, issues, ast, options)
 
             if (Arr.isArrayNonEmpty(issues)) {
-              return Effect.fail(new SchemaIssue.Composite(ast, ou, issues))
+              return Effect.fail(new SchemaIssue.Composite(ast, localOu, issues))
             }
           }
-          return Effect.succeed(oa)
+          return Effect.succeed([localOu, oa] as const)
         })
       }
+
+      let sroa = Effect.mapEager(sroua, ([, oa]) => oa)
 
       if (ast.checks && !options?.disableChecks) {
         const checks = ast.checks

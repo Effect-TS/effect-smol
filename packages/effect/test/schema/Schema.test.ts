@@ -2441,6 +2441,140 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed("123", 123)
     })
 
+    it("Struct & flip & check & flip should apply the check to the encoded side", async () => {
+      const schema = Schema.Struct({ a: Schema.String }).pipe(
+        Schema.flip,
+        Schema.check(Schema.makeFilter((o) => o.a.length > 1, { expected: "a length > 1" })),
+        Schema.flip
+      )
+      assertTrue(SchemaAST.isObjects(schema.ast))
+      strictEqual(schema.ast.checks, undefined)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        { a: "a" },
+        `Expected a length > 1, got {"a":"a"}`
+      )
+      await decoding.succeed({ a: "aa" })
+
+      const encoding = asserts.encoding()
+      await encoding.fail(
+        { a: "a" },
+        `Expected a length > 1, got {"a":"a"}`
+      )
+      await encoding.succeed({ a: "aa" })
+    })
+
+    it("Tuple & flip & check & flip should apply the check to the encoded side", async () => {
+      const schema = Schema.Tuple([Schema.String]).pipe(
+        Schema.flip,
+        Schema.check(Schema.makeFilter((tuple) => tuple[0].length > 1, { expected: "head length > 1" })),
+        Schema.flip
+      )
+      assertTrue(SchemaAST.isArrays(schema.ast))
+      strictEqual(schema.ast.checks, undefined)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        ["a"],
+        `Expected head length > 1, got ["a"]`
+      )
+      await decoding.succeed(["aa"])
+
+      const encoding = asserts.encoding()
+      await encoding.fail(
+        ["a"],
+        `Expected head length > 1, got ["a"]`
+      )
+      await encoding.succeed(["aa"])
+    })
+
+    it("Union & flip & check & flip should apply the check to the encoded side", async () => {
+      const schema = Schema.Union([Schema.Literal("a"), Schema.Literal("aa")]).pipe(
+        Schema.flip,
+        Schema.check(Schema.makeFilter((s) => s === "aa", { expected: `"aa"` })),
+        Schema.flip
+      )
+      assertTrue(SchemaAST.isUnion(schema.ast))
+      strictEqual(schema.ast.checks, undefined)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        "a",
+        `Expected "aa", got "a"`
+      )
+      await decoding.succeed("aa")
+
+      const encoding = asserts.encoding()
+      await encoding.fail(
+        "a",
+        `Expected "aa", got "a"`
+      )
+      await encoding.succeed("aa")
+    })
+
+    it("Declaration & flip & check & flip should apply the check to the encoded side", async () => {
+      const schema = Schema.declare(
+        (u): u is string => typeof u === "string",
+        { expected: "string declaration" }
+      ).pipe(
+        Schema.flip,
+        Schema.check(Schema.makeFilter((s) => s.length > 1, { expected: "a length > 1" })),
+        Schema.flip
+      )
+      assertTrue(SchemaAST.isDeclaration(schema.ast))
+      strictEqual(schema.ast.checks, undefined)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        "a",
+        `Expected a length > 1, got "a"`
+      )
+      await decoding.succeed("aa")
+
+      const encoding = asserts.encoding()
+      await encoding.fail(
+        "a",
+        `Expected a length > 1, got "a"`
+      )
+      await encoding.succeed("aa")
+    })
+
+    it("Struct & flip & check & flip & encoding should check the local encoded value", async () => {
+      const local = Schema.Struct({ a: Schema.String }).pipe(
+        Schema.flip,
+        Schema.check(Schema.makeFilter((o) => typeof o.a === "string" && o.a.length > 1, {
+          expected: "a length > 1"
+        })),
+        Schema.flip
+      )
+      const schema = Schema.Struct({ b: Schema.String }).pipe(
+        Schema.decodeTo(local, {
+          decode: SchemaGetter.transform<{ readonly a: string }, { readonly b: string }>((o) => ({ a: o.b })),
+          encode: SchemaGetter.transform<{ readonly b: string }, { readonly a: string }>((o) => ({ b: o.a }))
+        })
+      )
+      assertTrue(SchemaAST.isObjects(schema.ast))
+      strictEqual(schema.ast.encoding?.length, 1)
+      strictEqual(schema.ast.encodingChecks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        { b: "a" },
+        `Expected a length > 1, got {"a":"a"}`
+      )
+      await decoding.succeed({ b: "aa" }, { a: "aa" })
+    })
+
     it("should work with withConstructorDefault", async () => {
       const schema = Schema.Struct({
         a: Schema.FiniteFromString.pipe(Schema.withConstructorDefault(Effect.succeed(-1)))

@@ -680,7 +680,7 @@ export class Declaration extends Base {
   }
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const tps = mapOrSame(this.typeParameters, recur)
-    return tps === this.typeParameters ?
+    return tps === this.typeParameters && checks === this.checks && encodingChecks === this.encodingChecks ?
       this :
       new Declaration(tps, this.run, this.annotations, checks, undefined, this.context, encodingChecks)
   }
@@ -1704,7 +1704,8 @@ export class Arrays extends Base {
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const elements = mapOrSame(this.elements, recur)
     const rest = mapOrSame(this.rest, recur)
-    return elements === this.elements && rest === this.rest ?
+    return elements === this.elements && rest === this.rest && checks === this.checks &&
+        encodingChecks === this.encodingChecks ?
       this :
       new Arrays(
         this.isMutable,
@@ -2245,7 +2246,8 @@ export class Objects extends Base {
         : new IndexSignature(p, t, merge)
     })
 
-    return props === this.propertySignatures && indexes === this.indexSignatures
+    return props === this.propertySignatures && indexes === this.indexSignatures && checks === this.checks &&
+        encodingChecks === this.encodingChecks
       ? this
       : new Objects(
         props,
@@ -2661,7 +2663,7 @@ export class Union<A extends AST = AST> extends Base {
   }
   private _rebuild(recur: (ast: AST) => AST, checks: Checks | undefined, encodingChecks: Checks | undefined) {
     const types = mapOrSame(this.types, recur)
-    return types === this.types ?
+    return types === this.types && checks === this.checks && encodingChecks === this.encodingChecks ?
       this :
       new Union(types, this.mode, this.annotations, checks, undefined, this.context, encodingChecks)
   }
@@ -3361,6 +3363,45 @@ export function isMutable(ast: AST): boolean {
   return ast.context?.isMutable ?? false
 }
 
+type ASTWithEncodingChecks = Declaration | Arrays | Objects | Union
+
+function replaceEncodingChecks<A extends ASTWithEncodingChecks>(ast: A, encodingChecks: Checks | undefined): A {
+  if (getEncodingChecks(ast) === encodingChecks) {
+    return ast
+  }
+  return modifyOwnPropertyDescriptors(ast, (d) => {
+    d.encodingChecks.value = encodingChecks
+  })
+}
+
+function preservesTypeShape(before: AST, after: AST): boolean {
+  switch (before._tag) {
+    case "Declaration":
+      return after._tag === "Declaration" && after.typeParameters === before.typeParameters
+    case "Arrays":
+      return after._tag === "Arrays" && after.elements === before.elements && after.rest === before.rest
+    case "Objects":
+      return after._tag === "Objects" && after.propertySignatures === before.propertySignatures &&
+        after.indexSignatures === before.indexSignatures
+    case "Union":
+      return after._tag === "Union" && after.types === before.types
+    default:
+      return false
+  }
+}
+
+function projectEncodingChecksToType<A extends AST>(before: A, after: A): A {
+  const encodingChecks = getEncodingChecks(after)
+  if (!encodingChecks) {
+    return after
+  }
+  const withoutEncodingChecks = replaceEncodingChecks(after as ASTWithEncodingChecks, undefined) as A
+  if (!preservesTypeShape(before, after)) {
+    return withoutEncodingChecks
+  }
+  return replaceChecks(withoutEncodingChecks, combineChecks(after.checks, encodingChecks))
+}
+
 /**
  * Strips all encoding transformations from an AST, returning the decoded
  * (type-level) representation.
@@ -3392,12 +3433,7 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
   }
   const out: any = ast
   const type = out.recur?.(toType) ?? out
-  if (getEncodingChecks(type)) {
-    return modifyOwnPropertyDescriptors(type, (d) => {
-      d.encodingChecks.value = undefined
-    })
-  }
-  return type
+  return projectEncodingChecksToType(ast, type)
 })
 
 /**
