@@ -20,6 +20,82 @@ Before running a comparison, ask the user which mode they want:
 
 Use cleanup mode unless the user says they expect to run multiple trials.
 
+If the user asks what a generated bundle is made of, use the bundle composition
+workflow instead of the size comparison workflow.
+
+### Analyze Bundle Composition
+
+Use this workflow when the user gives an explicit fixture and wants to
+understand which modules make up the produced bundle.
+
+Agent procedure:
+
+1. Confirm the exact fixture path or paths to analyze. Do not scan directories.
+2. Run `pnpm bundle-analyze` with only those explicit paths.
+3. Read the printed Markdown table and identify the generated `*.raw-data.json`
+   path for each fixture.
+4. Analyze `*.raw-data.json` first. Use `*.treemap.html` only when the user wants
+   a visual artifact to open.
+5. Report the largest modules, notable dependency groups, and any surprising
+   inclusions. Mention the generated artifact paths in the answer.
+
+Prefer the repository-level wrapper:
+
+```sh
+pnpm bundle-analyze scratchpad/my-fixture.ts
+```
+
+You can pass multiple explicit files:
+
+```sh
+pnpm bundle-analyze \
+  scratchpad/schema-codec.ts \
+  scratchpad/schema-arbitrary.ts
+```
+
+The wrapper builds the current checkout with `pnpm build:tsgo` before generating
+analysis artifacts, so the bundle is not produced from stale `dist` files.
+
+By default, artifacts are written to `tmp/bundle-analysis`. Use `--output-dir`
+to choose another directory:
+
+```sh
+pnpm bundle-analyze --output-dir tmp/schema-analysis scratchpad/my-fixture.ts
+```
+
+For each selected fixture, the tool writes:
+
+- `<name>.min.js`: the generated Rollup output for inspection;
+- `<name>.treemap.html`: an interactive treemap for human inspection;
+- `<name>.raw-data.json`: raw visualizer data suitable for AI analysis.
+
+The analysis build disables identifier mangling so module and export names stay
+readable in the visualizer output. Use `bundle-compare-selected` or `report`
+when exact size measurement is the goal.
+
+After running the command, inspect the Markdown table it prints to find the exact
+paths. For an AI analysis, read the `*.raw-data.json` file first and summarize
+the largest modules and dependency groups. Use the `*.treemap.html` file when
+the user wants to inspect the bundle visually.
+
+The raw data contains a tree plus module metadata. For a quick size-oriented
+summary, rank module parts by `renderedLength` or `gzipLength`, then map each
+part through `metaUid` to `nodeMetas[metaUid].id`.
+
+Example inspection command:
+
+```sh
+node -e 'const data = JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8")); console.log(Object.entries(data.nodeParts).map(([uid, part]) => ({ uid, id: data.nodeMetas[part.metaUid]?.id, rendered: part.renderedLength, gzip: part.gzipLength })).sort((a, b) => b.rendered - a.rendered).slice(0, 20))' tmp/bundle-analysis/my-fixture.raw-data.json
+```
+
+Do not treat the generated `.min.js` size from this workflow as the exact bundle
+size comparison number. The analysis build keeps names readable for the
+visualizer. Use `bundle-compare-selected` or `report` for exact size reporting.
+
+Do not use this workflow to compare against a base ref. Use
+`bundle-compare-selected` for size impact and `bundle-analyze` for current bundle
+composition.
+
 ### Compare Explicit Scratchpad Fixtures
 
 Prefer the repository-level wrapper:

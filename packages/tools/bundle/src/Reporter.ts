@@ -174,6 +174,22 @@ export class Reporter extends Context.Service<Reporter>()(
         return lines.join("\n") + "\n"
       }
 
+      const createVisualizationReport = (paths: ReadonlyArray<string>, outputDirectory: string): string => {
+        const lines: Array<string> = [
+          "| File Name | Generated Bundle | Treemap | Raw Data |",
+          "|:----------|:----------------|:--------|:---------|"
+        ]
+        for (const entryPath of paths) {
+          const name = path.parse(entryPath).name
+          const filename = path.relative(currentDirectory, path.resolve(entryPath))
+          const minified = path.join(outputDirectory, `${name}.min.js`)
+          const treemap = path.join(outputDirectory, `${name}.treemap.html`)
+          const rawData = path.join(outputDirectory, `${name}.raw-data.json`)
+          lines.push(`| \`${filename}\` | \`${minified}\` | \`${treemap}\` | \`${rawData}\` |`)
+        }
+        return lines.join("\n") + "\n"
+      }
+
       const report = Effect.fn("Reporter.report")(
         function*(options: ReportOptions) {
           yield* Effect.logInfo(`Found ${fixtures.length} files to bundle`)
@@ -202,11 +218,13 @@ export class Reporter extends Context.Service<Reporter>()(
 
       const visualize = Effect.fn("Reporter.visualize")(
         function*(options: VisualizeOptions) {
+          yield* fs.makeDirectory(options.outputDirectory, { recursive: true })
           yield* rollup.bundleAll({
             paths: options.paths,
             outputDirectory: options.outputDirectory,
             visualize: true
           })
+          return createVisualizationReport(options.paths, options.outputDirectory)
         }
       )
 
