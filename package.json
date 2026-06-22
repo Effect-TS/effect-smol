@@ -9,6 +9,7 @@
     "build": "tspc -b tsconfig.packages.json && pnpm --recursive --parallel --filter \"./packages/**/*\" run build",
     "build:tsgo": "tsgo -b tsconfig.packages.json && pnpm --recursive --parallel --filter \"./packages/**/*\" run build:tsgo",
     "bundle-compare": "bash scripts/bundle-compare.sh",
+    "bundle-compare-selected": "bash scripts/bundle-compare-selected.sh",
     "circular": "node scripts/circular.mjs",
     "test": "vitest",
     "coverage": "vitest --coverage",
