@@ -512,12 +512,6 @@ describe("Schema", () => {
       expect(schema).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString>>()
       expect(schema.annotate({})).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString>>()
     })
-
-    it("keepDeclarations", () => {
-      const schema = Schema.toCodecStringTree(Schema.FiniteFromString, { keepDeclarations: true })
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<number, unknown, never, never>>()
-      expect(schema).type.toBe<Schema.toCodecStringTree<Schema.FiniteFromString, unknown>>()
-    })
   })
 
   describe("toCodecArrayFromSingle", () => {

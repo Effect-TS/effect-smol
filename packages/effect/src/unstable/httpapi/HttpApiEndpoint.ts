@@ -1276,12 +1276,12 @@ export interface StringTree<S extends Schema.Constraint> extends
 {}
 
 function ensureStruct(
-  params: Schema.Struct.Fields | Schema.Constraint | undefined,
-  transform: typeof Schema.toCodecJson | typeof Schema.toCodecStringTree
+  params: Schema.Struct.Fields | Schema.Top | undefined,
+  transform: (schema: Schema.Top) => Schema.Top
 ): Schema.Top | undefined {
   if (params === undefined) return undefined
   if (Schema.isSchema(params)) return transform(params)
-  return transform(Schema.Struct(params as Schema.Struct.Fields))
+  return transform(Schema.Struct(params))
 }
 
 function getPayload(
