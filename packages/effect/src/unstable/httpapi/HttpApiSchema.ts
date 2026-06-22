@@ -378,20 +378,6 @@ export interface StreamUint8Array extends
  */
 export type StreamSchema = StreamSse<Sse.EventCodec, Schema.Top, unknown> | StreamUint8Array
 
-/** @internal */
-export type StreamMetadata =
-  | {
-    readonly mode: "sse"
-    readonly sseMode: StreamSseMode
-    readonly contentType: string
-    readonly events: Sse.EventCodec
-    readonly error: Schema.Top
-  }
-  | {
-    readonly mode: "uint8array"
-    readonly contentType: string
-  }
-
 const streamSchema = Schema.declare(Stream.isStream)
 
 /**
@@ -463,22 +449,6 @@ export const isStreamSse = (u: unknown): u is StreamSse<Sse.EventCodec, Schema.T
 /** @internal */
 export const isStreamUint8Array = (u: unknown): u is StreamUint8Array =>
   isStreamSchema(u) && u._tag === "StreamUint8Array"
-
-/** @internal */
-export function getStreamMetadata(self: StreamSchema): StreamMetadata {
-  return self._tag === "StreamSse" ?
-    {
-      mode: self.mode,
-      sseMode: self.sseMode,
-      contentType: self.contentType,
-      events: self.events,
-      error: self.error
-    } :
-    {
-      mode: self.mode,
-      contentType: self.contentType
-    }
-}
 
 function defaultStreamContentType(mode: StreamMode): string {
   switch (mode) {

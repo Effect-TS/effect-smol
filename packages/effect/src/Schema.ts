@@ -1524,7 +1524,7 @@ export const decodeUnknownOption: <S extends ConstraintDecoder<unknown>>(
 export const decodeOption: <S extends ConstraintDecoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
-) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = decodeUnknownOption
+) => (input: S["Encoded"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Type"]> = SchemaParser.decodeOption
 
 /**
  * Decodes an `unknown` input against a schema, returning a `Result` that
@@ -1949,7 +1949,7 @@ export const encodeUnknownOption: <S extends ConstraintEncoder<unknown>>(
 export const encodeOption: <S extends ConstraintEncoder<unknown>>(
   schema: S,
   options?: SchemaAST.ParseOptions
-) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = encodeUnknownOption
+) => (input: S["Type"], options?: SchemaAST.ParseOptions) => Option_.Option<S["Encoded"]> = SchemaParser.encodeOption
 
 /**
  * Encodes an `unknown` input against a schema, returning a `Result` that
