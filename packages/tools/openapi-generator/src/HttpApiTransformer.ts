@@ -38,6 +38,8 @@ const fallbackGroupIdentifier = "default"
 /**
  * Render the import declarations required by generated HttpApi source.
  *
+ * **Details**
+ *
  * The schema namespace import is named by the caller so generated code can
  * avoid collisions with symbols already present in the output module. Multipart
  * support is included only when the parsed OpenAPI document needs it.
@@ -59,6 +61,8 @@ export const imports = (
 
 /**
  * Convert a parsed OpenAPI document into Effect HttpApi source code.
+ *
+ * **Details**
  *
  * The generated implementation contains security declarations, reusable
  * middleware classes, HttpApi groups, endpoint definitions, and OpenAPI
@@ -290,6 +294,20 @@ const joinSchemas = (schemas: ReadonlyArray<string>): string =>
   schemas.length === 1 ? schemas[0] : `[${schemas.join(", ")}]`
 
 const renderMediaSchema = (media: ParsedOperationMediaTypeSchema): string => {
+  if (media.effectStream === "sse") {
+    const options = media.contentType === "text/event-stream"
+      ? `{ events: ${media.schema}, error: ${media.errorSchema} }`
+      : `{ contentType: ${JSON.stringify(media.contentType)}, events: ${media.schema}, error: ${media.errorSchema} }`
+    return `HttpApiSchema.StreamSse(${options})`
+  }
+
+  if (media.effectStream === "uint8array") {
+    if (media.contentType === "application/octet-stream") {
+      return "HttpApiSchema.StreamUint8Array()"
+    }
+    return `HttpApiSchema.StreamUint8Array({ contentType: ${JSON.stringify(media.contentType)} })`
+  }
+
   switch (media.encoding) {
     case "json": {
       if (media.contentType === "application/json") {
@@ -469,6 +487,10 @@ const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): stri
       source = "HttpApiSecurity.bearer"
       break
     }
+    case "http": {
+      source = `HttpApiSecurity.http({ scheme: ${JSON.stringify(securityScheme.scheme!)} })`
+      break
+    }
     case "apiKey": {
       source = `HttpApiSecurity.apiKey({ key: ${JSON.stringify(securityScheme.key!)}, in: ${
         JSON.stringify(securityScheme.in!)
@@ -480,7 +502,9 @@ const renderSecurityScheme = (securityScheme: ParsedOpenApiSecurityScheme): stri
   if (securityScheme.description !== undefined) {
     source += `.pipe(HttpApiSecurity.annotate(OpenApi.Description, ${JSON.stringify(securityScheme.description)}))`
   }
-  if (securityScheme.type === "bearer" && securityScheme.bearerFormat !== undefined) {
+  if (
+    (securityScheme.type === "bearer" || securityScheme.type === "http") && securityScheme.bearerFormat !== undefined
+  ) {
     source += `.pipe(HttpApiSecurity.annotate(OpenApi.Format, ${JSON.stringify(securityScheme.bearerFormat)}))`
   }
 

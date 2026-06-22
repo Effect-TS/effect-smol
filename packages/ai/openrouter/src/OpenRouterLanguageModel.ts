@@ -1,23 +1,10 @@
 /**
- * The `OpenRouterLanguageModel` module provides constructors for using
- * OpenRouter chat completion models through the Effect AI `LanguageModel`
- * interface. It adapts Effect prompts, tools, structured output schemas, file
- * parts, reasoning details, cache-control hints, and telemetry annotations into
- * the OpenRouter request and response formats.
- *
- * Use this module when an application wants to select an OpenRouter model by
- * name while keeping the rest of its AI workflow provider-agnostic. The
- * exported layer and model constructors install a `LanguageModel` service backed
- * by `OpenRouterClient`, and `withConfigOverride` can scope per-request
- * OpenRouter options such as sampling, routing, tool use, or JSON schema
- * behavior.
- *
- * OpenRouter routes requests to many underlying providers, so model support for
- * images, files, tools, structured outputs, caching, and reasoning metadata can
- * vary. Provider-specific prompt and response metadata is preserved under the
- * `openrouter` option namespace so multi-turn conversations can round-trip
- * details such as reasoning blocks and file annotations when the selected model
- * supports them.
+ * The `OpenRouterLanguageModel` module provides the OpenRouter implementation
+ * of Effect AI's `LanguageModel` service. It translates provider-neutral
+ * prompts, tools, files, structured output requests, reasoning metadata,
+ * cache-control hints, and provider options into OpenRouter chat completion
+ * requests, records GenAI telemetry around those calls, and converts normal or
+ * streaming results back into Effect AI response content and metadata.
  *
  * @since 4.0.0
  */
@@ -58,7 +45,14 @@ import { type ChatStreamingResponseChunkData, OpenRouterClient } from "./OpenRou
 // =============================================================================
 
 /**
- * Service definition for OpenRouter language model configuration.
+ * Context service for OpenRouter language model configuration.
+ *
+ * **When to use**
+ *
+ * Use to provide scoped OpenRouter chat completion defaults or per-operation
+ * overrides for an OpenRouter language model service.
+ *
+ * @see {@link withConfigOverride} for scoping language model request overrides
  *
  * @category services
  * @since 4.0.0
@@ -113,6 +107,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for system messages.
    *
+   * **Details**
+   *
    * These options are used when translating system instructions into
    * OpenRouter chat messages.
    *
@@ -134,6 +130,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for user messages.
    *
+   * **Details**
+   *
    * These options are used when translating user content into OpenRouter chat
    * messages.
    *
@@ -154,6 +152,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenRouter-specific options for assistant messages.
+   *
+   * **Details**
    *
    * Preserves reasoning metadata when assistant messages are replayed in later
    * OpenRouter requests.
@@ -180,6 +180,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for tool messages.
    *
+   * **Details**
+   *
    * These options are used when converting tool results into OpenRouter chat
    * messages.
    *
@@ -201,7 +203,9 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for text prompt parts.
    *
-   * Use these options to control how text content is sent to OpenRouter.
+   * **When to use**
+   *
+   * Use when you use these options to control how text content is sent to OpenRouter.
    *
    * @category request
    * @since 4.0.0
@@ -220,6 +224,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenRouter-specific options for reasoning prompt parts.
+   *
+   * **Details**
    *
    * Preserves provider reasoning blocks so reasoning-aware conversations can
    * continue across OpenRouter requests.
@@ -246,6 +252,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for file prompt parts.
    *
+   * **Details**
+   *
    * Controls file naming and prompt caching for files sent to OpenRouter.
    *
    * @category request
@@ -271,6 +279,8 @@ declare module "effect/unstable/ai/Prompt" {
   /**
    * OpenRouter-specific options for tool call prompt parts.
    *
+   * **Details**
+   *
    * Preserves reasoning details associated with tool calls when a conversation
    * is sent back to OpenRouter.
    *
@@ -291,6 +301,8 @@ declare module "effect/unstable/ai/Prompt" {
 
   /**
    * OpenRouter-specific options for tool result prompt parts.
+   *
+   * **Details**
    *
    * Controls prompt caching for tool results sent to OpenRouter.
    *
@@ -314,6 +326,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * OpenRouter metadata attached to completed reasoning response parts.
    *
+   * **Details**
+   *
    * Preserves provider reasoning details that can be sent back in later turns.
    *
    * @category response
@@ -333,6 +347,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenRouter metadata emitted when a streamed reasoning part starts.
+   *
+   * **Details**
    *
    * Carries the first reasoning detail chunk when OpenRouter exposes one.
    *
@@ -354,6 +370,8 @@ declare module "effect/unstable/ai/Response" {
   /**
    * OpenRouter metadata emitted for streamed reasoning deltas.
    *
+   * **Details**
+   *
    * Carries provider reasoning detail chunks as they arrive from OpenRouter.
    *
    * @category response
@@ -373,6 +391,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenRouter metadata attached to tool-call response parts.
+   *
+   * **Details**
    *
    * Associates tool calls with provider reasoning details when the model emits
    * reasoning and tool calls together.
@@ -394,6 +414,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenRouter metadata attached to URL source citations.
+   *
+   * **Details**
    *
    * Includes citation text and offsets returned by providers that support URL
    * annotations.
@@ -423,6 +445,8 @@ declare module "effect/unstable/ai/Response" {
 
   /**
    * OpenRouter metadata attached to finish response parts.
+   *
+   * **Details**
    *
    * Exposes provider response details that are not represented by the common
    * Effect AI finish part fields.
@@ -460,7 +484,22 @@ declare module "effect/unstable/ai/Response" {
 // =============================================================================
 
 /**
- * Creates an AI model descriptor for an OpenRouter language model.
+ * Creates an OpenRouter model descriptor that can be provided with
+ * `Effect.provide`.
+ *
+ * **When to use**
+ *
+ * Use when you want an OpenRouter language model value that carries provider
+ * and model metadata and can be supplied directly to an Effect program.
+ *
+ * **Details**
+ *
+ * The returned model requires `OpenRouterClient` and provides
+ * `LanguageModel.LanguageModel`.
+ *
+ * @see {@link layer} for creating a `LanguageModel.LanguageModel` layer directly
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link withConfigOverride} for scoping OpenRouter request overrides
  *
  * @category constructors
  * @since 4.0.0
@@ -472,7 +511,29 @@ export const model = (
   AiModel.make("openai", model, layer({ model, config }))
 
 /**
- * Creates an OpenRouter language model service.
+ * Creates an OpenRouter `LanguageModel` service from a model identifier and
+ * optional request defaults.
+ *
+ * **When to use**
+ *
+ * Use when you need to construct a `LanguageModel.Service` value backed by
+ * `OpenRouterClient` inside an Effect.
+ *
+ * **Details**
+ *
+ * The returned effect requires `OpenRouterClient`. Request defaults from the
+ * `config` option are merged with any `Config` service in the context, with
+ * context values taking precedence. The service supports both `generateText`
+ * and `streamText`.
+ *
+ * **Gotchas**
+ *
+ * Provider-defined tools are not supported by this provider integration;
+ * requests that include them fail with an `InvalidUserInputError`.
+ *
+ * @see {@link layer} for providing the service as a `Layer`
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ * @see {@link withConfigOverride} for scoping request defaults around operations
  *
  * @category constructors
  * @since 4.0.0
@@ -543,6 +604,15 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 /**
  * Creates a layer for the OpenRouter language model.
  *
+ * **When to use**
+ *
+ * Use when composing application layers and you want OpenRouter to satisfy
+ * `LanguageModel.LanguageModel` while supplying `OpenRouterClient` from another
+ * layer.
+ *
+ * @see {@link make} for constructing the language model service effectfully
+ * @see {@link model} for creating a model descriptor for `Effect.provide`
+ *
  * @category layers
  * @since 4.0.0
  */
@@ -554,6 +624,20 @@ export const layer = (options: {
 
 /**
  * Provides config overrides for OpenRouter language model operations.
+ *
+ * **When to use**
+ *
+ * Use to apply OpenRouter request configuration to one effect without changing
+ * the model's default configuration.
+ *
+ * **Details**
+ *
+ * The overrides are merged with any existing `Config` service for the duration
+ * of the supplied effect. Fields in `overrides` take precedence over existing
+ * config, and the helper supports both pipe form and
+ * `withConfigOverride(effect, overrides)`.
+ *
+ * @see {@link Config} for available OpenRouter request configuration fields
  *
  * @category configuration
  * @since 4.0.0
@@ -665,6 +749,45 @@ const prepareMessages = Effect.fnUntraced(
                         : part.data instanceof Uint8Array
                         ? `data:${mediaType};base64,${Encoding.encodeBase64(part.data)}`
                         : part.data
+                    },
+                    ...(Predicate.isNotNull(partCacheControl) ? { cache_control: partCacheControl } : undefined)
+                  })
+
+                  break
+                }
+
+                if (part.mediaType.startsWith("audio/")) {
+                  const format = audioFormats[part.mediaType.toLowerCase()]
+
+                  if (Predicate.isUndefined(format)) {
+                    return yield* AiError.make({
+                      module: "OpenRouterLanguageModel",
+                      method: "prepareMessages",
+                      reason: new AiError.InvalidUserInputError({
+                        description: `Detected unsupported media type for audio file: '${part.mediaType}' ` +
+                          `- OpenRouter supports ${supportedAudioFormats} audio`
+                      })
+                    })
+                  }
+
+                  if (part.data instanceof URL) {
+                    return yield* AiError.make({
+                      module: "OpenRouterLanguageModel",
+                      method: "prepareMessages",
+                      reason: new AiError.InvalidUserInputError({
+                        description: "Detected URL data for audio file - OpenRouter requires " +
+                          "audio to be provided as base64-encoded data"
+                      })
+                    })
+                  }
+
+                  content.push({
+                    type: "input_audio",
+                    input_audio: {
+                      data: part.data instanceof Uint8Array
+                        ? Encoding.encodeBase64(part.data)
+                        : getBase64FromDataUrl(part.data),
+                      format
                     },
                     ...(Predicate.isNotNull(partCacheControl) ? { cache_control: partCacheControl } : undefined)
                   })
@@ -1643,7 +1766,7 @@ const unsupportedSchemaError = (error: unknown, method: string): AiError.AiError
     })
   })
 
-const tryJsonSchema = <S extends Schema.Top>(
+const tryJsonSchema = <S extends Schema.Constraint>(
   schema: S,
   method: string,
   transformer: LanguageModel.CodecTransformer
@@ -1673,6 +1796,32 @@ const getResponseFormat = Effect.fnUntraced(function*({ config, options, transfo
   }
   return undefined
 })
+
+/**
+ * Maps audio media types to the formats supported by OpenRouter.
+ *
+ * @see https://openrouter.ai/docs/guides/overview/multimodal/audio
+ */
+const audioFormats: Record<string, string> = {
+  "audio/aac": "aac",
+  "audio/aiff": "aiff",
+  "audio/x-aiff": "aiff",
+  "audio/flac": "flac",
+  "audio/x-flac": "flac",
+  "audio/l16": "pcm16",
+  "audio/l24": "pcm24",
+  "audio/m4a": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/mp4": "m4a",
+  "audio/mp3": "mp3",
+  "audio/mpeg": "mp3",
+  "audio/ogg": "ogg",
+  "audio/wav": "wav",
+  "audio/wave": "wav",
+  "audio/x-wav": "wav"
+}
+
+const supportedAudioFormats = Array.from(new Set(Object.values(audioFormats))).join(", ")
 
 const getMediaType = (dataUrl: string, defaultMediaType: string): string => {
   const match = dataUrl.match(/^data:([^;]+)/)

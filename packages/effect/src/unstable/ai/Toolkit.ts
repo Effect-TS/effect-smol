@@ -1,52 +1,11 @@
 /**
- * The `Toolkit` module allows for creating and implementing a collection of
- * `Tool`s which can be used to enhance the capabilities of a large language
- * model beyond simple text generation.
+ * Groups AI tools together with their handlers.
  *
- * **Example** (Creating and implementing toolkits)
- *
- * ```ts
- * import { Effect, Schema, Stream } from "effect"
- * import { Tool, Toolkit } from "effect/unstable/ai"
- *
- * const GetCurrentTime = Tool.make("GetCurrentTime", {
- *   description: "Get the current timestamp",
- *   success: Schema.Number
- * })
- *
- * const GetWeather = Tool.make("GetWeather", {
- *   description: "Get weather for a location",
- *   parameters: Schema.Struct({ location: Schema.String }),
- *   success: Schema.Struct({
- *     temperature: Schema.Number,
- *     condition: Schema.String
- *   })
- * })
- *
- * const MyToolkit = Toolkit.make(GetCurrentTime, GetWeather)
- *
- * const MyToolkitLayer = MyToolkit.toLayer({
- *   GetCurrentTime: () => Effect.succeed(1_704_067_200_000),
- *   GetWeather: ({ location }) =>
- *     Effect.succeed({
- *       temperature: 72,
- *       condition: `sunny in ${location}`
- *     })
- * })
- *
- * const program = Effect.gen(function*() {
- *   const toolkit = yield* MyToolkit
- *   const stream = yield* toolkit.handle("GetWeather", {
- *     location: "San Francisco"
- *   })
- *   const results = yield* Stream.runCollect(stream)
- *
- *   return Array.from(results, ({ result }) => result)
- * }).pipe(Effect.provide(MyToolkitLayer))
- *
- * console.log(Effect.runSync(program))
- * // [{ temperature: 72, condition: "sunny in San Francisco" }]
- * ```
+ * A toolkit connects `Tool` schemas to the handler functions an application
+ * provides for a language model workflow. It can build a handler context or
+ * layer and execute tool calls by name. Execution validates parameters, runs the
+ * handler, encodes the result, supports preliminary streamed results, and
+ * applies the tool's failure mode.
  *
  * @since 4.0.0
  */
@@ -149,6 +108,8 @@ export interface HandlerContext<Tool extends Tool.Any> {
   /**
    * Emit a preliminary result during long-running tool calls.
    *
+   * **Details**
+   *
    * Preliminary results are streamed to the caller before the handler completes,
    * enabling real-time progress updates for lengthy operations.
    */
@@ -190,6 +151,8 @@ export type ToolsByName<Tools> = Tools extends Record<string, Tool.Any> ?
 /**
  * A utility type that maps tool names to their required handler functions.
  *
+ * **Details**
+ *
  * Handlers can return either the tool's custom failure type, an `AiErrorReason`
  * (which will be wrapped in `AiError`), or a full `AiError`.
  *
@@ -221,6 +184,8 @@ export interface WithHandler<in out Tools extends Record<string, Tool.Any>> {
 
   /**
    * Executes a tool call by name.
+   *
+   * **Details**
    *
    * Validates the input parameters, executes the corresponding handler, and
    * streams back both the typed result and encoded result. Streaming allows
@@ -461,8 +426,10 @@ const resolveInput = <Tools extends ReadonlyArray<Tool.Any>>(
 /**
  * An empty toolkit with no tools.
  *
- * Useful as a starting point for building toolkits or as a default value. Can
- * be extended using the merge function to add tools.
+ * **When to use**
+ *
+ * Use when you need an empty starting point for building toolkits or a default
+ * toolkit value that can be extended with `merge`.
  *
  * @category constructors
  * @since 4.0.0
@@ -471,6 +438,8 @@ export const empty: Toolkit<{}> = makeProto({})
 
 /**
  * Creates a new toolkit from the specified tools.
+ *
+ * **Details**
  *
  * This is the primary constructor for creating toolkits. It accepts multiple
  * tools and organizes them into a toolkit that can be provided to AI language
@@ -540,6 +509,8 @@ export type MergedTools<Toolkits extends ReadonlyArray<Any>> = SimplifyRecord<
 
 /**
  * Merges multiple toolkits into a single toolkit.
+ *
+ * **Details**
  *
  * Combines all tools from the provided toolkits into one unified toolkit.
  * If there are naming conflicts, tools from later toolkits will override

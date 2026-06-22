@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Option, Path, PlatformError, Ref, Result } from "effect"
+import { Effect, FileSystem, Layer, Option, Path, PlatformError, Ref, Result, Stdio } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliOutput, Command, Flag } from "effect/unstable/cli"
 import * as ChildProcessSpawner from "effect/unstable/process/ChildProcessSpawner"
@@ -32,6 +32,11 @@ const CliOutputLayer = CliOutput.layer(
     colors: false
   })
 )
+const StdioLayer = Stdio.layerTest({})
+const ChildProcessSpawnerLayer = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+)
 
 const TestLayer = Layer.mergeAll(
   ConsoleLayer,
@@ -39,7 +44,8 @@ const TestLayer = Layer.mergeAll(
   PathLayer,
   TerminalLayer,
   CliOutputLayer,
-  Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented")))
+  StdioLayer,
+  ChildProcessSpawnerLayer
 )
 
 describe("Command arguments", () => {
@@ -344,7 +350,7 @@ describe("Command arguments", () => {
       assert.strictEqual(result.label.value, "my-label")
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("should handle optional arguments - when not provided", () =>
+  it.effect("returns none for omitted optional positional arguments", () =>
     Effect.gen(function*() {
       // BUG TEST: Argument.optional() should work for positional arguments
       // Currently it only catches MissingOption, not MissingArgument
@@ -358,7 +364,7 @@ describe("Command arguments", () => {
       assert.isTrue(Option.isNone(value), "Should be Option.none()")
     }).pipe(Effect.provide(TestLayer)))
 
-  it.effect("should show correct error message for invalid argument (not 'flag')", () =>
+  it.effect("uses argument wording for positional InvalidValue errors", () =>
     Effect.gen(function*() {
       // When a positional argument has an invalid value, the error should say "argument"
       // not "flag" (which would be confusing)

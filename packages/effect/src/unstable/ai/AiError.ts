@@ -1,82 +1,13 @@
 /**
- * The `AiError` module provides comprehensive, provider-agnostic error handling
- * for AI operations.
+ * Defines shared errors for AI operations.
  *
- * This module uses the `reason` pattern where `AiError` is a top-level
- * wrapper error containing `module`, `method`, and a `reason` field that holds
- * the semantic error. This design enables ergonomic error handling while
- * preserving rich context about failures.
- *
- * ## Semantic Error Categories
- *
- * - **RateLimitError** - Request throttled (429s, provider-specific limits)
- * - **QuotaExhaustedError** - Account/billing limits reached
- * - **AuthenticationError** - Invalid/expired credentials
- * - **ContentPolicyError** - Input/output violated content policy
- * - **InvalidRequestError** - Malformed request parameters
- * - **InvalidUserInputError** - Prompt contains unsupported content
- * - **InternalProviderError** - Provider-side failures (5xx)
- * - **NetworkError** - Transport-level failures
- * - **InvalidOutputError** - LLM output parsing/validation failures
- * - **StructuredOutputError** - LLM generated text that doesn't conform to structured output schema
- * - **UnsupportedSchemaError** - Codec transformer rejected a schema with unsupported constructs
- * - **UnknownError** - Catch-all for unknown errors
- *
- * ## Tool Call Errors
- *
- * - **ToolNotFoundError** - Model requested non-existent tool
- * - **ToolParameterValidationError** - Tool call params failed validation
- * - **InvalidToolResultError** - Tool handler returned invalid result
- * - **ToolResultEncodingError** - Tool result encoding failed
- * - **ToolConfigurationError** - Provider tool misconfigured
- *
- * ## Retryability
- *
- * Each reason type has an `isRetryable` getter indicating whether the error is
- * transient. Some errors also provide a `retryAfter` duration hint.
- *
- * **Example** (Handling AI errors by reason)
- *
- * ```ts
- * import { Effect, Match } from "effect"
- * import type { AiError } from "effect/unstable/ai"
- *
- * // Handle errors using Match on the reason
- * const handleAiError = Match.type<AiError.AiError>().pipe(
- *   Match.when(
- *     { reason: { _tag: "RateLimitError" } },
- *     (err) => Effect.logWarning(`Rate limited, retry after ${err.retryAfter}`)
- *   ),
- *   Match.when(
- *     { reason: { _tag: "AuthenticationError" } },
- *     (err) => Effect.logError(`Auth failed: ${err.reason.kind}`)
- *   ),
- *   Match.when(
- *     { reason: { isRetryable: true } },
- *     (err) => Effect.logWarning(`Transient error, retrying: ${err.message}`)
- *   ),
- *   Match.orElse((err) => Effect.logError(`Permanent error: ${err.message}`))
- * )
- * ```
- *
- * **Example** (Creating an AI error with a reason)
- *
- * ```ts
- * import { Duration, Effect } from "effect"
- * import { AiError } from "effect/unstable/ai"
- *
- * // Create an AiError with a reason
- * const error = AiError.make({
- *   module: "OpenAI",
- *   method: "completion",
- *   reason: new AiError.RateLimitError({
- *     retryAfter: Duration.seconds(60)
- *   })
- * })
- *
- * console.log(error.isRetryable) // true
- * console.log(error.message) // "OpenAI.completion: Rate limit exceeded. Retry after 1 minute"
- * ```
+ * `AiError` records where a failure happened and stores the detailed reason in a
+ * `reason` field. Those reasons cover transport problems, provider responses,
+ * rate limits, authentication, content policy failures, invalid requests,
+ * invalid output, unsupported schemas, tool failures, invalid user input, and
+ * unknown failures. This module also includes metadata schemas, guards,
+ * constructors, and helpers for converting HTTP response information into AI
+ * error reasons.
  *
  * @since 4.0.0
  */
@@ -114,6 +45,8 @@ const redactHeaders = (headers: Record<string, string>): Record<string, string> 
 
 /**
  * Error indicating a network-level failure before receiving a response.
+ *
+ * **Details**
  *
  * This error is raised when issues arise before receiving an HTTP response,
  * such as network connectivity problems, request encoding issues, or invalid
@@ -243,13 +176,20 @@ export class NetworkError extends Schema.ErrorClass<NetworkError>(
 /**
  * Schema for provider-specific metadata which can be attached to error reasons.
  *
- * Provider-specific metadata is namespaced by provider and has the structure:
+ * **Details**
  *
- * ```
- * {
- *   "<provider-name>": {
- *     // Provider-specific metadata (e.g. errorCode, requestId, etc.)
- *   }
+ * Provider-specific metadata is namespaced by provider name. Each provider
+ * value can contain arbitrary mutable JSON metadata or `null`.
+ *
+ * **Example** (Inspecting metadata shape)
+ *
+ * ```ts
+ * const metadata = {
+ *   openai: {
+ *     errorCode: "rate_limit_exceeded",
+ *     requestId: "req_123"
+ *   },
+ *   anthropic: null
  * }
  * ```
  *
@@ -263,6 +203,8 @@ export const ProviderMetadata: Schema.$Record<
 
 /**
  * Type of provider-specific metadata attached to AI error reasons.
+ *
+ * **Details**
  *
  * Metadata is keyed by provider name, and each provider value is either mutable
  * JSON metadata or `null`.
@@ -353,7 +295,12 @@ export interface UnsupportedSchemaErrorMetadata extends ProviderMetadata {}
 export interface UnknownErrorMetadata extends ProviderMetadata {}
 
 /**
- * Token usage information from AI operations.
+ * Schema for token usage information from AI operations.
+ *
+ * **Details**
+ *
+ * Schema for optional provider-reported token counts for prompt tokens,
+ * completion tokens, and total tokens.
  *
  * @category schemas
  * @since 4.0.0
@@ -365,7 +312,20 @@ export const UsageInfo = Schema.Struct({
 }).annotate({ identifier: "UsageInfo" })
 
 /**
- * Combined HTTP context for error reporting.
+ * Schema for the combined HTTP context used in error reporting.
+ *
+ * **When to use**
+ *
+ * Use to attach request details, optional response details, and optional body
+ * text to AI provider errors.
+ *
+ * **Details**
+ *
+ * Includes the required request details plus optional response details and raw
+ * response body.
+ *
+ * @see {@link HttpRequestDetails} for captured request details
+ * @see {@link HttpResponseDetails} for captured response details
  *
  * @category schemas
  * @since 4.0.0
@@ -382,6 +342,8 @@ export const HttpContext = Schema.Struct({
 
 /**
  * Error indicating the request was rate limited.
+ *
+ * **Details**
  *
  * Rate limit errors are always retryable. When `retryAfter` is provided,
  * callers should wait that duration before retrying.
@@ -437,6 +399,8 @@ export class RateLimitError extends Schema.ErrorClass<RateLimitError>(
 /**
  * Error indicating account or billing limits have been reached.
  *
+ * **Details**
+ *
  * Quota exhausted errors are not retryable without user action.
  *
  * **Example** (Creating a quota exhausted error)
@@ -487,6 +451,8 @@ export class QuotaExhaustedError extends Schema.ErrorClass<QuotaExhaustedError>(
 
 /**
  * Error indicating authentication or authorization failure.
+ *
+ * **Details**
  *
  * Authentication errors are never retryable without credential changes.
  *
@@ -546,6 +512,8 @@ export class AuthenticationError extends Schema.ErrorClass<AuthenticationError>(
 /**
  * Error indicating content policy violation.
  *
+ * **Details**
+ *
  * Content policy errors are never retryable without content changes.
  *
  * **Example** (Creating a content policy error)
@@ -596,6 +564,8 @@ export class ContentPolicyError extends Schema.ErrorClass<ContentPolicyError>(
 
 /**
  * Error indicating the request had invalid or malformed parameters.
+ *
+ * **Details**
  *
  * Invalid request errors require fixing the request and are not retryable.
  *
@@ -656,6 +626,8 @@ export class InvalidRequestError extends Schema.ErrorClass<InvalidRequestError>(
 /**
  * Error indicating the AI provider experienced an internal error.
  *
+ * **Details**
+ *
  * Internal provider errors are typically transient and are retryable.
  *
  * **Example** (Creating an internal provider error)
@@ -706,6 +678,8 @@ export class InternalProviderError extends Schema.ErrorClass<InternalProviderErr
 
 /**
  * Error indicating failure to parse or validate LLM output.
+ *
+ * **Details**
  *
  * Invalid output errors are retryable since LLM outputs are non-deterministic.
  *
@@ -780,6 +754,8 @@ export class InvalidOutputError extends Schema.ErrorClass<InvalidOutputError>(
 /**
  * Error indicating the LLM generated text that does not conform to the
  * requested structured output schema.
+ *
+ * **Details**
  *
  * Structured output errors are retryable since LLM outputs are non-deterministic.
  *
@@ -859,6 +835,8 @@ export class StructuredOutputError extends Schema.ErrorClass<StructuredOutputErr
  * Error indicating a codec transformer rejected a schema because it contains
  * unsupported constructs.
  *
+ * **Details**
+ *
  * Unsupported schema errors are not retryable because they indicate a
  * programmer error where the schema is incompatible with the provider.
  *
@@ -908,7 +886,9 @@ export class UnsupportedSchemaError extends Schema.ErrorClass<UnsupportedSchemaE
 }
 
 /**
- * Catch-all error for unknown or unexpected errors.
+ * Error data for unknown or unexpected AI failures.
+ *
+ * **Details**
  *
  * Unknown errors are not retryable by default since the cause is unknown.
  *
@@ -965,6 +945,8 @@ export class UnknownError extends Schema.ErrorClass<UnknownError>(
 /**
  * Error indicating the model requested a tool that doesn't exist in the toolkit.
  *
+ * **Details**
+ *
  * This error is retryable because the model may self-correct when provided
  * with the list of available tools.
  *
@@ -1017,6 +999,8 @@ export class ToolNotFoundError extends Schema.ErrorClass<ToolNotFoundError>(
 
 /**
  * Error indicating the model's tool call parameters failed schema validation.
+ *
+ * **Details**
  *
  * This error is retryable because the model may correct its parameters
  * on subsequent attempts.
@@ -1073,6 +1057,8 @@ export class ToolParameterValidationError extends Schema.ErrorClass<ToolParamete
  * Error indicating the tool handler returned an invalid result that does not
  * match the tool's schema.
  *
+ * **Details**
+ *
  * This error is not retryable because invalid results indicate a bug in the
  * tool handler implementation.
  *
@@ -1124,6 +1110,8 @@ export class InvalidToolResultError extends Schema.ErrorClass<InvalidToolResultE
 
 /**
  * Error indicating the tool result cannot be encoded for sending back to the model.
+ *
+ * **Details**
  *
  * This error is not retryable because encoding failures indicate a bug in the
  * tool schema definitions.
@@ -1179,6 +1167,8 @@ export class ToolResultEncodingError extends Schema.ErrorClass<ToolResultEncodin
 /**
  * Error indicating a provider-defined tool was configured with invalid arguments.
  *
+ * **Details**
+ *
  * This error is not retryable because it indicates a programming error in the
  * tool configuration that must be fixed in code.
  *
@@ -1231,6 +1221,8 @@ export class ToolConfigurationError extends Schema.ErrorClass<ToolConfigurationE
 /**
  * Error indicating an operation requires a toolkit but none was provided.
  *
+ * **Details**
+ *
  * This error occurs when tool approval responses are present in the prompt
  * but no toolkit was provided to resolve them.
  *
@@ -1282,6 +1274,8 @@ export class ToolkitRequiredError extends Schema.ErrorClass<ToolkitRequiredError
 
 /**
  * Error indicating the user provided invalid input in their prompt.
+ *
+ * **Details**
  *
  * This error is raised when the prompt contains content that is structurally
  * valid but not supported by the provider (e.g., unsupported media types,
@@ -1338,6 +1332,8 @@ export class InvalidUserInputError extends Schema.ErrorClass<InvalidUserInputErr
 /**
  * Union type of all semantic error reasons that can occur during AI operations.
  *
+ * **Details**
+ *
  * Every reason carries a semantic `_tag`, a human-readable message, and an
  * `isRetryable` getter. Provider-facing reasons may also include retry timing,
  * provider metadata, usage information, or HTTP context.
@@ -1367,6 +1363,16 @@ export type AiErrorReason =
 
 /**
  * Schema for validating and parsing AI error reasons.
+ *
+ * **When to use**
+ *
+ * Use when decoding or validating unknown AI error reason values with Schema.
+ *
+ * **Details**
+ *
+ * This runtime schema is the union of the concrete AI error reason classes.
+ *
+ * @see {@link isAiErrorReason} for checking an existing value without Schema decoding
  *
  * @category schemas
  * @since 4.0.0
@@ -1418,14 +1424,17 @@ export const AiErrorReason: Schema.Union<[
 const TypeId = "~effect/unstable/ai/AiError/AiError" as const
 
 /**
- * Top-level AI error wrapper using the `reason` pattern.
+ * Schema for the top-level AI error wrapper using the `reason` pattern.
  *
- * This error wraps semantic error reasons and provides:
- * - `module` and `method` context for where the error occurred
- * - `reason` field containing the semantic error type
- * - Delegated `isRetryable` and `retryAfter` to the underlying reason
+ * **When to use**
  *
- * Use with `Effect.catchReason` for ergonomic error handling:
+ * Use when you need AI errors that can be handled by semantic reason with
+ * `Effect.catchReason`.
+ *
+ * **Details**
+ *
+ * This error stores `module` and `method` context, the semantic `reason`, and
+ * delegates `isRetryable` and `retryAfter` to the underlying reason.
  *
  * **Example** (Handling an AI error by tag)
  *
@@ -1568,7 +1577,10 @@ export const make = (params: {
 /**
  * Maps HTTP status codes to semantic error reasons.
  *
- * Provider packages can use this as a base for provider-specific mapping.
+ * **When to use**
+ *
+ * Use as the base mapping when provider packages translate HTTP status codes into
+ * provider-specific error reasons.
  *
  * **Example** (Mapping an HTTP status to a reason)
  *

@@ -8,7 +8,7 @@ import {
   requestPreResponseHandlers
 } from "effect/unstable/http/internal/preResponseHandler"
 
-describe("Http/App", () => {
+describe("HttpEffect", () => {
   describe("toWebHandler", () => {
     test("json", async () => {
       const handler = HttpEffect.toWebHandler(HttpServerResponse.json({ foo: "bar" }))

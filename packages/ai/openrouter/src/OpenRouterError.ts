@@ -45,6 +45,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `RateLimitError` values.
    *
+   * **Details**
+   *
    * Captures OpenRouter error details together with rate limit header
    * information from responses where the provider rejected the request because
    * a limit was reached.
@@ -62,6 +64,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `QuotaExhaustedError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for failures caused by exhausted account,
    * billing, or usage quota.
    *
@@ -77,6 +81,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenRouter metadata attached to `AuthenticationError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for failed API key, authorization, or
    * permission checks.
@@ -94,6 +100,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `ContentPolicyError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenRouter rejects input or output
    * because it violates a content policy.
    *
@@ -109,6 +117,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenRouter metadata attached to `InvalidRequestError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for malformed requests, unsupported
    * parameters, or other request validation failures reported by OpenRouter.
@@ -126,6 +136,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `InternalProviderError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details for OpenRouter-side failures such as
    * transient server errors or overload responses.
    *
@@ -141,6 +153,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenRouter metadata attached to `InvalidOutputError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details when an OpenRouter response cannot be
    * parsed or validated as the expected output.
@@ -158,6 +172,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `StructuredOutputError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when OpenRouter returns content that does
    * not satisfy the requested structured output schema.
    *
@@ -174,6 +190,8 @@ declare module "effect/unstable/ai/AiError" {
   /**
    * OpenRouter metadata attached to `UnsupportedSchemaError` values.
    *
+   * **Details**
+   *
    * Preserves provider error details when an unsupported schema failure is
    * associated with an OpenRouter response.
    *
@@ -189,6 +207,8 @@ declare module "effect/unstable/ai/AiError" {
 
   /**
    * OpenRouter metadata attached to `UnknownError` values.
+   *
+   * **Details**
    *
    * Preserves provider error details for OpenRouter failures that do not map
    * cleanly to a more specific AI error category.

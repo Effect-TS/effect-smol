@@ -20,11 +20,6 @@ export * as OpenRouterClient from "./OpenRouterClient.ts"
 export * as OpenRouterConfig from "./OpenRouterConfig.ts"
 
 /**
- * OpenRouter error metadata augmentation.
- *
- * Provides OpenRouter-specific metadata fields for AI error types through
- * module augmentation, enabling typed access to OpenRouter error details.
- *
  * @since 4.0.0
  */
 export * as OpenRouterError from "./OpenRouterError.ts"

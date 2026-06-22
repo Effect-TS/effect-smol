@@ -1,48 +1,10 @@
 /**
- * The `Function` module provides small, pure helpers for defining, composing,
- * adapting, and reusing TypeScript functions. It is the foundation for the
- * data-first and data-last APIs used throughout Effect, and it includes the
- * core pipeline utilities that make those APIs ergonomic.
+ * Provides small helpers for defining and reusing TypeScript functions.
  *
- * **Mental model**
- *
- * - {@link pipe} starts with a value and passes it through one unary function at
- *   a time
- * - {@link flow} composes unary functions into a reusable function
- * - {@link dual} builds APIs that support both direct calls and `pipe`-friendly
- *   data-last calls
- * - {@link identity}, {@link constant}, and the `const*` helpers model common
- *   identity and thunk patterns without allocating ad hoc callbacks
- * - {@link tupled}, {@link untupled}, {@link flip}, and {@link apply} adapt
- *   call shapes without changing the underlying behavior
- * - Type helpers such as {@link LazyArg}, {@link FunctionN}, {@link satisfies},
- *   and {@link cast} describe or constrain functions at the type level
- *
- * **Common tasks**
- *
- * - Build readable transformation pipelines: {@link pipe}
- * - Create reusable composed functions: {@link flow}, {@link compose}
- * - Define functions callable in both data-first and data-last style: {@link dual}
- * - Return a value unchanged: {@link identity}
- * - Create thunks and common constant functions: {@link constant},
- *   {@link constTrue}, {@link constFalse}, {@link constNull},
- *   {@link constUndefined}, {@link constVoid}
- * - Convert between rest-argument and tuple-argument functions: {@link tupled},
- *   {@link untupled}
- * - Express impossible branches: {@link absurd}
- * - Cache results for object keys: {@link memoize}
- *
- * **Gotchas**
- *
- * - Functions passed to {@link pipe} and {@link flow} are applied left-to-right
- *   and should be unary at each step
- * - {@link dual} uses either an arity or a predicate to decide whether a call is
- *   data-first or data-last; use a predicate when optional arguments make arity
- *   ambiguous
- * - {@link cast} changes only the static TypeScript type and performs no runtime
- *   validation
- * - {@link memoize} is intended for object keys and stores cached values in a
- *   `WeakMap`
+ * The main helpers are `pipe` and `flow` for left-to-right composition and
+ * `dual` for APIs that support both direct and pipe-friendly call styles. The
+ * module also contains small identity, constant, tuple, type-level, and
+ * memoization helpers used across the library.
  *
  * @since 2.0.0
  */
@@ -51,6 +13,11 @@ import { pipeArguments } from "./Pipeable.ts"
 
 /**
  * Type lambda for function types, used for higher-kinded type operations.
+ *
+ * **When to use**
+ *
+ * Use when defining higher-kinded abstractions that must accept function types
+ * as one of their type-lambda inputs.
  *
  * **Example** (Creating a function type with a type lambda)
  *
@@ -70,23 +37,21 @@ export interface FunctionTypeLambda extends TypeLambda {
 }
 
 /**
- * Creates a function that can be used in a data-last (aka `pipe`able) or
- * data-first style.
+ * Creates a function that can be called in data-first style or data-last
+ * (`pipe`-friendly) style.
  *
- * The first parameter to `dual` is either the arity of the uncurried function
- * or a predicate that determines if the function is being used in a data-first
- * or data-last style.
+ * **When to use**
  *
- * Using the arity is the most common use case, but there are some cases where
- * you may want to use a predicate. For example, if you have a function that
- * takes an optional argument, you can use a predicate to determine if the
- * function is being used in a data-first or data-last style.
+ * Use to expose one implementation through both direct and `pipe`-friendly
+ * call styles.
  *
- * You can pass either the arity of the uncurried function or a predicate
- * which determines if the function is being used in a data-first or
- * data-last style.
+ * **Details**
  *
- * **Example** (Using arity to determine data-first or data-last style)
+ * Pass either the arity of the uncurried function or a predicate that decides
+ * whether the current call is data-first. Arity is the common case. Use a
+ * predicate when optional arguments make arity ambiguous.
+ *
+ * **Example** (Selecting data-first or data-last style by arity)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -100,7 +65,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * console.log(pipe(2, sum(3))) // 5
  * ```
  *
- * **Example** (Using call signatures to define the overloads)
+ * **Example** (Defining overloads with call signatures)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -114,7 +79,7 @@ export interface FunctionTypeLambda extends TypeLambda {
  * console.log(pipe(2, sum(3))) // 5
  * ```
  *
- * **Example** (Using a predicate to determine data-first or data-last style)
+ * **Example** (Selecting data-first or data-last style with a predicate)
  *
  * ```ts
  * import { Function, pipe } from "effect"
@@ -191,7 +156,16 @@ export const dual: {
   }
 }
 /**
- * Apply a function to a given value.
+ * Applies a function to a given value.
+ *
+ * **When to use**
+ *
+ * Use to pass a fixed value into a unary function, especially when the function
+ * is the value flowing through `pipe`.
+ *
+ * **Details**
+ *
+ * `apply(a)(f)` is equivalent to `f(a)`.
  *
  * **Example** (Applying an argument to a function)
  *
@@ -202,6 +176,8 @@ export const dual: {
  * assert.deepStrictEqual(pipe(String.length, Function.apply("hello")), 5)
  * ```
  *
+ * @see {@link pipe} for building left-to-right pipelines
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -209,6 +185,10 @@ export const apply = <A>(a: A) => <B>(self: (a: A) => B): B => self(a)
 
 /**
  * A zero-argument function that produces a value when invoked.
+ *
+ * **When to use**
+ *
+ * Use to type a lazy value provider that should not run until called.
  *
  * **Example** (Creating a lazy argument)
  *
@@ -226,6 +206,11 @@ export type LazyArg<A> = () => A
 /**
  * Represents a function with multiple arguments.
  *
+ * **When to use**
+ *
+ * Use to describe a function whose argument list is represented as a tuple
+ * type.
+ *
  * **Example** (Typing a variadic function)
  *
  * ```ts
@@ -242,7 +227,11 @@ export type LazyArg<A> = () => A
 export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 
 /**
- * The identity function, i.e. A function that returns its input argument.
+ * Returns its input argument unchanged.
+ *
+ * **When to use**
+ *
+ * Use to return a value unchanged where a function is required.
  *
  * **Example** (Returning the same value)
  *
@@ -259,8 +248,13 @@ export type FunctionN<A extends ReadonlyArray<unknown>, B> = (...args: A) => B
 export const identity = <A>(a: A): A => a
 
 /**
- * A function that ensures that the type of an expression matches some type,
+ * Ensures that the type of an expression matches some type,
  * without changing the resulting type of that expression.
+ *
+ * **When to use**
+ *
+ * Use to check assignability while preserving the expression's precise inferred
+ * type.
  *
  * **Example** (Checking an expression against a type)
  *
@@ -277,7 +271,9 @@ export const identity = <A>(a: A): A => a
  * assert.deepStrictEqual(Function.satisfies<number>()(5), 5)
  * ```
  *
- * @category type utils
+ * @see {@link cast} for changing only the static TypeScript type
+ *
+ * @category utility types
  * @since 2.0.0
  */
 export const satisfies = <A>() => <B extends A>(b: B) => b
@@ -285,10 +281,19 @@ export const satisfies = <A>() => <B extends A>(b: B) => b
 /**
  * Returns the input value with a different static type.
  *
+ * **When to use**
+ *
+ * Use when you need an explicit type-level cast and accept that the value is
+ * returned unchanged at runtime.
+ *
+ * **Gotchas**
+ *
  * This is a type-level cast only; it performs no runtime validation or
  * conversion.
  *
- * @category type utils
+ * @see {@link satisfies} for checking assignability without changing the resulting type
+ *
+ * @category utility types
  * @since 4.0.0
  */
 export const cast: <A, B>(a: A) => B = identity as any
@@ -296,8 +301,10 @@ export const cast: <A, B>(a: A) => B = identity as any
 /**
  * Creates a zero-argument function that always returns the provided value.
  *
- * Use `constant` when an API expects a thunk or callback and every invocation
- * should return the same value.
+ * **When to use**
+ *
+ * Use when you need a thunk or callback that returns the same value on every
+ * invocation.
  *
  * **Example** (Creating a constant thunk)
  *
@@ -317,7 +324,11 @@ export const cast: <A, B>(a: A) => B = identity as any
 export const constant = <A>(value: A): LazyArg<A> => () => value
 
 /**
- * A thunk that returns always `true`.
+ * Returns `true` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `true` on every invocation.
  *
  * **Example** (Returning true from a thunk)
  *
@@ -334,7 +345,11 @@ export const constant = <A>(value: A): LazyArg<A> => () => value
 export const constTrue: LazyArg<boolean> = constant(true)
 
 /**
- * A thunk that returns always `false`.
+ * Returns `false` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `false` on every invocation.
  *
  * **Example** (Returning false from a thunk)
  *
@@ -351,7 +366,11 @@ export const constTrue: LazyArg<boolean> = constant(true)
 export const constFalse: LazyArg<boolean> = constant(false)
 
 /**
- * A thunk that returns always `null`.
+ * Returns `null` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `null` on every invocation.
  *
  * **Example** (Returning null from a thunk)
  *
@@ -368,7 +387,11 @@ export const constFalse: LazyArg<boolean> = constant(false)
 export const constNull: LazyArg<null> = constant(null)
 
 /**
- * A thunk that returns always `undefined`.
+ * Returns `undefined` when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that returns `undefined` on every invocation.
  *
  * **Example** (Returning undefined from a thunk)
  *
@@ -385,7 +408,12 @@ export const constNull: LazyArg<null> = constant(null)
 export const constUndefined: LazyArg<undefined> = constant(undefined)
 
 /**
- * A thunk that returns always `void`.
+ * Returns no meaningful value when called.
+ *
+ * **When to use**
+ *
+ * Use when you need a thunk that is called only for its effect and has no
+ * meaningful return value.
  *
  * **Example** (Returning void from a thunk)
  *
@@ -403,6 +431,11 @@ export const constVoid: LazyArg<void> = constUndefined
 
 /**
  * Reverses the order of arguments for a curried function.
+ *
+ * **When to use**
+ *
+ * Use to adapt a curried function when its argument groups need to be supplied
+ * in the opposite order.
  *
  * **Example** (Flipping curried arguments)
  *
@@ -428,6 +461,10 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  * Composes two functions, `ab` and `bc` into a single function that takes in an argument `a` of type `A` and returns a result of type `C`.
  * The result is obtained by first applying the `ab` function to `a` and then applying the `bc` function to the result of `ab`.
  *
+ * **When to use**
+ *
+ * Use to compose exactly two unary functions into a reusable unary function.
+ *
  * **Example** (Composing two functions)
  *
  * ```ts
@@ -440,6 +477,9 @@ export const flip = <A extends Array<unknown>, B extends Array<unknown>, C>(
  * assert.strictEqual(Function.compose(increment, square)(2), 9)
  * ```
  *
+ * @see {@link flow} for composing a left-to-right sequence of functions
+ * @see {@link pipe} for applying a value through a left-to-right sequence immediately
+ *
  * @category combinators
  * @since 2.0.0
  */
@@ -449,10 +489,18 @@ export const compose: {
 } = dual(2, <A, B, C>(ab: (a: A) => B, bc: (b: B) => C): (a: A) => C => (a) => bc(ab(a)))
 
 /**
- * The `absurd` function is a stub for cases where a value of type `never` is encountered in your code,
- * meaning that it should be impossible for this code to be executed.
+ * Marks an impossible branch by accepting a `never` value and returning any
+ * type.
  *
- * This function is particularly useful when it's necessary to specify that certain cases are impossible.
+ * **When to use**
+ *
+ * Use when you need a return value in a branch that exhaustive checks prove
+ * cannot be reached.
+ *
+ * **Gotchas**
+ *
+ * Calling `absurd` throws, because a value of type `never` should be
+ * impossible at runtime.
  *
  * **Example** (Handling impossible values)
  *
@@ -464,7 +512,7 @@ export const compose: {
  * }
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const absurd = <A>(_: never): A => {
@@ -473,6 +521,10 @@ export const absurd = <A>(_: never): A => {
 
 /**
  * Creates a tupled version of this function: instead of `n` arguments, it accepts a single tuple argument.
+ *
+ * **When to use**
+ *
+ * Use to adapt a multi-argument function so it accepts one tuple argument.
  *
  * **Example** (Converting arguments to a tuple)
  *
@@ -485,13 +537,19 @@ export const absurd = <A>(_: never): A => {
  * assert.deepStrictEqual(sumTupled([1, 2]), 3)
  * ```
  *
+ * @see {@link untupled} for adapting a tuple-argument function back to multiple arguments
+ *
  * @category combinators
  * @since 2.0.0
  */
 export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): (a: A) => B => (a) => f(...a)
 
 /**
- * Inverse function of `tupled`
+ * Converts a tupled function back to an uncurried function.
+ *
+ * **When to use**
+ *
+ * Use to adapt a tuple-argument function so it accepts multiple arguments.
  *
  * **Example** (Converting a tuple to arguments)
  *
@@ -504,22 +562,36 @@ export const tupled = <A extends ReadonlyArray<unknown>, B>(f: (...a: A) => B): 
  * assert.deepStrictEqual(getFirst(1, 2), 1)
  * ```
  *
+ * @see {@link tupled} for adapting a multi-argument function to one tuple argument
+ *
  * @category combinators
  * @since 2.0.0
  */
 export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (...a: A) => B => (...a) => f(a)
 
 /**
- * Pipes the value of an expression into a pipeline of functions.
+ * Pipes the value of an expression through a left-to-right sequence of
+ * functions.
+ *
+ * **When to use**
+ *
+ * Use when you need to compose data-last functions into readable
+ * transformation pipelines instead of method-style chains.
  *
  * **Details**
  *
- * The `pipe` function is a utility that allows us to compose functions in a
- * readable and sequential manner. It takes the output of one function and
- * passes it as the input to the next function in the pipeline. This enables us
- * to build complex transformations by chaining multiple functions together.
+ * Takes an initial value, passes it to the first function, then passes each
+ * result to the next function in order. The final function result is returned.
  *
- * **Example** (Showing pipeline syntax)
+ * **Gotchas**
+ *
+ * Each function passed after the initial value must accept a single argument,
+ * because `pipe` calls each step with only the previous result.
+ *
+ * **Example** (Piping values through functions)
+ *
+ * In this example, `1` is passed to the first function, and each result becomes
+ * the input for the next function.
  *
  * ```ts
  * import { pipe } from "effect"
@@ -534,26 +606,6 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // "result: 4"
  * ```
  *
- * In this syntax, `1` is the initial value, and each function is applied in
- * sequence. The result of each function becomes the input for the next
- * function, and the final result is returned.
- *
- * Here's an illustration of how `pipe` works:
- *
- * ```
- * ┌───┐    ┌───────┐    ┌─────────────┐    ┌────────┐
- * │ 1 │───►│ add 1 │───►│ multiply 2  │───►│ format │───► "result: 4"
- * └───┘    └───────┘    └─────────────┘    └────────┘
- * ```
- *
- * It's important to note that functions passed to `pipe` must have a **single
- * argument** because they are only called with a single argument.
- *
- * **When to Use**
- *
- * This is useful in combination with data-last functions as a simulation of
- * methods:
- *
  * **Example** (Chaining methods before conversion)
  *
  * ```ts
@@ -566,9 +618,9 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // [6, 8]
  * ```
  *
- * becomes:
- *
  * **Example** (Rewriting method chains with pipe)
+ *
+ * The same transformation can be written with data-last functions.
  *
  * ```ts
  * import { Array, pipe } from "effect"
@@ -586,7 +638,7 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * console.log(result) // [6, 8]
  * ```
  *
- * **Example** (Chaining Arithmetic Operations)
+ * **Example** (Chaining arithmetic operations)
  *
  * ```ts
  * import { pipe } from "effect"
@@ -1075,9 +1127,17 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
 }
 
 /**
- * Performs left-to-right function composition. The first argument may have any arity, the remaining arguments must be unary.
+ * Performs left-to-right function composition.
  *
- * See also [`pipe`](#pipe).
+ * **When to use**
+ *
+ * Use to build a reusable function from a left-to-right sequence of
+ * transformations.
+ *
+ * **Details**
+ *
+ * The first function may have any arity. Every following function must be
+ * unary.
  *
  * **Example** (Composing functions left to right)
  *
@@ -1092,6 +1152,9 @@ export function pipe(a: unknown, ...args: Array<any>): unknown {
  *
  * assert.strictEqual(f("aaa"), 6)
  * ```
+ *
+ * @see {@link pipe} for applying a value through a left-to-right sequence immediately
+ * @see {@link compose} for composing exactly two functions
  *
  * @category combinators
  * @since 2.0.0
@@ -1264,6 +1327,12 @@ export function flow(
 /**
  * Creates a compile-time placeholder for a value of any type.
  *
+ * **When to use**
+ *
+ * Use as a temporary typed placeholder while developing incomplete code.
+ *
+ * **Gotchas**
+ *
  * `hole` is intended for temporary development use. If the placeholder is
  * evaluated at runtime, it throws.
  *
@@ -1281,16 +1350,19 @@ export function flow(
  * console.log(typeof buildUser) // "function"
  * ```
  *
- * @category utils
+ * @category utility types
  * @since 2.0.0
  */
 export const hole: <T>() => T = cast(absurd)
 
 /**
- * The SK combinator, also known as the "S-K combinator" or "S-combinator", is a fundamental combinator in the
- * lambda calculus and the SKI combinator calculus.
+ * Returns the second argument and discards the first. The SK combinator is
+ * a fundamental combinator in the lambda calculus and the SKI combinator
+ * calculus.
  *
- * This function is useful for discarding the first argument passed to it and returning the second argument.
+ * **When to use**
+ *
+ * Use to discard the first argument and return the second argument.
  *
  * **Example** (Discarding the first argument)
  *
@@ -1307,10 +1379,27 @@ export const hole: <T>() => T = cast(absurd)
 export const SK = <A, B>(_: A, b: B): B => b
 
 /**
- * Memoizes a function whose input is an object, caching results by object
- * identity.
+ * Creates a memoized function whose input is an object, caching results by
+ * object identity.
  *
- * @category utils
+ * **When to use**
+ *
+ * Use to reuse the result of a synchronous computation whose output is stable
+ * for a given object reference.
+ *
+ * **Details**
+ *
+ * Each memoized wrapper owns a private `WeakMap` keyed by object identity.
+ * Cached `undefined` results are still returned because the cache is checked
+ * with `WeakMap.has`.
+ *
+ * **Gotchas**
+ *
+ * Structurally equal objects do not share cache entries. If the same object is
+ * mutated after its first call, later calls still return the cached result for
+ * that reference.
+ *
+ * @category caching
  * @since 4.0.0
  */
 export function memoize<A extends object, O>(f: (a: A) => O): (ast: A) => O {

@@ -1,28 +1,11 @@
 /**
- * The `TxHashMap` module provides a transactional hash map for storing and
- * updating key-value pairs inside Effect transactions. It is useful when
- * multiple fibers need to coordinate shared map state and each read-modify-write
- * sequence must be committed atomically.
+ * Transactional hash maps for storing and updating key-value pairs inside
+ * Effect transactions.
  *
- * A `TxHashMap<K, V>` has the familiar shape of a `HashMap<K, V>`, but every
- * operation returns an `Effect` and participates in transaction semantics
- * through `TxRef`. Use it for concurrent registries, caches, counters, indexes,
- * and other mutable maps whose updates should compose safely with other
- * transactional references.
- *
- * **Common tasks**
- *
- * - Create maps with {@link empty}, {@link fromIterable}, or {@link make}
- * - Read entries with {@link get}, {@link has}, {@link keys}, {@link values}, and {@link entries}
- * - Update entries with {@link set}, {@link modify}, {@link modifyAt}, and {@link remove}
- * - Inspect aggregate state with {@link size}, {@link isEmpty}, and {@link reduce}
- *
- * **Gotchas**
- *
- * - Operations are effectful; run them in `Effect.gen` and wrap multi-step
- *   transactions with `Effect.tx` when the whole sequence must commit together.
- * - Reads that may be absent return `Option`, so handle both `Some` and `None`
- *   instead of assuming a key exists.
+ * A `TxHashMap` stores an immutable `HashMap` in a `TxRef`, so map reads and
+ * writes can commit atomically with other transactional operations. Use it for
+ * shared registries, counters, indexes, and other maps that need safe
+ * read-modify-write sequences alongside related transactional state.
  *
  * @since 2.0.0
  */
@@ -164,7 +147,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Key<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, any> ? K : never
@@ -197,7 +180,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Value<T extends TxHashMap<any, any>> = T extends TxHashMap<any, infer V> ? V : never
@@ -233,7 +216,7 @@ export declare namespace TxHashMap {
    * })
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Entry<T extends TxHashMap<any, any>> = T extends TxHashMap<infer K, infer V> ? readonly [K, V] : never
@@ -360,7 +343,7 @@ export const fromIterable = <K, V>(
   })
 
 /**
- * Safely lookup the value for the specified key in the TxHashMap.
+ * Looks up the value for the specified key in the TxHashMap.
  *
  * **Example** (Looking up values safely)
  *
@@ -406,8 +389,10 @@ export const get: {
 /**
  * Sets the value for the specified key in the TxHashMap.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by updating
- * its internal state. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by updating its internal state.
+ * It does not return a new TxHashMap reference.
  *
  * **Example** (Setting values)
  *
@@ -448,7 +433,7 @@ export const set: {
 )
 
 /**
- * Checks if the specified key exists in the TxHashMap.
+ * Checks whether the specified key exists in the TxHashMap.
  *
  * **Example** (Checking for keys)
  *
@@ -493,8 +478,10 @@ export const has: {
 /**
  * Removes the specified key from the TxHashMap.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by removing
- * the specified key-value pair. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by removing the specified
+ * key-value pair. It does not return a new TxHashMap reference.
  *
  * **Example** (Removing keys)
  *
@@ -547,8 +534,10 @@ export const remove: {
 /**
  * Removes all entries from the TxHashMap.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by clearing
- * all key-value pairs. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by clearing all key-value pairs.
+ * It does not return a new TxHashMap reference.
  *
  * **Example** (Clearing all entries)
  *
@@ -623,7 +612,7 @@ export const size = <K, V>(self: TxHashMap<K, V>): Effect.Effect<number> =>
   })
 
 /**
- * Checks if the TxHashMap is empty.
+ * Checks whether the TxHashMap is empty.
  *
  * **Example** (Checking for an empty map)
  *
@@ -658,7 +647,7 @@ export const isEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> =>
   })
 
 /**
- * Checks if the TxHashMap is non-empty.
+ * Checks whether the TxHashMap is non-empty.
  *
  * **Example** (Checking for a non-empty map)
  *
@@ -685,13 +674,12 @@ export const isNonEmpty = <K, V>(self: TxHashMap<K, V>): Effect.Effect<boolean> 
   Effect.map(isEmpty(self), (empty) => !empty)
 
 /**
- * Updates the value for the specified key if it exists, returning the previous
- * value in `Some`.
+ * Updates the value for the specified key if it exists, returning the previous value in `Some`; returns `None` and leaves the map unchanged when the key is absent.
  *
- * Returns `None` and leaves the map unchanged when the key is absent.
+ * **Details**
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by updating
- * the value at the specified key. It does not return a new TxHashMap reference.
+ * This function mutates the original TxHashMap by updating the value at the
+ * specified key. It does not return a new TxHashMap reference.
  *
  * **Example** (Updating existing values)
  *
@@ -759,9 +747,11 @@ export const modify: {
 /**
  * Updates the value for the specified key using an Option-based update function.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by updating,
- * adding, or removing the key-value pair based on the function result. It does not
- * return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by updating, adding, or removing
+ * the key-value pair based on the function result. It does not return a new
+ * TxHashMap reference.
  *
  * **Example** (Updating values with Option)
  *
@@ -995,8 +985,10 @@ export const snapshot = <K, V>(
  * Merges another HashMap into this TxHashMap. If both maps contain the same key,
  * the value from the other map will be used.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by merging
- * the provided HashMap into it. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by merging the provided HashMap
+ * into it. It does not return a new TxHashMap reference.
  *
  * **Example** (Merging HashMaps)
  *
@@ -1058,8 +1050,10 @@ export const union: {
 /**
  * Removes multiple keys from the TxHashMap.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by removing
- * all specified keys. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by removing all specified keys.
+ * It does not return a new TxHashMap reference.
  *
  * **Example** (Removing multiple keys)
  *
@@ -1110,8 +1104,10 @@ export const removeMany: {
 /**
  * Sets multiple key-value pairs in the TxHashMap.
  *
- * **Mutation behavior**: This function mutates the original TxHashMap by setting
- * all provided key-value pairs. It does not return a new TxHashMap reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashMap by setting all provided key-value
+ * pairs. It does not return a new TxHashMap reference.
  *
  * **Example** (Setting multiple entries)
  *
@@ -1218,6 +1214,8 @@ export const isTxHashMap = <K, V>(value: unknown): value is TxHashMap<K, V> => {
 /**
  * Looks up the value for the specified key using a caller-supplied hash.
  *
+ * **Gotchas**
+ *
  * The supplied hash must be the hash for the same key, such as a precomputed
  * `Hash.hash(key)` value. If the hash does not match the key, an existing entry
  * may not be found.
@@ -1276,6 +1274,8 @@ export const getHash: {
 
 /**
  * Checks whether the specified key has an entry using a caller-supplied hash.
+ *
+ * **Gotchas**
  *
  * The supplied hash must be the hash for the same key, such as a precomputed
  * `Hash.hash(key)` value. If the hash does not match the key, an existing entry
@@ -1341,8 +1341,10 @@ export const hasHash: {
 /**
  * Transforms all values in the TxHashMap using the provided function, preserving keys.
  *
- * **Return behavior**: This function returns a new TxHashMap reference with the
- * transformed values. The original TxHashMap is not modified.
+ * **Details**
+ *
+ * This function returns a new TxHashMap reference with the transformed values.
+ * The original TxHashMap is not modified.
  *
  * **Example** (Mapping values)
  *
@@ -1408,8 +1410,10 @@ export const map: {
 /**
  * Filters the TxHashMap to keep only entries that satisfy the provided predicate.
  *
- * **Return behavior**: This function returns a new TxHashMap reference containing
- * only the entries that match the condition. The original TxHashMap is not modified.
+ * **Details**
+ *
+ * This function returns a new TxHashMap reference containing only the entries
+ * that match the condition. The original TxHashMap is not modified.
  *
  * **Example** (Filtering entries)
  *
@@ -1560,8 +1564,10 @@ export const reduce: {
  * Combines filtering and mapping in a single operation. Applies a filter to each
  * entry, keeping only successful results and transforming them.
  *
- * **Return behavior**: This function returns a new TxHashMap reference containing
- * only the transformed entries that succeeded. The original TxHashMap is not modified.
+ * **Details**
+ *
+ * This function returns a new TxHashMap reference containing only the transformed
+ * entries that succeeded. The original TxHashMap is not modified.
  *
  * **Example** (Filtering and mapping entries)
  *
@@ -1636,7 +1642,7 @@ export const filterMap: {
 )
 
 /**
- * Checks if any entry in the TxHashMap matches the given predicate.
+ * Checks whether any entry in the TxHashMap matches the given predicate.
  *
  * **Example** (Checking entries with a predicate)
  *
@@ -1754,7 +1760,7 @@ export const findFirst: {
 )
 
 /**
- * Checks if at least one entry in the TxHashMap satisfies the given predicate.
+ * Checks whether at least one entry in the TxHashMap satisfies the given predicate.
  *
  * **Example** (Checking whether some entries match)
  *
@@ -1811,7 +1817,7 @@ export const some: {
 )
 
 /**
- * Checks if all entries in the TxHashMap satisfy the given predicate.
+ * Checks whether all entries in the TxHashMap satisfy the given predicate.
  *
  * **Example** (Checking whether every entry matches)
  *
@@ -1931,10 +1937,12 @@ export const forEach: {
 )
 
 /**
- * Effectfully maps each entry to a `TxHashMap` and flattens the produced maps.
+ * Maps each entry effectfully to a `TxHashMap` and flattens the produced maps.
  *
- * **Return behavior**: This function returns a new TxHashMap reference with the
- * flattened results. The original TxHashMap is not modified.
+ * **Details**
+ *
+ * This function returns a new TxHashMap reference with the flattened results.
+ * The original TxHashMap is not modified.
  *
  * **Example** (Flat mapping entries)
  *
@@ -2013,8 +2021,10 @@ export const flatMap: {
 /**
  * Removes all None values from a TxHashMap containing Option values.
  *
- * **Return behavior**: This function returns a new TxHashMap reference with only
- * the Some values unwrapped. The original TxHashMap is not modified.
+ * **Details**
+ *
+ * This function returns a new TxHashMap reference with only the Some values
+ * unwrapped. The original TxHashMap is not modified.
  *
  * **Example** (Compacting optional values)
  *

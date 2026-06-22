@@ -1,15 +1,16 @@
 import { assert, describe, it } from "@effect/vitest"
+import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
 import * as Random from "effect/Random"
 
 describe("Random", () => {
   describe("next", () => {
-    it.effect("generates a number between 0 and 1", () =>
+    it.effect("generates a number between 0 inclusive and 1 exclusive", () =>
       Effect.gen(function*() {
         const value = yield* Random.next
 
         assert.isAtLeast(value, 0)
-        assert.isAtMost(value, 1)
+        assert.isBelow(value, 1)
       }))
   })
 
@@ -59,13 +60,25 @@ describe("Random", () => {
   })
 
   describe("nextBetween", () => {
-    it.effect("generates number in closed range", () =>
+    it.effect("generates number in half-open range", () =>
       Effect.gen(function*() {
         for (let i = 0; i < 100; i++) {
           const value = yield* Random.nextBetween(10, 20)
           assert.isAtLeast(value, 10)
-          assert.isAtMost(value, 20)
+          assert.isBelow(value, 20)
         }
+      }))
+
+    it.effect("does not round the bounds", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.nextBetween(10.5, 20.5).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 0.75
+          })
+        )
+
+        assert.strictEqual(value, 18)
       }))
 
     it.effect("handles negative ranges", () =>
@@ -73,7 +86,7 @@ describe("Random", () => {
         const value = yield* Random.nextBetween(-10, 10)
 
         assert.isAtLeast(value, -10)
-        assert.isAtMost(value, 10)
+        assert.isBelow(value, 10)
       }))
   })
 
@@ -99,6 +112,18 @@ describe("Random", () => {
           assert.isBelow(value, 6)
         }
       }))
+
+    it.effect("excludes the upper bound in half-open ranges", () =>
+      Effect.gen(function*() {
+        const value = yield* Random.nextIntBetween(1, 6, { halfOpen: true }).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 1 - Number.EPSILON
+          })
+        )
+
+        assert.strictEqual(value, 5)
+      }))
   })
 
   describe("shuffle", () => {
@@ -123,38 +148,39 @@ describe("Random", () => {
       }))
   })
 
-  describe("nextUUIDv4", () => {
-    it.effect("generates valid UUID v4 format", () =>
+  describe("choice", () => {
+    it.effect("selects a random element from an iterable", () =>
       Effect.gen(function*() {
-        const uuid = yield* Random.nextUUIDv4
+        const value = yield* Random.choice(["a", "b", "c"]).pipe(
+          Effect.provideService(Random.Random, {
+            nextIntUnsafe: () => 0,
+            nextDoubleUnsafe: () => 0.75
+          })
+        )
 
-        assert.isString(uuid)
-        assert.match(uuid, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+        assert.strictEqual(value, "c")
       }))
 
-    it.effect("generates unique UUIDs", () =>
+    it.effect("fails with NoSuchElementError for an empty iterable", () =>
       Effect.gen(function*() {
-        const uuid1 = yield* Random.nextUUIDv4
-        const uuid2 = yield* Random.nextUUIDv4
+        const error = yield* Random.choice([]).pipe(Effect.flip)
 
-        assert.notStrictEqual(uuid1, uuid2)
+        assert.isTrue(Cause.isNoSuchElementError(error))
+        assert.strictEqual(error.message, "Cannot select a random element from an empty array")
       }))
 
-    it.effect("generates deterministic UUIDs with same seed", () =>
+    it.effect("is deterministic with the same seed", () =>
       Effect.gen(function*() {
-        const program = Effect.gen(function*() {
-          const uuid1 = yield* Random.nextUUIDv4
-          const uuid2 = yield* Random.nextUUIDv4
-          return [uuid1, uuid2]
-        })
+        const program = Effect.all([
+          Random.choice([1, 2, 3, 4, 5]),
+          Random.choice([1, 2, 3, 4, 5]),
+          Random.choice([1, 2, 3, 4, 5])
+        ])
 
-        const result1 = yield* program.pipe(Random.withSeed("uuid-seed"))
-        const result2 = yield* program.pipe(Random.withSeed("uuid-seed"))
+        const result1 = yield* program.pipe(Random.withSeed("choice-seed"))
+        const result2 = yield* program.pipe(Random.withSeed("choice-seed"))
 
         assert.deepStrictEqual(result1, result2)
-
-        assert.match(result1[0], /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
-        assert.match(result1[1], /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
       }))
   })
 
@@ -164,8 +190,7 @@ describe("Random", () => {
         const program = Effect.gen(function*() {
           const v1 = yield* Random.next
           const v2 = yield* Random.nextInt
-          const v3 = yield* Random.nextUUIDv4
-          return [v1, v2, v3]
+          return [v1, v2]
         })
 
         const result1 = yield* program.pipe(Random.withSeed("test-seed"))
@@ -186,6 +211,51 @@ describe("Random", () => {
         const result2 = yield* program.pipe(Random.withSeed(67890))
 
         assert.notDeepEqual(result1, result2)
+      }))
+
+    it.effect("distinguishes one-character string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+
+        const empty = yield* program.pipe(Random.withSeed(""))
+        const result1 = yield* program.pipe(Random.withSeed("a"))
+        const result2 = yield* program.pipe(Random.withSeed("b"))
+
+        assert.notDeepEqual(result1, empty)
+        assert.notDeepEqual(result2, empty)
+        assert.notDeepEqual(result1, result2)
+      }))
+
+    it.effect("distinguishes trailing partial UTF-8 words in string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+        const pairs = [
+          ["1234a", "1234b"],
+          ["1234ab", "1234ac"],
+          ["1234abc", "1234abd"]
+        ] as const
+
+        for (const [seed1, seed2] of pairs) {
+          const result1 = yield* program.pipe(Random.withSeed(seed1))
+          const result2 = yield* program.pipe(Random.withSeed(seed2))
+
+          assert.notDeepEqual(result1, result2)
+        }
+      }))
+
+    it.effect("distinguishes astral character string seeds", () =>
+      Effect.gen(function*() {
+        const program = Effect.all([Random.next, Random.next, Random.next, Random.next, Random.next])
+
+        const empty = yield* program.pipe(Random.withSeed(""))
+        const result1 = yield* program.pipe(Random.withSeed("😀"))
+        const result2 = yield* program.pipe(Random.withSeed("😁"))
+        const result3 = yield* program.pipe(Random.withSeed("🐀"))
+
+        assert.notDeepEqual(result1, empty)
+        assert.notDeepEqual(result2, empty)
+        assert.notDeepEqual(result1, result2)
+        assert.notDeepEqual(result1, result3)
       }))
 
     it.effect("works with numeric seeds", () =>

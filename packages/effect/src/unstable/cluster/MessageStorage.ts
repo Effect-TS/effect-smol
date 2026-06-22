@@ -1,27 +1,12 @@
 /**
- * The `MessageStorage` module defines the persistence boundary used by Effect
- * Cluster to store mailbox messages and replies. Storage implementations keep
- * requests, envelopes, and reply chunks durable enough for runners to recover
- * work after restarts, replay unprocessed messages for assigned shards, and
- * deliver replies back to locally registered handlers.
+ * Stores Effect Cluster messages and replies behind a pluggable backend.
  *
- * **Common use cases**
- *
- * - Persist outgoing requests and control envelopes before delivery
- * - Detect duplicate requests by primary key and resume from an existing reply
- * - Query unprocessed messages when shards are assigned to a runner
- * - Store, load, and clear replies for request streams and completions
- * - Reset or clear mailbox state during shard or address lifecycle changes
- *
- * **Gotchas**
- *
- * - Implementations should make save and reply operations transactional when
- *   possible so recovery does not observe partial mailbox state
- * - Duplicate detection depends on stable request primary keys and persisted
- *   request ids
- * - Reply handlers are local process state; persisted replies may need to be
- *   loaded again after restarts or reassignment
- * - Concurrent runners must only process messages for shards they currently own
+ * `MessageStorage` is the boundary between cluster runner logic and the storage
+ * system that keeps mailbox state recoverable. It saves requests, control
+ * envelopes, and replies; finds unprocessed messages for assigned shards;
+ * tracks duplicate requests; and manages reply handlers waiting for responses.
+ * This module also includes the encoded storage-driver contract and no-op or
+ * in-memory implementations for local use and tests.
  *
  * @since 4.0.0
  */
@@ -50,6 +35,8 @@ import * as Snowflake from "./Snowflake.ts"
 
 /**
  * Service for cluster mailbox persistence and reply delivery.
+ *
+ * **Details**
  *
  * It stores outgoing requests, control envelopes, and replies; reads unprocessed
  * messages; manages reply handlers; and provides transaction wrapping for storage
@@ -88,8 +75,12 @@ export class MessageStorage extends Context.Service<MessageStorage, {
   /**
    * Retrieves the replies for the specified requests.
    *
+   * **Details**
+   *
+   * This returns:
+   *
    * - Un-acknowledged chunk replies
-   * - WithExit replies
+   * - `WithExit` replies
    */
   readonly repliesFor: <R extends Rpc.Any>(
     requests: Iterable<Message.OutgoingRequest<R>>
@@ -133,12 +124,13 @@ export class MessageStorage extends Context.Service<MessageStorage, {
   /**
    * Retrieves the unprocessed messages for the specified shards.
    *
+   * **Details**
+   *
    * A message is unprocessed when:
    *
-   * - Requests that have no WithExit replies
-   *   - Or they have no unacknowledged chunk replies
-   * - The latest AckChunk envelope
-   * - All Interrupt's for unprocessed requests
+   * - Requests that have no `WithExit` replies or no unacknowledged chunk replies
+   * - The latest `AckChunk` envelope
+   * - All `Interrupt` envelopes for unprocessed requests
    */
   readonly unprocessedMessages: (
     shardIds: Iterable<ShardId.ShardId>
@@ -183,6 +175,8 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 /**
  * Result of saving a request or envelope into message storage.
  *
+ * **Details**
+ *
  * A duplicate result carries the original request ID and the last reply already
  * received for the duplicated request.
  *
@@ -192,7 +186,7 @@ export class MessageStorage extends Context.Service<MessageStorage, {
 export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Duplicate<R>
 
 /**
- * Tagged enum constructor for creating and matching `SaveResult` values.
+ * Constructors and matchers for decoded save results.
  *
  * @category SaveResult
  * @since 4.0.0
@@ -200,7 +194,7 @@ export type SaveResult<R extends Rpc.Any> = SaveResult.Success | SaveResult.Dupl
 export const SaveResult = Data.taggedEnum<SaveResult.Constructor>()
 
 /**
- * Tagged enum constructor for encoded save results returned by encoded storage
+ * Constructors and matchers for encoded save results returned by storage
  * drivers.
  *
  * @category SaveResult
@@ -216,6 +210,8 @@ export const SaveResultEncoded = Data.taggedEnum<SaveResult.Encoded>()
 export declare namespace SaveResult {
   /**
    * Encoded storage-driver form of `SaveResult`.
+   *
+   * **Details**
    *
    * Duplicate results contain an encoded last received reply instead of a decoded
    * reply.
@@ -238,6 +234,8 @@ export declare namespace SaveResult {
   /**
    * Variant indicating that the request duplicates an existing stored request.
    *
+   * **Details**
+   *
    * It carries the original request ID and the latest decoded reply, when one is
    * available.
    *
@@ -252,6 +250,8 @@ export declare namespace SaveResult {
 
   /**
    * Encoded duplicate-save variant returned by lower-level storage drivers.
+   *
+   * **Details**
    *
    * It carries the original request ID and the latest encoded reply, when one is
    * available.
@@ -278,6 +278,8 @@ export declare namespace SaveResult {
 
 /**
  * Low-level storage-driver contract for encoded envelopes and replies.
+ *
+ * **Details**
  *
  * Implementations persist encoded messages, track primary keys and delayed
  * delivery, read unprocessed messages, and provide transaction wrapping.
@@ -317,8 +319,12 @@ export type Encoded = {
   /**
    * Retrieves the replies for the specified requests.
    *
+   * **Details**
+   *
+   * This returns:
+   *
    * - Un-acknowledged chunk replies
-   * - WithExit replies
+   * - `WithExit` replies
    */
   readonly repliesFor: (requestIds: Arr.NonEmptyArray<string>) => Effect.Effect<
     Array<Reply.Encoded>,
@@ -336,12 +342,13 @@ export type Encoded = {
   /**
    * Retrieves the unprocessed messages for the given shards.
    *
+   * **Details**
+   *
    * A message is unprocessed when:
    *
-   * - Requests that have no WithExit replies
-   *   - Or they have no unacknowledged chunk replies
-   * - The latest AckChunk envelope
-   * - All Interrupt's for unprocessed requests
+   * - Requests that have no `WithExit` replies or no unacknowledged chunk replies
+   * - The latest `AckChunk` envelope
+   * - All `Interrupt` envelopes for unprocessed requests
    */
   readonly unprocessedMessages: (
     shardIds: Arr.NonEmptyArray<string>,
@@ -400,6 +407,8 @@ export type Encoded = {
 /**
  * Cursor options for reading encoded unprocessed messages across shard sets.
  *
+ * **Details**
+ *
  * The fields distinguish existing shards from newly assigned shards and carry the
  * driver-specific pagination cursor.
  *
@@ -415,6 +424,8 @@ export type EncodedUnprocessedOptions<A> = {
 /**
  * Cursor options for reading encoded replies across request sets.
  *
+ * **Details**
+ *
  * The fields distinguish existing requests from new requests and carry the
  * driver-specific pagination cursor.
  *
@@ -429,6 +440,8 @@ export type EncodedRepliesOptions<A> = {
 
 /**
  * Wraps a concrete message storage implementation with reply-handler management.
+ *
+ * **Details**
  *
  * The returned service can register waiting reply handlers, notify them when
  * replies are saved, and fail them when a request or shard is unregistered.
@@ -536,6 +549,8 @@ export const make = (
 
 /**
  * Builds a `MessageStorage` service from an encoded storage driver.
+ *
+ * **Details**
  *
  * The adapter handles envelope and reply encoding and decoding, primary-key
  * generation, delayed delivery checks, duplicate decoding, and malformed-message
@@ -773,10 +788,12 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
 /**
  * In-memory storage entry for a request envelope.
  *
+ * **Details**
+ *
  * It stores the encoded envelope, last acknowledged chunk, accumulated replies,
  * and optional delivery time.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export type MemoryEntry = {
@@ -787,9 +804,9 @@ export type MemoryEntry = {
 }
 
 /**
- * Can be used in tests to simulate a transaction.
+ * Provides a context reference used in tests to simulate a transaction.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/MessageStorage/MemoryTransaction", {
@@ -797,13 +814,15 @@ export const MemoryTransaction = Context.Reference<boolean>("effect/cluster/Mess
 })
 
 /**
- * In-memory message storage driver with inspectable backing state.
+ * Service that provides an in-memory message storage driver with inspectable backing state.
+ *
+ * **Details**
  *
  * It provides a `MessageStorage` service, the encoded driver implementation, and
  * maps used to track requests, primary keys, unprocessed envelopes, reply IDs,
  * and the journal.
  *
- * @category Memory
+ * @category memory
  * @since 4.0.0
  */
 export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluster/MessageStorage/MemoryDriver", {
@@ -1042,7 +1061,7 @@ export const layerMemory: Layer.Layer<
 
 const EnvelopeWithReply: Schema.Struct<
   {
-    readonly envelope: Schema.Decoder<Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt>
+    readonly envelope: Schema.ConstraintDecoder<Envelope.PartialRequest | Envelope.AckChunk | Envelope.Interrupt>
     readonly lastSentReply: Schema.Option<Schema.Codec<Reply.Encoded>>
   }
 > = Schema.Struct({

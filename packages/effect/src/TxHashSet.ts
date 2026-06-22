@@ -1,23 +1,14 @@
 /**
- * The `TxHashSet` module provides a transactional hash set for storing unique
- * values inside Effect transactions. A `TxHashSet<A>` wraps a `HashSet<A>` in a
- * transactional reference, so reads and writes can be composed with other
- * transactional operations and committed atomically.
+ * Transactional hash sets for storing unique values inside Effect
+ * transactions.
  *
- * **Common tasks**
- *
- * - Create transactional sets with {@link empty}, {@link make}, or {@link fromIterable}
- * - Mutate an existing set with {@link add}, {@link remove}, and {@link clear}
- * - Query membership and size with {@link has}, {@link size}, and {@link isEmpty}
- * - Derive new sets with {@link map}, {@link filter}, {@link union}, {@link intersection}, and {@link difference}
- * - Fold or collect values with {@link reduce} and {@link toHashSet}
- *
- * **Gotchas**
- *
- * - Mutation operations update the same transactional set; transform operations
- *   return a new `TxHashSet`
- * - Operations are `Effect` values and must be yielded, piped, or run to take effect
- * - Use `Effect.tx` when several operations must observe and commit one atomic transaction
+ * A `TxHashSet` keeps an immutable `HashSet` inside a `TxRef`, so membership
+ * checks and updates can commit atomically with other transactional operations.
+ * Use it when several pieces of shared transactional state must change
+ * together, such as adding a value only after checking related state. The
+ * module includes the usual set operations, including adding, removing,
+ * membership checks, set algebra, mapping, filtering, reducing, and conversion
+ * back to `HashSet`.
  *
  * @since 2.0.0
  */
@@ -56,21 +47,11 @@ const TxHashSetProto = {
 }
 
 /**
- * A TxHashSet is a transactional hash set data structure that provides atomic operations
- * on unique values within Effect transactions. It uses an immutable HashSet internally
- * with TxRef for transactional semantics, ensuring all operations are performed atomically.
+ * A TxHashSet is a transactional hash set data structure that provides atomic operations on unique values within Effect transactions. It uses an immutable HashSet internally with TxRef for transactional semantics, ensuring all operations are performed atomically.
  *
- * ## Mutation vs Return Behavior
+ * **Details**
  *
- * **Mutation operations** (add, remove, clear) modify the original TxHashSet and return `Effect<void>` or `Effect<boolean>`:
- * - These operations mutate the TxHashSet in place
- * - They do not create new TxHashSet instances
- * - Examples: `add`, `remove`, `clear`
- *
- * **Transform operations** (union, intersection, difference, map, filter) create new TxHashSet instances:
- * - These operations return `Effect<TxHashSet<T>>` with a new instance
- * - The original TxHashSet remains unchanged
- * - Examples: `union`, `intersection`, `difference`, `map`, `filter`
+ * Mutation operations such as `add`, `remove`, and `clear` update the original TxHashSet and return `Effect<void>` or `Effect<boolean>`. Transform operations such as `union`, `intersection`, `difference`, `map`, and `filter` create new TxHashSet instances and leave the original TxHashSet unchanged.
  *
  * **Example** (Using transactional hash sets)
  *
@@ -156,7 +137,7 @@ export declare namespace TxHashSet {
    * console.log(processFruit("apple")) // Processing apple
    * ```
    *
-   * @category type-level
+   * @category utility types
    * @since 4.0.0
    */
   export type Value<T> = T extends TxHashSet<infer V> ? V : never
@@ -293,7 +274,7 @@ export const fromHashSet = <V>(hashSet: HashSet.HashSet<V>): Effect.Effect<TxHas
   })
 
 /**
- * Checks if a value is a TxHashSet.
+ * Checks whether a value is a TxHashSet.
  *
  * **Example** (Checking for a TxHashSet)
  *
@@ -320,8 +301,9 @@ export const isTxHashSet = (u: unknown): u is TxHashSet<unknown> => hasProperty(
 /**
  * Adds a value to the TxHashSet. If the value already exists, the operation has no effect.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by adding
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by adding the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Adding values)
  *
@@ -355,8 +337,9 @@ export const add: {
 /**
  * Removes a value from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by removing
- * the specified value. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by removing the specified value. It does not return a new TxHashSet reference.
  *
  * **Example** (Removing values)
  *
@@ -397,7 +380,7 @@ export const remove: {
   }).pipe(Effect.tx))
 
 /**
- * Checks if the TxHashSet contains the specified value.
+ * Checks whether the TxHashSet contains the specified value.
  *
  * **Example** (Checking membership)
  *
@@ -473,7 +456,7 @@ export const size = <V>(self: TxHashSet<V>): Effect.Effect<number> =>
   })
 
 /**
- * Checks if the TxHashSet is empty.
+ * Checks whether the TxHashSet is empty.
  *
  * **Example** (Checking whether a set is empty)
  *
@@ -501,8 +484,9 @@ export const isEmpty = <V>(self: TxHashSet<V>): Effect.Effect<boolean> =>
 /**
  * Removes all values from the TxHashSet.
  *
- * **Mutation behavior**: This function mutates the original TxHashSet by clearing
- * all values. It does not return a new TxHashSet reference.
+ * **Details**
+ *
+ * This function mutates the original TxHashSet by clearing all values. It does not return a new TxHashSet reference.
  *
  * **Example** (Clearing all values)
  *
@@ -648,7 +632,7 @@ export const difference: {
   }).pipe(Effect.tx))
 
 /**
- * Checks if a TxHashSet is a subset of another TxHashSet.
+ * Checks whether a TxHashSet is a subset of another TxHashSet.
  *
  * **Example** (Checking subset relationships)
  *
@@ -684,7 +668,7 @@ export const isSubset: {
   }).pipe(Effect.tx))
 
 /**
- * Tests whether at least one value in the TxHashSet satisfies the predicate.
+ * Checks whether at least one value in the TxHashSet satisfies the predicate.
  *
  * **Example** (Testing whether some values match)
  *
@@ -718,7 +702,7 @@ export const some: {
   }))
 
 /**
- * Tests whether all values in the TxHashSet satisfy the predicate.
+ * Checks whether all values in the TxHashSet satisfy the predicate.
  *
  * **Example** (Testing whether every value matches)
  *

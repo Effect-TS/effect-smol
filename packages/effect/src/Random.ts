@@ -1,35 +1,35 @@
 /**
- * The Random module provides a service for generating random numbers in Effect
- * programs. It offers a testable and composable way to work with randomness,
- * supporting integers, floating-point numbers, and range-based generation.
+ * Provides pseudo-random generation through an Effect service.
  *
- * **Example** (Generating random values)
- *
- * ```ts
- * import { Effect, Random } from "effect"
- *
- * const program = Effect.gen(function*() {
- *   const randomFloat = yield* Random.next
- *   console.log("Random float:", randomFloat)
- *
- *   const randomInt = yield* Random.nextInt
- *   console.log("Random integer:", randomInt)
- *
- *   const diceRoll = yield* Random.nextIntBetween(1, 6)
- *   console.log("Dice roll:", diceRoll)
- * })
- * ```
+ * This module exposes effectful generators for booleans, doubles, safe
+ * integers, bounded numbers, shuffling, and deterministic seeded runs. Because
+ * random generation is a service, tests and applications can replace the
+ * generator used by Effect programs.
  *
  * @since 4.0.0
  */
+import type * as Arr from "./Array.ts"
+import * as Cause from "./Cause.ts"
 import type * as Context from "./Context.ts"
 import * as Effect from "./Effect.ts"
 import { dual } from "./Function.ts"
 import * as random from "./internal/random.ts"
+import type * as NonEmptyIterable from "./NonEmptyIterable.ts"
 import * as Predicate from "./Predicate.ts"
 
 /**
- * Represents a service for generating random numbers.
+ * Represents a service for generating pseudo-random numbers.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the random-number generator service used by Effect
+ * programs.
+ *
+ * **Gotchas**
+ *
+ * The default implementation is based on `Math.random` and is not
+ * cryptographically secure. Replace the service with a cryptographically secure
+ * implementation before using these generators for security-sensitive values.
  *
  * **Example** (Accessing the random service)
  *
@@ -40,12 +40,10 @@ import * as Predicate from "./Predicate.ts"
  *   const float = yield* Random.next
  *   const integer = yield* Random.nextInt
  *   const inRange = yield* Random.nextIntBetween(1, 100)
- *   const uuid = yield* Random.nextUUIDv4
  *
  *   console.log("Float:", float)
  *   console.log("Integer:", integer)
  *   console.log("In range:", inRange)
- *   console.log("UUID:", uuid)
  * })
  * ```
  *
@@ -61,7 +59,12 @@ const randomWith = <A>(f: (random: typeof Random["Service"]) => A): Effect.Effec
   Effect.withFiber((fiber) => Effect.succeed(f(fiber.getRef(Random))))
 
 /**
- * Generates a random number between 0 (inclusive) and 1 (inclusive).
+ * Generates a random number between 0 (inclusive) and 1 (exclusive).
+ *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number in the standard
+ * `[0, 1)` range.
  *
  * **Example** (Generating a random number)
  *
@@ -81,6 +84,10 @@ export const next: Effect.Effect<number> = randomWith((r) => r.nextDoubleUnsafe(
 
 /**
  * Generates a random boolean value.
+ *
+ * **When to use**
+ *
+ * Use to make a pseudo-random true-or-false choice.
  *
  * **Example** (Generating a random boolean)
  *
@@ -102,6 +109,11 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
  * Generates a random integer between `Number.MIN_SAFE_INTEGER` (inclusive)
  * and `Number.MAX_SAFE_INTEGER` (inclusive).
  *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random safe integer across the full safe-integer
+ * range.
+ *
  * **Example** (Generating a random integer)
  *
  * ```ts
@@ -119,7 +131,11 @@ export const nextBoolean: Effect.Effect<boolean> = randomWith((r) => r.nextDoubl
 export const nextInt: Effect.Effect<number> = randomWith((r) => r.nextIntUnsafe())
 
 /**
- * Generates a random number between `min` (inclusive) and `max` (inclusive).
+ * Generates a random number between `min` (inclusive) and `max` (exclusive).
+ *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random floating-point number within a numeric range.
  *
  * **Example** (Generating a bounded random number)
  *
@@ -140,6 +156,12 @@ export const nextBetween = (min: number, max: number): Effect.Effect<number> =>
 
 /**
  * Generates a random integer between `min` and `max`.
+ *
+ * **When to use**
+ *
+ * Use to generate a pseudo-random integer within a rounded numeric range.
+ *
+ * **Details**
  *
  * The lower bound is rounded up with `Math.ceil` and the upper bound is
  * rounded down with `Math.floor`. By default the range is inclusive; set
@@ -176,6 +198,10 @@ export const nextIntBetween = (min: number, max: number, options?: {
 /**
  * Uses the pseudo-random number generator to shuffle the specified iterable.
  *
+ * **When to use**
+ *
+ * Use to randomly reorder an iterable using the active `Random` service.
+ *
  * **Example** (Shuffling values)
  *
  * ```ts
@@ -203,55 +229,59 @@ export const shuffle = <A>(elements: Iterable<A>): Effect.Effect<Array<A>> =>
   })
 
 /**
- * Generates a random UUID (v4) string.
+ * Gets a random element from an iterable.
  *
- * **Example** (Generating a UUID)
+ * **When to use**
+ *
+ * Use to select one value uniformly from a collection using the active `Random`
+ * service.
+ *
+ * **Details**
+ *
+ * If the input type is known to be non-empty, the returned effect cannot fail.
+ * Otherwise, empty iterables fail with `Cause.NoSuchElementError`.
+ *
+ * **Example** (Choosing a random value)
  *
  * ```ts
  * import { Effect, Random } from "effect"
  *
  * const program = Effect.gen(function*() {
- *   const uuid = yield* Random.nextUUIDv4
- *   console.log("UUID:", uuid)
+ *   const value = yield* Random.choice(["red", "green", "blue"] as const)
+ *   console.log(value)
  * })
  * ```
  *
  * @category Random Number Generators
- * @since 4.0.0
+ * @since 3.6.0
  */
-export const nextUUIDv4: Effect.Effect<string> = randomWith((r) => {
-  // Generate 16 random bytes (128 bits) for UUID
-  const bytes: Array<number> = []
-  for (let i = 0; i < 16; i++) {
-    // Get unsigned byte [0, 255] from nextInt (signed 32-bit)
-    bytes.push((r.nextIntUnsafe() >>> 0) & 0xFF)
-  }
-
-  // Set version to 4 (bits 12-15 of time_hi_and_version)
-  bytes[6] = (bytes[6] & 0x0F) | 0x40
-
-  // Set variant to RFC 4122 (bits 6-7 of clock_seq_hi_and_reserved)
-  bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-  // Format as UUID string: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-  const hex = (n: number) => n.toString(16).padStart(2, "0")
-
-  return [
-    bytes.slice(0, 4).map(hex).join(""),
-    bytes.slice(4, 6).map(hex).join(""),
-    bytes.slice(6, 8).map(hex).join(""),
-    bytes.slice(8, 10).map(hex).join(""),
-    bytes.slice(10, 16).map(hex).join("")
-  ].join("-")
-})
+export const choice: <Self extends Iterable<unknown>>(
+  elements: Self
+) => Self extends NonEmptyIterable.NonEmptyIterable<infer A> ? Effect.Effect<A>
+  : Self extends Arr.NonEmptyReadonlyArray<infer A> ? Effect.Effect<A>
+  : Self extends Iterable<infer A> ? Effect.Effect<A, Cause.NoSuchElementError>
+  : never = ((elements: Iterable<unknown>) => {
+    const buffer = Array.from(elements)
+    return buffer.length === 0
+      ? Effect.fail(new Cause.NoSuchElementError("Cannot select a random element from an empty array"))
+      : randomWith((r) => buffer[Math.min(buffer.length - 1, Math.floor(r.nextDoubleUnsafe() * buffer.length))]!)
+  }) as any
 
 /**
- * Runs an effect with a pseudorandom number generator initialized from the
- * specified seed.
+ * Seeds the pseudo-random number generator with the specified value.
+ *
+ * **When to use**
+ *
+ * Use to run an effect with a deterministic pseudo-random sequence.
+ *
+ * **Details**
  *
  * Using the same seed produces the same random sequence, which is useful for
- * tests and reproducible simulations. Use an unpredictable seed when uniqueness
- * or unpredictability matters.
+ * tests and reproducible simulations.
+ *
+ * **Gotchas**
+ *
+ * Use an unpredictable seed when uniqueness or unpredictability matters.
  *
  * **Example** (Seeding random generation)
  *
@@ -488,7 +518,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   /**
-   * Returns a signed, random integer in the range [-2^31, 2^31].
+   * Returns a signed, random integer in the range [-2^31, 2^31).
    */
   function nextInt32(): number {
     if (!generation--) {
@@ -499,15 +529,8 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
   }
 
   function nextIntUnsafe(): number {
-    // Get 32 bits (unsigned)
-    const low = nextInt32() >>> 0 // [0, 2^32-1]
-
-    // Get 21 more bits for a total of 53
-    const high = nextInt32() & 0x1FFFFF // [0, 2^21-1]
-
-    // Combine: high bits * 2^32 + low bits, then shift to signed range
-    // This gives [0, 2^53-1], subtract 2^52 to center around 0
-    return (high * 0x100000000) + low - 0x10000000000000
+    return Math.floor(nextDoubleUnsafe() * (Number.MAX_SAFE_INTEGER - Number.MIN_SAFE_INTEGER + 1)) +
+      Number.MIN_SAFE_INTEGER
   }
 
   /**
@@ -520,7 +543,7 @@ function ISAAC_CSPRNG(userSeed?: string | number) {
     // 53-bit integer
     const combined = hi * 4294967296 + lo
 
-    return combined / 9007199254740991 // [0, 1)
+    return combined / 0x20000000000000 // [0, 1)
   }
 
   return { nextIntUnsafe, nextDoubleUnsafe }
@@ -546,84 +569,22 @@ function add32(x: number, y: number): number {
   return (msb << 16) | (lsb & 0xffff)
 }
 
+const seedEncoder = new TextEncoder()
+
 /**
- * Convert a UTF-16 strings to UTF-8 encoded 32-bit integers (little-endian).
+ * Convert a string to UTF-8 encoded 32-bit integers (little-endian).
  */
 function toIntArray(seed: string): Array<number> {
-  let c1 = 0 // First UTF-16 code unit
-  let c2 = 0 // Second UTF-16 code unit (for surrogate pairs)
-  let unicode = 0 // Combined unicode code point from surrogate pair
-  const result: Array<number> = [] // Result array of 32-bit integers
-  const buffer: Array<number> = [] // Temporary buffer for the UTF-8 bytes (max 4 bytes)
-  const length = seed.length - 1
+  const bytes = seedEncoder.encode(seed)
+  const result: Array<number> = []
 
-  let index = 0
-  while (index < length) {
-    c1 = seed.charCodeAt(index++)
-    c2 = seed.charCodeAt(index + 1)
-
-    // 0x0000 - 0x007f: ASCII, single byte UTF-8: 0xxxxxxxx
-    // Example: 'A' (0x41) -> [0x41]
-    if (c1 < 0x0080) {
-      buffer.push(c1)
-    } //
-    // 0x0080 - 0x07ff: Two byte UTF-8: 110xxxxx 10xxxxxx
-    // Example: '¢' (0xA2) -> [0xC2, 0xA2]
-    else if (c1 < 0x0800) {
-      // First byte: upper 5 bits + 110xxxxx marker
-      // 0xA2 >>> 6 (0x02), & 0x1f = 0x02, | 0xc0 = 0xC2
-      buffer.push(((c1 >>> 6) & 0x1f) | 0xc0)
-      // Second byte: lower 6 bits + 10xxxxxxxx marker
-      // 0xA2 & 0x3f = 0x22, | 0x80 = 0xA2
-      buffer.push(((c1 >>> 0) & 0x3f) | 0x80)
-    } //
-    // 0x0800 - 0xffff (non-surrogate): Three byte UTF-8: 1110xxxx 10xxxxxx 10xxxxxx
-    // Example: '€' (0x20AC) -> [0xE2, 0x82, 0xAC]
-    else if ((c1 & 0xf800) != 0xd800) {
-      // First byte: top 4 bits + 1110xxxx marker
-      // 0x20AC >>> 12 = 0x02, & 0x0f = 0x02, | 0xe0 = 0xE2
-      buffer.push(((c1 >>> 12) & 0x0f) | 0xe0)
-      // Second byte: middle 6 bits + 10xxxxxx marker
-      // 0x20AC >>> 6 = 0x82, & 0x3f = 0x02, | 0x80 = 0x82
-      buffer.push(((c1 >>> 6) & 0x3f) | 0x80)
-      // Third byte: lower 6 bits + 10xxxxxx marker
-      // 0x20AC & 0x3f = 0x2C, | 0x80 = 0xAC
-      buffer.push(((c1 >>> 0) & 0x3f) | 0x80)
-    } //
-    // 0xd800 - 0xdfff: Surrogate pairs, four byte UTF-8: 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-    // Example: '𐍈' (U+10348, surrogates 0xD800 0xDF48) -> [0xF0, 0x90, 0x8D, 0x88]
-    else if (((c1 & 0xfc00) == 0xd800) && ((c2 & 0xfc00) == 0xdc00)) {
-      // Decode surrogate pair: combine 10 bits from each + 0x10000
-      // ((0xDF48 & 0x3f) | ((0xD800 & 0x3f) << 10)) + 0x10000 = 0x10348
-      unicode = ((c2 & 0x3f) | ((c1 & 0x3f) << 10)) + 0x10000
-      // First byte: top 3 bits + 11110xxx marker
-      // 0x10348 >>> 18 = 0x00, & 0x07 = 0x00, | 0xf0 = 0xF0
-      buffer.push(((unicode >>> 18) & 0x07) | 0xf0)
-      // Second byte: next 6 bits + 10xxxxxx marker
-      // 0x10348 >>> 12 = 0x10, & 0x3f = 0x10, | 0x80 = 0x90
-      buffer.push(((unicode >>> 12) & 0x3f) | 0x80)
-      // Third byte: next 6 bits + 10xxxxxx marker
-      // 0x10348 >>> 6 = 0x40D, & 0x3f = 0x0D, | 0x80 = 0x8D
-      buffer.push(((unicode >>> 6) & 0x3f) | 0x80)
-      // Fourth byte: lower 6 bits + 10xxxxxx marker
-      // 0x10348 & 0x3f = 0x08, | 0x80 = 0x88
-      buffer.push(((unicode >>> 0) & 0x3f) | 0x80)
-      index++ // Skip second surrogate
-    } else {
-      // invalid char
-    }
-
-    // Pack 4 UTF-8 bytes -> 32-bit int (little-endian)
-    // Example: [0xE2, 0x82, 0xAC, 0x00] -> 0x00ACE2E2
-    if (buffer.length > 3) {
-      result.push(
-        (buffer.shift()! << 0) | // Byte 0 at bits 0-7:   0xE2 << 0  = 0x000000E2
-          (buffer.shift()! << 8) | // Byte 1 at bits 8-15:  0x82 << 8  = 0x00008200
-          (buffer.shift()! << 16) | // Byte 2 at bits 16-23: 0xAC << 16 = 0x00AC0000
-          (buffer.shift()! << 24) // Byte 3 at bits 24-31: 0x00 << 24 = 0x00000000
-      )
-      // Result: 0x00AC82E2
-    }
+  for (let index = 0; index < bytes.length; index += 4) {
+    result.push(
+      ((bytes[index] ?? 0) << 0) |
+        ((bytes[index + 1] ?? 0) << 8) |
+        ((bytes[index + 2] ?? 0) << 16) |
+        ((bytes[index + 3] ?? 0) << 24)
+    )
   }
 
   return result

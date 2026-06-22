@@ -20,6 +20,8 @@ import * as Utils from "./Utils.ts"
  * Service used by the OpenAPI generator to render parsed operations as an
  * Effect HttpClient module.
  *
+ * **Details**
+ *
  * A transformer owns the code-generation dialect for imports, public client
  * types, and the implementation body. The generator swaps implementations to
  * choose between schema-backed clients and type-only clients.
@@ -60,6 +62,8 @@ const requiresStreaming = (requirements: ImportRequirements): boolean =>
 
 /**
  * Create the transformer used for schema-backed HttpClient output.
+ *
+ * **Details**
  *
  * Generated clients import Effect Schema values and use them at runtime to
  * decode successful responses and typed API errors. Request parameters and
@@ -259,11 +263,11 @@ export const make = (
 ): ${name} => {
   ${helpers.join("\n  ")}
   const decodeSuccess =
-    <Schema extends ${importName}.Top>(schema: Schema) =>
+    <Schema extends ${importName}.Constraint>(schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
       HttpClientResponse.schemaBodyJson(schema)(response)
   const decodeError =
-    <const Tag extends string, Schema extends ${importName}.Top>(tag: Tag, schema: Schema) =>
+    <const Tag extends string, Schema extends ${importName}.Constraint>(tag: Tag, schema: Schema) =>
     (response: HttpClientResponse.HttpClientResponse) =>
       Effect.flatMap(
         HttpClientResponse.schemaBodyJson(schema)(response),
@@ -453,7 +457,9 @@ export const make = (
 /**
  * Layer that provides the schema-backed OpenApiTransformer service.
  *
- * Use this layer when generated HttpClient code should perform runtime response
+ * **When to use**
+ *
+ * Use when you use this layer when generated HttpClient code should perform runtime response
  * decoding with generated Effect Schema values.
  *
  * @category code generation
@@ -466,6 +472,8 @@ export const layerTransformerSchema = Layer.sync(
 
 /**
  * Create the transformer used for type-only HttpClient output.
+ *
+ * **Details**
  *
  * Generated clients reference emitted TypeScript types directly and do not
  * import schema decoders for JSON response bodies. Responses are typed as the
@@ -859,7 +867,9 @@ export const make = (
 /**
  * Layer that provides the type-only OpenApiTransformer service.
  *
- * Use this layer for the `httpclient-type-only` generator format, where the
+ * **When to use**
+ *
+ * Use when you use this layer for the `httpclient-type-only` generator format, where the
  * generated client relies on TypeScript types instead of runtime Schema
  * decoding.
  *

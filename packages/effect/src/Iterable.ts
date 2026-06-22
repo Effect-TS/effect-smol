@@ -1,32 +1,10 @@
 /**
- * This module provides utility functions for working with Iterables in TypeScript.
+ * Works with JavaScript values that implement `[Symbol.iterator]`.
  *
- * Iterables are objects that implement the iterator protocol, allowing them to be
- * consumed with `for...of` loops, spread syntax, and other iteration constructs.
- * This module provides a comprehensive set of functions for creating, transforming,
- * and working with iterables in a functional programming style.
- *
- * Unlike arrays, iterables can be lazy and potentially infinite, making them suitable
- * for stream processing and memory-efficient data manipulation. All functions in this
- * module preserve the lazy nature of iterables where possible.
- *
- * **Example** (Working with iterables)
- *
- * ```ts
- * import { Iterable, Option } from "effect"
- *
- * // Create iterables
- * const numbers = Iterable.range(1, 5)
- * const doubled = Iterable.map(numbers, (x) => x * 2)
- * const filtered = Iterable.filter(doubled, (x) => x > 5)
- *
- * console.log(Array.from(filtered)) // [6, 8, 10]
- *
- * // Infinite iterables
- * const fibonacci = Iterable.unfold([0, 1], ([a, b]) => Option.some([a, [b, a + b]]))
- * const first10 = Iterable.take(fibonacci, 10)
- * console.log(Array.from(first10)) // [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]
- * ```
+ * Iterables include arrays, strings, generators, sets, and custom lazy
+ * sequences. The helpers in this module let code transform, search, group, and
+ * fold iterable values while preserving the input as an iterable instead of
+ * forcing an array first.
  *
  * @since 2.0.0
  */
@@ -46,9 +24,11 @@ import type { NoInfer } from "./Types.ts"
 /**
  * Creates an iterable by applying a function to consecutive integers.
  *
- * This is a fundamental constructor that generates iterables by calling a function
- * with each index starting from 0. If no length is specified, the iterable will
- * be infinite. This is useful for generating sequences, patterns, or any indexed data.
+ * **Details**
+ *
+ * The function is called with each index starting from `0`. If no length is
+ * specified, the iterable is infinite. This is useful for generating
+ * sequences, patterns, or any indexed data.
  *
  * **Example** (Generating values by index)
  *
@@ -94,6 +74,8 @@ export const makeBy = <A>(f: (i: number) => A, options?: {
 /**
  * Returns an iterable of integers starting at `start` and increasing by `1`.
  *
+ * **Details**
+ *
  * When `end` is provided and `start <= end`, both endpoints are included. When
  * `end` is omitted, the iterable is unbounded. When `start > end`, the
  * iterable contains only `start`.
@@ -120,9 +102,11 @@ export const range = (start: number, end?: number): Iterable<number> => {
 }
 
 /**
- * Return a `Iterable` containing a value repeated the specified number of times.
+ * Returns a `Iterable` containing a value repeated the specified number of times.
  *
- * **Note**. `n` is normalized to an integer >= 1.
+ * **Details**
+ *
+ * `n` is normalized to an integer greater than or equal to `1`.
  *
  * **Example** (Repeating a value)
  *
@@ -145,8 +129,16 @@ export const replicate: {
  * Repeats an iterable `n` times, yielding the full contents of `self` for each
  * repetition.
  *
+ * **When to use**
+ *
+ * Use to repeat an iterable's contents a specific number of times.
+ *
+ * **Details**
+ *
  * The result is lazy. Each repetition obtains a new iterator from `self`.
  *
+ * @see {@link forever} for repeating without an upper bound
+ * @see {@link replicate} for repeating a single value
  * @category constructors
  * @since 4.0.0
  */
@@ -158,8 +150,18 @@ export const repeat: {
 /**
  * Repeats an iterable without an upper bound.
  *
+ * **When to use**
+ *
+ * Use to cycle a reusable iterable without an upper bound when a downstream
+ * consumer controls how many values are taken.
+ *
+ * **Gotchas**
+ *
  * The returned iterable is lazy and should usually be bounded with `take` or
  * another terminating consumer before materializing it.
+ *
+ * @see {@link repeat} for repeating an iterable a specific number of times
+ * @see {@link take} for bounding the unbounded result before materializing it
  *
  * @category constructors
  * @since 4.0.0
@@ -196,7 +198,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
 })
 
 /**
- * Prepend an element to the front of an `Iterable`, creating a new `Iterable`.
+ * Prepends an element to the front of an `Iterable`, creating a new `Iterable`.
  *
  * **Example** (Prepending an element)
  *
@@ -213,7 +215,7 @@ export const fromRecord = <K extends string, A>(self: Readonly<Record<K, A>>): I
  * console.log(Array.from(withZ)) // ["z", "a", "b", "c"]
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prepend: {
@@ -236,7 +238,7 @@ export const prepend: {
  * )
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const prependAll: {
@@ -248,7 +250,22 @@ export const prependAll: {
 )
 
 /**
- * Append an element to the end of an `Iterable`, creating a new `Iterable`.
+ * Appends an element to the end of an `Iterable`, creating a new `Iterable`.
+ *
+ * **When to use**
+ *
+ * Use to add one element after all elements of an iterable while keeping the
+ * result as a lazy `Iterable`.
+ *
+ * **Details**
+ *
+ * The result yields every element from `self` first, then yields `last` after
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, the appended element is never
+ * reached.
  *
  * **Example** (Appending an element)
  *
@@ -267,7 +284,10 @@ export const prependAll: {
  * console.log(Array.from(result)) // [1, 2, 3, 4]
  * ```
  *
- * @category concatenating
+ * @see {@link prepend} for adding one element before the existing elements
+ * @see {@link appendAll} for appending all elements from another iterable
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const append: {
@@ -277,6 +297,20 @@ export const append: {
 
 /**
  * Concatenates two iterables, combining their elements.
+ *
+ * **When to use**
+ *
+ * Use to lazily concatenate two iterables while preserving order, yielding all
+ * elements from `self` before `that`.
+ *
+ * **Details**
+ *
+ * The result is lazy. The iterator for `that` is not created or read until
+ * `self` is exhausted.
+ *
+ * **Gotchas**
+ *
+ * If `self` is infinite or never completes, `that` is never reached.
  *
  * **Example** (Concatenating iterables)
  *
@@ -301,7 +335,10 @@ export const append: {
  * console.log(Array.from(result)) // [0, -1, -2, 1, 2]
  * ```
  *
- * @category concatenating
+ * @see {@link append} for appending one value instead of another iterable
+ * @see {@link prependAll} for yielding another iterable before `self`
+ *
+ * @category combining
  * @since 2.0.0
  */
 export const appendAll: {
@@ -333,7 +370,7 @@ export const appendAll: {
 )
 
 /**
- * Reduce an `Iterable` from the left, keeping all intermediate results instead of only the final result.
+ * Reduces an `Iterable` from the left, keeping all intermediate results instead of only the final result.
  *
  * **Example** (Tracking running results)
  *
@@ -383,7 +420,7 @@ export const scan: {
 }))
 
 /**
- * Determine if an `Iterable` is empty
+ * Checks whether an `Iterable` is empty.
  *
  * **Example** (Checking for emptiness)
  *
@@ -404,7 +441,7 @@ export const isEmpty = <A>(self: Iterable<A>): self is Iterable<never> => {
 }
 
 /**
- * Return the number of elements in a `Iterable`.
+ * Returns the number of elements in a `Iterable`.
  *
  * **Example** (Counting iterable elements)
  *
@@ -439,7 +476,7 @@ export const size = <A>(self: Iterable<A>): number => {
 }
 
 /**
- * Get the first element of a `Iterable`, or `None` if the `Iterable` is empty.
+ * Gets the first element of a `Iterable` safely, or `None` if the `Iterable` is empty.
  *
  * **Example** (Getting the first element)
  *
@@ -473,7 +510,16 @@ export const head = <A>(self: Iterable<A>): Option<A> => {
 }
 
 /**
- * Get the first element of a `Iterable`, or throw an error if the `Iterable` is empty.
+ * Gets the first element of an `Iterable` without returning an `Option`.
+ *
+ * **When to use**
+ *
+ * Use when the `Iterable` is known to be non-empty and direct access to the
+ * first element is preferred over handling `Option.none`.
+ *
+ * **Gotchas**
+ *
+ * Throws if the `Iterable` is empty.
  *
  * **Example** (Getting the first element unsafely)
  *
@@ -505,9 +551,11 @@ export const headUnsafe = <A>(self: Iterable<A>): A => {
 }
 
 /**
- * Keep only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
+ * Keeps only a max number of elements from the start of an `Iterable`, creating a new `Iterable`.
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Taking from the start)
  *
@@ -555,7 +603,8 @@ export const take: {
 }))
 
 /**
- * Calculate the longest initial Iterable for which all element satisfy the specified predicate, creating a new `Iterable`.
+ * Takes the longest initial `Iterable` prefix for which all elements satisfy the
+ * specified predicate.
  *
  * **Example** (Taking while a predicate holds)
  *
@@ -610,9 +659,11 @@ export const takeWhile: {
 }))
 
 /**
- * Drop a max number of elements from the start of an `Iterable`
+ * Drops a max number of elements from the start of an `Iterable`
  *
- * **Note**. `n` is normalized to a non negative integer.
+ * **Details**
+ *
+ * `n` is normalized to a non-negative integer.
  *
  * **Example** (Dropping from the start)
  *
@@ -730,7 +781,7 @@ export const findFirst: {
 )
 
 /**
- * Find the last element for which a predicate holds.
+ * Finds the last element for which a predicate holds.
  *
  * **Example** (Finding the last match)
  *
@@ -834,7 +885,7 @@ export const zip: {
 )
 
 /**
- * Apply a function to pairs of elements at the same index in two `Iterable`s, collecting the results. If one
+ * Applies a function to pairs of elements at the same index in two `Iterable`s, collecting the results. If one
  * input `Iterable` is short, excess elements of the longer `Iterable` are discarded.
  *
  * **Example** (Zipping with a combining function)
@@ -901,7 +952,14 @@ export const zipWith: {
 }))
 
 /**
- * Places an element in between members of an `Iterable`.
+ * Places a separator between members of an `Iterable`.
+ *
+ * **When to use**
+ *
+ * Use to lazily insert a separator between adjacent values.
+ *
+ * **Details**
+ *
  * If the input is a non-empty array, the result is also a non-empty array.
  *
  * **Example** (Interspersing separators)
@@ -935,7 +993,7 @@ export const zipWith: {
  * console.log(Array.from(css).join("")) // "color: red; font-size: 14px; margin: 10px"
  * ```
  *
- * @category concatenating
+ * @category combining
  * @since 2.0.0
  */
 export const intersperse: {
@@ -1016,6 +1074,8 @@ export const containsWith = <A>(isEquivalent: (self: A, that: A) => boolean): {
 /**
  * Checks whether an iterable contains a value using Effect's default `Equal`
  * equivalence.
+ *
+ * **Details**
  *
  * Can be called as `contains(self, value)` or curried as
  * `contains(value)(self)`.
@@ -1123,7 +1183,7 @@ export const chunksOf: {
 })
 
 /**
- * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s using the provided `isEquivalent` function.
+ * Groups equal, consecutive elements of an `Iterable` into `NonEmptyArray`s using the provided `isEquivalent` function.
  *
  * **Example** (Grouping consecutive elements with custom equivalence)
  *
@@ -1202,7 +1262,7 @@ export const groupWith: {
 )
 
 /**
- * Group equal, consecutive elements of an `Iterable` into `NonEmptyArray`s.
+ * Groups equal, consecutive elements of an `Iterable` into `NonEmptyArray`s.
  *
  * **Example** (Grouping consecutive elements)
  *
@@ -1240,6 +1300,8 @@ export const group: <A>(self: Iterable<A>) => Iterable<NonEmptyArray<A>> = group
 
 /**
  * Groups all elements by the string or symbol key returned by `f`.
+ *
+ * **Details**
  *
  * Each property in the returned record contains a non-empty array of elements
  * that produced that key. Unlike `group`, matching elements do not need to be
@@ -1324,8 +1386,10 @@ const constEmptyIterator: Iterator<never> = {
 /**
  * Creates an empty iterable that yields no elements.
  *
- * This function returns a reusable empty iterable that can be used as a base case
- * for operations or when you need to represent "no data" in a type-safe way.
+ * **When to use**
+ *
+ * Use when you need an empty iterable as a typed "no data" value or a base
+ * case for iterable operations.
  *
  * **Example** (Creating an empty iterable)
  *
@@ -1351,8 +1415,10 @@ export const empty = <A = never>(): Iterable<A> => constEmpty
 /**
  * Creates an iterable containing a single element.
  *
- * This is useful for wrapping a single value in an iterable context,
- * allowing it to be used with other iterable operations.
+ * **When to use**
+ *
+ * Use to wrap a single value in an iterable context so it can be combined
+ * with other iterable operations.
  *
  * **Example** (Wrapping a single value)
  *
@@ -1386,9 +1452,11 @@ export const of = <A>(a: A): Iterable<A> => [a]
 /**
  * Transforms each element of an iterable using a function.
  *
+ * **Details**
+ *
  * This is one of the most fundamental operations for working with iterables.
  * It applies a transformation function to each element, creating a new iterable
- * with the transformed values. The operation is lazy - elements are only
+ * with the transformed values. The operation is lazy, so elements are only
  * transformed when the iterable is consumed.
  *
  * **Example** (Mapping elements)
@@ -1440,7 +1508,7 @@ export const map: {
 /**
  * Applies a function to each element in an Iterable and returns a new Iterable containing the concatenated mapped elements.
  *
- * **Example** (FlatMapping iterables)
+ * **Example** (Flat mapping iterables)
  *
  * ```ts
  * import { Iterable } from "effect"
@@ -1544,8 +1612,11 @@ export const flatten = <A>(self: Iterable<Iterable<A>>): Iterable<A> => ({
 /**
  * Transforms elements of an iterable using a function that returns a `Result`, keeping only successful values.
  *
- * This combines mapping and filtering in a single operation - the function is applied to each element,
- * and only elements that result in `Result.succeed` are included in the result.
+ * **Details**
+ *
+ * This combines mapping and filtering in a single operation. The function is
+ * applied to each element, and only elements that result in `Result.succeed`
+ * are included in the result.
  *
  * **Example** (Filtering and transforming Result values)
  *
@@ -1804,6 +1875,8 @@ export const getSuccesses = <R0, L>(self: Iterable<Result<R0, L>>): Iterable<R0>
 /**
  * Filters an iterable to only include elements that match a predicate.
  *
+ * **Details**
+ *
  * This function creates a new iterable containing only the elements for which
  * the predicate function returns true. Like map, this operation is lazy and
  * elements are only tested when the iterable is consumed.
@@ -1872,10 +1945,12 @@ export const filter: {
 /**
  * Transforms elements using a function that may return null or undefined, filtering out the null/undefined results.
  *
- * This is useful when working with APIs or functions that return nullable values,
- * providing a clean way to filter out null/undefined while transforming.
+ * **When to use**
  *
- * **Example** (FlatMapping nullable results)
+ * Use when working with APIs or functions that return nullable values,
+ * providing a clean way to filter out null or undefined while transforming.
+ *
+ * **Example** (Flat mapping nullable results)
  *
  * ```ts
  * import { Iterable } from "effect"
@@ -1925,7 +2000,7 @@ export const flatMapNullishOr: {
 )
 
 /**
- * Check if a predicate holds true for some `Iterable` element.
+ * Checks whether a predicate holds true for some `Iterable` element.
  *
  * **Example** (Checking whether some element matches)
  *
@@ -1985,6 +2060,8 @@ export const some: {
  * Generates an iterable by repeatedly applying a function that produces the
  * next element and state.
  *
+ * **Details**
+ *
  * This is useful for creating iterables from a generating function that
  * maintains state. The function should return `Option.some([value, nextState])`
  * to continue or `Option.none()` to stop.
@@ -2037,7 +2114,7 @@ export const unfold = <B, A>(b: B, f: (b: B) => Option<readonly [A, B]>): Iterab
 })
 
 /**
- * Iterate over the `Iterable` applying `f`.
+ * Iterates over the `Iterable`, applying `f` to each element.
  *
  * **Example** (Iterating with side effects)
  *
@@ -2085,7 +2162,9 @@ export const forEach: {
 })
 
 /**
- * Reduce an iterable to a single value by applying a function to each element and accumulating the result.
+ * Reduces an iterable to a single value by applying a function to each element and accumulating the result.
+ *
+ * **Details**
  *
  * This function applies a reducing function against an accumulator and each element
  * of the iterable (from left to right) to reduce it to a single value.
@@ -2368,7 +2447,7 @@ export const cartesian: {
 )
 
 /**
- * Counts all the element of the given iterable that pass the given predicate
+ * Computes how many elements of the iterable pass the given predicate.
  *
  * **Example** (Counting matching elements)
  *

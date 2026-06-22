@@ -1,9 +1,11 @@
 /**
- * TxPubSub is a transactional publish/subscribe hub that provides Software Transactional Memory
- * (STM) semantics for message broadcasting. Publishers broadcast messages to all current
- * subscribers, with each subscriber receiving its own copy of every published message.
+ * Broadcasts values to subscribers inside Effect transactions.
  *
- * Supports multiple queue strategies: bounded, unbounded, dropping, and sliding.
+ * A `TxPubSub<A>` is a transactional publish/subscribe hub. Each subscriber
+ * owns a `TxQueue`, and each published value is offered to the subscriber
+ * queues that are registered at the time of publication. This module includes
+ * bounded, dropping, sliding, and unbounded hubs, publishing helpers, scoped
+ * subscriptions, shutdown operations, and a guard.
  *
  * @since 4.0.0
  */
@@ -291,7 +293,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has no pending messages (all subscriber queues are empty).
+ * Checks whether the TxPubSub has no pending messages (all subscriber queues are empty).
  *
  * **Example** (Checking whether a pub/sub is empty)
  *
@@ -311,7 +313,7 @@ export const size = <A>(self: TxPubSub<A>): Effect.Effect<number> =>
 export const isEmpty = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => Effect.map(size(self), (s) => s === 0)
 
 /**
- * Checks if any subscriber queue is at capacity.
+ * Checks whether any subscriber queue is at capacity.
  *
  * **Example** (Checking whether a pub/sub is full)
  *
@@ -339,7 +341,7 @@ export const isFull = <A>(self: TxPubSub<A>): Effect.Effect<boolean> =>
   }).pipe(Effect.tx)
 
 /**
- * Checks if the TxPubSub has been shut down.
+ * Checks whether the TxPubSub has been shut down.
  *
  * **Example** (Checking whether a pub/sub is shut down)
  *
@@ -366,12 +368,9 @@ export const isShutdown = <A>(self: TxPubSub<A>): Effect.Effect<boolean> => TxRe
 /**
  * Publishes a message to all current subscribers.
  *
- * Returns `true` if the message was delivered to all subscribers, or `false` if
- * the hub is shut down or the message was dropped for any subscriber (dropping strategy).
+ * **Details**
  *
- * For bounded strategy, retries the transaction if any subscriber queue is full.
- * For sliding strategy, drops oldest messages in full subscriber queues.
- * For dropping strategy, drops the message for full subscriber queues and returns `false`.
+ * Returns `true` if the message was delivered to all subscribers, or `false` if the hub is shut down or the message was dropped for any subscriber. For the bounded strategy, the transaction retries if any subscriber queue is full. For the sliding strategy, full subscriber queues drop their oldest messages. For the dropping strategy, full subscriber queues drop the new message and the operation returns `false`.
  *
  * **Example** (Publishing a message to subscribers)
  *
@@ -423,6 +422,8 @@ export const publish: {
 /**
  * Publishes all messages from an iterable to all current subscribers.
  *
+ * **Details**
+ *
  * Returns `true` if all messages were delivered to all subscribers.
  *
  * **Example** (Publishing multiple messages to subscribers)
@@ -468,13 +469,11 @@ export const publishAll: {
 )
 
 /**
- * Subscribes to the TxPubSub, returning a scoped `TxQueue` for messages
- * published after subscription.
+ * Subscribes to the TxPubSub, returning a scoped `TxQueue` for messages published after subscription.
  *
- * The returned queue uses the hub's capacity strategy: bounded subscriptions
- * backpressure publishers when full, dropping subscriptions may miss new
- * messages when full, and sliding subscriptions may evict older queued
- * messages. The subscription is automatically removed when the scope is closed.
+ * **Details**
+ *
+ * The returned queue uses the hub's capacity strategy: bounded subscriptions backpressure publishers when full, dropping subscriptions may miss new messages when full, and sliding subscriptions may evict older queued messages. The subscription is automatically removed when the scope is closed.
  *
  * **Example** (Subscribing multiple queues)
  *
@@ -511,9 +510,17 @@ export const subscribe = <A>(self: TxPubSub<A>): Effect.Effect<TxQueue.TxQueue<A
 /**
  * Creates a subscriber queue and registers it with the pub/sub.
  *
- * This is the transactional acquire step of `subscribe`, exposed so that
- * callers can compose it with other Tx operations in a single transaction
- * (e.g. `TxSubscriptionRef.changes`).
+ * **When to use**
+ *
+ * Use to create and register a subscriber queue inside a larger transaction
+ * when registration must be atomic with other Tx operations.
+ *
+ * **Details**
+ *
+ * This is the transactional acquire step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction, such as `TxSubscriptionRef.changes`.
+ *
+ * @see {@link subscribe} for the scoped acquire and release wrapper when no custom transaction composition is needed
+ * @see {@link releaseSubscriber} to remove and shut down a queue returned by `acquireSubscriber`
  *
  * @category mutations
  * @since 4.0.0
@@ -530,8 +537,23 @@ export const acquireSubscriber = <A>(
 /**
  * Removes a subscriber queue from the pub/sub and shuts it down.
  *
- * This is the transactional release step of `subscribe`, exposed so that
- * callers can compose it with other Tx operations in a single transaction.
+ * **When to use**
+ *
+ * Use to release a manually acquired subscriber queue inside a larger
+ * transaction, removing it from the pub/sub and shutting it down together with
+ * related transactional cleanup.
+ *
+ * **Details**
+ *
+ * This is the transactional release step of `subscribe`, exposed so that callers can compose it with other Tx operations in a single transaction.
+ *
+ * **Gotchas**
+ *
+ * The supplied queue is shut down after being removed, so callers should pass a
+ * queue acquired for this pub/sub.
+ *
+ * @see {@link acquireSubscriber} for the matching transactional acquire step
+ * @see {@link subscribe} for the scoped acquire and release wrapper
  *
  * @category mutations
  * @since 4.0.0
@@ -568,12 +590,15 @@ const makeSubscriberQueue = <A>(
 }
 
 /**
- * Shuts down the TxPubSub and all subscriber queues registered at the time of
- * shutdown.
+ * Shuts down the TxPubSub and all subscriber queues registered at the time of shutdown.
  *
- * After shutdown, `publish` and `publishAll` return `false`, and
- * `awaitShutdown` completes. The operation is idempotent; subscribers acquired
- * after shutdown are not automatically shut down by this call.
+ * **Details**
+ *
+ * After shutdown, `publish` and `publishAll` return `false`, and `awaitShutdown` completes. The operation is idempotent.
+ *
+ * **Gotchas**
+ *
+ * Subscribers acquired after shutdown are not automatically shut down by this call.
  *
  * **Example** (Shutting down a pub/sub)
  *
@@ -639,7 +664,7 @@ export const awaitShutdown = <A>(self: TxPubSub<A>): Effect.Effect<void> =>
 // =============================================================================
 
 /**
- * Checks if the given value is a TxPubSub.
+ * Checks whether the given value is a TxPubSub.
  *
  * **Example** (Checking for a TxPubSub)
  *

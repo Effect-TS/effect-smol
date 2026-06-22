@@ -3,7 +3,7 @@ import { describe, it } from "vitest"
 import { deepStrictEqual } from "../../utils/assert.ts"
 
 describe("fromASTs", () => {
-  function assertFromASTs(schemas: readonly [Schema.Top, ...Array<Schema.Top>], expected: {
+  function assertFromASTs(schemas: readonly [Schema.Constraint, ...Array<Schema.Constraint>], expected: {
     readonly representations: readonly [
       SchemaRepresentation.Representation,
       ...Array<SchemaRepresentation.Representation>
@@ -58,7 +58,7 @@ describe("fromASTs", () => {
 })
 
 describe("fromAST", () => {
-  function assertFromAST(schema: Schema.Top, expected: {
+  function assertFromAST(schema: Schema.Constraint, expected: {
     readonly representation: SchemaRepresentation.Representation
     readonly references?: SchemaRepresentation.References
   }) {

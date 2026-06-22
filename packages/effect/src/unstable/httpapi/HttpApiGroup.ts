@@ -1,27 +1,12 @@
 /**
- * The `HttpApiGroup` module defines named collections of `HttpApiEndpoint`s
- * within an `HttpApi`.
+ * Defines named groups of HTTP API endpoints.
  *
- * Groups are the main way to organize endpoints by a domain boundary, resource,
- * or feature area before those endpoints are added to an API and implemented
- * with `HttpApiBuilder.group`. A group carries its identifier, endpoint set,
- * annotations, and `topLevel` flag, which are later used by builders, clients,
- * URL builders, and OpenAPI generation. Non-top-level groups expose nested
- * client methods under the group name, while top-level groups expose their
- * endpoint methods directly.
- *
- * Composition is order-sensitive. Adding an endpoint with the same name as an
- * existing endpoint replaces it, and `prefix`, `middleware`,
- * `annotateEndpoints`, and `annotateEndpointsMerge` only affect endpoints that
- * are already present when those APIs are called. Group annotations apply to the
- * group itself; use the endpoint annotation helpers when metadata should be
- * attached to each endpoint.
- *
- * The type helpers in this module reflect the endpoint union for a group and
- * aggregate the services required by endpoint schemas, middleware, and declared
- * errors. Error schemas are still declared on endpoints, while middleware can
- * contribute additional error schemas and client/server service requirements
- * through the endpoint middleware set.
+ * A group collects endpoints that belong to the same resource or feature area
+ * inside an `HttpApi`. Builders, generated clients, URL builders, and OpenAPI
+ * generation read the same group value, including its identifier, endpoints,
+ * annotations, and `topLevel` flag. This module includes helpers for creating
+ * groups, adding endpoints, prefixing paths, applying middleware, annotating
+ * groups or endpoints, and deriving builder or client types.
  *
  * @since 4.0.0
  */
@@ -46,10 +31,12 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
 export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
- * An `HttpApiGroup` is a collection of `HttpApiEndpoint`s. You can use an `HttpApiGroup` to
- * represent a portion of your domain.
+ * An `HttpApiGroup` is a named collection of `HttpApiEndpoint`s that represents
+ * a portion of your domain.
  *
- * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
+ * **Details**
+ *
+ * Endpoint implementations can be provided later with `HttpApiBuilder.group`.
  *
  * @category models
  * @since 4.0.0
@@ -70,7 +57,7 @@ export interface HttpApiGroup<
   /**
    * Add an `HttpApiEndpoint` to an `HttpApiGroup`.
    */
-  add<A extends NonEmptyReadonlyArray<HttpApiEndpoint.Any>>(
+  add<const A extends NonEmptyReadonlyArray<HttpApiEndpoint.Any>>(
     ...endpoints: A
   ): HttpApiGroup<Id, Endpoints | A[number], TopLevel>
 
@@ -83,9 +70,11 @@ export interface HttpApiGroup<
   ): HttpApiGroup<Id, HttpApiEndpoint.AddPrefix<Endpoints, Prefix>, TopLevel>
 
   /**
-   * Add an `HttpApiMiddleware` to the `HttpApiGroup`.
+   * Adds an `HttpApiMiddleware` to every endpoint currently in the group.
    *
-   * Endpoints added after this api is called **will not** have the middleware
+   * **Gotchas**
+   *
+   * Endpoints added after this method is called do not have the middleware
    * applied.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: Context.Key<I, S>): HttpApiGroup<
@@ -105,18 +94,20 @@ export interface HttpApiGroup<
   annotate<I, S>(key: Context.Key<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
 
   /**
-   * For each endpoint in an `HttpApiGroup`, update the annotations with a new
-   * Context.
+   * Merges the provided context into every endpoint currently in the group.
    *
-   * Note that this will only update the annotations before this api is called.
+   * **Gotchas**
+   *
+   * Endpoints added after this method is called do not have these annotations.
    */
   annotateEndpointsMerge<I>(annotations: Context.Context<I>): HttpApiGroup<Id, Endpoints, TopLevel>
 
   /**
-   * For each endpoint in an `HttpApiGroup`, add an annotation.
+   * Adds an annotation to every endpoint currently in the group.
    *
-   * Note that this will only add the annotation to the endpoints before this api
-   * is called.
+   * **Gotchas**
+   *
+   * Endpoints added after this method is called do not have this annotation.
    */
   annotateEndpoints<I, S>(key: Context.Key<I, S>, value: S): HttpApiGroup<Id, Endpoints, TopLevel>
 }
@@ -368,10 +359,13 @@ const makeProto = <
 }
 
 /**
- * An `HttpApiGroup` is a collection of `HttpApiEndpoint`s. You can use an `HttpApiGroup` to
- * represent a portion of your domain.
+ * Creates an empty `HttpApiGroup` with the supplied identifier.
  *
- * The endpoints can be implemented later using the `HttpApiBuilder.group` api.
+ * **Details**
+ *
+ * Add endpoints with `add`, provide implementations with `HttpApiBuilder.group`,
+ * and set `topLevel` when the generated client should expose endpoint methods
+ * directly instead of nesting them under the group name.
  *
  * @category constructors
  * @since 4.0.0

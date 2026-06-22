@@ -1,21 +1,12 @@
 /**
- * Schema-driven helpers for wrapping SQL executions in typed query functions.
+ * Wraps SQL execution callbacks with request encoding and result decoding.
  *
- * This module connects `Schema` request and result definitions to an `execute`
- * callback that runs the actual SQL statement. The returned functions accept
- * the request schema's decoded `Type`, encode it to the SQL-facing `Encoded`
- * shape, run the callback, and then decode unknown driver rows through the
- * result schema. This is useful for repository methods, CRUD helpers, request
- * resolvers, and write operations where callers should work with domain values
- * instead of raw SQL parameters or rows.
- *
- * The `execute` callback always receives `Req["Encoded"]`, so schema
- * transformations, required encoding services, and database representations
- * such as nullable columns, JSON values, dates, and bigints must line up with
- * the statement builder and dialect in use. Result schemas decode the rows
- * returned by the driver after any SQL client row transforms; `findOne` and
- * `findOneOption` only inspect the first row, `findNonEmpty` requires at least
- * one row, and `void` discards any driver result after request encoding.
+ * `SqlSchema` is a small adapter between Effect Schema and SQL statements. Each
+ * helper builds a function that accepts the decoded request type used by
+ * application code, encodes it before calling `execute`, and decodes unknown
+ * driver rows into the result schema. The helpers cover returning all rows, a
+ * non-empty row list, the first row, an optional first row, or discarding the
+ * SQL result for side-effect-only statements.
  *
  * @since 4.0.0
  */
@@ -26,13 +17,20 @@ import type * as Option from "../../Option.ts"
 import * as Schema from "../../Schema.ts"
 
 /**
- * Builds a query function that encodes the request, decodes all result rows,
- * and fails with `NoSuchElementError` when the result set is empty.
+ * Builds a query function that encodes the request and decodes all result rows,
+ * allowing an empty result set.
+ *
+ * **When to use**
+ *
+ * Use when you need to run a query that may return zero or more rows and
+ * represent an empty result as an empty array.
+ *
+ * @see {@link findNonEmpty} for queries where an empty result is a failure
  *
  * @category constructors
  * @since 4.0.0
  */
-export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+export const findAll = <Req extends Schema.Constraint, Res extends Schema.Constraint, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res
@@ -51,12 +49,20 @@ export const findAll = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
 }
 
 /**
- * Run a sql query with a request schema and a result schema.
+ * Builds a query function that encodes the request, decodes all result rows,
+ * and fails with `NoSuchElementError` when the result set is empty.
+ *
+ * **When to use**
+ *
+ * Use when you need to run a query that must return at least one row and treat
+ * an empty result as a failure.
+ *
+ * @see {@link findAll} for queries where an empty result should return an empty array
  *
  * @category constructors
  * @since 4.0.0
  */
-export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+export const findNonEmpty = <Req extends Schema.Constraint, Res extends Schema.Constraint, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res
@@ -77,7 +83,7 @@ export const findNonEmpty = <Req extends Schema.Top, Res extends Schema.Top, E, 
         : Effect.fail(new Cause.NoSuchElementError()))
 }
 
-const void_ = <Req extends Schema.Top, E, R>(
+const void_ = <Req extends Schema.Constraint, E, R>(
   options: {
     readonly Request: Req
     readonly execute: (request: Req["Encoded"]) => Effect.Effect<unknown, E, R>
@@ -91,7 +97,7 @@ const void_ = <Req extends Schema.Top, E, R>(
 }
 export {
   /**
-   * Run a sql query with a request schema and discard the result.
+   * Runs a sql query with a request schema and discard the result.
    *
    * @category constructors
    * @since 4.0.0
@@ -106,7 +112,7 @@ export {
  * @category constructors
  * @since 4.0.0
  */
-export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+export const findOne = <Req extends Schema.Constraint, Res extends Schema.Constraint, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res
@@ -139,7 +145,7 @@ export const findOne = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
  * @category constructors
  * @since 4.0.0
  */
-export const findOneOption = <Req extends Schema.Top, Res extends Schema.Top, E, R>(
+export const findOneOption = <Req extends Schema.Constraint, Res extends Schema.Constraint, E, R>(
   options: {
     readonly Request: Req
     readonly Result: Res

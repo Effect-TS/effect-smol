@@ -1,26 +1,10 @@
 /**
- * Durable storage for encoded `Persistable` request results.
+ * Stores encoded results for `Persistable` requests.
  *
- * The `Persistence` service creates scoped stores that read and write
- * schema-encoded `Exit` values keyed by each request's `PrimaryKey`. It is the
- * lower-level persistence layer used by `PersistedCache` and similar request
- * workflows to reuse expensive or idempotent lookup results across fibers,
- * process restarts, and workers that share a backing store.
- *
- * Each store is selected by a `storeId`, while each entry id comes from the
- * request's primary key. Keep both stable and collision-free: changing the
- * `storeId`, the primary-key format, or the success/error schemas is a
- * persistence migration, because old entries may stop being found or fail to
- * decode. Values are encoded with the request's success and error schemas using
- * the JSON codec, so any required schema services must be available at store
- * read and write time, and the backing value must stay JSON-compatible.
- *
- * TTLs are computed from the stored `Exit` and request key. Infinite TTLs are
- * stored without an expiration, finite TTLs become backing-store expirations,
- * and zero or negative TTLs skip the write entirely. Backing layers provide
- * process-local memory, `KeyValueStore`, Redis, and SQL implementations; store
- * ids are used as prefixes, table names, or SQL partitions and should be
- * chosen with the target backing store in mind.
+ * The `Persistence` service creates scoped stores keyed by each request's
+ * `PrimaryKey`. Stores read and write schema-encoded `Exit` values with
+ * optional TTLs, letting request workflows reuse expensive or idempotent results
+ * across fibers, process restarts, or workers that share a backing store.
  *
  * @since 4.0.0
  */
@@ -52,7 +36,7 @@ const ErrorTypeId = "~effect/persistence/Persistence/PersistenceError" as const
 export class PersistenceError extends Schema.ErrorClass<PersistenceError>(ErrorTypeId)({
   _tag: Schema.tag("PersistenceError"),
   message: Schema.String,
-  cause: Schema.optional(Schema.Defect)
+  cause: Schema.optional(Schema.Defect())
 }) {
   /**
    * Marks this value as a persistence error for runtime guards.
@@ -83,28 +67,28 @@ export class Persistence extends Context.Service<Persistence, {
  * @since 4.0.0
  */
 export interface PersistenceStore {
-  readonly get: <A extends Schema.Top, E extends Schema.Top>(
+  readonly get: <A extends Schema.Constraint, E extends Schema.Constraint>(
     key: Persistable.Persistable<A, E>
   ) => Effect.Effect<
     Exit.Exit<A["Type"], E["Type"]> | undefined,
     PersistenceError | Schema.SchemaError,
     A["DecodingServices"] | E["DecodingServices"]
   >
-  readonly getMany: <A extends Schema.Top, E extends Schema.Top>(
+  readonly getMany: <A extends Schema.Constraint, E extends Schema.Constraint>(
     keys: Iterable<Persistable.Persistable<A, E>>
   ) => Effect.Effect<
     Array<Exit.Exit<A["Type"], E["Type"]> | undefined>,
     PersistenceError | Schema.SchemaError,
     A["DecodingServices"] | E["DecodingServices"]
   >
-  readonly set: <A extends Schema.Top, E extends Schema.Top>(
+  readonly set: <A extends Schema.Constraint, E extends Schema.Constraint>(
     key: Persistable.Persistable<A, E>,
     value: Exit.Exit<A["Type"], E["Type"]>
   ) => Effect.Effect<void, PersistenceError | Schema.SchemaError, A["EncodingServices"] | E["EncodingServices"]>
-  readonly setMany: <A extends Schema.Top, E extends Schema.Top>(
+  readonly setMany: <A extends Schema.Constraint, E extends Schema.Constraint>(
     entries: Iterable<readonly [Persistable.Persistable<A, E>, Exit.Exit<A["Type"], E["Type"]>]>
   ) => Effect.Effect<void, PersistenceError | Schema.SchemaError, A["EncodingServices"] | E["EncodingServices"]>
-  readonly remove: <A extends Schema.Top, E extends Schema.Top>(
+  readonly remove: <A extends Schema.Constraint, E extends Schema.Constraint>(
     key: Persistable.Persistable<A, E>
   ) => Effect.Effect<void, PersistenceError>
   readonly clear: Effect.Effect<void, PersistenceError>
@@ -146,6 +130,8 @@ export interface BackingPersistenceStore {
 
 /**
  * Provides `Persistence` from `BackingPersistence`.
+ *
+ * **Details**
  *
  * The layer serializes and deserializes `Persistable` exits, applies
  * per-entry TTLs, and skips writes whose TTL is zero or negative.
@@ -246,6 +232,8 @@ export const layer = Layer.effect(Persistence)(Effect.gen(function*() {
 /**
  * Provides an in-memory `BackingPersistence` grouped by store id.
  *
+ * **Details**
+ *
  * Entries are process-local and expire according to their stored TTL.
  *
  * @category layers
@@ -296,6 +284,8 @@ export const layerBackingMemory: Layer.Layer<BackingPersistence> = Layer.sync(Ba
 
 /**
  * Provides SQL-backed persistence using one table per store id.
+ *
+ * **Details**
  *
  * Each table is created if needed and stores JSON-encoded values with optional
  * expiration timestamps.
@@ -509,6 +499,8 @@ export const layerBackingSqlMultiTable: Layer.Layer<
 
 /**
  * Provides SQL-backed persistence using a shared `effect_persistence` table.
+ *
+ * **Details**
  *
  * Rows are partitioned by `store_id` and store JSON-encoded values with
  * optional expiration timestamps.
@@ -753,6 +745,8 @@ export const layerBackingSql: Layer.Layer<
 /**
  * Provides Redis-backed persistence.
  *
+ * **Details**
+ *
  * Each store id is used as a key prefix, values are JSON-encoded, and finite
  * TTLs are stored with Redis expiration.
  *
@@ -912,6 +906,8 @@ end
 /**
  * Provides `BackingPersistence` using a `KeyValueStore`.
  *
+ * **Details**
+ *
  * Each store id becomes a key prefix, and values are stored as JSON with
  * optional expiration timestamps.
  *
@@ -1062,6 +1058,8 @@ export const layerSql: Layer.Layer<Persistence, never, SqlClient.SqlClient> = la
 
 /**
  * Converts a TTL to an absolute expiration timestamp in milliseconds.
+ *
+ * **Details**
  *
  * Returns `null` for no TTL and uses `clock.currentTimeMillisUnsafe`, so it is
  * intended for backing-store internals.

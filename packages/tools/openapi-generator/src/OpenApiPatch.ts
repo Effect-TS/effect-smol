@@ -26,6 +26,8 @@ import * as Yaml from "yaml"
 /**
  * Error thrown when parsing a JSON Patch input fails.
  *
+ * **Details**
+ *
  * This error occurs when:
  * - A patch file cannot be read
  * - JSON or YAML syntax is invalid
@@ -60,6 +62,8 @@ export class JsonPatchParseError extends Schema.ErrorClass<JsonPatchParseError>(
 
 /**
  * Error thrown when a parsed value does not conform to the JSON Patch schema.
+ *
+ * **Details**
  *
  * This error occurs when:
  * - The patch is not an array
@@ -96,6 +100,8 @@ export class JsonPatchValidationError extends Schema.ErrorClass<JsonPatchValidat
 
 /**
  * Error thrown when applying a JSON Patch operation fails.
+ *
+ * **Details**
  *
  * This error occurs when:
  * - A path does not exist for remove/replace operations
@@ -140,6 +146,8 @@ export class JsonPatchApplicationError
 
 /**
  * Error thrown when multiple JSON Patch operations fail.
+ *
+ * **Details**
  *
  * This error aggregates all application errors so users can see every
  * failing operation at once instead of fixing them one at a time.
@@ -250,6 +258,8 @@ export const JsonPatchReplace: Schema.Codec<
 /**
  * Schema for a single JSON Patch operation.
  *
+ * **Details**
+ *
  * Supports the subset of RFC 6902 operations that Effect's JsonPatch module
  * implements: `add`, `remove`, and `replace`.
  *
@@ -264,6 +274,8 @@ export const JsonPatchOperation: Schema.Codec<JsonPatch.JsonPatchOperation> = Sc
 
 /**
  * Schema for a JSON Patch document (array of operations).
+ *
+ * **Details**
  *
  * A JSON Patch document is an ordered list of operations to apply to a JSON
  * document. Operations are applied in sequence, with each operation seeing
@@ -414,6 +426,8 @@ const parseInlinePatch = Effect.fn("parseInlinePatch")(function*(input: string) 
 /**
  * Parse a JSON Patch from either a file path or inline JSON string.
  *
+ * **Details**
+ *
  * The input is first checked as a file path. If the file exists, it is read
  * and parsed based on its extension (.json, .yaml, .yml). Otherwise, the
  * input is parsed as inline JSON.
@@ -458,6 +472,8 @@ export const parsePatchInput = Effect.fn("parsePatchInput")(function*(input: str
 
 /**
  * Apply a sequence of JSON patches to a document.
+ *
+ * **Details**
  *
  * Patches are applied in order, with each patch operating on the result of
  * the previous one. All operations are attempted, and if any fail, the errors

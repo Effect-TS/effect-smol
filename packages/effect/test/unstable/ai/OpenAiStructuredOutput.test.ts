@@ -4,11 +4,11 @@ import { TestSchema } from "effect/testing"
 import { toCodecOpenAI } from "effect/unstable/ai/OpenAiStructuredOutput"
 import * as Tool from "effect/unstable/ai/Tool"
 
-function assertJsonSchema(schema: Schema.Top, expected: JsonSchema.JsonSchema) {
+function assertJsonSchema(schema: Schema.Constraint, expected: JsonSchema.JsonSchema) {
   assert.deepStrictEqual(toCodecOpenAI(schema).jsonSchema, expected)
 }
 
-function assertError(schema: Schema.Top, message: string) {
+function assertError(schema: Schema.Constraint, message: string) {
   assert.throws(() => toCodecOpenAI(schema), message)
 }
 
@@ -467,7 +467,7 @@ describe("toCodecOpenAI", () => {
       await decoding.succeed({ "0": "a", "1": 1 }, ["a", 1])
     })
 
-    it("Tuple([String, Finite]) + description", async () => {
+    it("Tuple([String, Finite]) + description", () => {
       const schema = Schema.Tuple([Schema.String, Schema.Finite]).annotate({ description: "description" })
       assertJsonSchema(schema, {
         "type": "object",
@@ -618,7 +618,7 @@ describe("toCodecOpenAI", () => {
   })
 
   describe("Record", () => {
-    it("EmptyParams", async () => {
+    it("EmptyParams", () => {
       assertJsonSchema(Tool.EmptyParams, {
         "type": "object",
         "properties": {},

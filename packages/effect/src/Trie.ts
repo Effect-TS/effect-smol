@@ -1,17 +1,11 @@
 /**
- * A `Trie` is used for locating specific `string` keys from within a set.
+ * Stores string-keyed values in an immutable prefix tree.
  *
- * It works similar to `HashMap`, but with keys required to be `string`.
- * This constraint unlocks some performance optimizations and new methods to get string prefixes (e.g. `keysWithPrefix`, `longestPrefixOf`).
- *
- * Prefix search is also the main feature that makes a `Trie` more suited than `HashMap` for certain usecases.
- *
- * A `Trie` is often used to store a dictionary (list of words) that can be searched
- * in a manner that allows for efficient generation of completion lists
- * (e.g. predict the rest of a word a user is typing).
- *
- * A `Trie` has O(n) lookup time where `n` is the size of the key,
- * or even less than `n` on search misses.
+ * A `Trie<Value>` is similar to a map whose keys are strings, but it is built
+ * for looking up keys by prefix. It is useful for autocomplete, route tables,
+ * dictionaries, and command lookup. Updates return new tries, and the module
+ * includes exact lookup, prefix lookup, longest-prefix lookup, iteration,
+ * mapping, filtering, reducing, and traversal helpers.
  *
  * @since 2.0.0
  */
@@ -153,7 +147,7 @@ export const make: <Entries extends Array<readonly [string, any]>>(
 ) => Trie<Entries[number] extends readonly [any, infer V] ? V : never> = TR.make
 
 /**
- * Insert a new entry in the `Trie`.
+ * Inserts a new entry in the `Trie`.
  *
  * **Example** (Inserting entries)
  *
@@ -188,6 +182,8 @@ export const insert: {
 /**
  * Returns an `IterableIterator` of the keys within the `Trie`.
  *
+ * **Details**
+ *
  * The keys are returned in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading keys in alphabetical order)
@@ -213,6 +209,8 @@ export const keys: <V>(self: Trie<V>) => IterableIterator<string> = TR.keys
 
 /**
  * Returns an `IterableIterator` of the values within the `Trie`.
+ *
+ * **Details**
  *
  * Values are ordered based on their key in alphabetical order, regardless of insertion order.
  *
@@ -240,6 +238,8 @@ export const values: <V>(self: Trie<V>) => IterableIterator<V> = TR.values
 /**
  * Returns an `IterableIterator` of the entries within the `Trie`.
  *
+ * **Details**
+ *
  * The entries are returned by keys in alphabetical order, regardless of insertion order.
  *
  * **Example** (Reading entries in alphabetical order)
@@ -264,6 +264,8 @@ export const entries: <V>(self: Trie<V>) => IterableIterator<[string, V]> = TR.e
 
 /**
  * Returns an `Array<[string, V]>` of the entries within the `Trie`.
+ *
+ * **Details**
  *
  * Equivalent to `Array.from(Trie.entries(trie))`.
  *
@@ -462,7 +464,7 @@ export const longestPrefixOf: {
 export const size: <V>(self: Trie<V>) => number = TR.size
 
 /**
- * Safely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` safely.
  *
  * **Example** (Looking up values safely)
  *
@@ -496,7 +498,7 @@ export const get: {
 } = TR.get
 
 /**
- * Check if the given key exists in the `Trie`.
+ * Checks whether the given key exists in the `Trie`.
  *
  * **Example** (Checking key membership)
  *
@@ -551,10 +553,17 @@ export const has: {
 export const isEmpty: <V>(self: Trie<V>) => boolean = TR.isEmpty
 
 /**
- * Unsafely lookup the value for the specified key in the `Trie`.
+ * Looks up the value for the specified key in the `Trie` unsafely.
  *
- * `getUnsafe` will throw if the key is not found. Use `get` instead to safely
- * get a value from the `Trie`.
+ * **When to use**
+ *
+ * Use when the trie key is known to exist and a missing key should be treated
+ * as a programming error.
+ *
+ * **Gotchas**
+ *
+ * `getUnsafe` throws if the key is not found. Use `get` instead to safely get
+ * a value from the `Trie`.
  *
  * **Example** (Looking up values unsafely)
  *
@@ -579,7 +588,7 @@ export const getUnsafe: {
 } = TR.getUnsafe
 
 /**
- * Remove the entry for the specified key in the `Trie`.
+ * Removes the entry for the specified key in the `Trie`.
  *
  * **Example** (Removing entries)
  *
@@ -611,7 +620,7 @@ export const remove: {
 } = TR.remove
 
 /**
- * Reduce a state over the entries of the `Trie`.
+ * Reduces a state over the entries of the `Trie`.
  *
  * **Example** (Reducing entries)
  *
@@ -908,7 +917,7 @@ export const removeMany: {
 } = TR.removeMany
 
 /**
- * Insert multiple entries in the `Trie` at once.
+ * Inserts multiple entries in the `Trie` at once.
  *
  * **Example** (Inserting multiple entries)
  *

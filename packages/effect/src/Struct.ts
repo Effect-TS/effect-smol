@@ -1,75 +1,12 @@
 /**
- * Utilities for creating, transforming, and comparing plain TypeScript objects
- * (structs). Every function produces a new object — inputs are never mutated.
+ * Works with plain TypeScript objects, also called structs.
  *
- * ## Mental model
- *
- * - **Struct**: A plain JS object with a fixed set of known keys (e.g.,
- *   `{ name: string; age: number }`). Not a generic key-value record.
- * - **Dual API**: Most functions accept arguments in both data-first
- *   (`Struct.pick(obj, keys)`) and data-last (`pipe(obj, Struct.pick(keys))`)
- *   style.
- * - **Immutability**: All operations return a new object; the original is
- *   never modified.
- * - **Lambda**: A type-level function interface (`~lambda.in` / `~lambda.out`)
- *   used by {@link map}, {@link mapPick}, and {@link mapOmit} so the compiler
- *   can track how value types change.
- * - **Evolver pattern**: {@link evolve}, {@link evolveKeys}, and
- *   {@link evolveEntries} let you selectively transform values, keys, or both
- *   while leaving untouched properties unchanged.
- *
- * ## Common tasks
- *
- * - Access a property in a pipeline → {@link get}
- * - List string keys with proper types → {@link keys}
- * - Subset / remove properties → {@link pick}, {@link omit}
- * - Merge two structs (second wins) → {@link assign}
- * - Rename keys → {@link renameKeys}
- * - Transform selected values → {@link evolve}
- * - Transform selected keys → {@link evolveKeys}
- * - Transform both keys and values → {@link evolveEntries}
- * - Map all values with a typed lambda → {@link map}, {@link mapPick},
- *   {@link mapOmit}
- * - Compare structs → {@link makeEquivalence}, {@link makeOrder}
- * - Combine / reduce structs → {@link makeCombiner}, {@link makeReducer}
- * - Flatten intersection types → {@link Simplify}
- * - Strip `readonly` modifiers → {@link Mutable}
- *
- * ## Gotchas
- *
- * - {@link keys} only returns `string` keys; symbol keys are excluded.
- * - {@link pick} and {@link omit} iterate with `for...in`, which includes
- *   inherited enumerable properties but excludes non-enumerable ones.
- * - {@link assign} spreads with `...`; property order follows standard
- *   JS spread rules.
- * - {@link map}, {@link mapPick}, {@link mapOmit} require a {@link Lambda}
- *   value created with {@link lambda}; a plain function won't type-check.
- *
- * ## Quickstart
- *
- * **Example** (Picking, renaming, and evolving struct properties)
- *
- * ```ts
- * import { pipe, Struct } from "effect"
- *
- * const user = { firstName: "Alice", lastName: "Smith", age: 30, admin: false }
- *
- * const result = pipe(
- *   user,
- *   Struct.pick(["firstName", "age"]),
- *   Struct.evolve({ age: (n) => n + 1 }),
- *   Struct.renameKeys({ firstName: "name" })
- * )
- *
- * console.log(result) // { name: "Alice", age: 31 }
- * ```
- *
- * ## See also
- *
- * - {@link Equivalence} – building equivalence relations for structs
- * - {@link Order} – ordering structs by their fields
- * - {@link Combiner} – combining two values of the same type
- * - {@link Reducer} – combining with an initial value
+ * The runtime helpers in this module create new objects instead of mutating
+ * their inputs. They cover common object workflows such as reading properties,
+ * listing typed keys, picking or omitting fields, assigning and renaming keys,
+ * transforming values, deriving comparison helpers, and creating records from a
+ * list of keys. The module also includes type-level helpers for simplifying and
+ * merging object shapes.
  *
  * @since 2.0.0
  */
@@ -83,10 +20,14 @@ import * as Reducer from "./Reducer.ts"
 /**
  * Flattens intersection types into a single object type for readability.
  *
- * - Use when hovering over a type shows `A & B & C` instead of the merged
- *   shape.
- * - Purely cosmetic — no runtime effect.
- * - Preserves `readonly` modifiers; use {@link Mutable} to strip them.
+ * **When to use**
+ *
+ * Use when hovering over a type shows `A & B & C` instead of the merged shape.
+ *
+ * **Details**
+ *
+ * This helper is purely cosmetic at the type level and has no runtime effect.
+ * It preserves `readonly` modifiers; use {@link Mutable} to strip them.
  *
  * **Example** (Flattening an intersection)
  *
@@ -102,8 +43,7 @@ import * as Reducer from "./Reducer.ts"
  *
  * @see {@link Mutable} – also flattens but removes `readonly`
  * @see {@link Assign} – merges two types with right-side precedence
- *
- * @category Type-Level Programming
+ * @category utility types
  * @since 4.0.0
  */
 export type Simplify<T> = { [K in keyof T]: T[K] } & {}
@@ -111,9 +51,14 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
 /**
  * Removes `readonly` modifiers from all properties of an object type.
  *
- * - Use when you need a mutable version of a readonly interface.
- * - Purely cosmetic at the type level — no runtime effect.
- * - Also flattens intersections like {@link Simplify}.
+ * **When to use**
+ *
+ * Use when you need a mutable version of a readonly interface.
+ *
+ * **Details**
+ *
+ * This helper is purely cosmetic at the type level and has no runtime effect.
+ * It also flattens intersections like {@link Simplify}.
  *
  * **Example** (Making a readonly type mutable)
  *
@@ -126,8 +71,7 @@ export type Simplify<T> = { [K in keyof T]: T[K] } & {}
  * ```
  *
  * @see {@link Simplify} – flattens intersections without removing `readonly`
- *
- * @category Type-Level Programming
+ * @category utility types
  * @since 4.0.0
  */
 export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
@@ -136,9 +80,14 @@ export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
  * Merges two object types with properties from `U` taking precedence over `T`
  * on overlapping keys (like `Object.assign` at the type level).
  *
- * - Use when you need the type-level equivalent of `{ ...T, ...U }`.
- * - When no keys overlap, returns a simple intersection for efficiency.
- * - When keys overlap, the type from `U` wins.
+ * **When to use**
+ *
+ * Use when you need the type-level equivalent of `{ ...T, ...U }`.
+ *
+ * **Details**
+ *
+ * When no keys overlap, this returns a simple intersection for efficiency.
+ * When keys overlap, the type from `U` wins.
  *
  * **Example** (Merging two types with overlapping keys)
  *
@@ -153,8 +102,7 @@ export type Mutable<T> = { -readonly [K in keyof T]: T[K] } & {}
  *
  * @see {@link assign} – the runtime equivalent
  * @see {@link Simplify} – flatten the resulting intersection
- *
- * @category Type-Level Programming
+ * @category utility types
  * @since 4.0.0
  */
 export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Omit<T, keyof T & keyof U> & U>
@@ -162,9 +110,13 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
 /**
  * Retrieves the value at `key` from a struct.
  *
- * - Use in a pipeline when you need to extract a single property.
- * - Does not mutate the input.
- * - The return type is narrowed to `S[K]`.
+ * **When to use**
+ *
+ * Use to extract a single property from a struct in a pipeline.
+ *
+ * **Details**
+ *
+ * The return type is narrowed to `S[K]`.
  *
  * **Example** (Extracting a property in a pipeline)
  *
@@ -177,7 +129,6 @@ export type Assign<T, U> = Simplify<keyof T & keyof U extends never ? T & U : Om
  *
  * @see {@link keys} – list all string keys of a struct
  * @see {@link pick} – extract multiple properties into a new struct
- *
  * @category getters
  * @since 2.0.0
  */
@@ -189,12 +140,16 @@ export const get: {
 /**
  * Returns the string keys of a struct as a properly typed `Array<keyof S & string>`.
  *
- * - Use instead of `Object.keys` when you want the return type narrowed to the
- *   known keys of the struct.
- * - Symbol keys are excluded; only string keys are returned.
- * - Does not mutate the input.
+ * **When to use**
  *
- * **Example** (Typed keys)
+ * Use when you want a typed replacement for `Object.keys` that narrows the result
+ * to the known string keys of the struct.
+ *
+ * **Gotchas**
+ *
+ * Symbol keys are excluded; only string keys are returned.
+ *
+ * **Example** (Reading typed keys)
  *
  * ```ts
  * import { Struct } from "effect"
@@ -207,7 +162,6 @@ export const get: {
  *
  * @see {@link get} – access a single key's value
  * @see {@link pick} – select a subset of keys into a new struct
- *
  * @category Key utilities
  * @since 3.6.0
  */
@@ -217,9 +171,13 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
 /**
  * Creates a new struct containing only the specified keys.
  *
- * - Use to narrow a struct down to a subset of its properties.
- * - Does not mutate the input; returns a fresh object.
- * - Keys not present in the struct are silently ignored.
+ * **When to use**
+ *
+ * Use to narrow a struct down to a subset of its properties.
+ *
+ * **Gotchas**
+ *
+ * Keys not present in the struct are silently ignored.
  *
  * **Example** (Selecting specific properties)
  *
@@ -233,7 +191,6 @@ export const keys = <S extends object>(self: S): Array<(keyof S) & string> =>
  *
  * @see {@link omit} – the inverse (exclude keys instead)
  * @see {@link get} – extract a single value
- *
  * @category filtering
  * @since 2.0.0
  */
@@ -252,9 +209,13 @@ export const pick: {
 /**
  * Creates a new struct with the specified keys removed.
  *
- * - Use to exclude sensitive or irrelevant fields from a struct.
- * - Does not mutate the input; returns a fresh object.
- * - Keys not present in the struct are silently ignored.
+ * **When to use**
+ *
+ * Use to exclude sensitive or irrelevant fields from a struct.
+ *
+ * **Gotchas**
+ *
+ * Keys not present in the struct are silently ignored.
  *
  * **Example** (Removing a property)
  *
@@ -267,7 +228,6 @@ export const pick: {
  * ```
  *
  * @see {@link pick} – the inverse (keep only specified keys)
- *
  * @category filtering
  * @since 2.0.0
  */
@@ -287,9 +247,13 @@ export const omit: {
  * Merges two structs into a new struct. When both structs share a key, the
  * value from `that` (the second struct) wins.
  *
- * - Use when you want `{ ...self, ...that }` with proper types.
- * - Does not mutate either input; returns a fresh object.
- * - The result type is `Simplify<Assign<S, O>>`.
+ * **When to use**
+ *
+ * Use when you want `{ ...self, ...that }` with proper types.
+ *
+ * **Details**
+ *
+ * The result type is `Simplify<Assign<S, O>>`.
  *
  * **Example** (Merging structs with overlapping keys)
  *
@@ -304,7 +268,6 @@ export const omit: {
  *
  * @see {@link Assign} – the type-level equivalent
  * @see {@link evolve} – transform individual values instead of replacing them
- *
  * @category combining
  * @since 4.0.0
  */
@@ -325,13 +288,17 @@ type Evolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms values of a struct using per-key functions. Keys
+ * Transforms values of a struct selectively using per-key functions. Keys
  * without a corresponding function are copied unchanged.
  *
- * - Use when you want to update specific fields while keeping the rest intact.
- * - Does not mutate the input; returns a fresh object.
- * - Each transform function receives the current value and returns the new
- *   value; the return type can differ from the input type.
+ * **When to use**
+ *
+ * Use when you want to update specific fields while keeping the rest intact.
+ *
+ * **Details**
+ *
+ * Each transform function receives the current value and returns the new value;
+ * the return type can differ from the input type.
  *
  * **Example** (Transforming selected values)
  *
@@ -351,7 +318,6 @@ type Evolved<S, E> = Simplify<
  * @see {@link evolveKeys} – transform keys instead of values
  * @see {@link evolveEntries} – transform both keys and values
  * @see {@link map} – apply the same transformation to all values
- *
  * @category transforming
  * @since 2.0.0
  */
@@ -372,13 +338,17 @@ type KeyEvolved<S, E> = Simplify<
 >
 
 /**
- * Selectively transforms keys of a struct using per-key functions. Keys without
+ * Transforms keys of a struct selectively using per-key functions. Keys without
  * a corresponding function are copied unchanged.
  *
- * - Use when you need computed key names (e.g., uppercasing, prefixing).
- * - Each transform function receives the key name and must return a new
- *   `PropertyKey`.
- * - Does not mutate the input; returns a fresh object.
+ * **When to use**
+ *
+ * Use when you need computed key names, such as uppercasing or prefixing.
+ *
+ * **Details**
+ *
+ * Each transform function receives the key name and must return a new
+ * `PropertyKey`.
  *
  * **Example** (Renaming keys with functions)
  *
@@ -397,7 +367,6 @@ type KeyEvolved<S, E> = Simplify<
  * @see {@link renameKeys} – rename keys with a static mapping
  * @see {@link evolve} – transform values instead of keys
  * @see {@link evolveEntries} – transform both keys and values
- *
  * @category Key utilities
  * @since 4.0.0
  */
@@ -424,13 +393,17 @@ type EntryEvolved<S, E> = {
 }
 
 /**
- * Selectively transforms both keys and values of a struct. Each per-key
+ * Transforms both keys and values of a struct selectively. Each per-key
  * function receives `(key, value)` and must return a `[newKey, newValue]`
  * tuple. Keys without a corresponding function are copied unchanged.
  *
- * - Use when you need to rename a key and change its value in one step.
- * - Does not mutate the input; returns a fresh object.
- * - The return type is fully tracked at the type level.
+ * **When to use**
+ *
+ * Use when you need to rename a key and change its value in one step.
+ *
+ * **Details**
+ *
+ * The return type is fully tracked at the type level.
  *
  * **Example** (Transforming keys and values together)
  *
@@ -449,8 +422,7 @@ type EntryEvolved<S, E> = {
  *
  * @see {@link evolve} – transform values only
  * @see {@link evolveKeys} – transform keys only
- *
- * @category utils
+ * @category transforming
  * @since 4.0.0
  */
 export const evolveEntries: {
@@ -467,9 +439,13 @@ export const evolveEntries: {
  * Renames keys in a struct using a static `{ oldKey: newKey }` mapping. Keys
  * not mentioned in the mapping are copied unchanged.
  *
- * - Use for simple, declarative key renaming without custom logic.
- * - Does not mutate the input; returns a fresh object.
- * - For computed key names, use {@link evolveKeys} instead.
+ * **When to use**
+ *
+ * Use when you need simple, declarative key renaming without custom logic.
+ *
+ * **Details**
+ *
+ * For computed key names, use {@link evolveKeys} instead.
  *
  * **Example** (Renaming keys)
  *
@@ -485,7 +461,6 @@ export const evolveEntries: {
  *
  * @see {@link evolveKeys} – rename keys using functions
  * @see {@link evolveEntries} – rename keys and transform values
- *
  * @category Key utilities
  * @since 4.0.0
  */
@@ -506,11 +481,16 @@ export const renameKeys: {
  * property. Two structs are equivalent when all their corresponding properties
  * are equivalent.
  *
- * Alias of `Equivalence.Struct`.
+ * **When to use**
  *
- * - Use when you need to compare structs property-by-property.
- * - Each property's equivalence is checked independently; all must return
- *   `true` for the overall result to be `true`.
+ * Use when you need equality for a record-like object to be decided field by
+ * field, with a custom equality rule for each property.
+ *
+ * **Details**
+ *
+ * This is an alias of `Equivalence.Struct`. Each property's equivalence is
+ * checked independently; all must return `true` for the overall result to be
+ * `true`.
  *
  * **Example** (Comparing structs for equivalence)
  *
@@ -529,8 +509,7 @@ export const renameKeys: {
  * ```
  *
  * @see {@link makeOrder} – create an `Order` for structs
- *
- * @category Equivalence
+ * @category instances
  * @since 4.0.0
  */
 export const makeEquivalence = Equivalence.Struct
@@ -540,11 +519,15 @@ export const makeEquivalence = Equivalence.Struct
  * Properties are compared in the order they appear in the fields object; the
  * first non-zero comparison determines the result.
  *
- * Alias of `Order.Struct`.
+ * **When to use**
  *
- * - Use to sort or compare structs by multiple fields with lexicographic
- *   priority.
- * - The order of keys in the `fields` object determines comparison priority.
+ * Use when you need to sort record-like objects lexicographically by several
+ * fields, with each field using its own ordering rule.
+ *
+ * **Details**
+ *
+ * This is an alias of `Order.Struct`. The order of keys in the `fields` object
+ * determines comparison priority.
  *
  * **Example** (Ordering structs by name then age)
  *
@@ -561,8 +544,7 @@ export const makeEquivalence = Equivalence.Struct
  * ```
  *
  * @see {@link makeEquivalence} – create an `Equivalence` for structs
- *
- * @category Ordering
+ * @category ordering
  * @since 4.0.0
  */
 export const makeOrder = order.Struct
@@ -571,9 +553,16 @@ export const makeOrder = order.Struct
  * Interface for type-level functions used by {@link map}, {@link mapPick}, and
  * {@link mapOmit}.
  *
- * - Extend this interface with concrete `~lambda.in` and `~lambda.out` types
- *   to describe how a function transforms values at the type level.
- * - At runtime, create lambda values with {@link lambda}.
+ * **When to use**
+ *
+ * Use when defining a typed function for {@link map}, {@link mapPick}, or
+ * {@link mapOmit}.
+ *
+ * **Details**
+ *
+ * Extend this interface with concrete `~lambda.in` and `~lambda.out` types to
+ * describe how a function transforms values at the type level. At runtime,
+ * create lambda values with {@link lambda}.
  *
  * **Example** (Defining a lambda type)
  *
@@ -588,7 +577,6 @@ export const makeOrder = order.Struct
  * @see {@link Apply} – apply a Lambda to a concrete type
  * @see {@link lambda} – create a runtime lambda value
  * @see {@link map} – use a lambda to transform all struct values
- *
  * @category Lambda
  * @since 4.0.0
  */
@@ -601,10 +589,15 @@ export interface Lambda {
  * Applies a {@link Lambda} type-level function to a value type `V`, producing
  * the output type.
  *
- * - Use this when you need to compute what type a Lambda would produce for a
- *   given input.
- * - Works by intersecting the Lambda with `{ "~lambda.in": V }` and reading
- *   `"~lambda.out"`.
+ * **When to use**
+ *
+ * Use when you need to compute what type a Lambda would produce for a
+ * given input.
+ *
+ * **Details**
+ *
+ * This works by intersecting the Lambda with `{ "~lambda.in": V }` and reading
+ * `"~lambda.out"`.
  *
  * **Example** (Computing the output type of a lambda)
  *
@@ -620,7 +613,6 @@ export interface Lambda {
  * ```
  *
  * @see {@link Lambda} – the base interface
- *
  * @category Lambda
  * @since 4.0.0
  */
@@ -630,10 +622,17 @@ export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~la
  * Wraps a plain function as a {@link Lambda} value so it can be used with
  * {@link map}, {@link mapPick}, and {@link mapOmit}.
  *
- * - The type parameter `L` encodes both the input and output types at the type
- *   level, allowing the compiler to track how struct value types change.
- * - At runtime, the returned value is the same function — `lambda` only
- *   adjusts the type.
+ * **When to use**
+ *
+ * Use to create a typed lambda for struct mapping APIs that need type-level
+ * input and output tracking.
+ *
+ * **Details**
+ *
+ * The type parameter `L` encodes both the input and output types at the type
+ * level, allowing the compiler to track how struct value types change. At
+ * runtime, the returned value is the same function; `lambda` only adjusts the
+ * type.
  *
  * **Example** (Wrapping values in arrays)
  *
@@ -652,7 +651,6 @@ export type Apply<L extends Lambda, V> = (L & { readonly "~lambda.in": V })["~la
  *
  * @see {@link Lambda} – the type-level interface
  * @see {@link map} – apply a lambda to all struct values
- *
  * @category Lambda
  * @since 4.0.0
  */
@@ -663,10 +661,14 @@ export const lambda = <L extends (a: any) => any>(
 /**
  * Applies a {@link Lambda} transformation to every value in a struct.
  *
- * - Use when you want to apply the same function to every value in a struct.
- * - The lambda must be created with {@link lambda} so the compiler can track
- *   the output types.
- * - Does not mutate the input; returns a fresh object.
+ * **When to use**
+ *
+ * Use when you want to apply the same function to every value in a struct.
+ *
+ * **Details**
+ *
+ * The lambda must be created with {@link lambda} so the compiler can track the
+ * output types.
  *
  * **Example** (Wrapping every value in an array)
  *
@@ -686,7 +688,6 @@ export const lambda = <L extends (a: any) => any>(
  * @see {@link mapPick} – apply a lambda only to selected keys
  * @see {@link mapOmit} – apply a lambda to all keys except selected ones
  * @see {@link evolve} – apply different functions to different keys
- *
  * @category mapping
  * @since 4.0.0
  */
@@ -709,9 +710,9 @@ export const map: {
  * Applies a {@link Lambda} transformation only to the specified keys; all
  * other keys are copied unchanged.
  *
- * - Use when you want to apply the same transformation to a subset of
- *   properties.
- * - Does not mutate the input; returns a fresh object.
+ * **When to use**
+ *
+ * Use when you want to apply the same transformation to a subset of properties.
  *
  * **Example** (Wrapping only selected values in arrays)
  *
@@ -733,7 +734,6 @@ export const map: {
  *
  * @see {@link map} – apply a lambda to all keys
  * @see {@link mapOmit} – apply a lambda to all keys except selected ones
- *
  * @category mapping
  * @since 4.0.0
  */
@@ -764,8 +764,9 @@ export const mapPick: {
  * Applies a {@link Lambda} transformation to all keys except the specified
  * ones; the excluded keys are copied unchanged.
  *
- * - Use when most keys should be transformed but a few should be preserved.
- * - Does not mutate the input; returns a fresh object.
+ * **When to use**
+ *
+ * Use when most keys should be transformed but a few should be preserved.
  *
  * **Example** (Wrapping all values except one in arrays)
  *
@@ -787,7 +788,6 @@ export const mapPick: {
  *
  * @see {@link map} – apply a lambda to all keys
  * @see {@link mapPick} – apply a lambda only to selected keys
- *
  * @category mapping
  * @since 4.0.0
  */
@@ -831,7 +831,8 @@ function buildStruct<
   f: f
 ): any {
   const out: Record<PropertyKey, unknown> = {}
-  for (const k in source) {
+  for (const k of Reflect.ownKeys(source) as Array<keyof S>) {
+    if (!Object.prototype.propertyIsEnumerable.call(source, k)) continue
     const res = f(k, source[k])
     if (res) {
       const [nk, nv] = res
@@ -846,11 +847,15 @@ function buildStruct<
  * property. When two structs are combined, each property is merged using its
  * corresponding combiner.
  *
- * - Use when you need to merge two structs of the same shape (e.g., summing
- *   counters, concatenating strings).
- * - Pass `omitKeyWhen` to drop properties whose merged value matches a
- *   predicate (e.g., omit zero counters).
- * - Does not mutate the inputs; returns a fresh object.
+ * **When to use**
+ *
+ * Use when you need to merge two same-shape records by combining each property
+ * independently, such as summing counters or concatenating strings.
+ *
+ * **Details**
+ *
+ * Pass `omitKeyWhen` to drop properties whose merged value matches a predicate,
+ * such as omitting zero counters.
  *
  * **Example** (Combining struct properties)
  *
@@ -867,7 +872,6 @@ function buildStruct<
  * ```
  *
  * @see {@link makeReducer} – like `makeCombiner` but with an initial value
- *
  * @category combining
  * @since 4.0.0
  */
@@ -896,10 +900,15 @@ export function makeCombiner<A>(
  * `Reducer.initialValue`. When reducing a collection of structs, each property
  * is combined independently.
  *
- * - Use to fold a collection of structs into a single summary struct.
- * - Pass `omitKeyWhen` to drop properties whose reduced value matches a
- *   predicate.
- * - Does not mutate the inputs; returns a fresh object.
+ * **When to use**
+ *
+ * Use when you need to fold same-shape records by accumulating each property
+ * independently into one summary record.
+ *
+ * **Details**
+ *
+ * Pass `omitKeyWhen` to drop properties whose reduced value matches a
+ * predicate.
  *
  * **Example** (Reducing a collection of structs)
  *
@@ -920,7 +929,6 @@ export function makeCombiner<A>(
  * ```
  *
  * @see {@link makeCombiner} – like `makeReducer` but without an initial value
- *
  * @category folding
  * @since 4.0.0
  */
@@ -942,6 +950,10 @@ export function makeReducer<A>(
 
 /**
  * Creates a record with the given keys and value.
+ *
+ * **When to use**
+ *
+ * Use to build an object where each provided key receives the same value.
  *
  * **Example** (Creating a record)
  *

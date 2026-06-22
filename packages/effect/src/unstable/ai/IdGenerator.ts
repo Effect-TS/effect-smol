@@ -1,49 +1,11 @@
 /**
- * The `IdGenerator` module provides a pluggable system for generating unique identifiers
- * for tool calls and other items in the Effect AI SDKs.
+ * Provides identifier generation for AI features.
  *
- * This module offers a flexible and configurable approach to ID generation, supporting
- * custom alphabets, prefixes, separators, and sizes.
- *
- * **Example** (Generating IDs with the default service)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { IdGenerator } from "effect/unstable/ai"
- *
- * // Using the default ID generator
- * const program = Effect.gen(function*() {
- *   const idGen = yield* IdGenerator.IdGenerator
- *   const toolCallId = yield* idGen.generateId()
- *   console.log(toolCallId) // "id_A7xK9mP2qR5tY8uV"
- *   return toolCallId
- * }).pipe(Effect.provideService(
- *   IdGenerator.IdGenerator,
- *   IdGenerator.defaultIdGenerator
- * ))
- * ```
- *
- * **Example** (Providing a custom ID generator)
- *
- * ```ts
- * import { Effect } from "effect"
- * import { IdGenerator } from "effect/unstable/ai"
- *
- * // Creating a custom ID generator for AI tool calls
- * const customLayer = IdGenerator.layer({
- *   alphabet: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
- *   prefix: "tool_call",
- *   separator: "-",
- *   size: 12
- * })
- *
- * const program = Effect.gen(function*() {
- *   const idGen = yield* IdGenerator.IdGenerator
- *   const id = yield* idGen.generateId()
- *   console.log(id) // "tool_call-A7XK9MP2QR5T"
- *   return id
- * }).pipe(Effect.provide(customLayer))
- * ```
+ * The `IdGenerator` service exposes one operation, `generateId`, which returns
+ * a string inside `Effect`. AI modules use it for values such as tool call ids
+ * and generated response item ids. This module includes the service tag,
+ * service interface, default generator, configurable custom generator, and layer
+ * for providing the service.
  *
  * @since 4.0.0
  */
@@ -55,7 +17,14 @@ import * as Predicate from "../../Predicate.ts"
 import * as Random from "../../Random.ts"
 
 /**
- * The `IdGenerator` service tag for dependency injection.
+ * Service tag for AI identifier generation services.
+ *
+ * **When to use**
+ *
+ * Use to access or provide the service that creates identifiers for AI tool
+ * calls and related generated values.
+ *
+ * **Details**
  *
  * This tag is used to provide and access ID generation functionality throughout
  * the application. It follows Effect's standard service pattern for type-safe
@@ -74,7 +43,7 @@ import * as Random from "../../Random.ts"
  * })
  * ```
  *
- * @category models
+ * @category services
  * @since 4.0.0
  */
 export class IdGenerator extends Context.Service<IdGenerator, Service>()(
@@ -83,6 +52,8 @@ export class IdGenerator extends Context.Service<IdGenerator, Service>()(
 
 /**
  * The service interface for ID generation.
+ *
+ * **Details**
  *
  * Defines the contract that all ID generator implementations must fulfill.
  * The service provides a single method for generating unique identifiers
@@ -133,7 +104,7 @@ export interface Service {
  * // This will generate IDs like: "tool_A1B2C3D4"
  * ```
  *
- * @category models
+ * @category options
  * @since 4.0.0
  */
 export interface MakeOptions {
@@ -183,6 +154,8 @@ const makeGenerator = ({
 /**
  * Default ID generator service implementation.
  *
+ * **Details**
+ *
  * Uses the standard configuration with "id" prefix and generates IDs in the
  * format "id_XXXXXXXXXXXXXXXX" where X represents random alphanumeric
  * characters.
@@ -217,6 +190,8 @@ export const defaultIdGenerator: Service = {
 
 /**
  * Creates a custom ID generator service with the specified options.
+ *
+ * **Details**
  *
  * Validates the configuration to ensure the separator is not part of the
  * alphabet, which would cause ambiguity in parsing generated IDs.
@@ -291,9 +266,10 @@ export const make = Effect.fnUntraced(function*({
  * Creates a Layer that provides the IdGenerator service with custom
  * configuration.
  *
- * This is the recommended way to provide ID generation capabilities to your
- * application. The layer will fail during construction if the configuration is
- * invalid.
+ * **When to use**
+ *
+ * Use when you need to provide ID generation capabilities from validated
+ * configuration.
  *
  * **Example** (Providing an ID generator layer)
  *

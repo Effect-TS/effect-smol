@@ -1,13 +1,27 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Effect, FileSystem, Layer, Path, PlatformError, Redacted } from "effect"
+import { Effect, FileSystem, Layer, Path, PlatformError, Redacted, Stdio } from "effect"
+import { TestConsole } from "effect/testing/index"
 import { Primitive } from "effect/unstable/cli"
+import { ChildProcessSpawner } from "effect/unstable/process"
+import * as MockTerminal from "./services/MockTerminal.ts"
 
+const ConsoleLayer = TestConsole.layer
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
+const TerminalLayer = MockTerminal.layer
+const StdioLayer = Stdio.layerTest({})
+const ChildProcessSpawnerLayer = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+)
 
 const TestLayer = Layer.mergeAll(
+  ConsoleLayer,
   FileSystemLayer,
-  PathLayer
+  PathLayer,
+  TerminalLayer,
+  StdioLayer,
+  ChildProcessSpawnerLayer
 )
 
 // Helper functions to reduce repetition
@@ -227,7 +241,7 @@ describe("Primitive", () => {
 
   describe("path", () => {
     it.layer(TestLayer)((it) => {
-      it.effect("should parse paths without validation", () =>
+      it.effect("should resolve paths without requiring existence", () =>
         Effect.gen(function*() {
           const pathPrimitive = Primitive.path("either")
           const result1 = yield* pathPrimitive.parse("./test.txt")
@@ -244,7 +258,7 @@ describe("Primitive", () => {
         assert.strictEqual(Primitive.path("either")._tag, "Path")
       })
 
-      it.effect("should validate file existence when required", () =>
+      it.effect("should fail when a required file path does not exist", () =>
         Effect.gen(function*() {
           const filePath = Primitive.path("file", true)
 
@@ -269,7 +283,7 @@ describe("Primitive", () => {
           )
         ))
 
-      it.effect("should validate directory type when required", () =>
+      it.effect("should fail when a required directory path does not exist", () =>
         Effect.gen(function*() {
           const dirPath = Primitive.path("directory", true)
 

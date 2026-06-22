@@ -1,33 +1,12 @@
 /**
- * The `Rpc` module defines the typed declaration for a single remote
- * procedure. An RPC definition is the shared contract used by `RpcGroup`,
- * clients, and servers: it stores the procedure tag, payload schema, success
- * schema, error schema, defect schema, middleware, annotations, and the type
- * information needed to derive client calls and server handler signatures.
+ * Defines schema-backed contracts for individual RPC procedures.
  *
- * Use this module to declare request/response procedures with {@link make},
- * build custom constructors that transform success and error schemas with
- * {@link custom}, add middleware or annotations to individual procedures, and
- * derive helper types such as {@link Payload}, {@link Success},
- * {@link Error}, and {@link ToHandlerFn}. Server implementations can also use
- * {@link fork} and {@link uninterruptible} wrappers to control how handler
- * results are executed.
- *
- * **Schema gotchas**
- *
- * - Payloads default to `Schema.Void`; passing struct fields creates a
- *   `Schema.Struct`, while `primaryKey` creates a payload class with a derived
- *   `PrimaryKey`
- * - Success values default to `Schema.Void`, ordinary errors default to
- *   `Schema.Never`, and middleware errors are included in the effective RPC
- *   error channel
- * - Streaming RPCs store the element and stream error schemas in
- *   `RpcSchema.Stream`; the immediate exit success is `void` and the normal
- *   RPC error schema is set to `Schema.Never`
- * - Defects use a separate defect schema, defaulting to `Schema.Defect`; custom
- *   defect schemas must not require decoding or encoding services
- * - Schema services are directional: clients encode payloads and decode
- *   responses, while servers decode payloads and encode responses
+ * An `Rpc` describes one remote procedure by recording its tag, payload schema,
+ * success schema, error schema, defect schema, middleware, and annotations.
+ * Clients and servers read the same declaration, so the procedure contract is
+ * independent of the transport used to call it. This module includes
+ * constructors, type helpers for deriving client and handler shapes, exit
+ * schemas, and handler wrappers for special execution modes.
  *
  * @since 4.0.0
  */
@@ -61,7 +40,9 @@ const TypeId = "~effect/rpc/Rpc"
 export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasProperty(u, TypeId)
 
 /**
- * A schema for RPC defects.
+ * Schema for RPC defects.
+ *
+ * **Details**
  *
  * Defect schemas decode and encode without services and can be constructed from
  * `null`, `undefined`, or an object value.
@@ -70,7 +51,6 @@ export const isRpc = (u: unknown): u is Rpc<any, any, any> => Predicate.hasPrope
  * @since 4.0.0
  */
 export interface DefectSchema extends Schema.Top {
-  readonly Type: unknown
   make(input: null, options?: Schema.MakeOptions): unknown
   make(input: undefined, options?: Schema.MakeOptions): unknown
   make(input: {}, options?: Schema.MakeOptions): unknown
@@ -80,6 +60,8 @@ export interface DefectSchema extends Schema.Top {
 
 /**
  * Represents a typed RPC definition.
+ *
+ * **Details**
  *
  * An RPC is identified by a tag and carries payload, success, error, defect,
  * middleware, and annotation metadata used by RPC clients and servers.
@@ -187,7 +169,14 @@ export interface Rpc<
 }
 
 /**
- * Server-side metadata for the client associated with an RPC request.
+ * Represents server-side metadata for the client associated with an RPC request.
+ *
+ * **When to use**
+ *
+ * Use to inspect or annotate the connected client while handling an RPC request
+ * on the server.
+ *
+ * **Details**
  *
  * It stores the client id and request annotations that handlers can read or
  * extend.
@@ -213,6 +202,8 @@ export class ServerClient {
 
 /**
  * Represents the server-side implementation of an RPC.
+ *
+ * **Details**
  *
  * The handler receives the decoded request plus client, request id, headers,
  * and RPC metadata, and returns either an effectful result or a stream result.
@@ -325,6 +316,8 @@ export type SuccessEncoded<R> = R extends Rpc<
 /**
  * Extracts the success schema used in an RPC exit.
  *
+ * **Details**
+ *
  * For streaming RPCs, this is the stream element schema; otherwise it is the
  * RPC success schema.
  *
@@ -335,6 +328,8 @@ export type SuccessExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<inf
 
 /**
  * Extracts the decoded success value carried by an RPC exit.
+ *
+ * **Details**
  *
  * For streaming RPCs, the immediate exit success is `void` because stream
  * elements are delivered separately.
@@ -383,6 +378,8 @@ export type Error<R> = Schema.Schema.Type<ErrorSchema<R>>
 /**
  * Extracts the error schema used in an RPC exit.
  *
+ * **Details**
+ *
  * For streaming RPCs, this includes both the stream error schema and the RPC
  * error schema; otherwise it is the RPC error schema.
  *
@@ -394,6 +391,8 @@ export type ErrorExitSchema<R> = SuccessSchema<R> extends RpcSchema.Stream<infer
 
 /**
  * Extracts the decoded error type used by an RPC exit.
+ *
+ * **Details**
  *
  * For streaming RPCs, this includes both stream errors and RPC errors.
  *
@@ -472,6 +471,8 @@ export type Services<R> = R extends Rpc<
 /**
  * Extracts the schema services required on the client side of an RPC.
  *
+ * **Details**
+ *
  * This includes payload encoding services and success, error, and middleware
  * error decoding services.
  *
@@ -494,6 +495,8 @@ export type ServicesClient<R> = R extends Rpc<
 
 /**
  * Extracts the schema services required on the server side of an RPC.
+ *
+ * **Details**
  *
  * This includes payload decoding services and success, error, and middleware
  * error encoding services.
@@ -616,6 +619,8 @@ export type ToHandler<R extends Any> = R extends Rpc<
 /**
  * The function signature for implementing an RPC handler.
  *
+ * **Details**
+ *
  * The function receives the decoded payload and request metadata, and returns
  * the RPC result shape, optionally wrapped with `Wrapper` options.
  *
@@ -713,6 +718,8 @@ export type ExcludeProvides<Env, R extends Any, Tag extends string> = Exclude<
 /**
  * Computes the allowed handler result type for an RPC.
  *
+ * **Details**
+ *
  * Streaming RPCs may return a stream or an effect that produces a queue. Other
  * RPCs return an effect that succeeds with the success value or a deferred
  * success value.
@@ -799,7 +806,7 @@ const Proto = {
       middlewares: this.middlewares
     })
   },
-  setPayload(this: AnyWithProps, payloadSchema: Schema.Struct<any> | Schema.Struct.Fields) {
+  setPayload(this: AnyWithProps, payloadSchema: Schema.Struct<Schema.Struct.Fields> | Schema.Struct.Fields) {
     return makeProto({
       _tag: this._tag,
       payloadSchema: Schema.isSchema(payloadSchema) ? payloadSchema as any : Schema.Struct(payloadSchema as any),
@@ -868,7 +875,7 @@ const makeProto = <
   readonly payloadSchema: Payload
   readonly successSchema: Success
   readonly errorSchema: Error
-  readonly defectSchema: Schema.Top
+  readonly defectSchema: Schema.Constraint
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Middleware>
 }): Rpc<Tag, Payload, Success, Error, Middleware, Requires> => {
@@ -881,6 +888,8 @@ const makeProto = <
 
 /**
  * Creates an RPC definition with the supplied tag and optional schemas.
+ *
+ * **Details**
  *
  * Payload options can be either a schema or struct fields. `stream: true` wraps
  * the success and error schemas in a stream schema and sets the normal error
@@ -914,7 +923,7 @@ export const make = <
 > => {
   const successSchema = options?.success ?? Schema.Void
   const errorSchema = options?.error ?? Schema.Never
-  const defectSchema = options?.defect ?? Schema.Defect
+  const defectSchema = options?.defect ?? Schema.Defect()
   let payloadSchema: any
   if (options?.primaryKey) {
     payloadSchema = class Payload extends Schema.Class<Payload>(`effect/rpc/Rpc/${tag}`)(options.payload as any) {
@@ -943,9 +952,11 @@ export const make = <
 }
 
 /**
- * Create a custom Rpc constructor, that can transform the output schemas.
+ * Creates a custom `Rpc` constructor that can transform the output schemas.
  *
- * ```typescript
+ * **Example** (Defining a paginated RPC constructor)
+ *
+ * ```ts
  * import { Schema } from "effect"
  * import { Rpc } from "effect/unstable/rpc"
  *
@@ -959,7 +970,7 @@ export const make = <
  * }
  *
  * // The type definition for the transformed success schema.
- * export interface Paginated<S extends Schema.Top> extends
+ * export interface Paginated<S extends Schema.Constraint> extends
  *   Schema.Struct<{
  *     readonly offset: Schema.Number
  *     readonly total: Schema.Number
@@ -983,7 +994,7 @@ export const make = <
  * })
  * ```
  *
- * @category Custom constructors
+ * @category constructors
  * @since 4.0.0
  */
 export const custom = <Def extends Custom>(
@@ -1014,7 +1025,7 @@ export const custom = <Def extends Custom>(
 > => {
   const success = options?.success ?? Schema.Void
   const error = options?.error ?? Schema.Never
-  const defect = options?.defect ?? Schema.Defect
+  const defect = options?.defect ?? Schema.Defect()
   const out = f({
     success,
     error,
@@ -1031,10 +1042,12 @@ export const custom = <Def extends Custom>(
 /**
  * Defines the type-level contract for an RPC custom constructor.
  *
+ * **Details**
+ *
  * A custom constructor receives the original success, error, and defect schemas
  * and returns transformed output schemas through `out`.
  *
- * @category Custom constructors
+ * @category constructors
  * @since 4.0.0
  */
 export interface Custom {
@@ -1053,12 +1066,12 @@ export declare namespace Custom {
   /**
    * The transformed schemas produced by a custom RPC constructor.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export interface Out<
-    Success extends Schema.Top,
-    Error extends Schema.Top
+    Success extends Schema.Constraint,
+    Error extends Schema.Constraint
   > {
     readonly success: Success
     readonly error: Error
@@ -1069,7 +1082,7 @@ export declare namespace Custom {
    * The default custom-constructor output shape for arbitrary success and error
    * schemas.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export type OutDefault = Out<Schema.Top, Schema.Top>
@@ -1078,13 +1091,13 @@ export declare namespace Custom {
    * Applies a custom constructor definition to concrete success and error
    * schemas and returns its transformed output schema type.
    *
-   * @category Custom constructors
+   * @category constructors
    * @since 4.0.0
    */
   export type Kind<
     Def extends Custom,
-    Success extends Schema.Top,
-    Error extends Schema.Top
+    Success extends Schema.Constraint,
+    Error extends Schema.Constraint
   > = (Def & {
     readonly success: Success
     readonly error: Error
@@ -1095,6 +1108,8 @@ const exitSchemaCache = new WeakMap<Any, Schema.Exit<Schema.Top, Schema.Top, Def
 
 /**
  * Builds the `Schema.Exit` used to encode and decode RPC results.
+ *
+ * **Details**
  *
  * The failure side includes the RPC error schema, middleware error schemas, and
  * stream error schema for streaming RPCs. Streaming RPCs use `Schema.Void` for
@@ -1136,10 +1151,12 @@ const WrapperTypeId = "~effect/rpc/Rpc/Wrapper"
 /**
  * Wraps a handler result with execution options for the RPC server.
  *
+ * **Details**
+ *
  * `fork` requests concurrent execution, and `uninterruptible` requests
  * uninterruptible execution.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export interface Wrapper<A> {
@@ -1153,7 +1170,7 @@ export interface Wrapper<A> {
  * A value that may be returned directly or wrapped with RPC server execution
  * options.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export type WrapperOr<A> = A | Wrapper<A>
@@ -1161,7 +1178,7 @@ export type WrapperOr<A> = A | Wrapper<A>
 /**
  * Returns `true` when the value is an RPC `Wrapper`.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
@@ -1169,10 +1186,12 @@ export const isWrapper = (u: object): u is Wrapper<any> => WrapperTypeId in u
 /**
  * Wraps a handler result with RPC server execution options.
  *
+ * **Details**
+ *
  * When the value is already wrapped, unspecified options are inherited from the
  * existing wrapper.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const wrap = (options: {
@@ -1198,7 +1217,7 @@ export const wrap = (options: {
  * Returns the wrapped response value when the input is an RPC `Wrapper`, or the
  * input itself when it is already unwrapped.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const unwrap = <A extends object>(value: WrapperOr<A>): A => isWrapper(value) ? value.value : value
@@ -1207,7 +1226,7 @@ export const unwrap = <A extends object>(value: WrapperOr<A>): A => isWrapper(va
  * Maps the value inside an RPC wrapper, preserving wrapper options such as
  * `fork` and `uninterruptible`; unwrapped values are mapped directly.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const wrapMap = <A extends object, B extends object>(self: WrapperOr<A>, f: (value: A) => B): WrapperOr<B> => {
@@ -1218,19 +1237,18 @@ export const wrapMap = <A extends object, B extends object>(self: WrapperOr<A>, 
 }
 
 /**
- * You can use `fork` to wrap a response Effect or Stream, to ensure that the
- * response is executed concurrently regardless of the RpcServer concurrency
- * setting.
+ * Wraps a response Effect or Stream so the RPC server executes it concurrently
+ * regardless of the server concurrency setting.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const fork: <A extends object>(value: A) => Wrapper<A> = wrap({ fork: true })
 
 /**
- * You can use `uninterruptible` to wrap a response Effect or Stream, to ensure that it is run in an uninterruptible region.
+ * Wraps a response Effect or Stream so the RPC server runs it in an uninterruptible region.
  *
- * @category Wrapper
+ * @category wrapping
  * @since 4.0.0
  */
 export const uninterruptible: <A extends object>(value: A) => Wrapper<A> = wrap({ uninterruptible: true })

@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path, Ref } from "effect"
+import { Config, ConfigProvider, Effect, FileSystem, Layer, Option, Path, Ref, Stdio } from "effect"
 import { TestConsole } from "effect/testing"
 import { Argument, CliError, Flag, Prompt } from "effect/unstable/cli"
 import { ChildProcessSpawner } from "effect/unstable/process"
@@ -9,13 +9,19 @@ const ConsoleLayer = TestConsole.layer
 const FileSystemLayer = FileSystem.layerNoop({})
 const PathLayer = Path.layer
 const TerminalLayer = MockTerminal.layer
+const StdioLayer = Stdio.layerTest({})
+const ChildProcessSpawnerLayer = Layer.succeed(
+  ChildProcessSpawner.ChildProcessSpawner,
+  ChildProcessSpawner.make(() => Effect.die("Not implemented"))
+)
 
 const TestLayer = Layer.mergeAll(
   ConsoleLayer,
   FileSystemLayer,
   PathLayer,
   TerminalLayer,
-  Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, ChildProcessSpawner.make(() => Effect.die("Not implemented")))
+  StdioLayer,
+  ChildProcessSpawnerLayer
 )
 
 describe("Param", () => {
@@ -268,7 +274,7 @@ describe("Param", () => {
   })
 
   describe("withFallbackConfig", () => {
-    it.effect("uses config when a flag is missing", () => {
+    it.effect("uses ConfigProvider when a flag is missing", () => {
       const provider = ConfigProvider.fromEnv({
         env: {
           NAME: "Ava"
@@ -292,7 +298,7 @@ describe("Param", () => {
       )
     })
 
-    it.effect("uses flag values over config", () => {
+    it.effect("uses flag values before reading config fallbacks", () => {
       const provider = ConfigProvider.fromEnv({
         env: {
           NAME: "Ava"
@@ -316,7 +322,7 @@ describe("Param", () => {
       )
     })
 
-    it.effect("uses config when an argument is missing", () => {
+    it.effect("uses ConfigProvider when an argument is missing", () => {
       const provider = ConfigProvider.fromEnv({
         env: {
           REPOSITORY: "repo"

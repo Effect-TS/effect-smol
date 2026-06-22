@@ -133,6 +133,36 @@ describe("Stream", () => {
       }))
   })
 
+  describe("destructors", () => {
+    it.effect("runForEachWhile continues across chunk boundaries", () =>
+      Effect.gen(function*() {
+        const seen: Array<number> = []
+        yield* Stream.fromArrays([1, 2], [3, 4]).pipe(
+          Stream.runForEachWhile((n) =>
+            Effect.sync(() => {
+              seen.push(n)
+              return true
+            })
+          )
+        )
+        assert.deepStrictEqual(seen, [1, 2, 3, 4])
+      }))
+
+    it.effect("runForEachWhile stops when predicate returns false", () =>
+      Effect.gen(function*() {
+        const seen: Array<number> = []
+        yield* Stream.fromArrays([1, 2, 3], [4, 5]).pipe(
+          Stream.runForEachWhile((n) =>
+            Effect.sync(() => {
+              seen.push(n)
+              return n < 3
+            })
+          )
+        )
+        assert.deepStrictEqual(seen, [1, 2, 3])
+      }))
+  })
+
   describe("constructors", () => {
     class Greeter extends Context.Service<Greeter, {
       readonly greet: (name: string) => string
@@ -202,6 +232,60 @@ describe("Stream", () => {
           Stream.runCollect
         )
         assert.deepStrictEqual(result, [[1, 2], [3, 4], [5]])
+      }))
+
+    it.effect("scoped - provides scope to fromEffect pull effects", () =>
+      Effect.gen(function*() {
+        const releases = yield* Ref.make(0)
+        const result = yield* Stream.fromEffect(
+          Effect.acquireRelease(
+            Effect.succeed("resource"),
+            () => Ref.update(releases, (n) => n + 1)
+          )
+        ).pipe(
+          Stream.scoped,
+          Stream.runCollect
+        )
+
+        assert.deepStrictEqual(result, ["resource"])
+        assert.strictEqual(yield* Ref.get(releases), 1)
+      }))
+
+    it.effect("scoped - provides scope to sequential mapEffect pull effects", () =>
+      Effect.gen(function*() {
+        const releases = yield* Ref.make(0)
+        const result = yield* Stream.fromIterable([1, 2]).pipe(
+          Stream.mapEffect((n) =>
+            Effect.acquireRelease(
+              Effect.succeed(n * 2),
+              () => Ref.update(releases, (count) => count + 1)
+            )
+          ),
+          Stream.scoped,
+          Stream.runCollect
+        )
+
+        assert.deepStrictEqual(result, [2, 4])
+        assert.strictEqual(yield* Ref.get(releases), 2)
+      }))
+
+    it.effect("fromReadableStream - errored streams fail with the mapped error, not a finalizer defect", () =>
+      Effect.gen(function*() {
+        const exit = yield* Stream.fromReadableStream({
+          evaluate: () =>
+            new ReadableStream<number>({
+              start(controller) {
+                controller.error(new Error("boom"))
+              }
+            }),
+          onError: (error) => new Error(`mapped: ${(error as Error).message}`)
+        }).pipe(Stream.runDrain, Effect.exit)
+
+        assertTrue(Exit.isFailure(exit))
+        if (Exit.isFailure(exit)) {
+          assertTrue(exit.cause.reasons.every(Cause.isFailReason))
+          deepStrictEqual(Cause.squash(exit.cause), new Error("mapped: boom"))
+        }
       }))
   })
 

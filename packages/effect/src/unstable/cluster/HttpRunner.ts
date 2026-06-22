@@ -1,26 +1,11 @@
 /**
- * The `HttpRunner` module wires cluster runner RPCs to HTTP transports. It
- * provides client protocol layers for contacting runners over HTTP or
- * WebSocket, server-side HTTP effects for exposing runner RPC handlers, and
- * complete layers that install those routes into an `HttpRouter`.
+ * Connects cluster runner RPCs to HTTP and WebSocket transports.
  *
- * **Common tasks**
- *
- * - Serve runner RPC routes with {@link layerHttp} or {@link layerWebsocket}
- * - Configure client-only runner communication with {@link layerHttpClientOnly}
- *   or {@link layerWebsocketClientOnly}
- * - Use custom route paths with {@link layerHttpOptions},
- *   {@link layerWebsocketOptions}, {@link layerClientProtocolHttp}, or
- *   {@link layerClientProtocolWebsocket}
- *
- * **Transport gotchas**
- *
- * - Client protocol paths are appended to each runner address when building the
- *   target URL
- * - `https: true` switches HTTP clients from `http` to `https`, and WebSocket
- *   clients from `ws` to `wss`
- * - The default complete layers serve and connect at `/`; use the `Options`
- *   variants when your runner routes live under a different path
+ * Runner nodes communicate through the `Runners.Rpcs` protocol. This module
+ * provides client protocol layers for dialing runner addresses over HTTP or
+ * WebSocket, HTTP effects that serve runner RPC handlers, route layers for
+ * installing runner endpoints into an `HttpRouter`, and ready-made layers for
+ * HTTP or WebSocket runner communication.
  *
  * @since 4.0.0
  */
@@ -49,6 +34,8 @@ import type * as ShardingConfig from "./ShardingConfig.ts"
 /**
  * Provides a runner RPC client protocol that connects to runner addresses over
  * HTTP.
+ *
+ * **Details**
  *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `http` to `https`.
@@ -96,6 +83,8 @@ export const layerClientProtocolHttpDefault: Layer.Layer<
 /**
  * Provides a runner RPC client protocol that connects to runner addresses over
  * WebSocket.
+ *
+ * **Details**
  *
  * The configured path is appended to each runner address, and `https` switches
  * the generated URL from `ws` to `wss`.
@@ -145,10 +134,12 @@ export const layerClientProtocolWebsocketDefault: Layer.Layer<
 /**
  * Builds an HTTP effect that serves runner RPCs over the HTTP protocol.
  *
+ * **Details**
+ *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
  *
- * @category Http App
+ * @category http app
  * @since 4.0.0
  */
 export const toHttpEffect: Effect.Effect<
@@ -166,10 +157,12 @@ export const toHttpEffect: Effect.Effect<
 /**
  * Builds an HTTP effect that serves runner RPCs over WebSocket.
  *
+ * **Details**
+ *
  * The returned effect is produced from `RunnerServer.layerHandlers` and the
  * cluster runner RPC group.
  *
- * @category Http App
+ * @category http app
  * @since 4.0.0
  */
 export const toHttpEffectWebsocket: Effect.Effect<
@@ -200,8 +193,7 @@ export const layerClient: Layer.Layer<
 )
 
 /**
- * A HTTP layer for the `Runners` services, that adds a route to the provided
- * `HttpRouter`.
+ * Layer that adds HTTP runner routes to the provided `HttpRouter`.
  *
  * @category layers
  * @since 4.0.0
@@ -224,8 +216,7 @@ export const layerHttpOptions = (options: {
   )
 
 /**
- * WebSocket layer for the `Runners` services that adds a route to the provided
- * `HttpRouter`.
+ * Layer that adds WebSocket runner routes to the provided `HttpRouter`.
  *
  * @category layers
  * @since 4.0.0
@@ -248,7 +239,9 @@ export const layerWebsocketOptions = (options: {
   )
 
 /**
- * Complete HTTP runner layer.
+ * Layer that serves runner routes at `/` and configures HTTP runner clients.
+ *
+ * **Details**
  *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over HTTP.
@@ -271,7 +264,14 @@ export const layerHttp: Layer.Layer<
 )
 
 /**
- * Client-only HTTP runner layer.
+ * Provides a client-only HTTP runner layer.
+ *
+ * **When to use**
+ *
+ * Use to provide runner clients over HTTP from a process that should not serve
+ * runner routes.
+ *
+ * **Details**
  *
  * It configures runner clients to communicate over HTTP without serving runner
  * HTTP routes.
@@ -292,7 +292,9 @@ export const layerHttpClientOnly: Layer.Layer<
 )
 
 /**
- * Complete WebSocket runner layer.
+ * Layer that serves runner routes at `/` and configures WebSocket runner clients.
+ *
+ * **Details**
  *
  * It serves runner routes at `/` and configures runner clients to communicate
  * over WebSocket.
@@ -315,7 +317,14 @@ export const layerWebsocket: Layer.Layer<
 )
 
 /**
- * Client-only WebSocket runner layer.
+ * Provides a client-only WebSocket runner layer.
+ *
+ * **When to use**
+ *
+ * Use to provide runner clients over WebSocket from a process that should not
+ * serve runner routes.
+ *
+ * **Details**
  *
  * It configures runner clients to communicate over WebSocket without serving
  * runner WebSocket routes.
