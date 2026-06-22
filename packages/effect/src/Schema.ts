@@ -8882,6 +8882,7 @@ export interface Redacted<S extends Constraint> extends
  *   into JSON, it will fail with an error. This is useful when the wrapped schema is
  *   sensitive and should not be exposed in JSON.
  *
+ * @see {@link RedactedFromValue} for decoding raw values and wrapping them in `Redacted`.
  * @category Redacted
  * @since 3.10.0
  */
@@ -8984,6 +8985,7 @@ export function redact<S extends Constraint>(schema: S): middlewareDecoding<S, S
  * expects the input to already be a `Redacted` instance, this schema decodes
  * the raw value and wraps it.
  *
+ * @see {@link Redacted} for schemas whose input is already a `Redacted` value.
  * @category Redacted
  * @since 4.0.0
  */
