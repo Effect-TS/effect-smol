@@ -3363,45 +3363,6 @@ export function isMutable(ast: AST): boolean {
   return ast.context?.isMutable ?? false
 }
 
-type ASTWithEncodingChecks = Declaration | Arrays | Objects | Union
-
-function replaceEncodingChecks<A extends ASTWithEncodingChecks>(ast: A, encodingChecks: Checks | undefined): A {
-  if (getEncodingChecks(ast) === encodingChecks) {
-    return ast
-  }
-  return modifyOwnPropertyDescriptors(ast, (d) => {
-    d.encodingChecks.value = encodingChecks
-  })
-}
-
-function preservesTypeShape(before: AST, after: AST): boolean {
-  switch (before._tag) {
-    case "Declaration":
-      return after._tag === "Declaration" && after.typeParameters === before.typeParameters
-    case "Arrays":
-      return after._tag === "Arrays" && after.elements === before.elements && after.rest === before.rest
-    case "Objects":
-      return after._tag === "Objects" && after.propertySignatures === before.propertySignatures &&
-        after.indexSignatures === before.indexSignatures
-    case "Union":
-      return after._tag === "Union" && after.types === before.types
-    default:
-      return false
-  }
-}
-
-function projectEncodingChecksToType<A extends AST>(before: A, after: A): A {
-  const encodingChecks = getEncodingChecks(after)
-  if (!encodingChecks) {
-    return after
-  }
-  const withoutEncodingChecks = replaceEncodingChecks(after as ASTWithEncodingChecks, undefined) as A
-  if (!preservesTypeShape(before, after)) {
-    return withoutEncodingChecks
-  }
-  return replaceChecks(withoutEncodingChecks, combineChecks(after.checks, encodingChecks))
-}
-
 /**
  * Strips all encoding transformations from an AST, returning the decoded
  * (type-level) representation.
@@ -3432,8 +3393,17 @@ export const toType = memoize(<A extends AST>(ast: A): A => {
     return toType(replaceEncoding(ast, undefined))
   }
   const out: any = ast
-  const type = out.recur?.(toType) ?? out
-  return projectEncodingChecksToType(ast, type)
+  const type: A = out.recur?.(toType) ?? out
+  const encodingChecks = getEncodingChecks(type)
+  if (encodingChecks) {
+    return modifyOwnPropertyDescriptors(type, (d) => {
+      ;(d as any).encodingChecks.value = undefined
+      if (type === ast) {
+        d.checks.value = combineChecks(type.checks, encodingChecks)
+      }
+    })
+  }
+  return type
 })
 
 /**

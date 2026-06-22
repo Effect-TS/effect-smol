@@ -1009,6 +1009,7 @@ const recur = memoize(
     let parser: Parser
     const encodingChecks = SchemaAST.getEncodingChecks(ast)
     const resolvedChecks = ast.checks ?? encodingChecks
+    // TODO: is this correct?
     const astOptions = (resolvedChecks ? resolvedChecks[resolvedChecks.length - 1].annotations : ast.annotations)
       ?.["parseOptions"]
     if (!ast.context && !ast.encoding && !ast.checks && !encodingChecks) {
