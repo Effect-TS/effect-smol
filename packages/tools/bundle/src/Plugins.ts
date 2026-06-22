@@ -28,6 +28,20 @@ import esbuild from "rollup-plugin-esbuild"
 import { visualizer } from "rollup-plugin-visualizer"
 
 const EFFECT_PACKAGE_REGEX = /^(@effect\/[\w-]+|effect)(\/.*)?$/
+const TYPE_SCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts", ".cts"])
+
+const toLocalDistPath = (pathService: Path.Path, packageDir: string, resolvedId: string): string => {
+  const srcDir = pathService.join(packageDir, "src")
+  const relative = pathService.relative(srcDir, resolvedId)
+  if (relative === "" || relative.startsWith("..") || pathService.isAbsolute(relative)) {
+    return resolvedId
+  }
+  const extension = pathService.extname(relative)
+  if (!TYPE_SCRIPT_EXTENSIONS.has(extension)) {
+    return resolvedId
+  }
+  return pathService.join(packageDir, "dist", relative.slice(0, -extension.length) + ".js")
+}
 
 /**
  * Options for configuring Rollup plugins.
@@ -79,13 +93,15 @@ export const createResolveLocalPackageImports = (pathService: Path.Path): Plugin
     const match = source.match(EFFECT_PACKAGE_REGEX)
     if (Predicate.isNotNull(match)) {
       const packageName = match[1]
-      const subpath = match[2]
-      const resolved = await this.resolve(`${packageName}/package.json`, importer, { skipSelf: true })
+      const packageJson = await this.resolve(`${packageName}/package.json`, importer, { skipSelf: true })
+      if (packageJson === null) return null
+      const resolved = await this.resolve(source, importer, { skipSelf: true })
       if (resolved === null) return null
-      const packageDir = pathService.dirname(resolved.id)
-      const modulePath = subpath ? subpath.slice(1) : "index"
-      const distPath = pathService.join(packageDir, "dist", `${modulePath}.js`)
-      return { id: distPath, external: false }
+      return {
+        ...resolved,
+        id: toLocalDistPath(pathService, pathService.dirname(packageJson.id), resolved.id),
+        external: false
+      }
     }
     return null
   }
