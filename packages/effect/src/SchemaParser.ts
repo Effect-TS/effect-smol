@@ -1047,67 +1047,63 @@ const recur = memoize(
       }
 
       parser ??= ast.getParser(recur)
-      let sroua: Effect.Effect<readonly [Option.Option<unknown>, Option.Option<unknown>], SchemaIssue.Issue, unknown>
-      if (srou) {
-        sroua = Effect.flatMapEager(
-          srou,
-          (localOu) => Effect.mapEager(parser(localOu, options), (oa) => [localOu, oa] as const)
-        )
-      } else {
-        sroua = Effect.mapEager(parser(ou, options), (oa) => [ou, oa] as const)
-      }
+      const parseLocal = (localOu: Option.Option<unknown>) => {
+        let sroa = parser(localOu, options)
 
-      if (encodingChecks && !options?.disableChecks) {
-        sroua = Effect.flatMapEager(sroua, ([localOu, oa]) => {
-          if (Option.isSome(localOu) && Option.isSome(oa)) {
-            const issues: Array<SchemaIssue.Issue> = []
+        if (encodingChecks && !options?.disableChecks) {
+          sroa = Effect.flatMapEager(sroa, (oa) => {
+            if (Option.isSome(localOu) && Option.isSome(oa)) {
+              const issues: Array<SchemaIssue.Issue> = []
 
-            SchemaAST.collectIssues(encodingChecks, localOu.value, issues, ast, options)
+              SchemaAST.collectIssues(encodingChecks, localOu.value, issues, ast, options)
 
-            if (Arr.isArrayNonEmpty(issues)) {
-              return Effect.fail(new SchemaIssue.Composite(ast, localOu, issues))
+              if (Arr.isArrayNonEmpty(issues)) {
+                return Effect.fail(new SchemaIssue.Composite(ast, localOu, issues))
+              }
             }
-          }
-          return Effect.succeed([localOu, oa] as const)
-        })
-      }
-
-      let sroa = Effect.mapEager(sroua, ([, oa]) => oa)
-
-      if (ast.checks && !options?.disableChecks) {
-        const checks = ast.checks
-        if (options?.errors === "all" && isStructural && Option.isSome(ou)) {
-          sroa = mapSchemaIssueEffect(sroa, (issue) => {
-            const issues: Array<SchemaIssue.Issue> = []
-            SchemaAST.collectIssues(
-              checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]),
-              ou.value,
-              issues,
-              ast,
-              options
-            )
-            const out: SchemaIssue.Issue = Arr.isArrayNonEmpty(issues)
-              ? issue._tag === "Composite" && issue.ast === ast
-                ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
-                : new SchemaIssue.Composite(ast, ou, [issue, ...issues])
-              : issue
-            return out
+            return Effect.succeed(oa)
           })
         }
-        sroa = Effect.flatMapEager(sroa, (oa) => {
-          if (Option.isSome(oa)) {
-            const value = oa.value
-            const issues: Array<SchemaIssue.Issue> = []
 
-            SchemaAST.collectIssues(checks, value, issues, ast, options)
-
-            if (Arr.isArrayNonEmpty(issues)) {
-              return Effect.fail(new SchemaIssue.Composite(ast, oa, issues))
-            }
+        if (ast.checks && !options?.disableChecks) {
+          const checks = ast.checks
+          if (options?.errors === "all" && isStructural && Option.isSome(localOu)) {
+            sroa = mapSchemaIssueEffect(sroa, (issue) => {
+              const issues: Array<SchemaIssue.Issue> = []
+              SchemaAST.collectIssues(
+                checks.filter((check) => check.annotations?.[SchemaAST.STRUCTURAL_ANNOTATION_KEY]),
+                localOu.value,
+                issues,
+                ast,
+                options
+              )
+              const out: SchemaIssue.Issue = Arr.isArrayNonEmpty(issues)
+                ? issue._tag === "Composite" && issue.ast === ast
+                  ? new SchemaIssue.Composite(ast, issue.actual, [...issue.issues, ...issues])
+                  : new SchemaIssue.Composite(ast, localOu, [issue, ...issues])
+                : issue
+              return out
+            })
           }
-          return Effect.succeed(oa)
-        })
+          sroa = Effect.flatMapEager(sroa, (oa) => {
+            if (Option.isSome(oa)) {
+              const value = oa.value
+              const issues: Array<SchemaIssue.Issue> = []
+
+              SchemaAST.collectIssues(checks, value, issues, ast, options)
+
+              if (Arr.isArrayNonEmpty(issues)) {
+                return Effect.fail(new SchemaIssue.Composite(ast, oa, issues))
+              }
+            }
+            return Effect.succeed(oa)
+          })
+        }
+
+        return sroa
       }
+
+      const sroa = srou ? Effect.flatMapEager(srou, parseLocal) : parseLocal(ou)
 
       return sroa
     }

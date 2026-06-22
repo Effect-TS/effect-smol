@@ -2548,7 +2548,7 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed("aa")
     })
 
-    it("Struct & flip & check & flip & encoding should check the local encoded value", async () => {
+    it("Struct & flip & check & flip with encoding chain should check the local value", async () => {
       const local = Schema.Struct({ a: Schema.String }).pipe(
         Schema.flip,
         Schema.check(Schema.makeFilter((o) => typeof o.a === "string" && o.a.length > 1, {
@@ -2573,6 +2573,48 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         `Expected a length > 1, got {"a":"a"}`
       )
       await decoding.succeed({ b: "aa" }, { a: "aa" })
+
+      const encoding = asserts.encoding()
+      await encoding.fail(
+        { a: "a" },
+        `Expected a length > 1, got {"a":"a"}`
+      )
+      await encoding.succeed({ a: "aa" }, { b: "aa" })
+    })
+
+    it(`Struct & encoding chain & structural checks should check the local value with errors: "all"`, async () => {
+      const local = Schema.Struct({ a: Schema.Finite }).check(Schema.isMaxProperties(1))
+      const schema = Schema.Struct({ b: Schema.Number, c: Schema.String }).pipe(
+        Schema.decodeTo(local, {
+          decode: SchemaGetter.transform<
+            { readonly a: number },
+            { readonly b: number; readonly c: string }
+          >((o) => ({ a: o.b })),
+          encode: SchemaGetter.transform<
+            { readonly b: number; readonly c: string },
+            { readonly a: number }
+          >((o) => ({ b: o.a, c: "" }))
+        })
+      )
+      assertTrue(SchemaAST.isObjects(schema.ast))
+      strictEqual(schema.ast.encoding?.length, 1)
+      strictEqual(schema.ast.checks?.length, 1)
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding({ parseOptions: { errors: "all" } })
+      await decoding.fail(
+        { b: NaN, c: "extra" },
+        `Expected a finite number, got NaN
+  at ["a"]`
+      )
+
+      const encoding = asserts.encoding({ parseOptions: { errors: "all" } })
+      await encoding.fail(
+        { a: NaN },
+        `Expected a finite number, got NaN
+  at ["a"]`
+      )
+      await encoding.succeed({ a: 1 }, { b: 1, c: "" })
     })
 
     it("should work with withConstructorDefault", async () => {
