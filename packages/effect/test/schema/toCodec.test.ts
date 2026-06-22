@@ -1583,56 +1583,6 @@ describe("Serializers", () => {
       await decoding.succeed("1", "1a")
     })
 
-    describe("keepDeclarations: true", () => {
-      describe("Unsupported schemas", () => {
-        it("Struct with Symbol property name", () => {
-          const a = Symbol.for("a")
-          const schema = Schema.Struct({
-            [a]: Schema.String
-          })
-          throws(
-            () => Schema.toCodecStringTree(schema, { keepDeclarations: true }),
-            "Objects property names must be strings"
-          )
-        })
-      })
-
-      it("should reorder the types in the Union based on the encoded side", async () => {
-        const schema = Schema.Union([
-          Schema.String,
-          Schema.String.pipe(Schema.encodeTo(Schema.BigInt, {
-            decode: SchemaGetter.transform((n: bigint) => String(n) + "a"),
-            encode: SchemaGetter.transform(() => 0n)
-          }))
-        ])
-        const serializer = Schema.toCodecStringTree(schema, { keepDeclarations: true })
-        const asserts = new TestSchema.Asserts(Schema.toCodecJson(serializer))
-
-        const decoding = asserts.decoding()
-        await decoding.succeed("1", "1a")
-      })
-
-      it("should passthrough the schema if it's a declaration without an annotation", async () => {
-        const schema = Schema.Struct({
-          a: Schema.instanceOf(URL),
-          b: Schema.Number
-        })
-        const asserts = new TestSchema.Asserts(Schema.toCodecStringTree(schema, { keepDeclarations: true }))
-
-        const encoding = asserts.encoding()
-        await encoding.succeed({ a: new URL("https://effect.website"), b: 1 }, {
-          a: new URL("https://effect.website"),
-          b: "1"
-        })
-
-        const decoding = asserts.decoding()
-        await decoding.succeed({
-          a: new URL("https://effect.website"),
-          b: "1"
-        }, { a: new URL("https://effect.website"), b: 1 })
-      })
-    })
-
     describe("should return the same reference if nothing changed", () => {
       it("String", async () => {
         const schema = Schema.String

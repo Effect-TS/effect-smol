@@ -3963,10 +3963,7 @@ const StringTree = new Declaration(
     isStringTree(input) ?
       Effect.succeed(input) :
       Effect.fail(new SchemaIssue.InvalidType(ast, Option.some(input))),
-  {
-    expected: "StringTree",
-    toCodecStringTree: () => new Link(unknown, SchemaTransformation.passthrough())
-  }
+  { expected: "StringTree" }
 )
 
 /** @internal */

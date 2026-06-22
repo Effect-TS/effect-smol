@@ -11129,10 +11129,8 @@ export interface fromFormData<S extends Constraint> extends decodeTo<S, FormData
  *
  * You can express nested values using bracket notation.
  *
- * If you want to decode values that are not strings, use
- * `Schema.toCodecStringTree` with the `keepDeclarations: true` option.
- * This serializer preserves values such as numbers and `Blob` objects when
- * compatible with the schema.
+ * If you want to decode string fields into non-string primitive values, use
+ * `Schema.toCodecStringTree`.
  *
  * **Example** (Decoding a flat structure)
  *
@@ -11186,8 +11184,7 @@ export interface fromFormData<S extends Constraint> extends decodeTo<S, FormData
  *   Schema.toCodecStringTree(
  *     Schema.Struct({
  *       a: Schema.Int
- *     }),
- *     { keepDeclarations: true }
+ *     })
  *   )
  * )
  *
@@ -13453,10 +13450,10 @@ export type StringTree = Tree<string | undefined>
  * @category Canonical Codecs
  * @since 4.0.0
  */
-export interface toCodecStringTree<S extends Constraint, Encoded = StringTree> extends
+export interface toCodecStringTree<S extends Constraint> extends
   BottomLazy<
     S["ast"],
-    toCodecStringTree<S, Encoded>,
+    toCodecStringTree<S>,
     ReadonlyArray<Constraint>,
     S["~type.mutability"],
     S["~type.optionality"],
@@ -13466,7 +13463,7 @@ export interface toCodecStringTree<S extends Constraint, Encoded = StringTree> e
   >
 {
   readonly "Type": S["Type"]
-  readonly "Encoded": Encoded
+  readonly "Encoded": StringTree
   readonly "DecodingServices": S["DecodingServices"]
   readonly "EncodingServices": S["EncodingServices"]
   readonly "~type.make.in": S["~type.make.in"]
@@ -13483,33 +13480,11 @@ export interface toCodecStringTree<S extends Constraint, Encoded = StringTree> e
  * Declarations are converted to `undefined` (unless they have a
  * `toCodecJson` or `toCodec` annotation).
  *
- * Options:
- *
- * - `keepDeclarations`: if `true`, it **does not** convert declarations to
- *   `undefined` but instead keeps them as they are (unless they have a
- *   `toCodecJson` or `toCodec` annotation).
- *
- *    Defaults to `false`.
- *
  * @category Canonical Codecs
  * @since 4.0.0
  */
-export function toCodecStringTree<S extends Constraint>(
-  schema: S
-): toCodecStringTree<S>
-export function toCodecStringTree<S extends Constraint>(
-  schema: S,
-  options: { readonly keepDeclarations: true } // Used in FormData
-): toCodecStringTree<S, unknown>
-export function toCodecStringTree<S extends Constraint>(
-  schema: S,
-  options?: { readonly keepDeclarations?: boolean | undefined }
-): toCodecStringTree<S, unknown> {
-  return make(
-    options?.keepDeclarations === true
-      ? serializerStringTreeKeepDeclarations(schema.ast)
-      : serializerStringTree(schema.ast)
-  )
+export function toCodecStringTree<S extends Constraint>(schema: S): toCodecStringTree<S> {
+  return make(serializerStringTree(schema.ast))
 }
 
 /**
@@ -13797,17 +13772,6 @@ const unknownToUndefined = new SchemaAST.Link(
     SchemaGetter.transform(() => undefined)
   )
 )
-
-const serializerStringTreeKeepDeclarations = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
-  if (isSerializerArrayFromSingle(ast)) {
-    return ast
-  }
-  const out = serializerTree(ast, serializerStringTreeKeepDeclarations, identity)
-  if (out !== ast && SchemaAST.isOptional(ast)) {
-    return SchemaAST.optionalKeyLastLink(out)
-  }
-  return out
-})
 
 const toArrayFromSingleInputElement = (ast: SchemaAST.AST): SchemaAST.AST =>
   SchemaAST.isOptional(ast) ? SchemaAST.optionalKey(SchemaAST.unknown) : SchemaAST.unknown
