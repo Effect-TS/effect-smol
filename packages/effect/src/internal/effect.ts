@@ -5810,11 +5810,12 @@ const performanceNowNanos = (function() {
   const bigint1e6 = BigInt(1_000_000)
   if (typeof performance === "undefined" || typeof performance.now === "undefined") {
     return () => BigInt(Date.now()) * bigint1e6
-  } else if (typeof performance.timeOrigin === "number" && performance.timeOrigin === 0) {
-    return () => BigInt(Math.round(performance.now() * 1_000_000))
   }
-  const origin = (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
-  return () => origin + BigInt(Math.round(performance.now() * 1_000_000))
+  let origin: bigint
+  return () => {
+    origin ??= (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
+    return origin + BigInt(Math.round(performance.now() * 1_000_000))
+  }
 })()
 const processOrPerformanceNow = (function() {
   const processHrtime =
@@ -5824,8 +5825,11 @@ const processOrPerformanceNow = (function() {
   if (!processHrtime) {
     return performanceNowNanos
   }
-  const origin = performanceNowNanos() - processHrtime.bigint()
-  return () => origin + processHrtime.bigint()
+  let origin: bigint
+  return () => {
+    origin ??= performanceNowNanos() - processHrtime.bigint()
+    return origin + processHrtime.bigint()
+  }
 })()
 
 /** @internal */
