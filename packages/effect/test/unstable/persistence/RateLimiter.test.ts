@@ -142,4 +142,37 @@ describe(`RateLimiter`, () => {
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
   })
+
+  describe("adaptive", () => {
+    it.effect("uses the inactive store path", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const consume = store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        let result = yield* consume
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.epoch, 0)
+        assert.strictEqual(result.phase, "inactive")
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: result.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+
+        result = yield* consume
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.epoch, 0)
+        assert.strictEqual(result.phase, "inactive")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+  })
 })

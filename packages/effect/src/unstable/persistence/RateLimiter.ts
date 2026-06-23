@@ -470,12 +470,104 @@ export interface ConsumeResult {
 }
 
 /**
- * Defines the low-level backing store for fixed-window counters and token-bucket state.
+ * Phase of adaptive rate limiting driven by server feedback.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type AdaptivePhase = "inactive" | "cooldown" | "learning" | "learned"
+
+/**
+ * Options for consuming tokens from the adaptive rate limiter store.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface AdaptiveConsumeOptions {
+  /**
+   * The rate-limit key.
+   */
+  readonly key: string
+
+  /**
+   * The number of tokens to consume.
+   */
+  readonly tokens: number
+
+  /**
+   * The fallback limit configured for the regular rate limiter.
+   */
+  readonly fallbackLimit: number
+
+  /**
+   * The fallback window configured for the regular rate limiter.
+   */
+  readonly fallbackWindow: Duration.Duration
+}
+
+/**
+ * Metadata returned after consuming tokens from the adaptive rate limiter store.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface AdaptiveConsumeResult {
+  /**
+   * The amount of delay to wait before making the request.
+   */
+  readonly delay: Duration.Duration
+
+  /**
+   * The adaptive state epoch used to correlate later response feedback.
+   */
+  readonly epoch: number
+
+  /**
+   * The adaptive phase observed by this consume operation.
+   */
+  readonly phase: AdaptivePhase
+}
+
+/**
+ * Options for reporting response feedback to the adaptive rate limiter store.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface AdaptiveFeedbackOptions {
+  /**
+   * The rate-limit key.
+   */
+  readonly key: string
+
+  /**
+   * The adaptive state epoch returned by `adaptiveConsume`.
+   */
+  readonly epoch: number
+
+  /**
+   * The number of tokens consumed by the request.
+   */
+  readonly tokens: number
+
+  /**
+   * The HTTP response status code.
+   */
+  readonly status: number
+
+  /**
+   * The parsed `Retry-After` delay, when present.
+   */
+  readonly retryAfter: Duration.Duration | undefined
+}
+
+/**
+ * Defines the low-level backing store for rate-limit state.
  *
  * **When to use**
  *
- * Use to provide the shared counter storage used by persistent rate-limit
- * checks.
+ * Use to provide the shared counter storage and adaptive feedback state used by
+ * persistent rate-limit checks.
  *
  * @category store
  * @since 4.0.0
@@ -517,8 +609,32 @@ export class RateLimiterStore extends Context.Service<
       readonly refillRate: Duration.Duration
       readonly allowOverflow: boolean
     }) => Effect.Effect<number, RateLimiterError>
+
+    /**
+     * Consumes tokens from the adaptive rate-limit state for the `key`.
+     *
+     * When the store has no adaptive state for the `key`, implementations
+     * should return a zero delay with the inactive phase.
+     */
+    readonly adaptiveConsume: (
+      options: AdaptiveConsumeOptions
+    ) => Effect.Effect<AdaptiveConsumeResult, RateLimiterError>
+
+    /**
+     * Records response feedback for the adaptive rate-limit state.
+     */
+    readonly adaptiveFeedback: (options: AdaptiveFeedbackOptions) => Effect.Effect<void, RateLimiterError>
   }
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
+
+const adaptiveConsumeInactive = (): Effect.Effect<AdaptiveConsumeResult, RateLimiterError> =>
+  Effect.succeed({
+    delay: Duration.zero,
+    epoch: 0,
+    phase: "inactive"
+  })
+
+const adaptiveFeedbackInactive = (): Effect.Effect<void, RateLimiterError> => Effect.void
 
 /**
  * Provides a process-local in-memory `RateLimiterStore`.
@@ -575,7 +691,9 @@ export const layerStoreMemory: Layer.Layer<
           }
           return newTokenCount
         })
-      )
+      ),
+    adaptiveConsume: adaptiveConsumeInactive,
+    adaptiveFeedback: adaptiveFeedbackInactive
   })
 })
 
@@ -636,7 +754,9 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             })
         )
       )
-    }
+    },
+    adaptiveConsume: adaptiveConsumeInactive,
+    adaptiveFeedback: adaptiveFeedbackInactive
   })
 })
 
