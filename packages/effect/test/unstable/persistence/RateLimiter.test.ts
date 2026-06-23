@@ -332,5 +332,373 @@ describe(`RateLimiter`, () => {
       }).pipe(
         Effect.provide(RateLimiter.layerStoreMemory)
       ))
+
+    it.effect("learns the accepted token count and inferred window from learning feedback", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        const learning = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 2,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(4))
+        const rejected = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 3,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: rejected.epoch,
+          tokens: 3,
+          status: 429,
+          retryAfter: Duration.seconds(6)
+        })
+        yield* TestClock.adjust(Duration.seconds(6))
+
+        assert.strictEqual(learning.epoch, rejected.epoch)
+
+        let result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.phase, "learned")
+
+        result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.phase, "learned")
+
+        result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.seconds(10))
+        assert.strictEqual(result.phase, "learned")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("ignores stale epoch feedback", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        const learning = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(10)
+        })
+
+        const result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.epoch, learning.epoch)
+        assert.strictEqual(result.phase, "learning")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("prevents repeated learning 429 feedback from corrupting learned state", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        const rejected = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: rejected.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(5)
+        })
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: rejected.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(30)
+        })
+
+        const learned = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(learned.delay, Duration.seconds(5))
+        assert.strictEqual(learned.epoch, rejected.epoch + 1)
+        assert.strictEqual(learned.phase, "learned")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("same-epoch learned 429 feedback enters cooldown and can only extend it", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        const rejected = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: rejected.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(5)
+        })
+
+        const learned = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: learned.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(5)
+        })
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: learned.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(10)
+        })
+
+        const result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.seconds(10))
+        assert.strictEqual(result.epoch, learned.epoch)
+        assert.strictEqual(result.phase, "cooldown")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("stores only cooldown when no tokens were accepted during learning", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        const learning = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 2,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: learning.epoch,
+          tokens: 2,
+          status: 429,
+          retryAfter: Duration.seconds(5)
+        })
+
+        let result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.seconds(5))
+        assert.strictEqual(result.epoch, learning.epoch)
+        assert.strictEqual(result.phase, "cooldown")
+
+        yield* TestClock.adjust(Duration.seconds(5))
+
+        result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.epoch, learning.epoch + 1)
+        assert.strictEqual(result.phase, "learning")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
+
+    it.effect("expires learned adaptive state", () =>
+      Effect.gen(function*() {
+        const store = yield* RateLimiter.RateLimiterStore
+        const first = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: first.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+        yield* TestClock.adjust(Duration.seconds(1))
+
+        yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        const rejected = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+
+        yield* store.adaptiveFeedback({
+          key: "a",
+          epoch: rejected.epoch,
+          tokens: 1,
+          status: 429,
+          retryAfter: Duration.seconds(1)
+        })
+
+        yield* TestClock.adjust(Duration.seconds(61))
+
+        const result = yield* store.adaptiveConsume({
+          key: "a",
+          tokens: 1,
+          fallbackLimit: 5,
+          fallbackWindow: Duration.minutes(1)
+        })
+        assert.deepStrictEqual(result.delay, Duration.zero)
+        assert.strictEqual(result.epoch, 0)
+        assert.strictEqual(result.phase, "inactive")
+      }).pipe(
+        Effect.provide(RateLimiter.layerStoreMemory)
+      ))
   })
 })

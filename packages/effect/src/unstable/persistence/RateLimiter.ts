@@ -636,6 +636,8 @@ const adaptiveConsumeInactive = (): Effect.Effect<AdaptiveConsumeResult, RateLim
 
 const adaptiveFeedbackInactive = (): Effect.Effect<void, RateLimiterError> => Effect.void
 
+const adaptiveStateTtlGraceMillis = 60_000
+
 interface AdaptiveState {
   phase: AdaptivePhase
   epoch: number
@@ -644,6 +646,7 @@ interface AdaptiveState {
   observedTokens: number
   learnedLimit: number
   learnedWindowMillis: number
+  expiresAt: number
 }
 
 /**
@@ -658,6 +661,24 @@ export const layerStoreMemory: Layer.Layer<
   const fixedCounters = new Map<string, { count: number; expiresAt: number }>()
   const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>()
   const adaptiveStates = new Map<string, AdaptiveState>()
+
+  const getAdaptiveState = (key: string, now: number): AdaptiveState | undefined => {
+    const state = adaptiveStates.get(key)
+    if (!state) return undefined
+    if (state.expiresAt <= now) {
+      adaptiveStates.delete(key)
+      return undefined
+    }
+    return state
+  }
+
+  const cooldownExpiresAt = (cooldownUntil: number): number => cooldownUntil + adaptiveStateTtlGraceMillis
+
+  const learningExpiresAt = (now: number, fallbackWindow: Duration.Duration): number =>
+    now + Duration.toMillis(fallbackWindow) + adaptiveStateTtlGraceMillis
+
+  const learnedExpiresAt = (now: number, learnedWindowMillis: number): number =>
+    now + learnedWindowMillis + adaptiveStateTtlGraceMillis
 
   return RateLimiterStore.of({
     fixedWindow: (options) =>
@@ -706,7 +727,8 @@ export const layerStoreMemory: Layer.Layer<
     adaptiveConsume: (options) =>
       Effect.clockWith((clock) =>
         Effect.sync(() => {
-          const state = adaptiveStates.get(options.key)
+          const now = clock.currentTimeMillisUnsafe()
+          const state = getAdaptiveState(options.key, now)
           if (!state) {
             return {
               delay: Duration.zero,
@@ -715,7 +737,6 @@ export const layerStoreMemory: Layer.Layer<
             }
           }
 
-          const now = clock.currentTimeMillisUnsafe()
           if (state.phase === "cooldown") {
             if (state.cooldownUntil > now) {
               return {
@@ -729,6 +750,7 @@ export const layerStoreMemory: Layer.Layer<
             state.epoch += 1
             state.learningStartedAt = now
             state.observedTokens = options.tokens
+            state.expiresAt = learningExpiresAt(now, options.fallbackWindow)
             return {
               delay: Duration.zero,
               epoch: state.epoch,
@@ -738,6 +760,33 @@ export const layerStoreMemory: Layer.Layer<
 
           if (state.phase === "learning") {
             state.observedTokens += options.tokens
+            return {
+              delay: Duration.zero,
+              epoch: state.epoch,
+              phase: state.phase
+            }
+          }
+
+          if (state.phase === "learned") {
+            const refillRateMillis = state.learnedWindowMillis / state.learnedLimit
+            if (state.cooldownUntil <= now) {
+              state.observedTokens = 0
+              state.cooldownUntil = now
+            }
+            state.observedTokens += options.tokens
+            state.cooldownUntil += refillRateMillis * options.tokens
+
+            const ttl = state.cooldownUntil - now
+            const ttlTotal = state.observedTokens * refillRateMillis
+            const elapsed = ttlTotal - ttl
+            const windowNumber = Math.floor((state.observedTokens - 1) / state.learnedLimit)
+            const remaining = (windowNumber * state.learnedWindowMillis) - elapsed
+
+            return {
+              delay: remaining <= 0 ? Duration.zero : Duration.millis(remaining),
+              epoch: state.epoch,
+              phase: state.phase
+            }
           }
 
           return {
@@ -757,7 +806,7 @@ export const layerStoreMemory: Layer.Layer<
 
           const now = clock.currentTimeMillisUnsafe()
           const cooldownUntil = now + retryAfterMillis
-          const state = adaptiveStates.get(options.key)
+          const state = getAdaptiveState(options.key, now)
           if (!state) {
             if (options.epoch !== 0) return
             adaptiveStates.set(options.key, {
@@ -767,13 +816,52 @@ export const layerStoreMemory: Layer.Layer<
               learningStartedAt: 0,
               observedTokens: 0,
               learnedLimit: 0,
-              learnedWindowMillis: 0
+              learnedWindowMillis: 0,
+              expiresAt: cooldownExpiresAt(cooldownUntil)
             })
             return
           }
 
-          if (state.phase === "cooldown" && state.epoch === options.epoch) {
+          if (state.epoch !== options.epoch) return
+
+          if (state.phase === "cooldown") {
             state.cooldownUntil = Math.max(state.cooldownUntil, cooldownUntil)
+            state.expiresAt = cooldownExpiresAt(state.cooldownUntil)
+            return
+          }
+
+          if (state.phase === "learning") {
+            const acceptedTokens = state.observedTokens - options.tokens
+            if (acceptedTokens <= 0) {
+              state.phase = "cooldown"
+              state.cooldownUntil = cooldownUntil
+              state.learningStartedAt = 0
+              state.observedTokens = 0
+              state.learnedLimit = 0
+              state.learnedWindowMillis = 0
+              state.expiresAt = cooldownExpiresAt(cooldownUntil)
+              return
+            }
+
+            const learnedWindowMillis = (now - state.learningStartedAt) + retryAfterMillis
+            state.phase = "learned"
+            state.epoch += 1
+            state.cooldownUntil = state.learningStartedAt + learnedWindowMillis
+            state.observedTokens = acceptedTokens
+            state.learnedLimit = acceptedTokens
+            state.learnedWindowMillis = learnedWindowMillis
+            state.expiresAt = learnedExpiresAt(now, learnedWindowMillis)
+            return
+          }
+
+          if (state.phase === "learned") {
+            state.phase = "cooldown"
+            state.cooldownUntil = cooldownUntil
+            state.learningStartedAt = 0
+            state.observedTokens = 0
+            state.learnedLimit = 0
+            state.learnedWindowMillis = 0
+            state.expiresAt = cooldownExpiresAt(cooldownUntil)
           }
         })
       )
