@@ -2441,6 +2441,7 @@ export interface toType<S extends Constraint> extends
   readonly "~type.make.in": S["~type.make.in"]
   readonly "~type.make": S["~type.make"]
   readonly "Iso": S["Iso"]
+  readonly schema: S
 }
 
 interface toTypeLambda extends Lambda {
@@ -2482,6 +2483,7 @@ export interface toEncoded<S extends Constraint> extends
   readonly "~type.make.in": S["Encoded"]
   readonly "~type.make": S["Encoded"]
   readonly "Iso": S["Encoded"]
+  readonly schema: S
 }
 
 interface toEncodedLambda extends Lambda {
@@ -13328,6 +13330,7 @@ export interface toCodecJson<S extends Constraint> extends
   readonly "~type.make.in": S["~type.make.in"]
   readonly "~type.make": S["~type.make"]
   readonly "Iso": S["Iso"]
+  readonly schema: S
 }
 
 /**
@@ -13338,7 +13341,7 @@ export interface toCodecJson<S extends Constraint> extends
  * @since 4.0.0
  */
 export function toCodecJson<S extends Constraint>(schema: S): toCodecJson<S> {
-  return make(toCodecJsonTop(schema.ast))
+  return make(toCodecJsonTop(schema.ast), { schema })
 }
 
 const toCodecJsonTop = SchemaAST.applyToSelfOrLastLinkEncoding((ast) => {
@@ -13471,6 +13474,7 @@ export interface toCodecStringTree<S extends Constraint> extends
   readonly "~type.make.in": S["~type.make.in"]
   readonly "~type.make": S["~type.make"]
   readonly "Iso": S["Iso"]
+  readonly schema: S
 }
 
 /**
@@ -13486,7 +13490,7 @@ export interface toCodecStringTree<S extends Constraint> extends
  * @since 4.0.0
  */
 export function toCodecStringTree<S extends Constraint>(schema: S): toCodecStringTree<S> {
-  return make(serializerStringTree(schema.ast))
+  return make(serializerStringTree(schema.ast), { schema })
 }
 
 /**
