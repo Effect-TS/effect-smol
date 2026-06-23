@@ -520,7 +520,8 @@ export const TestClientError = <Tag extends string, E>(
           `import * as Sse from "effect/unstable/encoding/Sse"`,
           `readonly "streamEventsSse": () => Stream.Stream<{ readonly event: string; readonly id: string | undefined; readonly data: typeof StreamEvents200Sse.Type }, HttpClientError.HttpClientError | SchemaError | Sse.Retry, typeof StreamEvents200Sse.DecodingServices>`,
           `"streamEventsSse": () => HttpClientRequest.get(\`/events\`).pipe(`,
-          `sseRequest(StreamEvents200Sse)`
+          `sseRequest(StreamEvents200Sse)`,
+          `schema: Schema.ConstraintDecoder<Type, DecodingServices>`
         ]
       ))
 

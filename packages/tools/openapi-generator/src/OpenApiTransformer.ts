@@ -917,7 +917,7 @@ const sseRequestSource = (_importName: string) =>
      Type,
      DecodingServices
     >(
-      schema: Schema.Decoder<Type, DecodingServices>
+      schema: Schema.ConstraintDecoder<Type, DecodingServices>
     ) =>
     (
       request: HttpClientRequest.HttpClientRequest
