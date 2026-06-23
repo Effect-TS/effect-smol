@@ -117,7 +117,7 @@ export interface Latch {
   /**
    * Checks whether the latch is currently open or closed.
    *
-   * ** When to use**
+   * **When to use**
    *
    * Use to check the state of the latch without suspending or changing its state.
    */
@@ -384,8 +384,11 @@ export const whenOpen: {
 /**
  * Checks whether the latch is currently open or closed.
  *
- * ** When to use**
+ * **When to use**
  *
  * Use to check the state of the latch without suspending or changing its state.
+ *
+ * @category getters
+ * @since 4.0.0
  */
 export const isOpen = (self: Latch): boolean => self.isOpen()
