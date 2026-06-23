@@ -6,6 +6,7 @@ import { AsyncHooksContextManager } from "@opentelemetry/context-async-hooks"
 import { InMemorySpanExporter, SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base"
 import * as Cause from "effect/Cause"
 import * as Effect from "effect/Effect"
+import * as EffectTracer from "effect/Tracer"
 
 const TracingLive = NodeSdk.layer(Effect.sync(() => ({
   resource: {
@@ -83,6 +84,21 @@ describe("Tracer", () => {
         assert.strictEqual((span as Tracer.OtelSpan).span, otelSpan)
       }).pipe(
         Effect.withSpan("ok"),
+        Effect.provide(TracingLive)
+      ))
+
+    it.effect("preserves the sampling decision of generic external spans", () =>
+      Effect.gen(function*() {
+        const span = yield* Effect.currentSpan
+        assert.instanceOf(span, Tracer.OtelSpan)
+        assert.strictEqual(span.span.spanContext().traceFlags, OtelApi.TraceFlags.NONE)
+      }).pipe(
+        Effect.withSpan("child"),
+        Effect.withParentSpan(EffectTracer.externalSpan({
+          traceId: "1".repeat(32),
+          spanId: "2".repeat(16),
+          sampled: false
+        })),
         Effect.provide(TracingLive)
       ))
 

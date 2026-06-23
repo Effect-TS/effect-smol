@@ -29,6 +29,12 @@ const FiniteFromDate = Schema.Date.pipe(Schema.decodeTo(
 
 describe("Serializers", () => {
   describe("toCodecJson", () => {
+    it("exposes the source schema", () => {
+      const schema = Schema.FiniteFromString
+      const serializer = Schema.toCodecJson(schema)
+      strictEqual(serializer.schema, schema)
+    })
+
     it("should reorder the types in the Union based on the encoded side", async () => {
       const schema = Schema.Union([
         Schema.String,
@@ -1568,6 +1574,12 @@ describe("Serializers", () => {
   })
 
   describe("toCodecStringTree", () => {
+    it("exposes the source schema", () => {
+      const schema = Schema.FiniteFromString
+      const serializer = Schema.toCodecStringTree(schema)
+      strictEqual(serializer.schema, schema)
+    })
+
     it("should reorder the types in the Union based on the encoded side", async () => {
       const schema = Schema.Union([
         Schema.String,
