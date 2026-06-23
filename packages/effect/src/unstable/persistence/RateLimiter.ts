@@ -636,6 +636,16 @@ const adaptiveConsumeInactive = (): Effect.Effect<AdaptiveConsumeResult, RateLim
 
 const adaptiveFeedbackInactive = (): Effect.Effect<void, RateLimiterError> => Effect.void
 
+interface AdaptiveState {
+  phase: AdaptivePhase
+  epoch: number
+  cooldownUntil: number
+  learningStartedAt: number
+  observedTokens: number
+  learnedLimit: number
+  learnedWindowMillis: number
+}
+
 /**
  * Provides a process-local in-memory `RateLimiterStore`.
  *
@@ -647,6 +657,7 @@ export const layerStoreMemory: Layer.Layer<
 > = Layer.sync(RateLimiterStore, () => {
   const fixedCounters = new Map<string, { count: number; expiresAt: number }>()
   const tokenBuckets = new Map<string, { tokens: number; lastRefill: number }>()
+  const adaptiveStates = new Map<string, AdaptiveState>()
 
   return RateLimiterStore.of({
     fixedWindow: (options) =>
@@ -692,8 +703,80 @@ export const layerStoreMemory: Layer.Layer<
           return newTokenCount
         })
       ),
-    adaptiveConsume: adaptiveConsumeInactive,
-    adaptiveFeedback: adaptiveFeedbackInactive
+    adaptiveConsume: (options) =>
+      Effect.clockWith((clock) =>
+        Effect.sync(() => {
+          const state = adaptiveStates.get(options.key)
+          if (!state) {
+            return {
+              delay: Duration.zero,
+              epoch: 0,
+              phase: "inactive"
+            }
+          }
+
+          const now = clock.currentTimeMillisUnsafe()
+          if (state.phase === "cooldown") {
+            if (state.cooldownUntil > now) {
+              return {
+                delay: Duration.millis(state.cooldownUntil - now),
+                epoch: state.epoch,
+                phase: "cooldown"
+              }
+            }
+
+            state.phase = "learning"
+            state.epoch += 1
+            state.learningStartedAt = now
+            state.observedTokens = options.tokens
+            return {
+              delay: Duration.zero,
+              epoch: state.epoch,
+              phase: "learning"
+            }
+          }
+
+          if (state.phase === "learning") {
+            state.observedTokens += options.tokens
+          }
+
+          return {
+            delay: Duration.zero,
+            epoch: state.epoch,
+            phase: state.phase
+          }
+        })
+      ),
+    adaptiveFeedback: (options) =>
+      Effect.clockWith((clock) =>
+        Effect.sync(() => {
+          if (options.status !== 429 || options.retryAfter === undefined) return
+
+          const retryAfterMillis = Duration.toMillis(options.retryAfter)
+          if (retryAfterMillis <= 0) return
+
+          const now = clock.currentTimeMillisUnsafe()
+          const cooldownUntil = now + retryAfterMillis
+          const state = adaptiveStates.get(options.key)
+          if (!state) {
+            if (options.epoch !== 0) return
+            adaptiveStates.set(options.key, {
+              phase: "cooldown",
+              epoch: 0,
+              cooldownUntil,
+              learningStartedAt: 0,
+              observedTokens: 0,
+              learnedLimit: 0,
+              learnedWindowMillis: 0
+            })
+            return
+          }
+
+          if (state.phase === "cooldown" && state.epoch === options.epoch) {
+            state.cooldownUntil = Math.max(state.cooldownUntil, cooldownUntil)
+          }
+        })
+      )
   })
 })
 
