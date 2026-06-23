@@ -5825,11 +5825,8 @@ const processOrPerformanceNow = (function() {
   if (!processHrtime) {
     return performanceNowNanos
   }
-  let origin: bigint
-  return () => {
-    origin ??= performanceNowNanos() - processHrtime.bigint()
-    return origin + processHrtime.bigint()
-  }
+  const origin = (BigInt(Date.now()) * BigInt(1e6)) - processHrtime.bigint()
+  return () => origin + processHrtime.bigint()
 })()
 
 /** @internal */
