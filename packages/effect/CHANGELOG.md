@@ -1,5 +1,13 @@
 # effect
 
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- [#2468](https://github.com/Effect-TS/effect-smol/pull/2468) [`5a0c1a4`](https://github.com/Effect-TS/effect-smol/commit/5a0c1a4faee5707b5cc35e646ff1ffdad70f1956) Thanks @gcanti! - Expose the original input schema on `Schema.toType`, `Schema.toEncoded`, `Schema.toCodecJson`, and `Schema.toCodecStringTree` results via the `schema` property. This aligns these schema wrappers with other wrappers that retain their source schema for type-level and runtime introspection.
+
+- [#2466](https://github.com/Effect-TS/effect-smol/pull/2466) [`1eea2ea`](https://github.com/Effect-TS/effect-smol/commit/1eea2ea3795ba47316b82b1ac8d4612c0ba389ed) Thanks @gcanti! - Use `URL.canParse` to validate URL string schema decoding before constructing a `URL`. This avoids relying on thrown exceptions for routine validation while preserving the same invalid URL issue and successful decode output.
+
 ## 4.0.0-beta.86
 
 ### Patch Changes

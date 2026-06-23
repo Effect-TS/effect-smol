@@ -1,5 +1,13 @@
 # @effect/platform-node
 
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- Updated dependencies [[`5a0c1a4`](https://github.com/Effect-TS/effect-smol/commit/5a0c1a4faee5707b5cc35e646ff1ffdad70f1956), [`1eea2ea`](https://github.com/Effect-TS/effect-smol/commit/1eea2ea3795ba47316b82b1ac8d4612c0ba389ed)]:
+  - effect@4.0.0-beta.87
+  - @effect/platform-node-shared@4.0.0-beta.87
+
 ## 4.0.0-beta.86
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @effect/openapi-generator
 
+## 4.0.0-beta.87
+
+### Patch Changes
+
+- [#2469](https://github.com/Effect-TS/effect-smol/pull/2469) [`12fcf35`](https://github.com/Effect-TS/effect-smol/commit/12fcf35b92879f70a0e3b32b18359986439b9283) Thanks @jbmusso! - Fix the generated SSE `sseRequest` helper to reference `Schema.ConstraintDecoder` instead of the no-longer-exported `Schema.Decoder`.
+
+  For specs with `text/event-stream` responses the generator emitted a helper typed as `Schema.Decoder<Type, DecodingServices>`, but `Schema` exports that decode-only interface as `ConstraintDecoder`, so generated clients failed to compile (`'"effect/Schema"' has no exported member named 'Decoder'`). The emitted helper now uses `Schema.ConstraintDecoder`.
+
+- Updated dependencies [[`5a0c1a4`](https://github.com/Effect-TS/effect-smol/commit/5a0c1a4faee5707b5cc35e646ff1ffdad70f1956), [`1eea2ea`](https://github.com/Effect-TS/effect-smol/commit/1eea2ea3795ba47316b82b1ac8d4612c0ba389ed)]:
+  - effect@4.0.0-beta.87
+  - @effect/platform-node@4.0.0-beta.87
+
 ## 4.0.0-beta.86
 
 ### Patch Changes
