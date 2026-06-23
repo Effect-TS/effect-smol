@@ -1146,7 +1146,7 @@ const parseRateLimiterState = (
   tokens: number
 ): RateLimiterState => {
   const limit = parseRateLimitLimit(state, headers, tokens) ?? state.limit
-  const window = parseRateLimitWindow(clock, headers) ?? state.window
+  const window = parseRateLimitWindow(state, clock, headers) ?? state.window
   if (limit === state.limit && Duration.equals(window, state.window)) {
     return state
   }
@@ -1177,21 +1177,23 @@ const parseRateLimitRemaining = (headers: Headers.Headers): number | undefined =
 }
 
 const parseRateLimitWindow = (
+  state: RateLimiterState,
   clock: Clock,
   headers: Headers.Headers
 ): Duration.Duration | undefined => {
-  const retryAfter = parseRetryAfter(
-    clock,
-    getHeader(headers, "retry-after")
-  )
-  if (retryAfter !== undefined) {
-    return retryAfter
-  }
   const resetAfter = parseResetAfter(getHeader(headers, "ratelimit-reset-after", "x-ratelimit-reset-after"))
   if (resetAfter !== undefined) {
     return resetAfter
   }
-  return parseResetHeader(clock, getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
+  const reset = parseResetHeader(clock, getHeader(headers, "ratelimit-reset", "x-ratelimit-reset"))
+  if (reset !== undefined) {
+    return reset
+  }
+  const retryAfter = parseRetryAfter(
+    clock,
+    getHeader(headers, "retry-after")
+  )
+  return retryAfter !== undefined && Duration.isGreaterThan(retryAfter, state.window) ? retryAfter : undefined
 }
 
 const parseRetryAfter = (

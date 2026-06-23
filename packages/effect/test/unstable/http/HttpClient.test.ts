@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Effect, Fiber, Layer, Ref, Stream } from "effect"
+import { Duration, Effect, Fiber, Layer, Ref, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { RateLimiter } from "effect/unstable/persistence"
@@ -17,6 +17,26 @@ const makeStatusClient = Effect.fnUntraced(function*(status: number) {
 })
 
 const RateLimiterTestLayer = RateLimiter.layer.pipe(Layer.provide(RateLimiter.layerStoreMemory))
+
+const makeRecordingRateLimiter = Effect.fnUntraced(function*() {
+  const consumed = yield* Ref.make<Array<{ readonly limit: number; readonly window: Duration.Duration }>>([])
+  const limiter = {
+    [RateLimiter.TypeId]: RateLimiter.TypeId,
+    consume: (options) =>
+      Ref.update(consumed, (all) => [
+        ...all,
+        { limit: options.limit, window: Duration.fromInputUnsafe(options.window) }
+      ]).pipe(
+        Effect.as({
+          delay: Duration.zero,
+          limit: options.limit,
+          remaining: options.limit,
+          resetAfter: Duration.fromInputUnsafe(options.window)
+        })
+      )
+  } as RateLimiter.RateLimiter
+  return { consumed, limiter } as const
+})
 
 describe("HttpClient", () => {
   describe("retryTransient", () => {
@@ -144,6 +164,113 @@ describe("HttpClient", () => {
         yield* Fiber.join(fiber)
         strictEqual(yield* Ref.get(attempts), 2)
       }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("extends the window from Retry-After when it is longer than the current window", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const { consumed, limiter } = yield* makeRecordingRateLimiter()
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 200,
+                    headers: { "retry-after": "120" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 1,
+            window: "1 minute"
+          })
+        )
+
+        yield* client.get("http://test/")
+        yield* client.get("http://test/")
+
+        const requests = yield* Ref.get(consumed)
+        strictEqual(Duration.toSeconds(requests[1].window), 120)
+      }))
+
+    it.effect("does not shrink the window from Retry-After", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const { consumed, limiter } = yield* makeRecordingRateLimiter()
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 200,
+                    headers: { "retry-after": "10" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 1,
+            window: "1 minute"
+          })
+        )
+
+        yield* client.get("http://test/")
+        yield* client.get("http://test/")
+
+        const requests = yield* Ref.get(consumed)
+        strictEqual(Duration.toSeconds(requests[1].window), 60)
+      }))
+
+    it.effect("prefers rate limit reset headers over Retry-After for window updates", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const { consumed, limiter } = yield* makeRecordingRateLimiter()
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 200,
+                    headers: {
+                      "ratelimit-remaining": "0",
+                      "ratelimit-reset-after": "10",
+                      "retry-after": "120"
+                    }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "test",
+            limit: 10,
+            window: "1 minute"
+          })
+        )
+
+        yield* client.get("http://test/")
+        yield* client.get("http://test/")
+
+        const requests = yield* Ref.get(consumed)
+        strictEqual(requests[1].limit, 1)
+        strictEqual(Duration.toSeconds(requests[1].window), 10)
+      }))
 
     it.effect("inspects remaining headers to infer updated limits", () =>
       Effect.gen(function*() {
