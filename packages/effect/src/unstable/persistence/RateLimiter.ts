@@ -994,7 +994,7 @@ local limit = tonumber(ARGV[3])
 local current = tonumber(redis.call("GET", key))
 
 if not current then
-  local nextpttl = refillms * tokens
+  local nextpttl = math.max(1, math.ceil(refillms * tokens))
   redis.call("SET", key, tokens, "PX", nextpttl)
   return { tokens, nextpttl }
 end
@@ -1005,7 +1005,7 @@ if limit and next > limit then
   return { next, currentpttl }
 end
 
-local nextpttl = currentpttl + (refillms * tokens)
+local nextpttl = math.max(1, math.ceil(currentpttl + (refillms * tokens)))
 redis.call("SET", key, next, "PX", nextpttl)
 return { next, nextpttl }
 `
