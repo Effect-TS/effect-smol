@@ -3056,14 +3056,21 @@ export const BigInt: BigInt = make(SchemaAST.bigInt)
 export interface Void extends Bottom<void, void, never, never, SchemaAST.Void, Void> {}
 
 /**
- * Schema for the TypeScript `void` type.
+ * Schema for a TypeScript `void` return value.
+ *
+ * **When to use**
+ *
+ * Use when you need to model the return value of a function, RPC, or endpoint
+ * whose result is intentionally ignored.
  *
  * **Details**
  *
- * Accepts any input during construction, decoding, and encoding, and maps the
- * value to `undefined`. This mirrors TypeScript's `void` type, where a
- * value may be provided but is not observed by consumers.
+ * Runtime parsing accepts any present value and discards it, producing
+ * `undefined`. The public decoded and encoded TypeScript representation remains
+ * `void`, so typed construction, decoding, and encoding APIs are still modeled
+ * as `void`.
  *
+ * @see {@link Undefined} for a schema that matches only the exact `undefined` value.
  * @category schemas
  * @since 3.10.0
  */

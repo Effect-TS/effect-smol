@@ -793,14 +793,20 @@ export {
 }
 
 /**
- * AST node matching the TypeScript `void` type.
+ * AST node matching TypeScript `void` return-value semantics.
+ *
+ * **When to use**
+ *
+ * Use when you need an AST node for a value whose result is intentionally
+ * ignored.
  *
  * **Details**
  *
- * Accepts any input while parsing and maps it to `undefined`. This mirrors
- * TypeScript's `void` type, where a value may be provided but is not observed
- * by consumers.
+ * Parsers built from this node accept any present runtime input and map it to
+ * `undefined`. Public schemas built from it may still expose `void` as their
+ * typed decoded and encoded representation.
  *
+ * @see {@link undefined} for the AST singleton that matches only exact `undefined`
  * @see {@link void_ void}
  * @see {@link isVoid}
  * @category models
@@ -829,8 +835,13 @@ export {
    *
    * **When to use**
    *
-   * Use when constructing or comparing AST nodes that represent the TypeScript
-   * `void` type and accept any input while mapping it to `undefined`.
+   * Use when constructing or comparing AST nodes for TypeScript `void` return
+   * values whose result is intentionally ignored.
+   *
+   * **Details**
+   *
+   * The node parses any present runtime value as `undefined`; schemas may still
+   * expose `void` on their typed decoded and encoded sides.
    *
    * @see {@link Void} for the AST node class
    * @see {@link undefined} for the sibling AST singleton that matches exactly `undefined`

@@ -434,9 +434,12 @@ Missing key
     const schema = Schema.Void
     const asserts = new TestSchema.Asserts(schema)
 
+    // The public make input stays typed as void; these callbacks exercise runtime parser behavior.
     let fn: () => void
 
     const make = asserts.make()
+    await make.succeed()
+    await make.succeed(undefined)
     fn = () => undefined
     await make.succeed(fn())
     fn = () => null
