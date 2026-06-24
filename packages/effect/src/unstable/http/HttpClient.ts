@@ -1096,12 +1096,33 @@ export const withRateLimiter: {
     const key = resolveKey(request)
     const tokens = Math.max(resolveTokens(request), 1)
     const current = getState(key)
-    function retry(response: HttpClientResponse.HttpClientResponse) {
+    function retry(retryAfter: Duration.Duration | undefined) {
       if (options.disableResponseInspection) return loop(effect, request)
-      const retryAfter = parseRetryAfter(clock, getHeader(response.headers, "retry-after"))
       return retryAfter
         ? Effect.flatMap(Effect.sleep(retryAfter), () => loop(effect, request))
         : loop(effect, request)
+    }
+    const inspectResponse = (
+      response: HttpClientResponse.HttpClientResponse,
+      adaptive: RateLimiter.AdaptiveConsumeResult
+    ) => {
+      onResponse?.(clock, key, response.headers, tokens)
+      if (options.disableResponseInspection || response.status !== 429) {
+        return Effect.succeed<Duration.Duration | undefined>(undefined)
+      }
+      const retryAfter = parseRetryAfter(clock, getHeader(response.headers, "retry-after"))
+      return retryAfter === undefined
+        ? Effect.succeed<Duration.Duration | undefined>(undefined)
+        : Effect.as(
+          options.limiter.adaptiveFeedback({
+            key,
+            epoch: adaptive.epoch,
+            tokens,
+            status: response.status,
+            retryAfter
+          }),
+          retryAfter
+        )
     }
     return Effect.flatMap(
       options.limiter.consume({
@@ -1112,23 +1133,34 @@ export const withRateLimiter: {
         window: current.window,
         tokens
       }),
-      ({ delay }) => {
-        const run = Effect.matchEffect(effect, {
-          onSuccess(response) {
-            onResponse?.(clock, key, response.headers, tokens)
-            if (response.status !== 429) return Effect.succeed(response)
-            return retry(response)
-          },
-          onFailure(error) {
-            if (isTooManyRequestsHttpClientError(error)) {
-              onResponse?.(clock, key, error.reason.response.headers, tokens)
-              return retry(error.reason.response)
-            }
-            return Effect.fail(error)
+      ({ delay }) =>
+        Effect.flatMap(
+          options.limiter.adaptiveConsume({
+            key,
+            tokens,
+            fallbackLimit: current.limit,
+            fallbackWindow: current.window
+          }),
+          (adaptive) => {
+            const run = Effect.matchEffect(effect, {
+              onSuccess(response) {
+                return Effect.flatMap(inspectResponse(response, adaptive), (retryAfter) => {
+                  if (response.status !== 429) return Effect.succeed(response)
+                  return retry(retryAfter)
+                })
+              },
+              onFailure(error) {
+                if (isTooManyRequestsHttpClientError(error)) {
+                  return Effect.flatMap(inspectResponse(error.reason.response, adaptive), (retryAfter) =>
+                    retry(retryAfter))
+                }
+                return Effect.fail(error)
+              }
+            })
+            const requestDelay = Duration.max(delay, adaptive.delay)
+            return Duration.isZero(requestDelay) ? run : Effect.delay(run, requestDelay)
           }
-        })
-        return Duration.isZero(delay) ? run : Effect.delay(run, delay)
-      }
+        )
     )
   })
 })
@@ -1180,13 +1212,6 @@ const parseRateLimitWindow = (
   clock: Clock,
   headers: Headers.Headers
 ): Duration.Duration | undefined => {
-  const retryAfter = parseRetryAfter(
-    clock,
-    getHeader(headers, "retry-after")
-  )
-  if (retryAfter !== undefined) {
-    return retryAfter
-  }
   const resetAfter = parseResetAfter(getHeader(headers, "ratelimit-reset-after", "x-ratelimit-reset-after"))
   if (resetAfter !== undefined) {
     return resetAfter
