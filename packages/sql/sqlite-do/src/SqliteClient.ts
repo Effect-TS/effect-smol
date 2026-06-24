@@ -136,24 +136,34 @@ const makeStorageBackedWithTransaction = (
       )
     }
 
+    const effectWithTxn = Effect.provideContext(
+      effect,
+      Context.add(services, SqliteTransaction, [connection, 0] as const)
+    )
+
     return semaphore.withPermits(1)(
-      Effect.tryPromise({
-        try: () =>
-          storage.transaction((txn) =>
-            Effect.runPromiseExit(
-              Effect.provideContext(
-                effect,
-                Context.add(services, SqliteTransaction, [connection, 0] as const)
-              ) as Effect.Effect<A, E>
-            ).then((exit) => {
+      Effect.callback((resume) => {
+        let interrupted = false
+        const promise = storage.transaction((txn) =>
+          new Promise<void>((resolve) => {
+            if (interrupted) return resolve()
+            resume(Effect.onExit(effectWithTxn, (exit) => {
               if (Exit.isFailure(exit)) {
                 txn.rollback()
               }
-              return exit
-            })
-          ),
-        catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed transaction", "transaction") })
-      }).pipe(Effect.flatten)
+              resolve()
+              // wait for the transaction to complete
+              return Effect.promise(() => promise)
+            }))
+          })
+        ).catch((cause) =>
+          resume(Effect.fail(new SqlError({ reason: classifyError(cause, "Failed transaction", "transaction") })))
+        )
+        return Effect.suspend(() => {
+          interrupted = true
+          return Effect.promise(() => promise)
+        })
+      })
     )
   })
 

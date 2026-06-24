@@ -1,7 +1,7 @@
 import type { DurableObjectStorage, SqlStorage } from "@cloudflare/workers-types"
 import { SqliteClient, SqliteMigrator } from "@effect/sql-sqlite-do"
 import { assert, describe, it } from "@effect/vitest"
-import { Effect } from "effect"
+import { Deferred, Effect, Fiber } from "effect"
 import * as Reactivity from "effect/unstable/reactivity/Reactivity"
 import * as SqlClient from "effect/unstable/sql/SqlClient"
 
@@ -247,6 +247,27 @@ describe("Client", () => {
       const rows = yield* sql`SELECT * FROM test`
 
       assert.strictEqual(error, "boom")
+      assert.deepStrictEqual(rows, [])
+      assert.strictEqual(storage.rollbackCalls, 1)
+    }))
+
+  it.effect("storage-backed interrupted transactions roll back before release", () =>
+    Effect.gen(function*() {
+      const storage = new FakeDurableObjectStorage()
+      const sql = yield* makeClient({ storage: storage as unknown as DurableObjectStorage })
+      const inserted = yield* Deferred.make<void>()
+
+      yield* sql`CREATE TABLE test (id INTEGER PRIMARY KEY, name TEXT)`
+      const fiber = yield* sql`INSERT INTO test (name) VALUES ('hello')`.pipe(
+        Effect.tap(() => Deferred.succeed(inserted, void 0)),
+        Effect.andThen(Effect.never),
+        sql.withTransaction,
+        Effect.forkChild
+      )
+      yield* Deferred.await(inserted)
+      yield* Fiber.interrupt(fiber)
+      const rows = yield* sql`SELECT * FROM test`
+
       assert.deepStrictEqual(rows, [])
       assert.strictEqual(storage.rollbackCalls, 1)
     }))
