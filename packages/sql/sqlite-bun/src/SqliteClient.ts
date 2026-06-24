@@ -139,14 +139,8 @@ export const make = (
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
           const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
-          let statement: ReturnType<typeof db.query>
           try {
-            statement = prepare(sql, useSafeIntegers)
-          } catch (cause) {
-            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to prepare statement", "prepare") }))
-          }
-          try {
-            return Effect.succeed((statement.all(...(params as any)) ?? []) as Array<any>)
+            return Effect.succeed((prepare(sql, useSafeIntegers).all(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
             return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") }))
           }
@@ -158,16 +152,12 @@ export const make = (
       ) =>
         Effect.withFiber<Array<any>, SqlError>((fiber) => {
           const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
-          let statement: ReturnType<typeof db.query>
           try {
-            statement = prepare(sql, useSafeIntegers)
+            return Effect.succeed((prepare(sql, useSafeIntegers).values(...(params as any)) ?? []) as Array<any>)
           } catch (cause) {
-            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to prepare statement", "prepare") }))
-          }
-          try {
-            return Effect.succeed((statement.values(...(params as any)) ?? []) as Array<any>)
-          } catch (cause) {
-            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") }))
+            return Effect.fail(
+              new SqlError({ reason: classifyError(cause, "Failed to execute statement", "executeValues") })
+            )
           }
         })
 
