@@ -6,6 +6,76 @@ import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientRes
 
 describe("AnthropicLanguageModel", () => {
   describe("streamText", () => {
+    it.effect("includes cached input tokens from the initial stream usage", () =>
+      Effect.gen(function*() {
+        const layer = AnthropicClient.layer({ apiKey: Redacted.make("sk-test-key") }).pipe(
+          Layer.provide(Layer.succeed(
+            HttpClient.HttpClient,
+            makeHttpClient((request) =>
+              Effect.succeed(sseResponse(request, [
+                {
+                  type: "message_start",
+                  message: {
+                    id: "msg_test_1",
+                    type: "message",
+                    role: "assistant",
+                    model: "claude-sonnet-4-20250514",
+                    content: [],
+                    stop_reason: null,
+                    stop_sequence: null,
+                    usage: {
+                      cache_creation: null,
+                      cache_creation_input_tokens: null,
+                      cache_read_input_tokens: 7,
+                      inference_geo: null,
+                      input_tokens: 10,
+                      output_tokens: 0,
+                      service_tier: null
+                    }
+                  }
+                },
+                {
+                  type: "message_delta",
+                  delta: {
+                    stop_reason: "end_turn",
+                    stop_sequence: null
+                  },
+                  usage: {
+                    cache_creation_input_tokens: null,
+                    cache_read_input_tokens: null,
+                    input_tokens: null,
+                    output_tokens: 3
+                  }
+                },
+                {
+                  type: "message_stop"
+                }
+              ]))
+            )
+          ))
+        )
+
+        const partsChunk = yield* LanguageModel.streamText({
+          prompt: "hello"
+        }).pipe(
+          Stream.runCollect,
+          Effect.provide(AnthropicLanguageModel.model("claude-sonnet-4-20250514")),
+          Effect.provide(layer)
+        )
+
+        const parts = globalThis.Array.from(partsChunk)
+        const finish = parts.find((part) => part.type === "finish")
+        assert.isDefined(finish)
+        if (finish?.type !== "finish") {
+          return
+        }
+
+        assert.strictEqual(finish.usage.inputTokens.uncached, 10)
+        assert.strictEqual(finish.usage.inputTokens.cacheRead, 7)
+        assert.strictEqual(finish.usage.inputTokens.total, 17)
+        assert.strictEqual(finish.usage.outputTokens.total, 3)
+      }))
+
     it.effect("decodes tool call params in content_block_stop", () =>
       Effect.gen(function*() {
         const toolParams = { pattern: "*.ts" }
