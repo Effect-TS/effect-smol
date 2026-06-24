@@ -40,6 +40,154 @@ describe("HttpApiBuilder", () => {
 
       expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "group">>>()
     })
+
+    it("tracks handled endpoints and preserves handler request inference", () => {
+      const User = Schema.Struct({
+        id: Schema.String
+      })
+      const CreateUser = Schema.Struct({
+        name: Schema.String
+      })
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("users")
+          .add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              params: {
+                id: Schema.String
+              },
+              success: User
+            })
+          )
+          .add(
+            HttpApiEndpoint.post("createUser", "/users", {
+              payload: CreateUser,
+              success: User
+            })
+          )
+      )
+
+      const handlers = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) =>
+          handlers
+            .handle("getUser", ({ params }) => {
+              expect(params.id).type.toBe<string>()
+              return Effect.succeed({ id: params.id })
+            })
+            .handle("createUser", ({ payload }) => {
+              expect(payload.name).type.toBe<string>()
+              return Effect.succeed({ id: payload.name })
+            })
+      )
+
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "users">>>()
+    })
+
+    it("rejects incomplete handler collections", () => {
+      const User = Schema.Struct({
+        id: Schema.String
+      })
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("users")
+          .add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              params: {
+                id: Schema.String
+              },
+              success: User
+            })
+          )
+          .add(
+            HttpApiEndpoint.get("listUsers", "/users", {
+              success: Schema.Array(User)
+            })
+          )
+      )
+      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+        handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
+
+      expect(HttpApiBuilder.group).type.not.toBeCallableWith(
+        Api,
+        "users",
+        build
+      )
+    })
+
+    it("rejects unknown endpoint names and allows duplicate handlers", () => {
+      const User = Schema.Struct({
+        id: Schema.String
+      })
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("users")
+          .add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              params: {
+                id: Schema.String
+              },
+              success: User
+            })
+          )
+          .add(
+            HttpApiEndpoint.get("listUsers", "/users", {
+              success: Schema.Array(User)
+            })
+          )
+      )
+
+      HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) => {
+          expect(handlers.handle).type.not.toBeCallableWith(
+            "missing",
+            () => Effect.succeed({ id: "id" })
+          )
+
+          const remaining = handlers.handle(
+            "getUser",
+            ({ params }) => Effect.succeed({ id: params.id })
+          )
+
+          expect(remaining.handle).type.toBeCallableWith(
+            "getUser",
+            () => Effect.succeed({ id: "id" })
+          )
+
+          return remaining
+            .handle("getUser", () => Effect.succeed({ id: "id" }))
+            .handle("listUsers", () => Effect.succeed([]))
+        }
+      )
+    })
+
+    it("preserves raw handler request inference", () => {
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("files").add(
+          HttpApiEndpoint.post("upload", "/files/:id", {
+            params: {
+              id: Schema.String
+            },
+            payload: Schema.String,
+            success: Schema.String
+          })
+        )
+      )
+
+      const handlers = HttpApiBuilder.group(
+        Api,
+        "files",
+        (handlers) =>
+          handlers.handleRaw("upload", (request) => {
+            expect(request.params.id).type.toBe<string>()
+            expect(request.request).type.toBe<HttpServerRequest>()
+            expect(request).type.not.toHaveProperty("payload")
+            return Effect.succeed("ok")
+          })
+      )
+
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "files">>>()
+    })
   })
 
   describe("endpoint", () => {

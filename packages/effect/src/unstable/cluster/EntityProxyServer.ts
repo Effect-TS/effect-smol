@@ -84,7 +84,7 @@ export const layerHttpApi = <
               )) as any
           ) as any
       }
-      return handlers as HttpApiBuilder.Handlers<never, never>
+      return handlers as unknown as HttpApiBuilder.Handlers<never>
     })
   )
 
