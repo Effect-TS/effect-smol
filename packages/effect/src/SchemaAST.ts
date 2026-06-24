@@ -793,13 +793,13 @@ export {
 }
 
 /**
- * AST node matching the `void` type (accepts any provided value at runtime
- * and discards it as `undefined`).
+ * AST node matching the TypeScript `void` type.
  *
  * **Details**
  *
- * Behaves like TypeScript's `void` by accepting any provided value while
- * representing the value as `undefined` semantically.
+ * Accepts any input while parsing and maps it to `undefined`. This mirrors
+ * TypeScript's `void` type, where a value may be provided but is not observed
+ * by consumers.
  *
  * @see {@link void_ void}
  * @see {@link isVoid}
@@ -830,7 +830,7 @@ export {
    * **When to use**
    *
    * Use when constructing or comparing AST nodes that represent the TypeScript
-   * `void` type and accept `undefined` at runtime.
+   * `void` type and accept any input while mapping it to `undefined`.
    *
    * @see {@link Void} for the AST node class
    * @see {@link undefined} for the sibling AST singleton that matches exactly `undefined`

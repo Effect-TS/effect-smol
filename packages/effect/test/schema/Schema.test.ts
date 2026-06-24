@@ -434,10 +434,15 @@ Missing key
     const schema = Schema.Void
     const asserts = new TestSchema.Asserts(schema)
 
+    let fn: () => void
+
     const make = asserts.make()
-    await make.succeed(undefined)
-    await make.succeed(null, undefined)
-    await make.succeed("a", undefined)
+    fn = () => undefined
+    await make.succeed(fn())
+    fn = () => null
+    await make.succeed(fn(), undefined)
+    fn = () => "a"
+    await make.succeed(fn(), undefined)
 
     const decoding = asserts.decoding()
     await decoding.succeed(undefined)

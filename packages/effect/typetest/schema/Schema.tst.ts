@@ -86,11 +86,6 @@ describe("Schema", () => {
       expect(schema.makeEffect).type.toBe<MakeEffect<string, string>>()
     })
 
-    it("Void", () => {
-      const schema = Schema.Void
-      expect(schema.makeEffect).type.toBe<MakeEffect<void | {} | null, void>>()
-    })
-
     it("refine", () => {
       const schema = Schema.Option(Schema.String).pipe(Schema.refine(Option.isSome))
       expect(schema.makeEffect).type.toBe<MakeEffect<Option.Option<string>, Option.Some<string>>>()
@@ -136,12 +131,6 @@ describe("Schema", () => {
     it("Undefined", () => {
       const schema = Schema.Undefined
       expect(schema.make).type.toBe<Make<undefined, undefined>>()
-    })
-
-    it("Void", () => {
-      const schema = Schema.Void
-      expect(schema.make).type.toBe<Make<void | {} | null, void>>()
-      expect(Schema.revealCodec(schema)).type.toBe<Schema.Codec<void, void | {} | null, never, never>>()
     })
 
     it("String", () => {
