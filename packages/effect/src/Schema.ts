@@ -3053,10 +3053,11 @@ export const BigInt: BigInt = make(SchemaAST.bigInt)
  * @category models
  * @since 3.10.0
  */
-export interface Void extends Bottom<void, void, never, never, SchemaAST.Void, Void> {}
+export interface Void extends Bottom<void, void | {} | null, never, never, SchemaAST.Void, Void, void | {} | null> {}
 
 /**
- * Schema for the `void` type. Accepts `undefined` as the encoded value.
+ * Schema for the `void` type. Accepts any provided value and maps it to
+ * `undefined`.
  *
  * @category schemas
  * @since 3.10.0

@@ -436,15 +436,18 @@ Missing key
 
     const make = asserts.make()
     await make.succeed(undefined)
-    await make.fail(null, `Expected void, got null`)
+    await make.succeed(null, undefined)
+    await make.succeed("a", undefined)
 
     const decoding = asserts.decoding()
     await decoding.succeed(undefined)
-    await decoding.fail(null, `Expected void, got null`)
+    await decoding.succeed(null, undefined)
+    await decoding.succeed("a", undefined)
 
     const encoding = asserts.encoding()
     await encoding.succeed(undefined)
-    await encoding.fail("1", `Expected void, got "1"`)
+    await encoding.succeed(null, undefined)
+    await encoding.succeed("1", undefined)
   })
 
   it("ObjectKeyword", async () => {

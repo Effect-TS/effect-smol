@@ -793,12 +793,13 @@ export {
 }
 
 /**
- * AST node matching the `void` type (accepts `undefined` at runtime).
+ * AST node matching the `void` type (accepts any provided value at runtime
+ * and discards it as `undefined`).
  *
  * **Details**
  *
- * Behaves like {@link Undefined} for parsing but represents the TypeScript
- * `void` type semantically.
+ * Behaves like TypeScript's `void` by accepting any provided value while
+ * representing the value as `undefined` semantically.
  *
  * @see {@link void_ void}
  * @see {@link isVoid}
@@ -809,7 +810,7 @@ export class Void extends Base {
   readonly _tag = "Void"
   /** @internal */
   getParser() {
-    return fromConst(this, undefined)
+    return fromAnyToConst(undefined)
   }
   /** @internal */
   toCodecJson(): AST {
@@ -3491,6 +3492,11 @@ function fromConst<const T>(
       ? succeed
       : Effect.fail(new SchemaIssue.InvalidType(ast, oinput))
   }
+}
+
+function fromAnyToConst<const T>(value: T): SchemaParser.Parser {
+  const succeed = Effect.succeedSome(value)
+  return (oinput) => oinput._tag === "None" ? Effect.succeedNone : succeed
 }
 
 function fromRefinement<T>(
