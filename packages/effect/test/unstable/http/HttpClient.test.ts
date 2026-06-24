@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Duration, Effect, Fiber, Layer, Ref, Stream } from "effect"
+import { Clock, Duration, Effect, Fiber, Layer, Ref, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { RateLimiter } from "effect/unstable/persistence"
@@ -301,6 +301,59 @@ describe("HttpClient", () => {
 
         strictEqual(response.status, 200)
         strictEqual(yield* Ref.get(attempts), 2)
+      }).pipe(Effect.provide(RateLimiterTestLayer)))
+
+    it.effect("applies adaptive cooldown to requests delayed by the configured limiter", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make<Array<number>>([])
+        const limiter = yield* RateLimiter.RateLimiter
+        let previous: number | undefined
+        const client = HttpClient.make((request) =>
+          Effect.gen(function*() {
+            const now = yield* Clock.currentTimeMillis
+            const status = previous !== undefined && now - previous < 2_000 ? 429 : 200
+            previous = now
+            yield* Ref.update(attempts, (statuses) => [...statuses, status])
+            return HttpClientResponse.fromWeb(
+              request,
+              status === 429
+                ? new Response(null, { status, headers: { "retry-after": "2" } })
+                : new Response(null, { status })
+            )
+          })
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "adaptive-delayed",
+            limit: 1,
+            window: "1 second"
+          })
+        )
+
+        const fiber = yield* Effect.all([
+          client.get("http://test/1"),
+          client.get("http://test/2"),
+          client.get("http://test/3"),
+          client.get("http://test/4"),
+          client.get("http://test/5")
+        ], { concurrency: "unbounded" }).pipe(Effect.forkChild({ startImmediately: true }))
+
+        strictEqual((yield* Ref.get(attempts)).length, 1)
+
+        yield* TestClock.adjust("1 second")
+        strictEqual((yield* Ref.get(attempts)).length, 2)
+
+        yield* TestClock.adjust("1 second")
+        strictEqual((yield* Ref.get(attempts)).length, 2)
+
+        yield* TestClock.adjust("1 second")
+        assert.deepStrictEqual(yield* Ref.get(attempts), [200, 429, 200, 429])
+
+        yield* TestClock.adjust("6 seconds")
+        yield* Fiber.join(fiber)
+
+        const statuses = yield* Ref.get(attempts)
+        assert.strictEqual(statuses.filter((status) => status === 429).length, 2)
       }).pipe(Effect.provide(RateLimiterTestLayer)))
 
     it.effect("coordinates Retry-After cooldown across clients sharing a memory store", () =>

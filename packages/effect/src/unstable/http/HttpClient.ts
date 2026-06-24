@@ -1135,34 +1135,43 @@ export const withRateLimiter: {
         window: current.window,
         tokens
       }),
-      ({ delay }) =>
-        Effect.flatMap(
-          options.limiter.adaptiveConsume({
-            key,
-            tokens,
-            fallbackLimit: current.limit,
-            fallbackWindow: current.window
-          }),
-          (adaptive) => {
-            const run = Effect.matchEffect(effect, {
-              onSuccess(response) {
-                return Effect.flatMap(inspectResponse(response, adaptive), (retryAfter) => {
-                  if (response.status !== 429) return Effect.succeed(response)
-                  return retry(retryAfter)
-                })
-              },
-              onFailure(error) {
-                if (isTooManyRequestsHttpClientError(error)) {
-                  return Effect.flatMap(inspectResponse(error.reason.response, adaptive), (retryAfter) =>
-                    retry(retryAfter))
-                }
-                return Effect.fail(error)
+      ({ delay }) => {
+        const runAdaptive = (): Effect.Effect<
+          HttpClientResponse.HttpClientResponse,
+          E | RateLimiter.RateLimiterError,
+          R
+        > =>
+          Effect.flatMap(
+            options.limiter.adaptiveConsume({
+              key,
+              tokens,
+              fallbackLimit: current.limit,
+              fallbackWindow: current.window
+            }),
+            (adaptive) => {
+              if (!Duration.isZero(adaptive.delay) && adaptive.phase === "cooldown") {
+                return Effect.flatMap(Effect.sleep(adaptive.delay), runAdaptive)
               }
-            })
-            const requestDelay = Duration.max(delay, adaptive.delay)
-            return Duration.isZero(requestDelay) ? run : Effect.delay(run, requestDelay)
-          }
-        )
+              const request = Effect.matchEffect(effect, {
+                onSuccess(response) {
+                  return Effect.flatMap(inspectResponse(response, adaptive), (retryAfter) => {
+                    if (response.status !== 429) return Effect.succeed(response)
+                    return retry(retryAfter)
+                  })
+                },
+                onFailure(error) {
+                  if (isTooManyRequestsHttpClientError(error)) {
+                    return Effect.flatMap(inspectResponse(error.reason.response, adaptive), (retryAfter) =>
+                      retry(retryAfter))
+                  }
+                  return Effect.fail(error)
+                }
+              })
+              return Duration.isZero(adaptive.delay) ? request : Effect.delay(request, adaptive.delay)
+            }
+          )
+        return Duration.isZero(delay) ? runAdaptive() : Effect.flatMap(Effect.sleep(delay), runAdaptive)
+      }
     )
   })
 })
