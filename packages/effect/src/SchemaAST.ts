@@ -2427,7 +2427,6 @@ function getCandidateTypes(ast: AST): ReadonlyArray<Type> {
     case "Null":
       return ["null"]
     case "Undefined":
-    case "Void":
       return ["undefined"]
     case "String":
     case "TemplateLiteral":
