@@ -1,5 +1,14 @@
 # @effect/ai-anthropic
 
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- [#2450](https://github.com/Effect-TS/effect-smol/pull/2450) [`7b8a549`](https://github.com/Effect-TS/effect-smol/commit/7b8a5493950aa6f9e20024cd7e588838722218f0) Thanks @DomiR! - Fix non-streaming Anthropic responses throwing when a tool call carries `caller` metadata. The mapper emitted `caller.toolId: undefined`, but `ProviderMetadata` is `Record(String, NullOr(Json))` and `undefined` is not a valid Json value, so decoding the model's own response threw `Expected JSON value`. Emit `null` instead, matching the streaming mappers.
+
+- Updated dependencies [[`911f1b8`](https://github.com/Effect-TS/effect-smol/commit/911f1b84790ce42b3a70c95b33e6f6fd9e74de8b), [`8beeeea`](https://github.com/Effect-TS/effect-smol/commit/8beeeea52879d8613a39468848f01c3092bd54d4), [`c306fcf`](https://github.com/Effect-TS/effect-smol/commit/c306fcfeb1ef38455156932a1faf49292b1318da)]:
+  - effect@4.0.0-beta.88
+
 ## 4.0.0-beta.87
 
 ### Patch Changes

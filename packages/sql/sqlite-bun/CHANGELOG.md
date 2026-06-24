@@ -1,5 +1,14 @@
 # @effect/sql-sqlite-bun
 
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- [#2399](https://github.com/Effect-TS/effect-smol/pull/2399) [`6cbbdf3`](https://github.com/Effect-TS/effect-smol/commit/6cbbdf3a0265136032f33beb0439ac026ec9b4a6) Thanks @truffle-dev! - Fail with a typed `SqlError` when Bun SQLite statement preparation throws (for example a missing table or a syntax error), instead of letting the driver error escape as a defect, closes [#2385](https://github.com/Effect-TS/effect-smol/issues/2385).
+
+- Updated dependencies [[`911f1b8`](https://github.com/Effect-TS/effect-smol/commit/911f1b84790ce42b3a70c95b33e6f6fd9e74de8b), [`8beeeea`](https://github.com/Effect-TS/effect-smol/commit/8beeeea52879d8613a39468848f01c3092bd54d4), [`c306fcf`](https://github.com/Effect-TS/effect-smol/commit/c306fcfeb1ef38455156932a1faf49292b1318da)]:
+  - effect@4.0.0-beta.88
+
 ## 4.0.0-beta.87
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @effect/sql-mssql
 
+## 4.0.0-beta.88
+
+### Patch Changes
+
+- [#2397](https://github.com/Effect-TS/effect-smol/pull/2397) [`6412955`](https://github.com/Effect-TS/effect-smol/commit/641295595394c468094b1a246aa59d352d2a8ac9) Thanks @tuttarealstep! - Added some options for the MssqlClient:
+  - multiSubnetFailover
+  - cancelTimeout
+  - connectionRetryInterval
+  - maxRetriesOnTransientErrors
+
+- Updated dependencies [[`911f1b8`](https://github.com/Effect-TS/effect-smol/commit/911f1b84790ce42b3a70c95b33e6f6fd9e74de8b), [`8beeeea`](https://github.com/Effect-TS/effect-smol/commit/8beeeea52879d8613a39468848f01c3092bd54d4), [`c306fcf`](https://github.com/Effect-TS/effect-smol/commit/c306fcfeb1ef38455156932a1faf49292b1318da)]:
+  - effect@4.0.0-beta.88
+
 ## 4.0.0-beta.87
 
 ### Patch Changes
