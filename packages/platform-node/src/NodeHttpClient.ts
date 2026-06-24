@@ -11,7 +11,7 @@
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
-import { flow } from "effect/Function"
+import { constTrue, flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -150,7 +150,7 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  */
 export const RetainResponseRequestBody = Context.Reference<boolean>(
   "@effect/platform-node/NodeHttpClient/RetainResponseRequestBody",
-  { defaultValue: () => true }
+  { defaultValue: constTrue }
 )
 
 /**
