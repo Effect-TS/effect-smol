@@ -40,43 +40,44 @@ const JsonPlaceholder = Context.Service<JsonPlaceholder>("test/JsonPlaceholder")
 const JsonPlaceholderLive = Layer.effect(JsonPlaceholder)(makeJsonPlaceholder)
 
 const makeServer = Effect.acquireRelease(
-  Effect.tryPromise({
-    try: () =>
-      new Promise<{
-        readonly body: Promise<Buffer>
-        readonly server: Http.Server
-        readonly url: string
-      }>((resolve, reject) => {
-        let resolveBody: (body: Buffer) => void = () => {}
-        const body = new Promise<Buffer>((resolve) => {
-          resolveBody = resolve
-        })
-        const server = Http.createServer((request, response) => {
-          const chunks: Array<Buffer> = []
-          request.on("data", (chunk) => chunks.push(Buffer.from(chunk)))
-          request.once("end", () => {
-            resolveBody(Buffer.concat(chunks))
-            response.end("ok")
-          })
-        })
-        server.once("error", reject)
-        server.listen(0, "127.0.0.1", () => {
-          const address = server.address()
-          if (address === null || typeof address === "string") {
-            reject(new Error("Expected the test server to listen on a TCP port"))
-            return
-          }
-          resolve({ body, server, url: `http://127.0.0.1:${address.port}` })
-        })
-      }),
-    catch: (cause) => cause
+  Effect.callback<{
+    readonly body: () => Buffer | undefined
+    readonly server: Http.Server
+    readonly url: string
+  }, Error>((resume) => {
+    let body: Buffer | undefined
+    const server = Http.createServer((request, response) => {
+      const chunks: Array<Buffer> = []
+      request.on("data", (chunk) => chunks.push(Buffer.from(chunk)))
+      request.once("end", () => {
+        body = Buffer.concat(chunks)
+        response.writeHead(200)
+        response.write("open")
+      })
+    })
+    const onError = (cause: Error) => resume(Effect.fail(cause))
+    server.once("error", onError)
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", onError)
+      const address = server.address()
+      if (address === null || typeof address === "string") {
+        server.close()
+        resume(Effect.fail(new Error("Expected the test server to listen on a TCP port")))
+        return
+      }
+      resume(Effect.succeed({ body: () => body, server, url: `http://127.0.0.1:${address.port}` }))
+    })
+    return Effect.sync(() => {
+      server.off("error", onError)
+      server.closeAllConnections()
+      server.close()
+    })
   }),
   ({ server }) =>
-    Effect.promise(() =>
-      new Promise<void>((resolve) => {
-        server.close(() => resolve())
-      })
-    )
+    Effect.sync(() => {
+      server.closeAllConnections()
+      server.close()
+    })
 )
 ;[
   {
@@ -188,29 +189,49 @@ const makeServer = Effect.acquireRelease(
       }).pipe(Effect.provide(layer), flaky))
   })
 })
-it.effect("Undici responses do not retain uploaded request bodies", () =>
+it.effect("Undici responses retain uploaded request bodies by default", () =>
   Effect.gen(function*() {
-    const { body, url } = yield* makeServer
+    const { url } = yield* makeServer
     const client = yield* HttpClient.HttpClient
-    const payload = "x".repeat(1024 * 1024)
-    const request = HttpClientRequest.post(`${url}/upload?test=true`).pipe(
-      HttpClientRequest.setHeader("x-test", "retained"),
-      HttpClientRequest.bodyText(payload, "text/plain")
+    const request = HttpClientRequest.post(`${url}/upload`).pipe(
+      HttpClientRequest.bodyText("request body", "text/plain")
     )
     const response = yield* client.execute(request)
-    yield* response.text
 
-    assert.strictEqual(request.body._tag, "Uint8Array")
-    assert.strictEqual(response.request.body._tag, "Empty")
+    assert.strictEqual(response.request.body, request.body)
     assert.strictEqual(response.request.method, request.method)
     assert.strictEqual(response.request.url, request.url)
-    assert.deepStrictEqual(response.request.urlParams, request.urlParams)
-    assert.deepStrictEqual(response.request.hash, request.hash)
-    assert.strictEqual(response.request.headers["x-test"], request.headers["x-test"])
-    assert.strictEqual(response.request.headers["content-type"], request.headers["content-type"])
-    assert.strictEqual(response.request.headers["content-length"], request.headers["content-length"])
-    assert.strictEqual((yield* Effect.promise(() => body)).toString("utf8"), payload)
   }).pipe(Effect.provide(NodeClient.layerUndici), Effect.scoped))
+
+it.effect.each([1024, 1024 * 1024])(
+  "Undici responses can release a %i-byte request body",
+  (bodySize) =>
+    Effect.gen(function*() {
+      const { body, url } = yield* makeServer
+      const client = yield* HttpClient.HttpClient
+      const payload = "x".repeat(bodySize)
+      const request = HttpClientRequest.post(`${url}/upload?test=true`).pipe(
+        HttpClientRequest.setHeader("x-test", "retained"),
+        HttpClientRequest.bodyText(payload, "text/plain")
+      )
+      const response = yield* client.execute(request)
+
+      assert.strictEqual(request.body._tag, "Uint8Array")
+      assert.strictEqual(response.request.body._tag, "Empty")
+      assert.strictEqual(response.request.method, request.method)
+      assert.strictEqual(response.request.url, request.url)
+      assert.deepStrictEqual(response.request.urlParams, request.urlParams)
+      assert.deepStrictEqual(response.request.hash, request.hash)
+      assert.strictEqual(response.request.headers["x-test"], request.headers["x-test"])
+      assert.strictEqual(response.request.headers["content-type"], request.headers["content-type"])
+      assert.strictEqual(response.request.headers["content-length"], request.headers["content-length"])
+      assert.strictEqual(body()?.toString("utf8"), payload)
+    }).pipe(
+      Effect.provideService(NodeClient.RetainResponseRequestBody, false),
+      Effect.provide(NodeClient.layerUndici),
+      Effect.scoped
+    )
+)
 
 const flaky = <A, E, R>(effect: Effect.Effect<A, E, R>) =>
   effect.pipe(

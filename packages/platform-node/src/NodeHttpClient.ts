@@ -132,6 +132,28 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
 )
 
 /**
+ * Controls whether successful Undici responses retain the original request body.
+ *
+ * **When to use**
+ *
+ * Use with long-lived responses when uploaded request bodies are no
+ * longer needed after response headers arrive.
+ *
+ * **Details**
+ *
+ * The default is `true`. When disabled, successful responses expose an empty
+ * request body while preserving request metadata. Large byte-array uploads use
+ * a one-shot `Readable` so Undici can release consumed bytes.
+ *
+ * @category Undici
+ * @since 4.0.0
+ */
+export const RetainResponseRequestBody = Context.Reference<boolean>(
+  "@effect/platform-node/NodeHttpClient/RetainResponseRequestBody",
+  { defaultValue: () => true }
+)
+
+/**
  * Creates an `HttpClient` that sends requests through the current Undici
  * `Dispatcher`, converts Effect HTTP bodies to Undici bodies, and maps
  * transport and decode failures to `HttpClientError`.
@@ -141,8 +163,9 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  */
 export const makeUndici = Effect.gen(function*() {
   const dispatcher = yield* Dispatcher
-  return Client.make((request, url, signal, fiber) =>
-    convertBody(request.body).pipe(
+  return Client.make((request, url, signal, fiber) => {
+    const retainRequestBody = fiber.getRef(RetainResponseRequestBody)
+    return convertBody(request.body, retainRequestBody).pipe(
       Effect.flatMap((body) =>
         Effect.tryPromise({
           try: () =>
@@ -167,17 +190,18 @@ export const makeUndici = Effect.gen(function*() {
             })
         })
       ),
-      Effect.map((response) => new UndiciResponse(withoutBody(request), response))
+      Effect.map((response) => new UndiciResponse(retainRequestBody ? request : withoutBody(request), response))
     )
-  )
+  })
 })
 
-// Readable uploads can release consumed bytes, but add measurable overhead for
-// small requests. Bound direct-body retention while preserving the small path.
+// The Readable wrapper makes consumed bytes releasable but is slower for small
+// uploads. Keep the direct path where retained memory is strictly bounded.
 const oneShotBodyThreshold = 64 * 1024
 
 function convertBody(
-  body: Body.HttpBody
+  body: Body.HttpBody,
+  retainRequestBody: boolean
 ): Effect.Effect<Exclude<Undici.Dispatcher.DispatchOptions["body"], undefined>> {
   switch (body._tag) {
     case "Empty": {
@@ -185,7 +209,7 @@ function convertBody(
     }
     case "Uint8Array": {
       return Effect.succeed(
-        body.body.byteLength < oneShotBodyThreshold ? body.body : oneShotBody(body.body)
+        retainRequestBody || body.body.byteLength < oneShotBodyThreshold ? body.body : oneShotBody(body.body)
       )
     }
     case "Raw": {

@@ -1,5 +1,5 @@
 ---
-"@effect/platform-node": patch
+"@effect/platform-node": minor
 ---
 
-Avoid retaining large uploaded byte-array request bodies for the lifetime of Undici HTTP client responses. Successful responses preserve request metadata but expose an empty request body.
+Add `NodeHttpClient.RetainResponseRequestBody`, which can be disabled to avoid retaining large uploaded byte-array bodies for the lifetime of Undici responses. The existing response API remains unchanged by default; when disabled, successful responses preserve request metadata but expose an empty request body.
