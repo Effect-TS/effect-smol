@@ -634,6 +634,12 @@ export class RateLimiterStore extends Context.Service<
 >()("effect/persistence/RateLimiter/RateLimiterStore") {}
 
 const adaptiveStateTtlGraceMillis = 60_000
+const adaptiveStateMaxWindowMillis = 60 * 60 * 1_000
+
+const clampAdaptiveDurationMillis = (millis: number): number => {
+  if (Number.isNaN(millis) || millis <= 0) return 1
+  return Math.min(millis, adaptiveStateMaxWindowMillis)
+}
 
 interface AdaptiveState {
   phase: AdaptivePhase
@@ -798,8 +804,7 @@ export const layerStoreMemory: Layer.Layer<
         Effect.sync(() => {
           if (options.status !== 429 || options.retryAfter === undefined) return
 
-          const retryAfterMillis = Duration.toMillis(options.retryAfter)
-          if (retryAfterMillis <= 0) return
+          const retryAfterMillis = clampAdaptiveDurationMillis(Duration.toMillis(options.retryAfter))
 
           const now = clock.currentTimeMillisUnsafe()
           const cooldownUntil = now + retryAfterMillis
@@ -840,7 +845,7 @@ export const layerStoreMemory: Layer.Layer<
               return
             }
 
-            const learnedWindowMillis = (now - state.learningStartedAt) + retryAfterMillis
+            const learnedWindowMillis = clampAdaptiveDurationMillis((now - state.learningStartedAt) + retryAfterMillis)
             state.phase = "learned"
             state.epoch += 1
             state.cooldownUntil = state.learningStartedAt + learnedWindowMillis
@@ -952,8 +957,7 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
     },
     adaptiveFeedback(options) {
       if (options.status !== 429 || options.retryAfter === undefined) return Effect.void
-      const retryAfterMillis = Duration.toMillis(options.retryAfter)
-      if (retryAfterMillis <= 0) return Effect.void
+      const retryAfterMillis = clampAdaptiveDurationMillis(Duration.toMillis(options.retryAfter))
       const key = `${prefix}${options.key}:adaptive`
       return Effect.asVoid(
         Effect.mapError(
@@ -962,7 +966,8 @@ export const makeStoreRedis = Effect.fnUntraced(function*(
             options.epoch,
             options.tokens,
             retryAfterMillis,
-            adaptiveStateTtlGraceMillis
+            adaptiveStateTtlGraceMillis,
+            adaptiveStateMaxWindowMillis
           ),
           (cause) =>
             new RateLimiterError({
@@ -1150,12 +1155,20 @@ return { 0, epoch, phase }
 ).withReturnType<readonly [delayMillis: number, epoch: number, phase: AdaptivePhase]>()
 
 const adaptiveFeedbackScript = Redis.script(
-  (key: string, epoch: number, tokens: number, retryAfterMillis: number, ttlGraceMillis: number) => [
+  (
+    key: string,
+    epoch: number,
+    tokens: number,
+    retryAfterMillis: number,
+    ttlGraceMillis: number,
+    maxWindowMillis: number
+  ) => [
     key,
     epoch,
     tokens,
     retryAfterMillis,
-    ttlGraceMillis
+    ttlGraceMillis,
+    maxWindowMillis
   ],
   {
     numberOfKeys: 1,
@@ -1165,6 +1178,14 @@ local feedback_epoch = tonumber(ARGV[1])
 local tokens = tonumber(ARGV[2])
 local retry_after_ms = tonumber(ARGV[3])
 local ttl_grace_ms = tonumber(ARGV[4])
+local max_window_ms = tonumber(ARGV[5])
+
+if retry_after_ms <= 0 then
+  retry_after_ms = 1
+end
+if retry_after_ms > max_window_ms then
+  retry_after_ms = max_window_ms
+end
 
 local time = redis.call("TIME")
 local now = (tonumber(time[1]) * 1000) + math.floor(tonumber(time[2]) / 1000)
@@ -1238,6 +1259,12 @@ if phase == "learning" then
 
   local learning_started_at = tonumber(redis.call("HGET", key, "learningStartedAt") or now)
   local learned_window_ms = (now - learning_started_at) + retry_after_ms
+  if learned_window_ms <= 0 then
+    learned_window_ms = 1
+  end
+  if learned_window_ms > max_window_ms then
+    learned_window_ms = max_window_ms
+  end
   local next_epoch = epoch + 1
   redis.call(
     "HSET",

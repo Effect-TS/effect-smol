@@ -1,6 +1,6 @@
 import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
-import { Effect, Fiber, Layer, Ref, Stream } from "effect"
+import { Duration, Effect, Fiber, Layer, Ref, Stream } from "effect"
 import { TestClock } from "effect/testing"
 import { HttpClient, HttpClientResponse } from "effect/unstable/http"
 import { RateLimiter } from "effect/unstable/persistence"
@@ -577,6 +577,56 @@ describe("HttpClient", () => {
         yield* TestClock.adjust("10 seconds")
         yield* Fiber.join(fiberA)
         strictEqual(yield* Ref.get(attemptsA), 2)
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory)))
+
+    it.effect("prefers explicit RateLimit reset headers over adaptive Retry-After feedback", () =>
+      Effect.gen(function*() {
+        const attempts = yield* Ref.make(0)
+        const limiter = yield* RateLimiter.make
+        const client = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(attempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 429,
+                    headers: {
+                      "retry-after": "60",
+                      "x-ratelimit-limit": "1",
+                      "x-ratelimit-reset-after": "1"
+                    }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter,
+            key: "explicit",
+            limit: 100,
+            window: "1 minute"
+          })
+        )
+
+        const retry = yield* client.get("http://test/").pipe(Effect.forkChild({ startImmediately: true }))
+        strictEqual(yield* Ref.get(attempts), 1)
+
+        yield* TestClock.adjust(Duration.millis(999))
+        strictEqual(yield* Ref.get(attempts), 1)
+
+        yield* TestClock.adjust(Duration.millis(1))
+        yield* Fiber.join(retry)
+        strictEqual(yield* Ref.get(attempts), 2)
+
+        const next = yield* client.get("http://test/").pipe(Effect.forkChild({ startImmediately: true }))
+        yield* TestClock.adjust(Duration.millis(999))
+        strictEqual(yield* Ref.get(attempts), 2)
+
+        yield* TestClock.adjust(Duration.millis(1))
+        yield* Fiber.join(next)
+        strictEqual(yield* Ref.get(attempts), 3)
       }).pipe(Effect.provide(RateLimiter.layerStoreMemory)))
   })
 })

@@ -1111,18 +1111,20 @@ export const withRateLimiter: {
         return Effect.succeed<Duration.Duration | undefined>(undefined)
       }
       const retryAfter = parseRetryAfter(clock, getHeader(response.headers, "retry-after"))
-      return retryAfter === undefined
-        ? Effect.succeed<Duration.Duration | undefined>(undefined)
-        : Effect.as(
-          options.limiter.adaptiveFeedback({
-            key,
-            epoch: adaptive.epoch,
-            tokens,
-            status: response.status,
-            retryAfter
-          }),
-          retryAfter
-        )
+      if (retryAfter === undefined) {
+        return Effect.succeed<Duration.Duration | undefined>(undefined)
+      }
+      const delay = parseRateLimitWindow(clock, response.headers) ?? retryAfter
+      return Effect.as(
+        options.limiter.adaptiveFeedback({
+          key,
+          epoch: adaptive.epoch,
+          tokens,
+          status: response.status,
+          retryAfter: delay
+        }),
+        delay
+      )
     }
     return Effect.flatMap(
       options.limiter.consume({
