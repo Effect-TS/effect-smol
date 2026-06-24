@@ -579,6 +579,68 @@ describe("HttpClient", () => {
         yield* Fiber.join(fiber)
       }).pipe(Effect.provide(RateLimiter.layerStoreMemory)))
 
+    it.effect("can disable adaptive learning without disabling response inspection", () =>
+      Effect.gen(function*() {
+        const disabledAttempts = yield* Ref.make(0)
+        const enabledAttempts = yield* Ref.make(0)
+        const disabledLimiter = yield* RateLimiter.make
+        const enabledLimiter = yield* RateLimiter.make
+        const disabledClient = HttpClient.make((request) =>
+          Effect.map(
+            Ref.updateAndGet(disabledAttempts, (n) => n + 1),
+            (attempt) =>
+              HttpClientResponse.fromWeb(
+                request,
+                attempt === 1
+                  ? new Response(null, {
+                    status: 429,
+                    headers: { "retry-after": "10" }
+                  })
+                  : new Response(null, { status: 200 })
+              )
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter: disabledLimiter,
+            key: "adaptive-disabled",
+            limit: 100,
+            window: "1 minute",
+            disableAdaptiveLearning: true
+          })
+        )
+        const enabledClient = HttpClient.make((request) =>
+          Effect.as(
+            Ref.update(enabledAttempts, (n) => n + 1),
+            HttpClientResponse.fromWeb(request, new Response(null, { status: 200 }))
+          )
+        ).pipe(
+          HttpClient.withRateLimiter({
+            limiter: enabledLimiter,
+            key: "adaptive-disabled",
+            limit: 100,
+            window: "1 minute"
+          })
+        )
+
+        const disabled = yield* disabledClient.get("http://test/disabled").pipe(
+          Effect.forkChild({ startImmediately: true })
+        )
+        strictEqual(yield* Ref.get(disabledAttempts), 1)
+
+        const enabled = yield* enabledClient.get("http://test/enabled").pipe(
+          Effect.forkChild({ startImmediately: true })
+        )
+        strictEqual(yield* Ref.get(enabledAttempts), 1)
+        yield* Fiber.join(enabled)
+
+        yield* TestClock.adjust("9 seconds")
+        strictEqual(yield* Ref.get(disabledAttempts), 1)
+
+        yield* TestClock.adjust("1 second")
+        yield* Fiber.join(disabled)
+        strictEqual(yield* Ref.get(disabledAttempts), 2)
+      }).pipe(Effect.provide(RateLimiter.layerStoreMemory)))
+
     it.effect("keeps adaptive Retry-After state isolated by resolved key", () =>
       Effect.gen(function*() {
         const attemptsA = yield* Ref.make(0)

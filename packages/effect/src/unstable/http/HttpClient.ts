@@ -1024,6 +1024,10 @@ export declare namespace WithRateLimiter {
      * Disable automatic limits updates from response headers.
      */
     readonly disableResponseInspection?: boolean | undefined
+    /**
+     * Disable adaptive learning from `Retry-After` responses.
+     */
+    readonly disableAdaptiveLearning?: boolean | undefined
   }
 }
 
@@ -1066,6 +1070,7 @@ export const withRateLimiter: {
   const resolveTokens: (request: HttpClientRequest.HttpClientRequest) => number = typeof tokensOption === "function"
     ? tokensOption
     : constant(tokensOption ?? 1)
+  const adaptiveLearningEnabled = !options.disableAdaptiveLearning
 
   const getState = (key: string): RateLimiterState => {
     const current = states.get(key)
@@ -1104,7 +1109,7 @@ export const withRateLimiter: {
     }
     const inspectResponse = (
       response: HttpClientResponse.HttpClientResponse,
-      adaptive: RateLimiter.AdaptiveConsumeResult
+      adaptive: RateLimiter.AdaptiveConsumeResult | undefined
     ) => {
       onResponse?.(clock, key, response.headers, tokens)
       if (options.disableResponseInspection || response.status !== 429) {
@@ -1115,6 +1120,9 @@ export const withRateLimiter: {
         return Effect.succeed<Duration.Duration | undefined>(undefined)
       }
       const delay = parseRateLimitWindow(clock, response.headers) ?? retryAfter
+      if (adaptive === undefined) {
+        return Effect.succeed<Duration.Duration | undefined>(delay)
+      }
       return Effect.as(
         options.limiter.adaptiveFeedback({
           key,
@@ -1140,8 +1148,33 @@ export const withRateLimiter: {
           HttpClientResponse.HttpClientResponse,
           E | RateLimiter.RateLimiterError,
           R
-        > =>
-          Effect.flatMap(
+        > => {
+          const runRequest = (adaptive: RateLimiter.AdaptiveConsumeResult | undefined) => {
+            const request = Effect.matchEffect(effect, {
+              onSuccess(response) {
+                return Effect.flatMap(inspectResponse(response, adaptive), (retryAfter) => {
+                  if (response.status !== 429) return Effect.succeed(response)
+                  return retry(retryAfter)
+                })
+              },
+              onFailure(error) {
+                if (isTooManyRequestsHttpClientError(error)) {
+                  return Effect.flatMap(
+                    inspectResponse(error.reason.response, adaptive),
+                    (retryAfter) => retry(retryAfter)
+                  )
+                }
+                return Effect.fail(error)
+              }
+            })
+            return adaptive === undefined || Duration.isZero(adaptive.delay)
+              ? request
+              : Effect.delay(request, adaptive.delay)
+          }
+          if (!adaptiveLearningEnabled) {
+            return runRequest(undefined)
+          }
+          return Effect.flatMap(
             options.limiter.adaptiveConsume({
               key,
               tokens,
@@ -1152,24 +1185,10 @@ export const withRateLimiter: {
               if (!Duration.isZero(adaptive.delay) && adaptive.phase === "cooldown") {
                 return Effect.flatMap(Effect.sleep(adaptive.delay), runAdaptive)
               }
-              const request = Effect.matchEffect(effect, {
-                onSuccess(response) {
-                  return Effect.flatMap(inspectResponse(response, adaptive), (retryAfter) => {
-                    if (response.status !== 429) return Effect.succeed(response)
-                    return retry(retryAfter)
-                  })
-                },
-                onFailure(error) {
-                  if (isTooManyRequestsHttpClientError(error)) {
-                    return Effect.flatMap(inspectResponse(error.reason.response, adaptive), (retryAfter) =>
-                      retry(retryAfter))
-                  }
-                  return Effect.fail(error)
-                }
-              })
-              return Duration.isZero(adaptive.delay) ? request : Effect.delay(request, adaptive.delay)
+              return runRequest(adaptive)
             }
           )
+        }
         return Duration.isZero(delay) ? runAdaptive() : Effect.flatMap(Effect.sleep(delay), runAdaptive)
       }
     )
