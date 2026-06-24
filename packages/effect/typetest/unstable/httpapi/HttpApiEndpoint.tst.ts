@@ -4,6 +4,17 @@ import { HttpApiEndpoint, HttpApiError, HttpApiSchema } from "effect/unstable/ht
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
+  describe("Name", () => {
+    it("should extract endpoint names", () => {
+      const a = HttpApiEndpoint.get("a", "/a")
+      const b = HttpApiEndpoint.get("b", "/b")
+
+      expect<HttpApiEndpoint.Name<typeof a>>().type.toBe<"a">()
+      expect<HttpApiEndpoint.Name<typeof a | typeof b>>().type.toBe<"a" | "b">()
+      expect<HttpApiEndpoint.Name<unknown>>().type.toBe<never>()
+    })
+  })
+
   describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")

@@ -493,7 +493,11 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client<Groups, E, R>, never, HttpApiGroup.MiddlewareClient<Groups>> => {
+): Effect.Effect<
+  Client<Groups, Exclude<E, HttpClientError.HttpClientError>, R>,
+  never,
+  HttpApiGroup.MiddlewareClient<Groups>
+> => {
   const client: Record<string, Record<string, any>> = {}
   return makeClient(api, {
     ...options,

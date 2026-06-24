@@ -535,6 +535,44 @@ describe("HttpApiClient", () => {
     })
   })
 
+  describe("makeWith", () => {
+    it("should normalize the default HttpClientError for generic clients", () => {
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+        api: HttpApi.HttpApi<ApiId, Groups>,
+        httpClient: HttpClient.HttpClient
+      ): Effect.Effect<
+        HttpApiClient.Client<Groups>,
+        never,
+        HttpApiGroup.MiddlewareClient<Groups>
+      > => HttpApiClient.makeWith(api, { httpClient })
+
+      expect(makeClient).type.toBeCallableWith(
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpClient.HttpClient>()
+      )
+    })
+
+    it("should preserve custom client errors when normalizing HttpClientError", () => {
+      class CustomClientError extends Schema.ErrorClass<CustomClientError>("CustomClientError")({
+        _tag: Schema.tag("CustomClientError")
+      }) {}
+
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+        api: HttpApi.HttpApi<ApiId, Groups>,
+        httpClient: HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>
+      ): Effect.Effect<
+        HttpApiClient.Client<Groups, CustomClientError>,
+        never,
+        HttpApiGroup.MiddlewareClient<Groups>
+      > => HttpApiClient.makeWith(api, { httpClient })
+
+      expect(makeClient).type.toBeCallableWith(
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>>()
+      )
+    })
+  })
+
   describe("client middleware", () => {
     it("requiredForClient requires layer and includes required client errors", () => {
       class RequiredClientError extends Schema.ErrorClass<RequiredClientError>("RequiredClientError")({
