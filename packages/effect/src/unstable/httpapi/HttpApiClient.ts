@@ -194,17 +194,21 @@ export declare namespace Client {
       never
 }
 
-type UrlBuilderRequest<Endpoint extends HttpApiEndpoint.Any> = (
-  & ([HttpApiEndpoint.Params<Endpoint>["Type"]] extends [never] ? {}
-    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Type"] })
-  & ([HttpApiEndpoint.Query<Endpoint>["Type"]] extends [never] ? {}
-    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Type"] })
+type UrlBuilderRequestPart<Key extends string, Value> = [Value] extends [never] ? {}
+  : { readonly [K in Key]: Value }
+
+type UrlBuilderRequest<
+  Endpoint extends HttpApiEndpoint.Any,
+  Params = HttpApiEndpoint.Params<Endpoint>["Type"],
+  Query = HttpApiEndpoint.Query<Endpoint>["Type"]
+> = (
+  & UrlBuilderRequestPart<"params", Params>
+  & UrlBuilderRequestPart<"query", Query>
 ) extends infer Request ? keyof Request extends never ? void | undefined : Request
   : never
 
-type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<Endpoint>] extends [void | undefined] ?
-  [request?: UrlBuilderRequest<Endpoint>]
-  : [request: UrlBuilderRequest<Endpoint>]
+type UrlBuilderArgs<Request> = [Request] extends [void | undefined] ? [request?: Request]
+  : [request: Request]
 
 /**
  * The type-safe URL builder shape for an HTTP API, mirroring the generated client
@@ -230,7 +234,7 @@ type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
 }
 
 type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
-  ...args: UrlBuilderArgs<Endpoint>
+  ...args: UrlBuilderArgs<UrlBuilderRequest<Endpoint>>
 ) => string
 
 type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups, { readonly topLevel: true }> extends

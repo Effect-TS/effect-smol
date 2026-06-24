@@ -76,6 +76,12 @@ describe("HttpApiClient", () => {
                   page: Schema.FiniteFromString
                 }
               }),
+              HttpApiEndpoint.get("searchUsers", "/users", {
+                disableCodecs: true,
+                query: {
+                  q: Schema.String
+                }
+              }),
               HttpApiEndpoint.get("health", "/health", {
                 disableCodecs: true
               })
@@ -87,9 +93,20 @@ describe("HttpApiClient", () => {
       })
 
       expect(builder.users.getUser({ params: { id: 123 }, query: { page: 1 } })).type.toBe<string>()
+      expect<Parameters<typeof builder.users.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly query: { readonly page: number } }
+      >()
+      expect(builder.users.searchUsers({ query: { q: "Ada" } })).type.toBe<string>()
+      expect<Parameters<typeof builder.users.searchUsers>[0]>().type.toBe<
+        { readonly query: { readonly q: string } }
+      >()
       expect(builder.users.health()).type.toBe<string>()
+      expect<Parameters<typeof builder.users.health>[0]>().type.toBe<void | undefined>()
       expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: "123" }, query: { page: 1 } })
       expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: 123 }, query: { page: "1" } })
+      expect(builder.users.searchUsers).type.not.toBeCallableWith({ params: { id: 123 } })
+      expect(builder.users.health).type.not.toBeCallableWith({ params: { id: 123 } })
+      expect(builder.users.health).type.not.toBeCallableWith({ query: { q: "Ada" } })
       expect(builder.users).type.not.toHaveProperty("missing")
     })
 

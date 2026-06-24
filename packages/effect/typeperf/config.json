@@ -121,6 +121,14 @@
           "file": "suites/httpapi/fixtures/endpoint-count-1000.ts"
         },
         {
+          "name": "client-methods-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-count-1000.ts"
+        },
+        {
+          "name": "url-builder-count-1000",
+          "file": "suites/httpapi/fixtures/url-builder-count-1000.ts"
+        },
+        {
           "name": "builder-handlers-count-10",
           "file": "suites/httpapi/fixtures/builder-handlers-count-10.ts"
         },

@@ -28,5 +28,11 @@
   },
   "builder-handlers-count-1000": {
     "maxDelta": 13974300
+  },
+  "client-methods-count-1000": {
+    "maxDelta": 429906
+  },
+  "url-builder-count-1000": {
+    "maxDelta": 183064
   }
 }
