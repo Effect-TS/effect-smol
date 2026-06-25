@@ -19,6 +19,7 @@
     { "path": "packages/platform-node-shared" },
     { "path": "packages/sql/clickhouse" },
     { "path": "packages/sql/d1" },
+    { "path": "packages/sql/duckdb" },
     { "path": "packages/sql/libsql" },
     { "path": "packages/sql/mysql2" },
     { "path": "packages/sql/mssql" },

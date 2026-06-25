@@ -16,6 +16,7 @@
     "@effect/platform-node": "workspace:*",
     "@effect/sql-clickhouse": "workspace:*",
     "@effect/sql-d1": "workspace:*",
+    "@effect/sql-duckdb": "workspace:*",
     "@effect/sql-libsql": "workspace:*",
     "@effect/sql-mssql": "workspace:*",
     "@effect/sql-mysql2": "workspace:*",
