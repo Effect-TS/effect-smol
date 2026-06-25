@@ -173,6 +173,18 @@
           "file": "suites/httpapi/fixtures/builder-handle-chain-erased-handler-count-1000.ts"
         },
         {
+          "name": "builder-handle-chain-pretyped-handlers-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-pretyped-handlers-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-chain-constant-body-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-constant-body-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-chain-unused-request-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-unused-request-count-1000.ts"
+        },
+        {
           "name": "builder-handle-all-count-10",
           "file": "suites/httpapi/fixtures/builder-handle-all-count-10.ts"
         },

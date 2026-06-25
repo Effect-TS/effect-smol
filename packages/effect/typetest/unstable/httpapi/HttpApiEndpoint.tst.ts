@@ -193,6 +193,52 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
+  describe("Handler", () => {
+    it("should expose decoded request parts to normal handlers", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        headers: {
+          authorization: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = Parameters<HttpApiEndpoint.Handler<typeof endpoint, never, never>>[0]
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request["query"]>().type.toBe<{ readonly page: number }>()
+      expect<Request["headers"]>().type.toBe<{ readonly authorization: string }>()
+      expect<Request["payload"]>().type.toBe<{ readonly name: string }>()
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+
+    it("should expose decoded request parts to raw handlers without payload", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = Parameters<HttpApiEndpoint.HandlerRaw<typeof endpoint, never, never>>[0]
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request>().type.not.toHaveProperty("payload")
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+  })
+
   describe("success option", () => {
     it("should default to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")

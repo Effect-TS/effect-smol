@@ -22,11 +22,11 @@ Type instantiations for the handler-chain stress test improved as follows:
 
 | endpoints |        before |      after |
 | --------: | ------------: | ---------: |
-|        10 |        32,523 |     10,679 |
-|        50 |       560,763 |     68,279 |
-|       100 |     2,139,063 |    194,279 |
-|       500 | OOM / SIGKILL |  3,362,279 |
-|      1000 | OOM / SIGKILL | 12,722,279 |
+|        10 |        32,523 |      9,504 |
+|        50 |       560,763 |     63,904 |
+|       100 |     2,139,063 |    185,904 |
+|       500 | OOM / SIGKILL |  3,321,904 |
+|      1000 | OOM / SIGKILL | 12,641,904 |
 
 Type instantiations for generated client stress tests are now covered separately:
 
@@ -40,16 +40,16 @@ Additional targeted stress tests:
 
 | fixture                     |     before |      after |
 | --------------------------- | ---------: | ---------: |
-| raw handler chain, 1000 eps | 13,959,380 | 12,720,277 |
+| raw handler chain, 1000 eps | 13,959,380 | 12,638,902 |
 
 For handler groups, `handleAll` avoids the fluent-chain handled-name growth:
 
 | fixture                       | fluent chain | `handleAll` |
 | ----------------------------- | -----------: | ----------: |
-| handlers, 10 eps              |       10,679 |       7,910 |
-| handlers, 50 eps              |       68,279 |      28,470 |
-| handlers, 100 eps             |      194,279 |      54,170 |
-| handlers, 500 eps             |    3,362,279 |     259,770 |
-| handlers, 1000 eps            |   12,722,279 |     516,770 |
-| erased handler, 1000 eps      |    7,351,811 |     291,964 |
-| two handler batches, 1000 eps |   12,722,279 |     551,932 |
+| handlers, 10 eps              |        9,504 |       7,095 |
+| handlers, 50 eps              |       63,904 |      25,895 |
+| handlers, 100 eps             |      185,904 |      49,395 |
+| handlers, 500 eps             |    3,321,904 |     237,395 |
+| handlers, 1000 eps            |   12,641,904 |     472,395 |
+| erased handler, 1000 eps      |    7,351,727 |     291,880 |
+| two handler batches, 1000 eps |   12,641,904 |     507,557 |

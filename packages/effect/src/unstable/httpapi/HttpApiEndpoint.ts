@@ -429,19 +429,13 @@ type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType>
  * @category models
  * @since 4.0.0
  */
-export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? RequestFromParts<Endpoint, _Params["Type"], _Query["Type"], _Payload["Type"], _Headers["Type"]>
+export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestFromParts<
+    Endpoint,
+    Endpoint["~Params"]["Type"],
+    Endpoint["~Query"]["Type"],
+    Endpoint["~Payload"]["Type"],
+    Endpoint["~Headers"]["Type"]
+  >
   : {}
 
 type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
@@ -462,19 +456,12 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
  * @category models
  * @since 4.0.0
  */
-export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? RequestRawFromParts<Endpoint, _Params["Type"], _Query["Type"], _Headers["Type"]>
+export type RequestRaw<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestRawFromParts<
+    Endpoint,
+    Endpoint["~Params"]["Type"],
+    Endpoint["~Query"]["Type"],
+    Endpoint["~Headers"]["Type"]
+  >
   : {}
 
 /**
