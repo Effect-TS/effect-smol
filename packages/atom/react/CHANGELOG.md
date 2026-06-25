@@ -1,5 +1,12 @@
 # @effect/atom-react
 
+## 4.0.0-beta.90
+
+### Patch Changes
+
+- Updated dependencies [[`d237fdf`](https://github.com/Effect-TS/effect-smol/commit/d237fdf726481f76eb52a6196e111b24122bc3d5)]:
+  - effect@4.0.0-beta.90
+
 ## 4.0.0-beta.89
 
 ### Patch Changes

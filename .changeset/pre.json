@@ -241,6 +241,7 @@
     "fix-catch-orelse-error-erasure",
     "fix-class-constructor-defaults",
     "fix-cli-mixed-global-flag-context",
+    "fix-config-array-default",
     "fix-config-withDefault",
     "fix-config-withdefault-filter",
     "fix-cron-next-missing-day-overflow",
