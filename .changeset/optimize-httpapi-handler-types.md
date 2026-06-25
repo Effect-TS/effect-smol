@@ -22,11 +22,11 @@ Type instantiations for the handler-chain stress test improved as follows:
 
 | endpoints |        before |      after |
 | --------: | ------------: | ---------: |
-|        10 |        32,523 |     13,177 |
-|        50 |       560,763 |     82,377 |
-|       100 |     2,139,063 |    227,377 |
-|       500 | OOM / SIGKILL |  3,727,377 |
-|      1000 | OOM / SIGKILL | 13,748,270 |
+|        10 |        32,523 |     10,679 |
+|        50 |       560,763 |     68,279 |
+|       100 |     2,139,063 |    194,279 |
+|       500 | OOM / SIGKILL |  3,362,279 |
+|      1000 | OOM / SIGKILL | 12,722,279 |
 
 Type instantiations for generated client stress tests are now covered separately:
 
@@ -40,12 +40,12 @@ Additional targeted stress tests:
 
 | fixture                     |     before |      after |
 | --------------------------- | ---------: | ---------: |
-| raw handler chain, 1000 eps | 13,959,380 | 13,746,268 |
+| raw handler chain, 1000 eps | 13,959,380 | 12,720,277 |
 
 For large groups, `handleAll` avoids the fluent-chain handled-name growth:
 
 | fixture                       | fluent chain | `handleAll` |
 | ----------------------------- | -----------: | ----------: |
-| handlers, 1000 eps            |   13,748,270 |     529,761 |
-| erased handler, 1000 eps      |    8,377,802 |     304,955 |
-| two handler batches, 1000 eps |   13,748,270 |     564,923 |
+| handlers, 1000 eps            |   12,722,279 |     516,770 |
+| erased handler, 1000 eps      |    7,351,811 |     291,964 |
+| two handler batches, 1000 eps |   12,722,279 |     551,932 |
