@@ -42,10 +42,14 @@ Additional targeted stress tests:
 | --------------------------- | ---------: | ---------: |
 | raw handler chain, 1000 eps | 13,959,380 | 12,720,277 |
 
-For large groups, `handleAll` avoids the fluent-chain handled-name growth:
+For handler groups, `handleAll` avoids the fluent-chain handled-name growth:
 
 | fixture                       | fluent chain | `handleAll` |
 | ----------------------------- | -----------: | ----------: |
+| handlers, 10 eps              |       10,679 |       7,910 |
+| handlers, 50 eps              |       68,279 |      28,470 |
+| handlers, 100 eps             |      194,279 |      54,170 |
+| handlers, 500 eps             |    3,362,279 |     259,770 |
 | handlers, 1000 eps            |   12,722,279 |     516,770 |
 | erased handler, 1000 eps      |    7,351,811 |     291,964 |
 | two handler batches, 1000 eps |   12,722,279 |     551,932 |

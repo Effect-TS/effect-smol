@@ -64,5 +64,17 @@
   },
   "builder-handle-all-two-batches-count-1000": {
     "maxDelta": 551932
+  },
+  "builder-handle-all-count-10": {
+    "maxDelta": 7910
+  },
+  "builder-handle-all-count-50": {
+    "maxDelta": 28470
+  },
+  "builder-handle-all-count-100": {
+    "maxDelta": 54170
+  },
+  "builder-handle-all-count-500": {
+    "maxDelta": 259770
   }
 }

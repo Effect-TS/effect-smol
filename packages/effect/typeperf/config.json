@@ -173,6 +173,22 @@
           "file": "suites/httpapi/fixtures/builder-handle-chain-erased-handler-count-1000.ts"
         },
         {
+          "name": "builder-handle-all-count-10",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-10.ts"
+        },
+        {
+          "name": "builder-handle-all-count-50",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-50.ts"
+        },
+        {
+          "name": "builder-handle-all-count-100",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-100.ts"
+        },
+        {
+          "name": "builder-handle-all-count-500",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-500.ts"
+        },
+        {
           "name": "builder-handle-all-count-1000",
           "file": "suites/httpapi/fixtures/builder-handle-all-count-1000.ts"
         },
