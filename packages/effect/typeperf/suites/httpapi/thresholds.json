@@ -27,7 +27,7 @@
     "maxDelta": 3727377
   },
   "builder-handlers-count-1000": {
-    "maxDelta": 13892378
+    "maxDelta": 13748270
   },
   "client-methods-count-1000": {
     "maxDelta": 396592
@@ -36,7 +36,7 @@
     "maxDelta": 182039
   },
   "builder-raw-handlers-count-1000": {
-    "maxDelta": 13890376
+    "maxDelta": 13746268
   },
   "client-endpoint-method-count-1000": {
     "maxDelta": 96012

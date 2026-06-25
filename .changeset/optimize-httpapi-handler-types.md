@@ -12,7 +12,7 @@ instantiations.
 This change makes the type model more direct:
 
 - store group endpoints in a name-keyed type map and track handled endpoint names directly
-- read endpoint names, schemas, middleware, and client constraints from lightweight metadata
+- read endpoint names, schemas, middleware, and request constraints from lightweight metadata
 - derive handler, client method, and URL builder types from cached request/response parts
 - remove duplicated error/client-error contributions while keeping cache helpers internal
 - align duplicate handler registration typing with the existing runtime last-write-wins behavior
@@ -25,7 +25,7 @@ Type instantiations for the handler-chain stress test improved as follows:
 |        50 |       560,763 |     82,377 |
 |       100 |     2,139,063 |    227,377 |
 |       500 | OOM / SIGKILL |  3,727,377 |
-|      1000 | OOM / SIGKILL | 13,892,378 |
+|      1000 | OOM / SIGKILL | 13,748,270 |
 
 Type instantiations for generated client stress tests are now covered separately:
 
@@ -39,4 +39,4 @@ Additional targeted stress tests:
 
 | fixture                     |     before |      after |
 | --------------------------- | ---------: | ---------: |
-| raw handler chain, 1000 eps | 13,959,380 | 13,890,376 |
+| raw handler chain, 1000 eps | 13,959,380 | 13,746,268 |

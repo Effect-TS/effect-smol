@@ -1,6 +1,6 @@
 import { type Effect, hole, Schema, type Stream, Struct } from "effect"
 import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse"
-import { HttpApiEndpoint, HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiError, HttpApiMiddleware, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
@@ -328,6 +328,46 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.ServerServices<typeof endpoint>>().type.toBe<"EventsEncoding" | "ErrorEncoding">()
       expect<HttpApiEndpoint.ClientServices<typeof endpoint>>().type.toBe<"EventsDecoding" | "ErrorDecoding">()
     })
+
+    it("should include endpoint and middleware error decoding services", () => {
+      type EndpointError = { readonly reason: string }
+      type MiddlewareError = { readonly reason: string }
+
+      const EndpointError = hole<Schema.Codec<EndpointError, EndpointError, "EndpointErrorDecoding", never>>()
+      const MiddlewareError = hole<Schema.Codec<MiddlewareError, MiddlewareError, "MiddlewareErrorDecoding", never>>()
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.ErrorServicesDecode<typeof endpoint>>().type.toBe<
+        "EndpointErrorDecoding" | "MiddlewareErrorDecoding"
+      >()
+    })
+
+    it("should include endpoint and middleware error encoding services", () => {
+      type EndpointError = { readonly reason: string }
+      type MiddlewareError = { readonly reason: string }
+
+      const EndpointError = hole<Schema.Codec<EndpointError, EndpointError, never, "EndpointErrorEncoding">>()
+      const MiddlewareError = hole<Schema.Codec<MiddlewareError, MiddlewareError, never, "MiddlewareErrorEncoding">>()
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.ErrorServicesEncode<typeof endpoint>>().type.toBe<
+        "EndpointErrorEncoding" | "MiddlewareErrorEncoding"
+      >()
+    })
   })
 
   describe("error option", () => {
@@ -356,6 +396,26 @@ describe("HttpApiEndpoint", () => {
           | Schema.Struct<{ readonly a: Schema.String }>
           | Schema.Uint8Array
         >
+      >()
+    })
+
+    it("should include endpoint and middleware errors", () => {
+      type EndpointError = { readonly _tag: "EndpointError" }
+      type MiddlewareError = { readonly _tag: "MiddlewareError" }
+
+      const EndpointError = Schema.Struct({ _tag: Schema.Literal("EndpointError") })
+      const MiddlewareError = Schema.Struct({ _tag: Schema.Literal("MiddlewareError") })
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.Errors<typeof endpoint>>().type.toBe<
+        EndpointError | MiddlewareError
       >()
     })
 

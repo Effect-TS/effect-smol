@@ -131,7 +131,7 @@ export declare namespace Client {
    */
   export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
     [HttpApiGroup.WithName<Groups, GroupName>] extends [
-      HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints extends HttpApiEndpoint.ConstraintClient>
+      HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints extends HttpApiEndpoint.ConstraintRequest>
     ] ? {
         readonly [Endpoint in _Endpoints as HttpApiEndpoint.Name<Endpoint>]: Method<Endpoint, E, R>
       } :
@@ -146,7 +146,7 @@ export declare namespace Client {
    * @since 4.0.0
    */
   export type Method<
-    Endpoint extends HttpApiEndpoint.ConstraintClient,
+    Endpoint extends HttpApiEndpoint.ConstraintRequest,
     E,
     R
   > = <Mode extends ResponseMode = ResponseMode>(
@@ -187,7 +187,7 @@ export declare namespace Client {
   export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> =
     Extract<Groups, { readonly topLevel: true }> extends
       HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
-      _Endpoints extends infer Endpoint extends HttpApiEndpoint.ConstraintClient ?
+      _Endpoints extends infer Endpoint extends HttpApiEndpoint.ConstraintRequest ?
         [HttpApiEndpoint.Name<Endpoint>, Method<Endpoint, E, R>]
       : never :
       never
@@ -558,9 +558,9 @@ type EndpointReturn<
   EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
   E,
   R,
-  Endpoint extends HttpApiEndpoint.ConstraintClient = Extract<
+  Endpoint extends HttpApiEndpoint.ConstraintRequest = Extract<
     HttpApiEndpoint.WithName<HttpApiGroup.EndpointsWithName<Groups, GroupName>, EndpointName>,
-    HttpApiEndpoint.ConstraintClient
+    HttpApiEndpoint.ConstraintRequest
   >
 > = Effect.Effect<Client.Method<Endpoint, E, R>, never, HttpApiEndpoint.MiddlewareClient<Endpoint>>
 
