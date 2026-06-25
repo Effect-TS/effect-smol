@@ -675,6 +675,16 @@ describe("String", () => {
     it("converts to CONSTANT_CASE", () => {
       strictEqual(S.constantCase("hello world"), "HELLO_WORLD")
       strictEqual(S.constantCase("helloWorld"), "HELLO_WORLD")
+      strictEqual(S.constantCase("api-v2 xml"), "API_V_2_XML")
+    })
+  })
+
+  describe("configCase", () => {
+    it("converts to CONFIG_CASE", () => {
+      strictEqual(S.configCase("hello world"), "HELLO_WORLD")
+      strictEqual(S.configCase("helloWorld"), "HELLO_WORLD")
+      strictEqual(S.configCase("api-v2 xml"), "API_V2_XML")
+      strictEqual(S.configCase("field2Value"), "FIELD2_VALUE")
     })
   })
 

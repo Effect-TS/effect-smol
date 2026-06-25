@@ -1266,12 +1266,21 @@ export const noCase: {
 }): string => {
   const delimiter = options?.delimiter ?? " "
   const transform = options?.transform ?? toLowerCase
-  const result = input
-    .replace(SPLIT_REGEXP[0], "$1\0$2")
-    .replace(SPLIT_REGEXP[1], "$1\0$2")
-    .replace(SPLIT_REGEXP[2], "$1\0$2")
-    .replace(SPLIT_REGEXP[3], "$1\0$2")
-    .replace(STRIP_REGEXP, "\0")
+  return normalizeCase(input, SPLIT_REGEXP, STRIP_REGEXP, delimiter, transform)
+})
+
+const normalizeCase = (
+  input: string,
+  splitRegExp: ReadonlyArray<RegExp>,
+  stripRegExp: RegExp,
+  delimiter: string,
+  transform: (part: string, index: number, parts: ReadonlyArray<string>) => string
+): string => {
+  let result = input
+  for (const regexp of splitRegExp) {
+    result = result.replace(regexp, "$1\0$2")
+  }
+  result = result.replace(stripRegExp, "\0")
   let start = 0
   let end = result.length
   // Trim the delimiter from around the output string.
@@ -1284,11 +1293,14 @@ export const noCase: {
 
   // Transform each token independently.
   return result.slice(start, end).split("\0").map(transform).join(delimiter)
-})
+}
 
 // Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case")
 // and digit boundaries ("camel2case" -> "camel 2 case").
 const SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g, /([A-Z])([0-9])/gi, /([0-9])([A-Z])/gi]
+
+// Config paths preserve digit groups such as "v2" while still supporting camel case.
+const CONFIG_SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g]
 
 // Remove all non-word characters.
 const STRIP_REGEXP = /[^A-Z0-9]+/gi
@@ -1358,6 +1370,7 @@ export const camelCase: (self: string) => string = noCase({
  * @see {@link kebabCase} for lowercase hyphen-separated output
  * @see {@link camelCase} for lower-initial camelCase output
  * @see {@link pascalCase} for upper-initial PascalCase output
+ * @see {@link configCase} for configuration key casing that preserves numeric word groups
  * @see {@link noCase} for configurable delimiters and part transforms
  *
  * @category transforming
@@ -1367,6 +1380,27 @@ export const constantCase: (self: string) => string = noCase({
   delimiter: "_",
   transform: toUpperCase
 })
+
+/**
+ * Converts a string to CONFIG_CASE (uppercase with underscores) for
+ * configuration keys.
+ *
+ * **When to use**
+ *
+ * Use to normalize configuration path segments into environment-variable-like
+ * keys while preserving numeric word groups such as `v2`.
+ *
+ * **Details**
+ *
+ * Unlike {@link constantCase}, digit-letter boundaries are not split. For
+ * example, `"api-v2 xml"` becomes `"API_V2_XML"`.
+ *
+ * @see {@link constantCase} for standard uppercase underscore-separated output
+ * @category transforming
+ * @since 4.0.0
+ */
+export const configCase: (self: string) => string = (self) =>
+  normalizeCase(self, CONFIG_SPLIT_REGEXP, STRIP_REGEXP, "_", toUpperCase)
 
 /**
  * Converts a string to kebab-case (lowercase with hyphens).
