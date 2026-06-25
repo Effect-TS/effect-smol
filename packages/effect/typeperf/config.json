@@ -153,6 +153,38 @@
           "file": "suites/httpapi/fixtures/builder-handlers-count-1000.ts"
         },
         {
+          "name": "builder-handlers-from-group-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handlers-from-group-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-direct-distinct-names-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-direct-distinct-names-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-direct-repeated-name-1000-endpoints-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-direct-repeated-name-1000-endpoints-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-direct-repeated-name-1-endpoint-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-direct-repeated-name-1-endpoint-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-chain-erased-handler-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-erased-handler-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-all-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-all-erased-handler-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-all-erased-handler-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-all-two-batches-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-all-two-batches-count-1000.ts"
+        },
+        {
           "name": "builder-raw-handlers-count-1000",
           "file": "suites/httpapi/fixtures/builder-raw-handlers-count-1000.ts"
         }

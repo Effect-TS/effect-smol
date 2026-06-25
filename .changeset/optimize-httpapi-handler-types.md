@@ -16,6 +16,7 @@ This change makes the type model more direct:
 - derive handler, client method, and URL builder types from cached request/response parts
 - remove duplicated error/client-error contributions while keeping cache helpers internal
 - align duplicate handler registration typing with the existing runtime last-write-wins behavior
+- add `HttpApiBuilder.Handlers.handleAll` to register name-keyed handler batches
 
 Type instantiations for the handler-chain stress test improved as follows:
 
@@ -40,3 +41,11 @@ Additional targeted stress tests:
 | fixture                     |     before |      after |
 | --------------------------- | ---------: | ---------: |
 | raw handler chain, 1000 eps | 13,959,380 | 13,746,268 |
+
+For large groups, `handleAll` avoids the fluent-chain handled-name growth:
+
+| fixture                       | fluent chain | `handleAll` |
+| ----------------------------- | -----------: | ----------: |
+| handlers, 1000 eps            |   13,748,270 |     529,761 |
+| erased handler, 1000 eps      |    8,377,802 |     304,955 |
+| two handler batches, 1000 eps |   13,748,270 |     564,923 |

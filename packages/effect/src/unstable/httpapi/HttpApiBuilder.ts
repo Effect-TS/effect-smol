@@ -173,6 +173,61 @@ type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
 }
 
+type HandlerRequirements<
+  Endpoint extends HttpApiEndpoint.Any,
+  R1
+> =
+  | HttpApiEndpoint.Middleware<Endpoint>
+  | HttpApiEndpoint.MiddlewareServices<Endpoint>
+  | (HttpApiEndpoint.ExcludeProvided<
+    Endpoint,
+    R1 | HttpApiEndpoint.ServerServices<Endpoint>
+  > extends infer _R ? _R extends never ? never : HttpRouter.Request<"Requires", _R> : never)
+
+type HandlerOptions = { readonly uninterruptible?: boolean | undefined }
+
+type HandleAllEntry<Endpoint extends HttpApiEndpoint.Any> =
+  | HttpApiEndpoint.Handler<
+    Endpoint,
+    HttpApiEndpoint.MiddlewareError<Endpoint>,
+    any
+  >
+  | {
+    readonly handler: HttpApiEndpoint.Handler<
+      Endpoint,
+      HttpApiEndpoint.MiddlewareError<Endpoint>,
+      any
+    >
+    readonly options?: HandlerOptions | undefined
+  }
+
+type HandleAllHandlers<EndpointsByName extends Record<string, HttpApiEndpoint.Any>> = {
+  readonly [Name in keyof EndpointsByName]?: HandleAllEntry<EndpointsByName[Name]>
+}
+
+type HandleAllExtraKeys<
+  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  HandlersByName
+> = {
+  readonly [Name in Exclude<keyof HandlersByName, keyof EndpointsByName>]: never
+}
+
+type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
+
+type HandleAllContext<
+  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  HandlersByName extends HandleAllHandlers<EndpointsByName>
+> = {
+  readonly [Name in keyof HandlersByName & keyof EndpointsByName]: HandleAllEntryHandler<
+    HandlersByName[Name]
+  > extends HttpApiEndpoint.Handler<
+    EndpointsByName[Name],
+    HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+    infer R1
+  > ? HandlerRequirements<EndpointsByName[Name], R1> :
+    never
+}[keyof HandlersByName & keyof EndpointsByName]
+
 /**
  * Mutable handler collection for one `HttpApi` group.
  *
@@ -222,6 +277,17 @@ export interface Handlers<
     > extends infer _R ? _R extends never ? never : HttpRouter.Request<"Requires", _R> : never),
     EndpointsByName,
     HandledNames | Name
+  >
+
+  /**
+   * Add implementations for every `HttpApiEndpoint` in a `Handlers` group.
+   */
+  handleAll<const HandlersByName extends HandleAllHandlers<EndpointsByName>>(
+    handlers: HandlersByName & HandleAllExtraKeys<EndpointsByName, HandlersByName>
+  ): Handlers<
+    R | HandleAllContext<EndpointsByName, HandlersByName>,
+    EndpointsByName,
+    HandledNames | keyof HandlersByName & keyof EndpointsByName
   >
 
   /**
@@ -551,6 +617,30 @@ const HandlersProto = {
       isRaw: false,
       uninterruptible: options?.uninterruptible ?? false
     })
+    return this
+  },
+  handleAll(
+    this: Handlers<any, any, any>,
+    handlers: Record<
+      string,
+      HttpApiEndpoint.Handler<any, any, any> | {
+        readonly handler: HttpApiEndpoint.Handler<any, any, any>
+        readonly options?: HandlerOptions | undefined
+      }
+    >
+  ) {
+    for (const name in handlers) {
+      const entry = handlers[name]!
+      const handler = typeof entry === "function" ? entry : entry.handler
+      const options = typeof entry === "function" ? undefined : entry.options
+      const endpoint = this.group.endpoints[name]
+      this.handlers.set(name, {
+        endpoint,
+        handler,
+        isRaw: false,
+        uninterruptible: options?.uninterruptible ?? false
+      })
+    }
     return this
   },
   handleRaw(

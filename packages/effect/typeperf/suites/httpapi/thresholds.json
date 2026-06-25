@@ -40,5 +40,29 @@
   },
   "client-endpoint-method-count-1000": {
     "maxDelta": 96012
+  },
+  "builder-handle-chain-erased-handler-count-1000": {
+    "maxDelta": 8377802
+  },
+  "builder-handlers-from-group-count-1000": {
+    "maxDelta": 102706
+  },
+  "builder-handle-direct-distinct-names-count-1000": {
+    "maxDelta": 8357008
+  },
+  "builder-handle-direct-repeated-name-1000-endpoints-count-1000": {
+    "maxDelta": 111467
+  },
+  "builder-handle-direct-repeated-name-1-endpoint-count-1000": {
+    "maxDelta": 1560
+  },
+  "builder-handle-all-count-1000": {
+    "maxDelta": 529761
+  },
+  "builder-handle-all-erased-handler-count-1000": {
+    "maxDelta": 304955
+  },
+  "builder-handle-all-two-batches-count-1000": {
+    "maxDelta": 564923
   }
 }
