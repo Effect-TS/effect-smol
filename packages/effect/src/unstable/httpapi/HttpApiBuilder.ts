@@ -368,34 +368,16 @@ export declare namespace Handlers {
     never
 }
 
-/**
- * Builds the server-side HTTP effect for a single endpoint in an API group using
- * the endpoint metadata, middleware, codecs, and supplied handler.
- *
- * @category handlers
- * @since 4.0.0
- */
-export const endpoint = <
-  ApiId extends string,
+type EndpointReturn<
   Groups extends HttpApiGroup.Any,
-  const GroupName extends HttpApiGroup.Name<Groups>,
-  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  GroupName extends HttpApiGroup.Name<Groups>,
+  EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
   R,
-  Group extends HttpApiGroup.Any = HttpApiGroup.WithName<Groups, GroupName>,
-  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<Group>, EndpointName>
->(
-  api: HttpApi.HttpApi<ApiId, Groups>,
-  groupName: GroupName,
-  endpointName: EndpointName,
-  handler: NoInfer<
-    HttpApiEndpoint.HandlerWithName<
-      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
-      EndpointName,
-      never,
-      R
-    >
+  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<
+    HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
+    EndpointName
   >
-): Effect.Effect<
+> = Effect.Effect<
   Effect.Effect<
     HttpServerResponse,
     never,
@@ -412,7 +394,34 @@ export const endpoint = <
   | FileSystem
   | HttpPlatform
   | Path
-> =>
+>
+
+/**
+ * Builds the server-side HTTP effect for a single endpoint in an API group using
+ * the endpoint metadata, middleware, codecs, and supplied handler.
+ *
+ * @category handlers
+ * @since 4.0.0
+ */
+export const endpoint = <
+  ApiId extends string,
+  Groups extends HttpApiGroup.Any,
+  const GroupName extends HttpApiGroup.Name<Groups>,
+  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  R
+>(
+  api: HttpApi.HttpApi<ApiId, Groups>,
+  groupName: GroupName,
+  endpointName: EndpointName,
+  handler: NoInfer<
+    HttpApiEndpoint.HandlerWithName<
+      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
+      EndpointName,
+      never,
+      R
+    >
+  >
+): EndpointReturn<Groups, GroupName, EndpointName, R> =>
   Effect.contextWith((context: Context.Context<any>) => {
     const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
     const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps

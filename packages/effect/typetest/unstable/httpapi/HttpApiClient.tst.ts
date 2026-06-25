@@ -590,6 +590,111 @@ describe("HttpApiClient", () => {
     })
   })
 
+  describe("endpoint", () => {
+    it("should select the endpoint and preserve request and response types", () => {
+      const User = Schema.Struct({
+        id: Schema.String,
+        age: Schema.FiniteFromString
+      })
+
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                query: {
+                  page: Schema.FiniteFromString
+                },
+                success: User
+              }),
+              HttpApiEndpoint.get("searchUsers", "/users", {
+                query: {
+                  q: Schema.String
+                },
+                success: Schema.Array(User)
+              })
+            )
+        )
+
+      const TestHttpClient = HttpClient.make(() => Effect.die("not used"))
+      const getUser = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "getUser", httpClient: TestHttpClient })
+      )
+
+      expect<Parameters<typeof getUser>[0]>().type.toBe<
+        {
+          readonly params: { readonly id: string }
+          readonly query: { readonly page: number }
+          readonly responseMode?: ResponseMode
+        }
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 } })).type.toBe<
+        Effect.Effect<
+          { readonly id: string; readonly age: number },
+          HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 }, responseMode: "decoded-and-response" })).type.toBe<
+        Effect.Effect<
+          [{ readonly id: string; readonly age: number }, HttpClientResponse.HttpClientResponse],
+          HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 }, responseMode: "response-only" })).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+      >()
+      expect(getUser).type.not.toBeCallableWith({ query: { q: "Ada" } })
+
+      const searchUsers = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "searchUsers", httpClient: TestHttpClient })
+      )
+
+      expect<Parameters<typeof searchUsers>[0]>().type.toBe<
+        { readonly query: { readonly q: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect(searchUsers).type.not.toBeCallableWith({ params: { id: "1" }, query: { page: 1 } })
+    })
+
+    it("should preserve custom http client errors and requirements", () => {
+      interface CustomService {
+        readonly customService: "customService"
+      }
+
+      class CustomClientError extends Schema.ErrorClass<CustomClientError>("CustomClientError")({
+        _tag: Schema.tag("CustomClientError")
+      }) {}
+
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: Schema.String
+              })
+            )
+        )
+
+      const httpClient = hole<HttpClient.HttpClient.With<CustomClientError, CustomService>>()
+      const getUser = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "getUser", httpClient })
+      )
+
+      expect(getUser({ params: { id: "1" } })).type.toBe<
+        Effect.Effect<
+          string,
+          CustomClientError | HttpClientError.HttpClientError | Schema.SchemaError,
+          CustomService
+        >
+      >()
+    })
+  })
+
   describe("client middleware", () => {
     it("requiredForClient requires layer and includes required client errors", () => {
       class RequiredClientError extends Schema.ErrorClass<RequiredClientError>("RequiredClientError")({

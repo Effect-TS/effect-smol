@@ -114,17 +114,17 @@ export interface HttpApiEndpoint<
   out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
   out Error extends Schema.Top = never,
   in out Middleware = never,
-  out MiddlewareR = never
+  out MiddlewareServices = never
 > extends Pipeable {
-  readonly [TypeId]: {
-    readonly _MiddlewareR: Types.Covariant<MiddlewareR>
-  }
+  readonly [TypeId]: typeof TypeId
   readonly "~Params": Params
   readonly "~Query": Query
   readonly "~Headers": Headers
   readonly "~Payload": Payload
   readonly "~Success": Success
   readonly "~Error": Error
+  readonly "~Middleware": Middleware
+  readonly "~MiddlewareServices": MiddlewareServices
 
   readonly name: Name
   readonly path: Path
@@ -154,7 +154,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 
   /**
@@ -171,7 +171,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware | I,
-    HttpApiMiddleware.ApplyServices<I, MiddlewareR>
+    HttpApiMiddleware.ApplyServices<I, MiddlewareServices>
   >
 
   /**
@@ -191,7 +191,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 
   /**
@@ -210,7 +210,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 }
 
@@ -248,8 +248,8 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
  * @category models
  * @since 4.0.0
  */
-export interface Any extends Pipeable {
-  readonly [TypeId]: any
+export interface Any {
+  readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly ["~Success"]: Schema.Constraint
   readonly ["~Error"]: Schema.Constraint
@@ -266,6 +266,16 @@ export interface ConstraintRequest extends Any {
   readonly ["~Query"]: Schema.Constraint
   readonly ["~Payload"]: Schema.Constraint
   readonly ["~Headers"]: Schema.Constraint
+}
+
+/**
+ * A widened endpoint type that preserves generated client phantom fields.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ConstraintClient extends ConstraintRequest {
+  readonly ["~Middleware"]: unknown
 }
 
 /**
@@ -355,19 +365,7 @@ export type Headers<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~
  * @category models
  * @since 4.0.0
  */
-export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _M
+export type Middleware<Endpoint> = Endpoint extends { readonly "~Middleware": infer M } ? M
   : never
 
 /**
@@ -588,19 +586,7 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _MR
+export type MiddlewareServices<Endpoint> = Endpoint extends { readonly "~MiddlewareServices": infer R } ? R
   : never
 
 /**

@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Context, Schema } from "effect"
 import {
   HttpApiEndpoint,
   HttpApiError,
@@ -85,6 +85,37 @@ describe("HttpApiMiddleware", () => {
       expect<HttpApiEndpoint.MiddlewareError<typeof endpoint>>().type.toBe<
         HttpApiError.Unauthorized | HttpApiError.Forbidden
       >()
+    })
+
+    it("tracks endpoint middleware services", () => {
+      class Token extends Context.Service<Token, {
+        readonly token: string
+      }>()("Token") {}
+
+      class CurrentUser extends Context.Service<CurrentUser, {
+        readonly userId: string
+      }>()("CurrentUser") {}
+
+      class NeedsUser extends HttpApiMiddleware.Service<NeedsUser, {
+        requires: CurrentUser
+      }>()("NeedsUser") {}
+
+      class Auth extends HttpApiMiddleware.Service<Auth, {
+        requires: Token
+        provides: CurrentUser
+      }>()("Auth") {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: Schema.String
+      })
+
+      const needsUser = endpoint.middleware(NeedsUser)
+      const authenticated = needsUser.middleware(Auth)
+
+      expect<HttpApiEndpoint.Middleware<typeof needsUser>>().type.toBe<NeedsUser>()
+      expect<HttpApiEndpoint.Middleware<typeof authenticated>>().type.toBe<NeedsUser | Auth>()
+      expect<HttpApiEndpoint.MiddlewareServices<typeof needsUser>>().type.toBe<CurrentUser>()
+      expect<HttpApiEndpoint.MiddlewareServices<typeof authenticated>>().type.toBe<Token>()
     })
   })
 })
