@@ -1269,6 +1269,8 @@ export const noCase: {
   const result = input
     .replace(SPLIT_REGEXP[0], "$1\0$2")
     .replace(SPLIT_REGEXP[1], "$1\0$2")
+    .replace(SPLIT_REGEXP[2], "$1\0$2")
+    .replace(SPLIT_REGEXP[3], "$1\0$2")
     .replace(STRIP_REGEXP, "\0")
   let start = 0
   let end = result.length
@@ -1284,18 +1286,16 @@ export const noCase: {
   return result.slice(start, end).split("\0").map(transform).join(delimiter)
 })
 
-// Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case").
-const SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g]
+// Support camel case ("camelCase" -> "camel Case" and "CAMELCase" -> "CAMEL Case")
+// and digit boundaries ("camel2case" -> "camel 2 case").
+const SPLIT_REGEXP = [/([a-z0-9])([A-Z])/g, /([A-Z])([A-Z][a-z])/g, /([A-Z])([0-9])/gi, /([0-9])([A-Z])/gi]
 
 // Remove all non-word characters.
 const STRIP_REGEXP = /[^A-Z0-9]+/gi
 
-const pascalCaseTransform = (input: string, index: number): string => {
+const pascalCaseTransform = (input: string): string => {
   const firstChar = input.charAt(0)
   const lowerChars = input.substring(1).toLowerCase()
-  if (index > 0 && firstChar >= "0" && firstChar <= "9") {
-    return `_${firstChar}${lowerChars}`
-  }
   return `${firstChar.toUpperCase()}${lowerChars}`
 }
 
@@ -1322,7 +1322,7 @@ export const pascalCase: (self: string) => string = noCase({
 const camelCaseTransform = (input: string, index: number): string =>
   index === 0
     ? input.toLowerCase()
-    : pascalCaseTransform(input, index)
+    : pascalCaseTransform(input)
 
 /**
  * Converts a string to camelCase.
