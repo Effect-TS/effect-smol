@@ -555,7 +555,7 @@ const makeTraceFlags = (
       traceFlags = Context.getOrUndefined(span.annotations, OtelTraceFlags)
     }
   }
-  return traceFlags ?? Otel.TraceFlags.SAMPLED
+  return traceFlags ?? (span.sampled ? Otel.TraceFlags.SAMPLED : Otel.TraceFlags.NONE)
 }
 
 const makeTraceState = (

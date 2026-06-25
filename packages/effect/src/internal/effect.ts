@@ -96,7 +96,8 @@ import {
   TracerSpanLinks,
   TracerTimingEnabled
 } from "./references.ts"
-import { addSpanStackTrace, type ErrorWithStackTraceLimit, makeStackCleaner } from "./tracer.ts"
+import { getStackTraceLimit, setStackTraceLimit } from "./stackTraceLimit.ts"
+import { addSpanStackTrace, makeStackCleaner } from "./tracer.ts"
 import { version } from "./version.ts"
 
 // ----------------------------------------------------------------------------
@@ -314,9 +315,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
   const interrupts: Array<Cause.Interrupt> = []
   if (self.reasons.length === 0) return errors
 
-  const prevStackLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit)
-    .stackTraceLimit = 1
+  const prevStackLimit = getStackTraceLimit()
+  setStackTraceLimit(1)
 
   for (const failure of self.reasons) {
     if (failure._tag === "Interrupt") {
@@ -340,7 +340,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(causePrettyError(error, interrupts[0].annotations))
   }
 
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevStackLimit
+  setStackTraceLimit(prevStackLimit)
   return errors
 }
 
@@ -459,10 +459,11 @@ const currentStackTrace = (frame: StackFrame): string => {
 
 /** @internal */
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
-  causePrettyErrors<E>(cause).map((e) =>
-    e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
-  )
-    .join("\n")
+  causePrettyErrors<E>(cause).map(renderPrettyError).join("\n")
+
+/** @internal */
+export const renderPrettyError = (e: Error): string | undefined =>
+  e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
@@ -892,10 +893,18 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = Option.match({
-  onNone: () => fail(new NoSuchElementError("Effect.fromOption: Option.none")),
-  onSome: succeed
-})
+export const fromOption: <Arg extends Option.Option<unknown> | LazyArg<unknown>, E = Cause.NoSuchElementError>(
+  arg: Arg,
+  ...rest: [Arg] extends [Option.Option<unknown>] ? [onNone?: LazyArg<E>] : []
+) => [Arg] extends [Option.Option<infer A>] ? Effect.Effect<A, E>
+  : [Arg] extends [LazyArg<infer E>] ? <A>(option: Option.Option<A>) => Effect.Effect<A, E>
+  : never = dual(
+    (args) => args.length >= 2 || Option.isOption(args[0]),
+    <A, E>(option: Option.Option<A>, onNone?: LazyArg<E>): Effect.Effect<A, Cause.NoSuchElementError | E> =>
+      Option.isNone(option)
+        ? fail(onNone ? onNone() : new NoSuchElementError("Effect.fromOption: Option.none"))
+        : succeed(option.value)
+  )
 
 /** @internal */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = Result.match({
@@ -1157,10 +1166,10 @@ export const fn: typeof Effect.fn = function() {
   const name = nameFirst ? arguments[0] : "Effect.fn"
   const spanOptions = nameFirst ? arguments[1] : undefined
 
-  const prevLimit = globalThis.Error.stackTraceLimit
-  globalThis.Error.stackTraceLimit = 2
+  const prevLimit = getStackTraceLimit()
+  setStackTraceLimit(2)
   const defError = new globalThis.Error()
-  globalThis.Error.stackTraceLimit = prevLimit
+  setStackTraceLimit(prevLimit)
 
   if (nameFirst) {
     return (body: Function | { readonly self: any }, ...pipeables: Array<Function>) =>
@@ -1200,10 +1209,10 @@ const makeFn = (
     if (!isEffect(result)) {
       return result
     }
-    const prevLimit = globalThis.Error.stackTraceLimit
-    globalThis.Error.stackTraceLimit = 2
+    const prevLimit = getStackTraceLimit()
+    setStackTraceLimit(2)
     const callError = new globalThis.Error()
-    globalThis.Error.stackTraceLimit = prevLimit
+    setStackTraceLimit(prevLimit)
     return updateService(
       addSpan ?
         useSpan(name, spanOptions!, (span) => provideParentSpan(result, span)) :
@@ -3152,23 +3161,6 @@ export const unwrapReason: {
       },
       fail as any
     ) as any
-)
-
-/** @internal */
-export const mapErrorCause: {
-  <E, E2>(
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): <A, R>(self: Effect.Effect<A, E, R>) => Effect.Effect<A, E2, R>
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R>
-} = dual(
-  2,
-  <A, E, R, E2>(
-    self: Effect.Effect<A, E, R>,
-    f: (e: Cause.Cause<E>) => Cause.Cause<E2>
-  ): Effect.Effect<A, E2, R> => catchCause(self, (cause) => failCauseSync(() => f(cause)))
 )
 
 /** @internal */
@@ -5360,10 +5352,10 @@ const succeedFalse = succeed(false)
 class Latch implements _Latch.Latch {
   waiters: Array<(_: Effect.Effect<void>) => void> = []
   scheduled = false
-  private isOpen: boolean
+  private _isOpen: boolean
 
   constructor(isOpen: boolean) {
-    this.isOpen = isOpen
+    this._isOpen = isOpen
   }
 
   private scheduleUnsafe(fiber: Fiber.Fiber<unknown, unknown>) {
@@ -5384,19 +5376,19 @@ class Latch implements _Latch.Latch {
   }
 
   open = withFiber<boolean>((fiber) => {
-    if (this.isOpen) return succeedFalse
-    this.isOpen = true
+    if (this._isOpen) return succeedFalse
+    this._isOpen = true
     return this.scheduleUnsafe(fiber)
   })
-  release = withFiber<boolean>((fiber) => this.isOpen ? succeedFalse : this.scheduleUnsafe(fiber))
+  release = withFiber<boolean>((fiber) => this._isOpen ? succeedFalse : this.scheduleUnsafe(fiber))
   openUnsafe() {
-    if (this.isOpen) return false
-    this.isOpen = true
+    if (this._isOpen) return false
+    this._isOpen = true
     this.flushWaiters()
     return true
   }
   await = callback<void>((resume) => {
-    if (this.isOpen) {
+    if (this._isOpen) {
       return resume(void_)
     }
     this.waiters.push(resume)
@@ -5408,12 +5400,15 @@ class Latch implements _Latch.Latch {
     })
   })
   closeUnsafe() {
-    if (!this.isOpen) return false
-    this.isOpen = false
+    if (!this._isOpen) return false
+    this._isOpen = false
     return true
   }
   close = sync(() => this.closeUnsafe())
   whenOpen = <A, E, R>(self: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> => flatMap(this.await, () => self)
+  isOpen() {
+    return this._isOpen
+  }
 }
 
 /** @internal */
@@ -5827,11 +5822,12 @@ const performanceNowNanos = (function() {
   const bigint1e6 = BigInt(1_000_000)
   if (typeof performance === "undefined" || typeof performance.now === "undefined") {
     return () => BigInt(Date.now()) * bigint1e6
-  } else if (typeof performance.timeOrigin === "number" && performance.timeOrigin === 0) {
-    return () => BigInt(Math.round(performance.now() * 1_000_000))
   }
-  const origin = (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
-  return () => origin + BigInt(Math.round(performance.now() * 1_000_000))
+  let origin: bigint
+  return () => {
+    origin ??= (BigInt(Date.now()) * bigint1e6) - BigInt(Math.round(performance.now() * 1_000_000))
+    return origin + BigInt(Math.round(performance.now() * 1_000_000))
+  }
 })()
 const processOrPerformanceNow = (function() {
   const processHrtime =
@@ -5841,7 +5837,7 @@ const processOrPerformanceNow = (function() {
   if (!processHrtime) {
     return performanceNowNanos
   }
-  const origin = performanceNowNanos() - processHrtime.bigint()
+  const origin = (BigInt(Date.now()) * BigInt(1e6)) - processHrtime.bigint()
   return () => origin + processHrtime.bigint()
 })()
 

@@ -15,6 +15,7 @@
 /** @effect-diagnostics classSelfMismatch:off */
 import * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
+import { getStackTraceLimit, setStackTraceLimit } from "../../internal/stackTraceLimit.ts"
 import * as Layer from "../../Layer.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
@@ -44,8 +45,8 @@ export const isSecurity = (u: AnyService): u is AnyServiceSecurity => hasPropert
 
 type ErrorConstraint = Schema.Top | ReadonlyArray<Schema.Top>
 
-type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Top> ? E[number]
-  : E extends Schema.Top ? E
+type ErrorSchemaFromConstraint<E> = E extends ReadonlyArray<Schema.Constraint> ? E[number]
+  : E extends Schema.Constraint ? E
   : never
 
 /**
@@ -352,10 +353,10 @@ export const Service = <
   } | undefined
 ) => {
   const Err = globalThis.Error as any
-  const limit = Err.stackTraceLimit
-  Err.stackTraceLimit = 2
+  const limit = getStackTraceLimit()
+  setStackTraceLimit(2)
   const creationError = new Err()
-  Err.stackTraceLimit = limit
+  setStackTraceLimit(limit)
 
   class Service extends Context.Service<Self, any>()(id) {}
   const self = Service as any

@@ -707,7 +707,7 @@ export const bodyJsonUnsafe: {
  * @category combinators
  * @since 4.0.0
  */
-export const schemaBodyJson = <S extends Schema.Top>(
+export const schemaBodyJson = <S extends Schema.Constraint>(
   schema: S,
   options?: ParseOptions | undefined
 ): {

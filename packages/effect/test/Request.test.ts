@@ -213,6 +213,34 @@ describe.sequential("Request", () => {
   )
 
   it.effect(
+    "grouped requests can be interrupted before execution",
+    Effect.fnUntraced(function*() {
+      let resolverExecuted = false
+
+      const resolver = Resolver.make<GetNameById>(Effect.fnUntraced(function*(entries) {
+        resolverExecuted = true
+        for (const entry of entries) {
+          entry.completeUnsafe(Exit.succeed(userNames.get(entry.request.id)!))
+        }
+      })).pipe(
+        Resolver.grouped(({ request }) => request.id),
+        Resolver.setDelayEffect(Effect.never)
+      )
+
+      const fiber = yield* Effect.forkChild(Effect.request(new GetNameById({ id: userIds[0] }), resolver))
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(fiber)
+      const exit = yield* Fiber.await(fiber)
+
+      assert.strictEqual(exit._tag, "Failure")
+      if (exit._tag === "Failure") {
+        assert.strictEqual(Cause.hasInterruptsOnly(exit.cause), true)
+      }
+      assert.strictEqual(resolverExecuted, false)
+    })
+  )
+
+  it.effect(
     "batching preserves individual & identical requests",
     Effect.fnUntraced(function*() {
       const { getNameById } = yield* makeUserResolver
