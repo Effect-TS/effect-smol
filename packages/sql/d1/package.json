@@ -1,6 +1,6 @@
 {
   "name": "@effect/sql-d1",
-  "version": "4.0.0-beta.88",
+  "version": "4.0.0-beta.89",
   "type": "module",
   "license": "MIT",
   "description": "A Cloudflare D1 integration for Effect",

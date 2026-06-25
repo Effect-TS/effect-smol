@@ -1,5 +1,20 @@
 # effect
 
+## 4.0.0-beta.89
+
+### Patch Changes
+
+- [#2475](https://github.com/Effect-TS/effect-smol/pull/2475) [`b7d46ab`](https://github.com/Effect-TS/effect-smol/commit/b7d46ab7e1a29d8711817bab583c9febf48a0dad) Thanks @tim-smart! - Update `Schema.Void` to model ignored `void` return values.
+
+  Runtime parsing now accepts any present value and discards it as `undefined`.
+  This matches TypeScript `void` return values, where callers do not observe the
+  returned value. Use `Schema.Undefined` when the input must be exactly
+  `undefined`.
+
+- [#2479](https://github.com/Effect-TS/effect-smol/pull/2479) [`7777e15`](https://github.com/Effect-TS/effect-smol/commit/7777e1540fd3680dd8346723cffec812b9384669) Thanks @tim-smart! - Add custom error callbacks to Effect.fromOption.
+
+- [#2480](https://github.com/Effect-TS/effect-smol/pull/2480) [`5376197`](https://github.com/Effect-TS/effect-smol/commit/5376197ca8e50358a41b1fd3cec27bd1ec680ec6) Thanks @tim-smart! - render causes in OtlpTracer exception events
+
 ## 4.0.0-beta.88
 
 ### Patch Changes
