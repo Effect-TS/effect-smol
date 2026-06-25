@@ -1,5 +1,5 @@
 import { assertNone, assertSome, strictEqual } from "@effect/vitest/utils"
-import { Equal, Graph, Hash, Match, Option } from "effect"
+import { Equal, Graph, Hash, Option } from "effect"
 import { describe, expect, it } from "vitest"
 
 const assertSomeEdge = <E>(edge: Option.Option<Graph.Edge<E>>): Graph.Edge<E> => {
@@ -20,32 +20,31 @@ const makeReversedUndirectedPath = () =>
 
 type SetNode = { readonly id: string; readonly label: string }
 
-const graphNodeIds = <E>(graph: Graph.Graph<SetNode, E>) => new Set(Array.from(graph, ([, node]) => node.id))
+const graphNodeIds = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) =>
+  new Set(Array.from(graph, ([, node]) => node.id))
 
-const graphNodeLabels = <E>(graph: Graph.Graph<SetNode, E>) =>
+const graphNodeLabels = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) =>
   new Map(Array.from(graph, ([, node]) => [node.id, node.label]))
 
-const graphEdgeKeys = <E>(graph: Graph.Graph<SetNode, E>) => {
+const graphEdgeKeys = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) => {
   const nodeIds = new Map(Array.from(graph, ([index, node]) => [index, node.id]))
   return new Set(
     Array.from(Graph.edges(graph), ([, edge]) =>
-      Match.value(graph.type).pipe(
-        Match.when("directed", () => `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`),
-        Match.orElse(() => `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`)
-      ))
+      graph.type === "directed"
+        ? `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`
+        : `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`)
   )
 }
 
-const graphEdgeData = <E>(graph: Graph.Graph<SetNode, E>) => {
+const graphEdgeData = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) => {
   const nodeIds = new Map(Array.from(graph, ([index, node]) => [index, node.id]))
   return new Map(
     Array.from(
       Graph.edges(graph),
       ([, edge]) => [
-        Match.value(graph.type).pipe(
-          Match.when("directed", () => `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`),
-          Match.orElse(() => `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`)
-        ),
+        graph.type === "directed"
+          ? `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`
+          : `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`,
         edge.data
       ]
     )
@@ -176,6 +175,101 @@ describe("Graph", () => {
 
       strictEqual(Graph.edgeCount(Graph.intersection(left, right, (n) => n)), 1)
       strictEqual(Graph.edgeCount(Graph.difference(left, right, (n) => n)), 0)
+    })
+
+    it("complement adds missing directed edges", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "a", label: "A" })
+        const b = Graph.addNode(mutable, { id: "b", label: "B" })
+        const c = Graph.addNode(mutable, { id: "c", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+      })
+
+      const result = Graph.complement(graph, (source, target) => `${source.label}-${target.label}`)
+
+      expect(Graph.nodeCount(result)).toBe(3)
+      expect(Graph.edgeCount(result)).toBe(4)
+      expect(graphEdgeData(result)).toEqual(
+        new Map([
+          ["a->c", "A-C"],
+          ["b->a", "B-A"],
+          ["c->a", "C-A"],
+          ["c->b", "C-B"]
+        ])
+      )
+    })
+
+    it("complement adds missing undirected edges once", () => {
+      const graph = Graph.undirected<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        Graph.addNode(mutable, { id: "C", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+      })
+
+      const result = Graph.complement(graph, (source, target) => `${source.label}-${target.label}`)
+
+      expect(result.type).toBe("undirected")
+      expect(Graph.edgeCount(result)).toBe(2)
+      expect(graphEdgeData(result)).toEqual(
+        new Map([
+          ["A--C", "A-C"],
+          ["B--C", "B-C"]
+        ])
+      )
+    })
+
+    it("neighborhood returns the induced subgraph within radius", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        const c = Graph.addNode(mutable, { id: "C", label: "C" })
+        const d = Graph.addNode(mutable, { id: "D", label: "D" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+        Graph.addEdge(mutable, c, d, "C-D")
+        Graph.addEdge(mutable, c, b, "C-B")
+      })
+
+      const result = Graph.neighborhood(graph, 1, { radius: 1, direction: "outgoing" })
+
+      expect(graphNodeIds(result)).toEqual(new Set(["B", "C"]))
+      expect(graphEdgeKeys(result)).toEqual(new Set(["B->C", "C->B"]))
+    })
+
+    it("neighborhood can include incoming and outgoing nodes", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        const c = Graph.addNode(mutable, { id: "C", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+      })
+
+      const result = Graph.neighborhood(graph, 1)
+
+      expect(graphNodeIds(result)).toEqual(new Set(["A", "B", "C"]))
+      expect(graphEdgeKeys(result)).toEqual(new Set(["A->B", "B->C"]))
+    })
+
+    it("sum keeps equal nodes disjoint", () => {
+      const left = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, "left")
+      })
+      const right = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, "right")
+      })
+
+      const result = Graph.sum(left, right)
+
+      expect(Graph.nodeCount(result)).toBe(4)
+      expect(Graph.edgeCount(result)).toBe(2)
+      expect(Array.from(Graph.values(Graph.nodes(result)))).toEqual(["A", "B", "A", "B"])
     })
   })
 
