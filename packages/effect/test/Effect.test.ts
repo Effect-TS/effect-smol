@@ -176,22 +176,20 @@ describe("Effect", () => {
         Effect.runPromise
       ))
 
-    it("from a none with a custom error", () => {
+    it.effect("from a none with a custom error", () => {
       const error = new Error("Missing value")
       return Effect.fromOption(Option.none(), () => error).pipe(
         Effect.flip,
-        Effect.tap((cause) => Effect.sync(() => assert.strictEqual(cause, error))),
-        Effect.runPromise
+        Effect.tap((cause) => Effect.sync(() => assert.strictEqual(cause, error)))
       )
     })
 
-    it("from a none with a custom error data-last", () => {
+    it.effect("from a none with a custom error data-last", () => {
       const error = new Error("Missing value")
       return Option.none().pipe(
         Effect.fromOption(() => error),
         Effect.flip,
-        Effect.tap((cause) => Effect.sync(() => assert.strictEqual(cause, error))),
-        Effect.runPromise
+        Effect.tap((cause) => Effect.sync(() => assert.strictEqual(cause, error)))
       )
     })
   })
