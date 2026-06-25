@@ -650,17 +650,13 @@ importers:
         version: link:../../effect
 
   packages/sql/sqlite-node:
-    dependencies:
-      better-sqlite3:
-        specifier: ^12.9.0
-        version: 12.9.0
     devDependencies:
       '@effect/platform-node':
         specifier: workspace:^
         version: link:../../platform-node
-      '@types/better-sqlite3':
-        specifier: ^7.6.13
-        version: 7.6.13
+      '@types/node':
+        specifier: ^25.7.0
+        version: 25.7.0
       effect:
         specifier: workspace:^
         version: link:../../effect
@@ -3180,9 +3176,6 @@ packages:
   '@types/babel__traverse@7.28.0':
     resolution: {integrity: sha512-8PvcXf70gTDZBgt9ptxJ8elBeBjcLOAcOtoO/mPJjtji1+CdGbHgm77om1GrsPxsiE+uXIpNSK64UYaIwQXd4Q==}
 
-  '@types/better-sqlite3@7.6.13':
-    resolution: {integrity: sha512-NMv9ASNARoKksWtsq/SHakpYAYnhBrQgGD8zkLYk/jaK8jUGn08CfEdTRgYhMypUQAfzSP8W6gNLe0q19/t4VA==}
-
   '@types/bun@1.3.13':
     resolution: {integrity: sha512-9fqXWk5YIHGGnUau9TEi+qdlTYDAnOj+xLCmSTwXfAIqXr2x4tytJb43E9uCvt09zJURKXwAtkoH4nLQfzeTXw==}
 
@@ -3730,10 +3723,6 @@ packages:
   better-sqlite3@12.10.0:
     resolution: {integrity: sha512-CyzaZRQKyHkB2ZInfTTl2nvT33EbDpjkLEbE8/Zck3Ll6O0qqvuGdrJ45HgtH+HykRg88ITY3AdreBGN70aBSQ==}
     engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x || 26.x}
-
-  better-sqlite3@12.9.0:
-    resolution: {integrity: sha512-wqUv4Gm3toFpHDQmaKD4QhZm3g1DjUBI0yzS4UBl6lElUmXFYdTQmmEDpAFa5o8FiFiymURypEnfVHzILKaxqQ==}
-    engines: {node: 20.x || 22.x || 23.x || 24.x || 25.x}
 
   bidi-js@1.0.3:
     resolution: {integrity: sha512-RKshQI1R3YQ+n9YJz2QQ147P66ELpa1FQEg20Dk8oW9t2KgLbpDLLp9aGZ7y8WHSshDknG0bknqGw5/tyCs5tw==}
@@ -9203,10 +9192,6 @@ snapshots:
     dependencies:
       '@babel/types': 7.29.7
 
-  '@types/better-sqlite3@7.6.13':
-    dependencies:
-      '@types/node': 25.7.0
-
   '@types/bun@1.3.13':
     dependencies:
       bun-types: 1.3.13
@@ -9872,11 +9857,6 @@ snapshots:
       is-windows: 1.0.2
 
   better-sqlite3@12.10.0:
-    dependencies:
-      bindings: 1.5.0
-      prebuild-install: 7.1.3
-
-  better-sqlite3@12.9.0:
     dependencies:
       bindings: 1.5.0
       prebuild-install: 7.1.3
