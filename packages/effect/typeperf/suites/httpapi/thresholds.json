@@ -15,24 +15,27 @@
     "maxDelta": 277473
   },
   "builder-handlers-count-10": {
-    "maxDelta": 13320
+    "maxDelta": 13200
   },
   "builder-handlers-count-50": {
-    "maxDelta": 83400
+    "maxDelta": 82440
   },
   "builder-handlers-count-100": {
-    "maxDelta": 229500
+    "maxDelta": 227490
   },
   "builder-handlers-count-500": {
-    "maxDelta": 3738300
+    "maxDelta": 3727890
   },
   "builder-handlers-count-1000": {
-    "maxDelta": 13974300
+    "maxDelta": 13953390
   },
   "client-methods-count-1000": {
     "maxDelta": 429906
   },
   "url-builder-count-1000": {
     "maxDelta": 183064
+  },
+  "builder-raw-handlers-count-1000": {
+    "maxDelta": 13951388
   }
 }

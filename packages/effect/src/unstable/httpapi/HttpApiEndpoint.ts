@@ -418,6 +418,20 @@ export type ErrorServicesEncode<Endpoint> = Endpoint extends Any ?
     | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
   : never
 
+type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([PayloadType] extends [never] ? {}
+    : PayloadType extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
+      { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
+    : { readonly payload: PayloadType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
+
 /**
  * Builds the decoded request shape passed to a normal endpoint handler, including
  * available params, query, payload, headers, the raw request, endpoint, and group.
@@ -438,20 +452,18 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Error,
   infer _M,
   infer _MR
-> ?
-    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
-    & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
-    & ([_Payload["Type"]] extends [never] ? {}
-      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
-        { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
-      : { readonly payload: _Payload["Type"] })
-    & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
+> ? RequestFromParts<Endpoint, _Params["Type"], _Query["Type"], _Payload["Type"], _Headers["Type"]>
   : {}
+
+type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
 
 /**
  * Builds the request shape passed to a raw endpoint handler, including decoded
@@ -473,15 +485,7 @@ export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
   infer _Error,
   infer _M,
   infer _MR
-> ?
-    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
-    & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
-    & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
+> ? RequestRawFromParts<Endpoint, _Params["Type"], _Query["Type"], _Headers["Type"]>
   : {}
 
 /**

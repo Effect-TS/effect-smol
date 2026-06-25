@@ -147,6 +147,10 @@
         {
           "name": "builder-handlers-count-1000",
           "file": "suites/httpapi/fixtures/builder-handlers-count-1000.ts"
+        },
+        {
+          "name": "builder-raw-handlers-count-1000",
+          "file": "suites/httpapi/fixtures/builder-raw-handlers-count-1000.ts"
         }
       ]
     }
