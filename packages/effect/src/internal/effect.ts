@@ -892,10 +892,18 @@ export const suspend: <A, E, R>(
 })
 
 /** @internal */
-export const fromOption: <A>(option: Option.Option<A>) => Effect.Effect<A, Cause.NoSuchElementError> = Option.match({
-  onNone: () => fail(new NoSuchElementError("Effect.fromOption: Option.none")),
-  onSome: succeed
-})
+export const fromOption: <Arg extends Option.Option<unknown> | LazyArg<unknown>, E = Cause.NoSuchElementError>(
+  arg: Arg,
+  ...rest: [Arg] extends [Option.Option<unknown>] ? [onNone?: LazyArg<E>] : []
+) => [Arg] extends [Option.Option<infer A>] ? Effect.Effect<A, E>
+  : [Arg] extends [LazyArg<infer E>] ? <A>(option: Option.Option<A>) => Effect.Effect<A, E>
+  : never = dual(
+    (args) => args.length >= 2 || Option.isOption(args[0]),
+    <A, E>(option: Option.Option<A>, onNone?: LazyArg<E>): Effect.Effect<A, Cause.NoSuchElementError | E> =>
+      Option.isNone(option)
+        ? fail(onNone ? onNone() : new NoSuchElementError("Effect.fromOption: Option.none"))
+        : succeed(option.value)
+  )
 
 /** @internal */
 export const fromResult: <A, E>(result: Result.Result<A, E>) => Effect.Effect<A, E> = Result.match({
