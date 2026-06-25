@@ -459,10 +459,11 @@ const currentStackTrace = (frame: StackFrame): string => {
 
 /** @internal */
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
-  causePrettyErrors<E>(cause).map((e) =>
-    e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
-  )
-    .join("\n")
+  causePrettyErrors<E>(cause).map(renderPrettyError).join("\n")
+
+/** @internal */
+export const renderPrettyError = (e: Error): string | undefined =>
+  e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
 
 const renderErrorCause = (cause: Error, prefix: string) => {
   const lines = cause.stack!.split("\n")
