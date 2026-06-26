@@ -1,6 +1,6 @@
 import { assert, it } from "@effect/vitest"
 import { Cause, Effect, FileSystem, Layer, Path, Schema, Stream } from "effect"
-import { Etag, HttpPlatform } from "effect/unstable/http"
+import { Etag, HttpPlatform, HttpRouter } from "effect/unstable/http"
 import {
   HttpApi,
   HttpApiBuilder,
@@ -182,5 +182,54 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.deepStrictEqual(Array.from(chunks, (chunk) => textDecoder.decode(chunk)), [
         `data: {"text":"hello"}\n\n`
       ])
+    }))
+})
+
+it.layer(TestServices)("HttpApiBuilder request payload decoding", (it) => {
+  const Payload = Schema.Struct({ name: Schema.String })
+
+  const Api = HttpApi.make("Api").add(
+    HttpApiGroup.make("test").add(
+      HttpApiEndpoint.post("create", "/test", { payload: Payload, success: Payload })
+    )
+  )
+
+  const GroupLive = HttpApiBuilder.group(
+    Api,
+    "test",
+    (handlers) => handlers.handle("create", ({ payload }) => Effect.succeed(payload))
+  )
+
+  // Exercises the full request lifecycle through a Web handler so that decoding
+  // failures are rendered into real responses, just as a deployed server would.
+  const post = (body: string) =>
+    Effect.gen(function*() {
+      const { dispose, handler } = HttpRouter.toWebHandler(
+        HttpApiBuilder.layer(Api).pipe(Layer.provide(GroupLive), Layer.provide(TestServices)),
+        { disableLogger: true }
+      )
+      yield* Effect.addFinalizer(() => Effect.promise(dispose))
+      return yield* Effect.promise(() =>
+        handler(
+          new Request("http://localhost/test", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body
+          })
+        )
+      )
+    }).pipe(Effect.scoped)
+
+  it.effect("responds with 400 when the JSON body is syntactically invalid", () =>
+    Effect.gen(function*() {
+      const response = yield* post("{not valid json")
+      assert.strictEqual(response.status, 400)
+    }))
+
+  it.effect("still accepts a well-formed JSON body", () =>
+    Effect.gen(function*() {
+      const response = yield* post(`{"name":"effect"}`)
+      assert.strictEqual(response.status, 200)
+      assert.deepStrictEqual(yield* Effect.promise(() => response.json()), { name: "effect" })
     }))
 })

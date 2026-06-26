@@ -603,12 +603,17 @@ function decodePayload(
       )
     }
     case "Json":
-      const json = Effect.orDie(Effect.flatMap(httpRequest.text, (text) => {
+      const json = Effect.flatMap(Effect.orDie(httpRequest.text), (text) => {
         if (text === "") {
           return existing.nullOnEmpty ? Effect.succeed(null) : Effect.undefined
         }
-        return Effect.succeed(JSON.parse(text))
-      }))
+        // Surface malformed JSON as a 400 SchemaError instead of a 500 defect.
+        return Effect.try({
+          try: () => JSON.parse(text),
+          catch: (cause) =>
+            makeSchemaError(new SchemaIssue.InvalidValue(Option.some(text), { message: `Invalid JSON: ${cause}` }))
+        })
+      })
       return Effect.flatMap(json, decode)
     case "Text":
       return Effect.flatMap(Effect.orDie(httpRequest.text), decode)
