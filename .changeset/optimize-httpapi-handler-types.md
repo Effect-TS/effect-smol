@@ -13,6 +13,7 @@ This change makes the type model more direct:
 
 - store group endpoints in a name-keyed type map and track handled endpoint names directly
 - read endpoint names, schemas, middleware, and request constraints from lightweight metadata
+- expose endpoint request shapes through direct request metadata while keeping handler request helpers internal
 - derive handler, client method, and URL builder types from cached request/response parts
 - remove duplicated error/client-error contributions while keeping cache helpers internal
 - align duplicate handler registration typing with the existing runtime last-write-wins behavior

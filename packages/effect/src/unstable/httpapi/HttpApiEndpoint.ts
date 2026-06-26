@@ -96,6 +96,30 @@ type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S
   ExtractStreamSuccess<S>
   : Json<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
 
+type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([PayloadType] extends [never] ? {}
+    : PayloadType extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
+      { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
+    : { readonly payload: PayloadType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
+
+type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
+
 /**
  * Represents an API endpoint. An API endpoint is mapped to a single route on
  * the underlying `HttpRouter`.
@@ -125,6 +149,8 @@ export interface HttpApiEndpoint<
   readonly "~Error": Error
   readonly "~Middleware": Middleware
   readonly "~MiddlewareServices": MiddlewareServices
+  readonly "~Request": RequestFromParts<this, Params["Type"], Query["Type"], Payload["Type"], Headers["Type"]>
+  readonly "~RequestRaw": RequestRawFromParts<this, Params["Type"], Query["Type"], Headers["Type"]>
 
   readonly name: Name
   readonly path: Path
@@ -267,6 +293,8 @@ export interface ConstraintRequest extends Any {
   readonly ["~Payload"]: Schema.Constraint
   readonly ["~Headers"]: Schema.Constraint
   readonly ["~Middleware"]: unknown
+  readonly ["~Request"]: unknown
+  readonly ["~RequestRaw"]: unknown
 }
 
 /**
@@ -407,20 +435,6 @@ export type ErrorServicesEncode<Endpoint> = Endpoint extends ConstraintRequest ?
     | HttpApiMiddleware.ErrorServicesEncode<Endpoint["~Middleware"]>
   : never
 
-type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
-  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
-  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
-  & ([PayloadType] extends [never] ? {}
-    : PayloadType extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
-      { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
-    : { readonly payload: PayloadType })
-  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
-  & {
-    readonly request: HttpServerRequest
-    readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.AnyWithProps
-  }
-
 /**
  * Builds the decoded request shape passed to a normal endpoint handler, including
  * available params, query, payload, headers, the raw request, endpoint, and group.
@@ -429,24 +443,8 @@ type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType>
  * @category models
  * @since 4.0.0
  */
-export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestFromParts<
-    Endpoint,
-    Endpoint["~Params"]["Type"],
-    Endpoint["~Query"]["Type"],
-    Endpoint["~Payload"]["Type"],
-    Endpoint["~Headers"]["Type"]
-  >
+export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
   : {}
-
-type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
-  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
-  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
-  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
-  & {
-    readonly request: HttpServerRequest
-    readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.AnyWithProps
-  }
 
 /**
  * Builds the request shape passed to a raw endpoint handler, including decoded
@@ -456,12 +454,7 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
  * @category models
  * @since 4.0.0
  */
-export type RequestRaw<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestRawFromParts<
-    Endpoint,
-    Endpoint["~Params"]["Type"],
-    Endpoint["~Query"]["Type"],
-    Endpoint["~Headers"]["Type"]
-  >
+export type RequestRaw<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
   : {}
 
 /**
@@ -555,6 +548,23 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
     | HttpApiMiddleware.ErrorServicesDecode<Endpoint["~Middleware"]>
   : never
 
+type HandlerRequest<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestFromParts<
+    Endpoint,
+    Endpoint["~Params"]["Type"],
+    Endpoint["~Query"]["Type"],
+    Endpoint["~Payload"]["Type"],
+    Endpoint["~Headers"]["Type"]
+  >
+  : {}
+
+type HandlerRawRequest<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestRawFromParts<
+    Endpoint,
+    Endpoint["~Params"]["Type"],
+    Endpoint["~Query"]["Type"],
+    Endpoint["~Headers"]["Type"]
+  >
+  : {}
+
 /**
  * The normal server handler for an endpoint, accepting the decoded request shape
  * and returning either the endpoint success value or a custom `HttpServerResponse`.
@@ -563,7 +573,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
  * @since 4.0.0
  */
 export type Handler<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<Request<Endpoint>>
+  request: Types.Simplify<HandlerRequest<Endpoint>>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
@@ -574,7 +584,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<RequestRaw<Endpoint>>
+  request: Types.Simplify<HandlerRawRequest<Endpoint>>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**

@@ -1,18 +1,18 @@
 {
   "endpoint-count-10": {
-    "maxDelta": 4052
+    "maxDelta": 2726
   },
   "endpoint-count-50": {
-    "maxDelta": 14332
+    "maxDelta": 8806
   },
   "endpoint-count-100": {
-    "maxDelta": 27182
+    "maxDelta": 16406
   },
   "endpoint-count-500": {
-    "maxDelta": 129982
+    "maxDelta": 77206
   },
   "endpoint-count-1000": {
-    "maxDelta": 258482
+    "maxDelta": 153206
   },
   "builder-handlers-count-10": {
     "maxDelta": 9504
@@ -85,5 +85,11 @@
   },
   "builder-handle-chain-unused-request-count-1000": {
     "maxDelta": 12627897
+  },
+  "builder-handle-chain-any-request-count-1000": {
+    "maxDelta": 10577893
+  },
+  "builder-handle-chain-typed-request-count-1000": {
+    "maxDelta": 10592900
   }
 }

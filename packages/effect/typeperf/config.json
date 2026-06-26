@@ -185,6 +185,14 @@
           "file": "suites/httpapi/fixtures/builder-handle-chain-unused-request-count-1000.ts"
         },
         {
+          "name": "builder-handle-chain-any-request-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-any-request-count-1000.ts"
+        },
+        {
+          "name": "builder-handle-chain-typed-request-count-1000",
+          "file": "suites/httpapi/fixtures/builder-handle-chain-typed-request-count-1000.ts"
+        },
+        {
           "name": "builder-handle-all-count-10",
           "file": "suites/httpapi/fixtures/builder-handle-all-count-10.ts"
         },
