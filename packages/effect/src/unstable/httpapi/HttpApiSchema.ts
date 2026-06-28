@@ -423,12 +423,11 @@ export const StreamSse: {
 }
 
 const sseDataJsonSchema = (data: Schema.Constraint) => {
+  const json = Schema.fromJsonString(data)
   const identifier = SchemaAST.resolveIdentifier(data.ast)
-  return identifier === undefined ? Schema.fromJsonString(data) : Schema.fromJsonString(data).annotate({
-    // The SSE transport field is a JSON string. Give that wrapper its own
-    // OpenAPI identifier so it does not claim the decoded data schema's name.
-    identifier: `${identifier}Stream`
-  })
+  // The SSE transport field is a JSON string. Give that wrapper its own
+  // OpenAPI identifier so it does not claim the decoded data schema's name.
+  return identifier === undefined ? json : json.annotate({ identifier: `${identifier}Stream` })
 }
 
 /**
