@@ -406,7 +406,7 @@ export const StreamSse: {
   const events = options.events ?? (options.data === undefined ? undefined : Schema.Struct({
     id: Schema.UndefinedOr(Schema.String),
     event: Schema.String,
-    data: Schema.fromJsonString(options.data)
+    data: sseDataJsonSchema(options.data)
   }))
   if (events === undefined) {
     throw new Error("StreamSse requires either an events schema or a data schema")
@@ -419,6 +419,15 @@ export const StreamSse: {
     contentType: options.contentType ?? defaultStreamContentType("sse"),
     events,
     error: options.error ?? Schema.Never
+  })
+}
+
+const sseDataJsonSchema = (data: Schema.Constraint) => {
+  const identifier = SchemaAST.resolveIdentifier(data.ast)
+  return identifier === undefined ? Schema.fromJsonString(data) : Schema.fromJsonString(data).annotate({
+    // The SSE transport field is a JSON string. Give that wrapper its own
+    // OpenAPI identifier so it does not claim the decoded data schema's name.
+    identifier: `${identifier}Stream`
   })
 }
 

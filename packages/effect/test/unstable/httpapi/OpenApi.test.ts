@@ -36,4 +36,40 @@ describe("OpenApi", () => {
     assert.property(streamExtension, "causeSchema")
     assert.property(streamExtension, "errorSchema")
   })
+
+  it("preserves the data schema identifier for SSE streams", () => {
+    const Event = Schema.Struct({
+      kind: Schema.String,
+      payload: Schema.String
+    }).annotate({ identifier: "MyEvent" })
+
+    const Api = HttpApi.make("Api").add(
+      HttpApiGroup.make("test").add(
+        HttpApiEndpoint.get("stream", "/stream", {
+          success: [HttpApiSchema.StreamSse({ data: Event })]
+        })
+      )
+    )
+
+    const spec = OpenApi.fromApi(Api)
+    const schemas = spec.components?.schemas
+
+    // The decoded data schema keeps its identifier instead of being suffixed.
+    assert.deepStrictEqual(schemas?.MyEvent, {
+      type: "object",
+      properties: {
+        kind: { type: "string" },
+        payload: { type: "string" }
+      },
+      required: ["kind", "payload"],
+      additionalProperties: false
+    })
+
+    // The JSON-string transport wrapper gets its own `${identifier}Stream` name.
+    assert.deepStrictEqual(schemas?.MyEventStream, {
+      type: "string",
+      contentSchema: { $ref: "#/components/schemas/MyEvent" },
+      contentMediaType: "application/json"
+    })
+  })
 })
