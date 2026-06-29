@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.92
+
+### Patch Changes
+
+- [#2501](https://github.com/Effect-TS/effect-smol/pull/2501) [`affdc13`](https://github.com/Effect-TS/effect-smol/commit/affdc139045cc325dce321a84a580fdc1b2da7b9) Thanks @gcanti! - Fix excess property handling in schema-backed class constructors, closes [#2499](https://github.com/Effect-TS/effect-smol/issues/2499).
+
 ## 4.0.0-beta.91
 
 ### Patch Changes
