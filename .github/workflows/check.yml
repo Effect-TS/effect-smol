@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         uses: ./.github/actions/setup
       - run: pnpm check
-      - run: pnpm test-types --target '>=5.8'
+      - run: pnpm test-types --target '>=5.9'
 
   build:
     name: Build

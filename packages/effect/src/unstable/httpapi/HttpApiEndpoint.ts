@@ -279,6 +279,8 @@ export interface Any {
   readonly name: string
   readonly ["~Success"]: Schema.Constraint
   readonly ["~Error"]: Schema.Constraint
+  readonly ["~Request"]: unknown
+  readonly ["~RequestRaw"]: unknown
 }
 
 /**
@@ -293,8 +295,6 @@ export interface ConstraintRequest extends Any {
   readonly ["~Payload"]: Schema.Constraint
   readonly ["~Headers"]: Schema.Constraint
   readonly ["~Middleware"]: unknown
-  readonly ["~Request"]: unknown
-  readonly ["~RequestRaw"]: unknown
 }
 
 /**
@@ -548,23 +548,6 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
     | HttpApiMiddleware.ErrorServicesDecode<Endpoint["~Middleware"]>
   : never
 
-type HandlerRequest<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestFromParts<
-    Endpoint,
-    Endpoint["~Params"]["Type"],
-    Endpoint["~Query"]["Type"],
-    Endpoint["~Payload"]["Type"],
-    Endpoint["~Headers"]["Type"]
-  >
-  : {}
-
-type HandlerRawRequest<Endpoint extends Any> = Endpoint extends ConstraintRequest ? RequestRawFromParts<
-    Endpoint,
-    Endpoint["~Params"]["Type"],
-    Endpoint["~Query"]["Type"],
-    Endpoint["~Headers"]["Type"]
-  >
-  : {}
-
 /**
  * The normal server handler for an endpoint, accepting the decoded request shape
  * and returning either the endpoint success value or a custom `HttpServerResponse`.
@@ -573,7 +556,7 @@ type HandlerRawRequest<Endpoint extends Any> = Endpoint extends ConstraintReques
  * @since 4.0.0
  */
 export type Handler<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<HandlerRequest<Endpoint>>
+  request: Types.Simplify<Endpoint["~Request"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
@@ -584,7 +567,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<HandlerRawRequest<Endpoint>>
+  request: Types.Simplify<Endpoint["~RequestRaw"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
