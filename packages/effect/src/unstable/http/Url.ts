@@ -259,11 +259,11 @@ export const setUsername: {
  * @since 4.0.0
  */
 export const setUrlParams: {
-  (urlParams: UrlParams.UrlParams): (url: URL) => URL
-  (url: URL, urlParams: UrlParams.UrlParams): URL
-} = dual(2, (url: URL, searchParams: UrlParams.UrlParams) =>
+  (urlParams: UrlParams.Input): (url: URL) => URL
+  (url: URL, urlParams: UrlParams.Input): URL
+} = dual(2, (url: URL, urlParams: UrlParams.Input) =>
   mutate(url, (url) => {
-    url.search = UrlParams.toString(searchParams)
+    url.search = UrlParams.toString(UrlParams.fromInput(urlParams))
   }))
 
 /**
@@ -321,9 +321,9 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * @since 4.0.0
  */
 export const modifyUrlParams: {
-  (f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): (url: URL) => URL
-  (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): URL
-} = dual(2, (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams) =>
+  (f: (urlParams: UrlParams.Input) => UrlParams.UrlParams): (url: URL) => URL
+  (url: URL, f: (urlParams: UrlParams.Input) => UrlParams.UrlParams): URL
+} = dual(2, (url: URL, f: (urlParams: UrlParams.Input) => UrlParams.UrlParams) =>
   mutate(url, (url) => {
     const params = f(UrlParams.fromInput(url.searchParams))
     url.search = UrlParams.toString(params)

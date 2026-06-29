@@ -116,7 +116,7 @@ const Proto = {
 export function makeWith(
   method: HttpMethod,
   url: string,
-  urlParams: UrlParams.UrlParams,
+  urlParams: UrlParams.Input,
   hash: Option.Option<string>,
   headers: Headers.Headers,
   body: HttpBody.HttpBody

@@ -65,6 +65,7 @@ export const isUrlParams = (u: unknown): u is UrlParams => hasProperty(u, TypeId
  * @since 4.0.0
  */
 export type Input =
+  | UrlParams
   | CoercibleRecordInput
   | Iterable<readonly [string, Coercible]>
   | URLSearchParams
@@ -157,6 +158,9 @@ export const make = (params: ReadonlyArray<readonly [string, string]>): UrlParam
  * @since 4.0.0
  */
 export const fromInput = (input: Input): UrlParams => {
+  if (isUrlParams(input)) {
+    return input
+  }
   const parsed = fromInputNested(input)
   const out: Array<[string, string]> = []
   for (let i = 0; i < parsed.length; i++) {
