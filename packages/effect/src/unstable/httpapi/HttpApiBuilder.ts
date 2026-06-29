@@ -603,18 +603,20 @@ function decodePayload(
       )
     }
     case "Json":
-      const json = Effect.flatMap(Effect.orDie(httpRequest.text), (text) => {
+      return Effect.flatMap(Effect.orDie(httpRequest.text), (text) => {
         if (text === "") {
           return existing.nullOnEmpty ? Effect.succeed(null) : Effect.undefined
         }
-        // Surface malformed JSON as a 400 SchemaError instead of a 500 defect.
-        return Effect.try({
-          try: () => JSON.parse(text),
-          catch: (cause) =>
-            makeSchemaError(new SchemaIssue.InvalidValue(Option.some(text), { message: `Invalid JSON: ${cause}` }))
-        })
+        try {
+          return decode(JSON.parse(text))
+        } catch (cause) {
+          return Effect.fail(
+            new Schema.SchemaError(
+              new SchemaIssue.InvalidValue(Option.some(text), { message: `Invalid JSON: ${cause}` })
+            )
+          )
+        }
       })
-      return Effect.flatMap(json, decode)
     case "Text":
       return Effect.flatMap(Effect.orDie(httpRequest.text), decode)
     case "FormUrlEncoded": {
@@ -812,7 +814,9 @@ function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncode
   if (HttpApiSchema.isStreamUint8Array(streamSchema)) {
     return (response, context) => {
       if (!Stream.isStream(response)) {
-        return hasBuffered ? undefined : expectedStreamResponse(response)
+        return hasBuffered ? undefined : new Schema.SchemaError(
+          new SchemaIssue.InvalidValue(Option.some(response), { message: "Expected a streaming response" })
+        )
       }
 
       return Effect.succeed(Response.stream(
@@ -829,7 +833,9 @@ function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncode
 
   return (response, context) => {
     if (!Stream.isStream(response)) {
-      return hasBuffered ? undefined : expectedStreamResponse(response)
+      return hasBuffered ? undefined : new Schema.SchemaError(
+        new SchemaIssue.InvalidValue(Option.some(response), { message: "Expected a streaming response" })
+      )
     }
 
     return Effect.succeed(Response.stream(
@@ -855,16 +861,6 @@ function hasBufferedSuccess(endpoint: HttpApiEndpoint.AnyWithProps): boolean {
     if (Schema.isSchema(schema) && !HttpApiSchema.isStreamSchema(schema)) return true
   }
   return endpoint.success.size === 0
-}
-
-function expectedStreamResponse(response: unknown) {
-  return Effect.fail(
-    makeSchemaError(
-      new SchemaIssue.InvalidValue(Option.some(response), {
-        message: "Expected a streaming response"
-      })
-    )
-  )
 }
 
 interface SseStreamEncoder {
@@ -925,10 +921,6 @@ function renderSseEvent(event: Sse.EventEncoded) {
     id: event.id,
     data: event.data
   })
-}
-
-function makeSchemaError(issue: SchemaIssue.Issue): Schema.SchemaError {
-  return new Schema.SchemaError(issue)
 }
 
 const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
