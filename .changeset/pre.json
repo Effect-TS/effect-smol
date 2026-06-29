@@ -236,6 +236,7 @@
     "fix-2414",
     "fix-2419",
     "fix-2497",
+    "fix-2499",
     "fix-ai-empty-params-structured-output",
     "fix-ai-text-toolkit-typing",
     "fix-anthropic-caller-toolid",

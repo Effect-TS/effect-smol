@@ -122,6 +122,12 @@ export interface MakeOptions {
    * Whether to disable validation for the schema.
    */
   readonly disableChecks?: boolean | undefined
+
+  /** @internal */
+  readonly "~payload"?: {
+    readonly token: unknown
+    readonly value: unknown
+  }
 }
 
 /**
@@ -12467,6 +12473,8 @@ type InheritStaticMembers<C, Static> = C & Pick<Static, Exclude<keyof Static, ke
 
 const immerable: unique symbol = globalThis.Symbol.for("immer-draftable") as any
 
+const payloadToken = {}
+
 function makeClass<
   Self,
   S extends Struct<Struct.Fields>,
@@ -12483,9 +12491,12 @@ function makeClass<
 
   const out = class extends Inherited {
     constructor(...[input, options]: ReadonlyArray<any>) {
-      input = input ?? {}
-      const validated = struct.make(input, options)
-      super({ ...input, ...validated }, { ...options, disableChecks: true })
+      const internalOptions = options as MakeOptions | undefined
+      const payload = internalOptions?.["~payload"]
+      const value = payload?.token === payloadToken
+        ? payload.value
+        : struct.make(input ?? {}, options)
+      super(value, { ...options, disableChecks: true, "~payload": { token: payloadToken, value } })
     }
 
     static readonly [TypeId] = TypeId
