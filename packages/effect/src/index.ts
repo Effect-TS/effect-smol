@@ -477,6 +477,11 @@ export * as References from "./References.ts"
 export * as RegExp from "./RegExp.ts"
 
 /**
+ * @since 4.0.0
+ */
+export * as Reloadable from "./Reloadable.ts"
+
+/**
  * @since 2.0.0
  */
 export * as Request from "./Request.ts"
