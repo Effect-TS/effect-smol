@@ -21,6 +21,7 @@ import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type { Path } from "../../Path.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
+import { hasProperty } from "../../Predicate.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as Schema from "../../Schema.ts"
@@ -773,6 +774,7 @@ const makeSecurityMiddleware = (
     readonly group: HttpApiGroup.AnyWithProps
     readonly endpoint: HttpApiEndpoint.AnyWithProps
   }) {
+    handler = Effect.mapError(handler, (error) => new HandlerError(error))
     let lastResult: Result.Result<any, any> | undefined
     for (let i = 0; i < entries.length; i++) {
       const { decode, middleware } = entries[i]
@@ -783,6 +785,9 @@ const makeSecurityMiddleware = (
           group: options.group
         })))
       if (Result.isFailure(result)) {
+        if (isHandlerError(result.failure)) {
+          return yield* Effect.fail(result.failure.error)
+        }
         lastResult = result
         continue
       }
@@ -794,6 +799,16 @@ const makeSecurityMiddleware = (
   securityMiddlewareCache.set(service, middleware)
   return middleware
 }
+
+const HandlerErrorTypeId = "~effect/httpapi/HttpApiBuilder/HandlerError" as const
+class HandlerError {
+  readonly [HandlerErrorTypeId] = HandlerErrorTypeId
+  readonly error: unknown
+  constructor(error: unknown) {
+    this.error = error
+  }
+}
+const isHandlerError = (value: unknown): value is HandlerError => hasProperty(value, HandlerErrorTypeId)
 
 const $HttpServerResponse = Schema.declare(Response.isHttpServerResponse)
 
