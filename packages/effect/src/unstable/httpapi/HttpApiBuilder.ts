@@ -605,7 +605,7 @@ function decodePayload(
     case "Json":
       return Effect.flatMap(Effect.orDie(httpRequest.text), (text) => {
         if (text === "") {
-          return existing.nullOnEmpty ? Effect.succeed(null) : Effect.undefined
+          return decode(existing.nullOnEmpty ? null : undefined)
         }
         try {
           return decode(JSON.parse(text))
