@@ -195,7 +195,6 @@ export const manual = <I, S, E, R>(
  * Use when an explicit event should refresh the service implementation, such as
  * a configuration change or administrative command.
  *
- * @see {@link reloadFork} for starting a best-effort reload in the background
  * @category resource management
  * @since 4.0.0
  */
@@ -216,26 +215,5 @@ export const reload = <I, S>(
  */
 export const tag = <I, S>(
   service: Context.Key<I, S>
-): Context.Key<Reloadable<I>, Reloadable<S>> =>
+): Context.Service<Reloadable<I>, Reloadable<S>> =>
   Context.Service<Reloadable<I>, Reloadable<S>>(`effect/Reloadable<${service.key}>`)
-
-/**
- * Starts a reload in the background and ignores any reload failure after
- * logging it.
- *
- * **When to use**
- *
- * Use when a caller should trigger a best-effort refresh without waiting for the
- * rebuild to complete.
- *
- * @see {@link reload} for waiting until the reload completes or fails
- * @category resource management
- * @since 4.0.0
- */
-export const reloadFork = <I, S>(
-  service: Context.Key<I, S>
-): Effect.Effect<void, never, Reloadable<I>> =>
-  Effect.flatMap(
-    tag(service),
-    (reloadable) => Effect.asVoid(Effect.forkDetach(Effect.ignore(reloadable.reload, { log: true })))
-  )
