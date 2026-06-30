@@ -131,6 +131,35 @@ describe("Tracer", () => {
         assert.strictEqual(spanData.status.message, "first")
       }))
 
+    it.effect("renders nested error causes in the stacktrace", () =>
+      Effect.gen(function*() {
+        const exporter = new InMemorySpanExporter()
+        const spanProcessor = new SimpleSpanProcessor(exporter)
+        const error = new Error("outer failure", { cause: new Error("inner cause") })
+
+        yield* Effect.die(error).pipe(
+          Effect.withSpan("error-span"),
+          Effect.andThen(Effect.never), // keep the exporter alive
+          Effect.provide(NodeSdk.layer(() => ({
+            resource: {
+              serviceName: "test"
+            },
+            spanProcessor: [spanProcessor]
+          }))),
+          Effect.forkChild({ startImmediately: true })
+        )
+
+        const spanData = exporter.getFinishedSpans()[0]
+        if (spanData === undefined) {
+          return yield* Effect.die("Missing span data")
+        }
+        const exceptionEvent = spanData.events.find((event) => event.name === "exception")
+        assert(exceptionEvent !== undefined)
+        const stacktrace = exceptionEvent.attributes?.["exception.stacktrace"]
+        assert.isString(stacktrace)
+        assert.include(stacktrace as string, "[cause]: Error: inner cause")
+      }))
+
     it.effect("withSpanContext", () =>
       Effect.gen(function*() {
         const effect = Effect.gen(function*() {

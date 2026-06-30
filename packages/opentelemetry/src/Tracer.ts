@@ -33,6 +33,24 @@ import * as Tracer from "effect/Tracer"
 import { nanosToHrTime, recordToAttributes, unknownToAttributeValue } from "./internal/attributes.ts"
 import { Resource } from "./Resource.ts"
 
+// Mirrors `renderPrettyError` from effect's `internal/effect.ts` (used by
+// `OtlpTracer`). `Cause.prettyErrors` keeps the nested `cause` on each `Error`
+// but omits it from `.stack`, so we render the chain into the stack trace.
+const renderPrettyError = (e: Error): string | undefined =>
+  e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
+
+const renderErrorCause = (cause: Error, prefix: string): string => {
+  const lines = (cause.stack ?? "").split("\n")
+  let stack = `${prefix}[cause]: ${lines[0]}`
+  for (let i = 1, len = lines.length; i < len; i++) {
+    stack += `\n${prefix}${lines[i]}`
+  }
+  if (cause.cause) {
+    stack += ` {\n${renderErrorCause(cause.cause as Error, `${prefix}  `)}\n${prefix}}`
+  }
+  return stack
+}
+
 // =============================================================================
 // Service Definitions
 // =============================================================================
@@ -333,7 +351,7 @@ const makeOtelSpan = (span: Tracer.Span, clock: Clock.Clock): Otel.Span => {
       span.event(error.message, time, {
         "exception.type": error.name,
         "exception.message": error.message,
-        "exception.stacktrace": error.stack ?? ""
+        "exception.stacktrace": renderPrettyError(error) ?? ""
       })
     }
   }
@@ -487,7 +505,11 @@ export class OtelSpan implements Tracer.Span {
         const errors = Cause.prettyErrors(exit.cause)
         if (errors.length > 0) {
           for (const error of errors) {
-            this.span.recordException(error, hrTime)
+            const stack = renderPrettyError(error)
+            this.span.recordException(
+              stack === undefined ? error : { name: error.name, message: error.message, stack },
+              hrTime
+            )
           }
           this.span.setStatus({
             code: Otel.SpanStatusCode.ERROR,
