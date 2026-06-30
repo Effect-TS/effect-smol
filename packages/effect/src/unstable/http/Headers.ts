@@ -163,7 +163,6 @@ export const HeadersSchema: HeadersSchema = Schema.declare(
  * @since 4.0.0
  */
 export type Input =
-  | Headers
   | Record.ReadonlyRecord<string, string | ReadonlyArray<string> | undefined>
   | Iterable<readonly [string, string]>
 
@@ -186,9 +185,6 @@ export const empty: Headers = Object.create(Proto)
  * @since 4.0.0
  */
 export const fromInput: (input?: Input) => Headers = (input) => {
-  if (isHeaders(input)) {
-    return input
-  }
   if (input === undefined) {
     return empty
   } else if (Symbol.iterator in input) {
