@@ -275,7 +275,7 @@ describe("Machine", () => {
   it.effect("make constructs the initial state from input", () =>
     Effect.gen(function*() {
       const states = Machine.defineStates({ Idle })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [Submit],
         input: Input,
@@ -290,7 +290,7 @@ describe("Machine", () => {
 
   it("make stores the machine id", () => {
     const states = Machine.defineStates({ Idle, Loading })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       id: "UserMachine",
       states: states.states,
       events: [Submit],
@@ -318,7 +318,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const states = { idle: Idle, loading: Loading }
       const defined = Machine.defineStates(states)
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: defined.states,
         events: [Submit],
         initial: () => defined.initial.idle(new Idle({ userId: "user-1" }))
@@ -334,7 +334,7 @@ describe("Machine", () => {
   it.effect("initial builder constructs effectful atomic initial snapshots", () =>
     Effect.gen(function*() {
       const states = Machine.defineStates({ Idle })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [Submit],
         input: Input,
@@ -362,7 +362,7 @@ describe("Machine", () => {
       })
       const payment = new Payment({ id: "payment-1" })
       const entering = new EnteringPayment({ amount: 100 })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [Authorize],
         initial: () =>
@@ -411,7 +411,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -456,7 +456,7 @@ describe("Machine", () => {
     it.effect("decodes input before initial state construction", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           input: NonEmptyInput,
@@ -471,7 +471,7 @@ describe("Machine", () => {
     it.effect("decodes initial state snapshots before accepting them", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           initial: () => states.initial.NonEmptyIdle(unsafeTagged({ _tag: "NonEmptyIdle", userId: "" }))
@@ -485,7 +485,7 @@ describe("Machine", () => {
     it.effect("decodes incoming events before handler selection", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
@@ -511,7 +511,7 @@ describe("Machine", () => {
     it.effect("surfaces sent event decode failures through actor lifecycle", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
@@ -546,7 +546,7 @@ describe("Machine", () => {
     it.effect("decodes transition target values before accepting them", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle, NonEmptyLoading })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
@@ -580,7 +580,7 @@ describe("Machine", () => {
             output: Schema.NonEmptyString
           }
         })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit],
           initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
@@ -626,7 +626,7 @@ describe("Machine", () => {
             }
           }
         })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [],
           initial: () =>
@@ -651,7 +651,7 @@ describe("Machine", () => {
     it.effect("decodes raised events before processing them", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [NonEmptySubmit, NonEmptyResolve],
           initial: () => states.initial.NonEmptyIdle(new NonEmptyIdle({ userId: "user-1" }))
@@ -681,7 +681,7 @@ describe("Machine", () => {
     it.effect("decodes emitted events before sending them to the parent", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
-        const machine = Machine.make({
+        const machine = Machine.makeNested({
           states: states.states,
           events: [],
           emits: [NonEmptyEmit],
@@ -704,7 +704,7 @@ describe("Machine", () => {
 
   it.effect("supports flat object states with path-aware handlers", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           loading: Loading
@@ -736,7 +736,7 @@ describe("Machine", () => {
 
   it.effect("uses path identity for duplicate decoded state tags", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           a: Duplicate,
           b: Duplicate
@@ -776,7 +776,7 @@ describe("Machine", () => {
 
   it.effect("exposes path identity through actor snapshots", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           a: Duplicate,
           b: Duplicate
@@ -805,7 +805,7 @@ describe("Machine", () => {
 
   it.effect("honors final flat object state node configs", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           success: {
@@ -840,7 +840,7 @@ describe("Machine", () => {
       const deferredLog = yield* makeDeferredLog
       const initialPayment = new Payment({ id: "payment-1" })
       const initialEntering = new EnteringPayment({ amount: 100 })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -894,7 +894,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
       const entering = new EnteringPayment({ amount: 100 })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -943,7 +943,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
       const entering = new EnteringPayment({ amount: 100 })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -1006,7 +1006,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
       const entering = new EnteringPayment({ amount: 100 })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           payment: {
@@ -1046,7 +1046,7 @@ describe("Machine", () => {
   it.effect("runs compound exits deepest-first and entries parent-first", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           payment: {
@@ -1123,7 +1123,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
       const payment = new Payment({ id: "payment-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -1199,7 +1199,7 @@ describe("Machine", () => {
   it.effect("uses target.full when targeting a nested state from outside", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           payment: {
@@ -1288,7 +1288,7 @@ describe("Machine", () => {
           }
         }
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [Submit],
         initial: () => states.initial.idle(new Idle({ userId: "user-1" }))
@@ -1369,7 +1369,7 @@ describe("Machine", () => {
       const inventory = new Inventory({ warehouse: "warehouse-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -1456,7 +1456,7 @@ describe("Machine", () => {
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
       const nextInventory = new Inventory({ warehouse: "warehouse-2" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -1547,7 +1547,7 @@ describe("Machine", () => {
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
       const nextInventory = new Inventory({ warehouse: "warehouse-2" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -1639,7 +1639,7 @@ describe("Machine", () => {
       const nextInventory = new Inventory({ warehouse: "warehouse-2" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -1733,7 +1733,7 @@ describe("Machine", () => {
       const payment = new Payment({ id: "payment-1" })
       const inventory = new Inventory({ warehouse: "warehouse-1" })
       const shipping = new Shipping({ address: "Main Street" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: states.states,
         events: [ReserveInventory],
         initial: () =>
@@ -1785,7 +1785,7 @@ describe("Machine", () => {
   it.effect("treats compound states as final when their active child is final", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -1844,7 +1844,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
       const authorized = new AuthorizedPayment({ code: "auth-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -1892,7 +1892,7 @@ describe("Machine", () => {
   it.effect("joins with output from nested final completion and ignores later events", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           idle: Idle,
           payment: {
@@ -1959,7 +1959,7 @@ describe("Machine", () => {
   it.effect("does not process raised events from nested final state entry actions", () =>
     Effect.gen(function*() {
       const payment = new Payment({ id: "payment-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -2016,7 +2016,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const checkout = new Fulfillment({ id: "checkout-1" })
       const inventory = new Inventory({ warehouse: "warehouse-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           checkout: {
             schema: Fulfillment,
@@ -2095,7 +2095,7 @@ describe("Machine", () => {
       const deferredLog = yield* makeDeferredLog
       const checkout = new Fulfillment({ id: "checkout-1" })
       const inventory = new Inventory({ warehouse: "warehouse-1" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           checkout: {
             schema: Fulfillment,
@@ -2173,7 +2173,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2301,7 +2301,7 @@ describe("Machine", () => {
       const inventory = new Inventory({ warehouse: "warehouse-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2404,7 +2404,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2546,7 +2546,7 @@ describe("Machine", () => {
       const inventory = new Inventory({ warehouse: "warehouse-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2681,7 +2681,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2801,7 +2801,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -2907,7 +2907,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -3029,7 +3029,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -3163,7 +3163,7 @@ describe("Machine", () => {
       const checking = new CheckingInventory({ sku: "sku-1" })
       const shipping = new Shipping({ address: "Main Street" })
       const quoting = new QuotingShipping({ postalCode: "12345" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -3270,7 +3270,7 @@ describe("Machine", () => {
 
   it.effect("starts a machine without input", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
@@ -3284,7 +3284,7 @@ describe("Machine", () => {
   it.effect("planInitial computes the initial state without running deferred actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3310,7 +3310,7 @@ describe("Machine", () => {
 
   it.effect("planInitial uses the planning runtime for initial raised events", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Resolve],
         input: Input,
@@ -3334,7 +3334,7 @@ describe("Machine", () => {
 
   it.effect("planInitial carries external initial and entry requirements", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3365,7 +3365,7 @@ describe("Machine", () => {
   it.effect("start runs deferred initial actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3391,7 +3391,7 @@ describe("Machine", () => {
   it.effect("planInitial collects initial state entry actions without running them", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3417,7 +3417,7 @@ describe("Machine", () => {
   it.effect("start runs initial state entry actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3446,7 +3446,7 @@ describe("Machine", () => {
   it.effect("start follows always transitions from the initial state before exposing runtime state", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -3482,7 +3482,7 @@ describe("Machine", () => {
   it.effect("start processes raised events from initial state entry actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Resolve],
         input: Input,
@@ -3522,7 +3522,7 @@ describe("Machine", () => {
   it.effect("carries initial action requirements", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3549,7 +3549,7 @@ describe("Machine", () => {
 
   it.effect("propagates initial action failures", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3569,7 +3569,7 @@ describe("Machine", () => {
 
   it.effect("propagates initial state entry action failures", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -3595,7 +3595,7 @@ describe("Machine", () => {
 
   it("handle stores handlers and sync transitions enqueue actions", () => {
     const effect = Effect.succeed("submitted")
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: { Idle, Loading },
       events: [Submit],
       input: Input,
@@ -3617,7 +3617,7 @@ describe("Machine", () => {
 
   it.effect("handlers can return snapshots directly", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -3645,7 +3645,7 @@ describe("Machine", () => {
     }))
 
   it("enabled returns the event tags handled by the current state", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
@@ -3671,7 +3671,7 @@ describe("Machine", () => {
   })
 
   it("enabled returns no event tags for final states", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: { Idle, Success },
       events: [Submit],
       input: Input,
@@ -3696,7 +3696,7 @@ describe("Machine", () => {
   it.effect("runs final state entry actions when entering a final state", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success },
         events: [Submit],
         input: Input,
@@ -3733,7 +3733,7 @@ describe("Machine", () => {
 
   it.effect("exposes final state output from an actor", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
@@ -3764,7 +3764,7 @@ describe("Machine", () => {
 
   it.effect("plans final state output without running deferred actions", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
@@ -3792,7 +3792,7 @@ describe("Machine", () => {
 
   it.effect("exposes output when the initial state is final", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Success: SuccessOutput },
         events: [Submit],
         initial: () => FlatInitial.Success(new Success({ requestId: "request-1" }))
@@ -3817,7 +3817,7 @@ describe("Machine", () => {
 
   it.effect("defaults final state output to undefined", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success },
         events: [Submit],
         input: Input,
@@ -3846,7 +3846,7 @@ describe("Machine", () => {
 
   it.effect("does not process events after reaching a final state", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
@@ -3877,7 +3877,7 @@ describe("Machine", () => {
 
   it.effect("start ignores events sent after stop", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -3902,7 +3902,7 @@ describe("Machine", () => {
 
   it.effect("plans no-op transitions from final states", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success },
         events: [Submit],
         input: Input,
@@ -3923,7 +3923,7 @@ describe("Machine", () => {
 
   it.effect("does not process raised events from final state entry actions", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success },
         events: [Submit, Reset],
         input: Input,
@@ -3955,7 +3955,7 @@ describe("Machine", () => {
   it.effect("plan computes the next state without running deferred actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -3984,7 +3984,7 @@ describe("Machine", () => {
 
   it.effect("handlers can omit returning a state for self-transitions", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -4008,7 +4008,7 @@ describe("Machine", () => {
   it.effect("effect handlers can omit returning a state for self-transitions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -4041,7 +4041,7 @@ describe("Machine", () => {
 
   it("can reuse the same machine with multiple different handlers", () => {
     const effect = Effect.succeed("submitted")
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: { Idle, Loading },
       events: [Submit, Reset],
       input: Input,
@@ -4076,7 +4076,7 @@ describe("Machine", () => {
 
   it.effect("start creates a runtime that sends events and stops", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
@@ -4115,7 +4115,7 @@ describe("Machine", () => {
 
   it.effect("start returns an actor-backed runtime with lifecycle snapshots", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -4159,7 +4159,7 @@ describe("Machine", () => {
 
   it.effect("start completes actor output from a final state", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Submit],
         input: Input,
@@ -4190,7 +4190,7 @@ describe("Machine", () => {
 
   it.effect("start surfaces transition failures through the machine lifecycle", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         id: "UserMachine",
         states: { Idle, Loading },
         events: [Submit, Reset],
@@ -4230,7 +4230,7 @@ describe("Machine", () => {
 
   it.effect("start runs invoke configs", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
@@ -4280,7 +4280,7 @@ describe("Machine", () => {
         initial: "idle",
         run: ({ sendParent }) => sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
       })
-      const parentMachine = Machine.make({
+      const parentMachine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Submit, ParentRequestProgress],
         input: Input,
@@ -4317,7 +4317,7 @@ describe("Machine", () => {
 
   it.effect("sendParent is ignored when there is no parent", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [ParentRequestProgress],
         emits: [ParentRequestProgress],
@@ -4355,7 +4355,7 @@ describe("Machine", () => {
 
   it.effect("runtime raises events from local deferred actions", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Resolve],
         initial: () => FlatInitial.Idle(new Idle({ userId: "user-1" }))
@@ -4397,7 +4397,7 @@ describe("Machine", () => {
         run: ({ sendParent }) => notifyWorkerDone(sendParent)
       })
 
-      const parentMachine = Machine.make({
+      const parentMachine = Machine.makeNested({
         states: { Idle, Success: SuccessOutput },
         events: [Submit, ParentRequestProgress],
         input: Input,
@@ -4443,7 +4443,7 @@ describe("Machine", () => {
             Effect.forever
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
@@ -4502,7 +4502,7 @@ describe("Machine", () => {
             Effect.forever
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
@@ -4560,7 +4560,7 @@ describe("Machine", () => {
             Effect.forever
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve],
         input: Input,
@@ -4610,7 +4610,7 @@ describe("Machine", () => {
   it.effect("start fails when machine actions spawn duplicate child ids", () =>
     Effect.gen(function*() {
       const childLogic = Machine.effect({ initial: 0, run: () => Effect.never })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -4647,7 +4647,7 @@ describe("Machine", () => {
 
   it.effect("start invokes a child process and handles its output event", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
@@ -4698,7 +4698,7 @@ describe("Machine", () => {
         initial: "pending",
         run: () => Effect.succeed("done:request-1")
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestSucceeded],
         input: Input,
@@ -4741,7 +4741,7 @@ describe("Machine", () => {
   it.effect("start maps invoked child failures to machine events", () =>
     Effect.gen(function*() {
       const error = new InvokeError({ message: "boom" })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Failed: FailedOutput },
         events: [Submit, RequestFailed],
         input: Input,
@@ -4789,7 +4789,7 @@ describe("Machine", () => {
 
   it.effect("start maps invoked child active snapshots to machine events", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestProgress],
         input: Input,
@@ -4833,7 +4833,7 @@ describe("Machine", () => {
     Effect.gen(function*() {
       const started = yield* Deferred.make<void>()
       const release = yield* Deferred.make<void>()
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, RequestProgress],
         input: Input,
@@ -4893,7 +4893,7 @@ describe("Machine", () => {
 
   it.effect("start allows invoked children without snapshot or event mappers", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -4934,7 +4934,7 @@ describe("Machine", () => {
       const started = yield* Deferred.make<void>()
       const release = yield* Deferred.make<void>()
       const resetHandled = yield* Deferred.make<void>()
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestProgress],
         input: Input,
@@ -4996,7 +4996,7 @@ describe("Machine", () => {
       const started = yield* Deferred.make<void>()
       const release = yield* Deferred.make<void>()
       const resetHandled = yield* Deferred.make<void>()
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
@@ -5071,7 +5071,7 @@ describe("Machine", () => {
             )
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Reset, RequestSucceeded],
         input: Input,
@@ -5151,7 +5151,7 @@ describe("Machine", () => {
             )
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success: SuccessOutput },
         events: [Submit, Resolve, RequestSucceeded],
         input: Input,
@@ -5233,7 +5233,7 @@ describe("Machine", () => {
             return yield* Effect.never
           })
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Reset, Resolve, RequestSucceeded],
         input: Input,
@@ -5306,7 +5306,7 @@ describe("Machine", () => {
               Effect.onInterrupt(() => Ref.update(stopped, (labels) => [...labels, label]))
             )
         })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           payment: {
             schema: Payment,
@@ -5400,7 +5400,7 @@ describe("Machine", () => {
               )
             )
         })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: {
           fulfillment: {
             schema: Fulfillment,
@@ -5531,7 +5531,7 @@ describe("Machine", () => {
             Effect.onInterrupt(() => Ref.update(invokeStops, (count) => count + 1))
           )
       })
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Resolve],
         input: Input,
@@ -5570,7 +5570,7 @@ describe("Machine", () => {
 
   it.effect("start propagates startup failures", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -5590,7 +5590,7 @@ describe("Machine", () => {
 
   it.effect("sending an event that is not handled by the current state fails", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         id: "UserMachine",
         states: { Idle, Loading },
         events: [Submit, Reset],
@@ -5629,7 +5629,7 @@ describe("Machine", () => {
   it.effect("handles required services in actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
@@ -5672,7 +5672,7 @@ describe("Machine", () => {
   it.effect("runs the actions in sequential order", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Reset],
         input: Input,
@@ -5716,7 +5716,7 @@ describe("Machine", () => {
   it.effect("runs exit, transition, and entry actions in order", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -5764,7 +5764,7 @@ describe("Machine", () => {
   it.effect("plan collects entry and exit actions without running them", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -5805,7 +5805,7 @@ describe("Machine", () => {
   it.effect("plan follows always transitions to a settled state", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
@@ -5844,7 +5844,7 @@ describe("Machine", () => {
   it.effect("send follows always transitions before exposing the runtime state", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit],
         input: Input,
@@ -5888,7 +5888,7 @@ describe("Machine", () => {
 
   it.effect("plan processes raised events before settling", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
@@ -5922,7 +5922,7 @@ describe("Machine", () => {
 
   it.effect("send processes raised events from entry actions", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Resolve],
         input: Input,
@@ -5957,7 +5957,7 @@ describe("Machine", () => {
 
   it.effect("processes raised events in FIFO order", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Reset, Resolve],
         input: Input,
@@ -5998,7 +5998,7 @@ describe("Machine", () => {
   it.effect("queues events raised from exit actions before transition actions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit, Reset, Resolve],
         input: Input,
@@ -6055,7 +6055,7 @@ describe("Machine", () => {
 
   it.effect("selects always transitions before raised events", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading, Success },
         events: [Submit, Reset],
         input: Input,
@@ -6096,7 +6096,7 @@ describe("Machine", () => {
   it.effect("stops following always transitions after a no-op microstep", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -6128,7 +6128,7 @@ describe("Machine", () => {
 
   it.effect("fails when always transitions do not stabilize", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         id: "LoopMachine",
         states: { Idle, Loading },
         events: [Submit],
@@ -6159,7 +6159,7 @@ describe("Machine", () => {
   it.effect("does not run entry or exit actions for implicit self-transitions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -6197,7 +6197,7 @@ describe("Machine", () => {
   it.effect("runs exit, transition, and entry actions for reentering self-transitions", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -6251,7 +6251,7 @@ describe("Machine", () => {
   it.effect("reentering self-transitions can omit returning a state", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle },
         events: [Submit],
         input: Input,
@@ -6297,7 +6297,7 @@ describe("Machine", () => {
   it.effect("carries entry and exit action requirements", () =>
     Effect.gen(function*() {
       const deferredLog = yield* makeDeferredLog
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -6350,7 +6350,7 @@ describe("Machine", () => {
 
   it.effect("propagates entry action failures", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,
@@ -6377,7 +6377,7 @@ describe("Machine", () => {
 
   it.effect("propagates exit action failures", () =>
     Effect.gen(function*() {
-      const machine = Machine.make({
+      const machine = Machine.makeNested({
         states: { Idle, Loading },
         events: [Submit],
         input: Input,

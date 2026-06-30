@@ -95,7 +95,9 @@ export interface Machine<
   FinalStates extends Machine.StateIdentifier<States> = never,
   Output = never,
   Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
-  OutputStates extends Machine.StateIdentifier<States> = never
+  OutputStates extends Machine.StateIdentifier<States> = never,
+  LifecycleR = never,
+  HandlerConfig = {}
 > extends Pipeable {
   readonly [TypeId]: TypeId
   readonly states: States
@@ -125,7 +127,9 @@ export interface Machine<
     InitialR,
     FinalStates,
     Output,
-    OutputStates
+    OutputStates,
+    LifecycleR,
+    HandlerConfig
   >
 
   /** @internal */
@@ -288,10 +292,10 @@ type ValidateOutputSchema<Node> = "output" extends keyof Node ? Node extends { r
 type ValidateStateNodeWithChildren<
   Node extends { readonly schema: Machine.TaggedSchema },
   Children
-> = Children extends Machine.StateSchemas ?
-  Node extends { readonly type: "final" } ? StateDefinitionError<"Final states cannot declare child states">
-  : Node extends { readonly type: "parallel" } ?
-    "initial" extends keyof Node ? StateDefinitionError<"Parallel states cannot declare an initial child">
+> = Children extends Machine.StateSchemas
+  ? Node extends { readonly type: "final" } ? StateDefinitionError<"Final states cannot declare child states">
+  : Node extends { readonly type: "parallel" }
+    ? "initial" extends keyof Node ? StateDefinitionError<"Parallel states cannot declare an initial child">
     : { readonly states: ValidateStateTree<Children> } & ValidateOutputSchema<Node>
   : "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
   : ValidateCompoundStateNode<Node, Children>
@@ -309,8 +313,8 @@ type ValidateCompoundStateNode<
 type ValidateStateNodeWithoutChildren<Node extends { readonly schema: Machine.TaggedSchema }> = "initial" extends
   keyof Node ? StateDefinitionError<"Atomic states cannot declare an initial child">
   : Node extends { readonly type: infer Type } ? Type extends "final" ? ValidateOutputSchema<Node>
-    : Type extends "active" | undefined ?
-      "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
+    : Type extends "active" | undefined
+      ? "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
       : unknown
     : StateDefinitionError<"State node type must be active, final, or parallel">
   : "output" extends keyof Node ? StateDefinitionError<"Only final and parallel states can declare output">
@@ -321,8 +325,8 @@ type DefineStateTreeInput<States extends Machine.StateSchemas> = {
 }
 
 type DefineStateNodeInput<Node> = Node extends Machine.TaggedSchema ? Node
-  : Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ?
-    Omit<Node, "states"> & { readonly states: DefineStateTreeInput<Children> }
+  : Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas }
+    ? Omit<Node, "states"> & { readonly states: DefineStateTreeInput<Children> }
   : Node extends { readonly states: infer Children extends Machine.StateSchemas } ? Omit<Node, "initial" | "states"> & {
       readonly initial: Extract<keyof Children, string>
       readonly states: DefineStateTreeInput<Children>
@@ -332,6 +336,14 @@ type DefineStateNodeInput<Node> = Node extends Machine.TaggedSchema ? Node
 type ValidateDefinedStates<States extends Machine.StateSchemas> = [States] extends
   [Machine.ValidateStateSchemas<States>] ? []
   : [validation: Machine.ValidateStateSchemas<States>]
+
+type FlatStateError = StateDefinitionError<"Flat machines cannot declare compound or parallel states">
+
+type NestedStateCheck<S> = S extends { readonly schema: any; readonly states: any } ? true : never
+
+type ValidateFlat<States extends Machine.StateSchemas> = [true] extends [NestedStateCheck<States[keyof States]>]
+  ? [flat: FlatStateError]
+  : []
 
 const SnapshotBuilderStateTypeId: unique symbol = Symbol("effect/Machine/SnapshotBuilderState")
 
@@ -359,15 +371,15 @@ type InitialSnapshotArguments<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends infer Node ?
-  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
+> = States[StateId] extends infer Node
+  ? Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
       value: Machine.NodeSchema<Node>["Type"],
       states: (
         builder: InitialParallelBuilder<Children, Path>
       ) => SnapshotBuilderComplete<InitialSnapshotRegionsWithPrefix<Children, Path>>
     ]
-  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ?
-    Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> } ? [
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas }
+    ? Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> } ? [
         value: Machine.NodeSchema<Node>["Type"],
         state: (
           builder: Pick<InitialSnapshotBuilderWithPrefix<Children, Path>, Initial>
@@ -382,15 +394,16 @@ type InitialSnapshotResult<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends infer Node ?
-  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ?
-    Machine.ParallelSnapshot<
+> = States[StateId] extends infer Node
+  ? Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas }
+    ? Machine.ParallelSnapshot<
       Path,
       Machine.NodeSchema<Node>["Type"],
       InitialSnapshotRegionsWithPrefix<Children, Path>
     >
-  : Node extends { readonly states: infer Children extends Machine.StateSchemas } ?
-    Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> } ? Machine.CompoundSnapshot<
+  : Node extends { readonly states: infer Children extends Machine.StateSchemas }
+    ? Node extends { readonly initial: infer Initial extends Extract<keyof Children, string> }
+      ? Machine.CompoundSnapshot<
         Path,
         Machine.NodeSchema<Node>["Type"],
         InitialSnapshotResult<Children, Initial, Path>
@@ -444,8 +457,8 @@ type FullSnapshotArguments<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends infer Node ?
-  Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
+> = States[StateId] extends infer Node
+  ? Node extends { readonly type: "parallel"; readonly states: infer Children extends Machine.StateSchemas } ? [
       value: Machine.NodeSchema<Node>["Type"],
       states: (
         builder: FullParallelBuilder<Children, Path>
@@ -497,15 +510,15 @@ type NearestCompoundScope<
   States extends Machine.StateSchemas,
   Source extends Machine.StateIdentifier<States>
 > = IsCompoundNode<Machine.NodeByIdentifier<States, Source>> extends true ? Source
-  : ParentPath<Source> extends infer Parent extends Machine.StateIdentifier<States> ?
-    NearestCompoundScope<States, Parent>
+  : ParentPath<Source> extends infer Parent extends Machine.StateIdentifier<States>
+    ? NearestCompoundScope<States, Parent>
   : never
 
 type ChildrenOf<
   States extends Machine.StateSchemas,
   Path extends Machine.StateIdentifier<States>
-> = Machine.NodeByIdentifier<States, Path> extends { readonly states: infer Children extends Machine.StateSchemas } ?
-  Children
+> = Machine.NodeByIdentifier<States, Path> extends { readonly states: infer Children extends Machine.StateSchemas }
+  ? Children
   : never
 
 type StateIdentifierFromPath<
@@ -519,8 +532,8 @@ type LocalTargetResult<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas } ?
-  LocalTargetResultWithPrefix<AllStates, Children, Path>
+> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas }
+  ? LocalTargetResultWithPrefix<AllStates, Children, Path>
   : Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
 
 type LocalTargetResultWithPrefix<
@@ -545,8 +558,8 @@ type LocalTargetMethod<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends infer Node ?
-  Node extends { readonly states: infer Children extends Machine.StateSchemas } ? <
+> = States[StateId] extends infer Node
+  ? Node extends { readonly states: infer Children extends Machine.StateSchemas } ? <
       Result extends LocalTargetResultWithPrefix<
         AllStates,
         Children,
@@ -582,8 +595,8 @@ type BranchTargetResult<
   StateId extends Extract<keyof States, string>,
   Prefix extends string,
   Path extends string = Machine.JoinPath<Prefix, StateId>
-> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas } ?
-  BranchTargetResultWithPrefix<AllStates, Children, Path>
+> = States[StateId] extends { readonly states: infer Children extends Machine.StateSchemas }
+  ? BranchTargetResultWithPrefix<AllStates, Children, Path>
   : Machine.Target<AllStates, StateIdentifierFromPath<AllStates, Path>>
 
 type BranchTargetResultWithPrefix<
@@ -728,8 +741,8 @@ export declare namespace ChildAddress {
    * @category utility types
    * @since 4.0.0
    */
-  export type Compatibility<Address, Event> = [Address] extends [ChildAddress<infer AddressEvent>] ?
-    [AddressEvent] extends [Event] ? unknown : {
+  export type Compatibility<Address, Event> = [Address] extends [ChildAddress<infer AddressEvent>]
+    ? [AddressEvent] extends [Event] ? unknown : {
       readonly [ChildAddressCompatibilityErrorTypeId]: {
         readonly address: AddressEvent
         readonly child: Event
@@ -783,7 +796,7 @@ export declare namespace Machine {
    * @category models
    * @since 4.0.0
    */
-  export type Any = Machine<any, any, any, any, any, any, any, any, any, any, any>
+  export type Any = Machine<any, any, any, any, any, any, any, any, any, any, any, any, any>
 
   /**
    * A schema whose decoded value contains a `_tag` discriminator.
@@ -909,6 +922,24 @@ export declare namespace Machine {
   export type ValidateStateSchemas<States extends StateSchemas> = ValidateStateTree<States>
 
   /**
+   * Validates that a state tree is flat — no compound or parallel nodes.
+   *
+   * **Details**
+   *
+   * Used by {@link make} and {@link plan} to enforce that only atomic state
+   * nodes are accepted, ensuring the path-narrowed `PlanServices` is sound.
+   * Resolves to `[]` (no extra argument needed) when all states are flat, or
+   * to a single-element tuple with a definition error when any state declares
+   * child `states`.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type ValidateFlat<States extends StateSchemas> = [true] extends [NestedStateCheck<States[keyof States]>]
+    ? [flat: StateDefinitionError<"Flat machines cannot declare compound or parallel states">]
+    : []
+
+  /**
    * Runtime metadata for a compiled state node.
    *
    * @category models
@@ -993,8 +1024,8 @@ export declare namespace Machine {
     Prefix extends string = ""
   > = {
     readonly [Key in Extract<keyof States, string>]: States[Key] extends { readonly states: infer Children }
-      ? Children extends StateSchemas ?
-        JoinPath<Prefix, Key> | StateIdentifierWithPrefix<Children, JoinPath<Prefix, Key>>
+      ? Children extends StateSchemas
+        ? JoinPath<Prefix, Key> | StateIdentifierWithPrefix<Children, JoinPath<Prefix, Key>>
       : JoinPath<Prefix, Key>
       : JoinPath<Prefix, Key>
   }[Extract<keyof States, string>]
@@ -1760,6 +1791,232 @@ export declare namespace Machine {
     | Effect.Services<StateActionReturn<Config, "exit">>
     | InvokeRequirements<Config>
 
+  type SnapshotLeafPath<Snapshot> = Snapshot extends { readonly state: infer Child } ? SnapshotLeafPath<Child>
+    : Snapshot extends { readonly states: infer Regions } ? SnapshotLeafPath<Regions[keyof Regions]>
+    : Snapshot extends { readonly path: infer Path extends string } ? Path
+    : never
+
+  type ChainToRoot<Path extends string> = Path extends `${infer Parent}.${string}` ? Path | ChainToRoot<Parent>
+    : Path
+
+  type ConfigAtPath<Config, Path extends string> = Config extends unknown
+    ? Path extends `${infer Head}.${infer Rest}`
+      ? Head extends keyof Config ? Config[Head] extends { readonly states?: infer Children } ? ConfigAtPath<
+            NonNullable<Children>,
+            Rest
+          >
+        : never
+      : never
+    : Path extends keyof Config ? HandlerConfigPart<Config[Path]>
+    : never
+    : never
+
+  type EventTagOf<Event> = Event extends { readonly _tag: infer Tag extends PropertyKey } ? Tag : never
+
+  type EventTransitionAtConfig<Config, Event> = Config extends { readonly on?: infer On }
+    ? EventTagOf<Event> extends keyof NonNullable<On> ? NonNullable<NonNullable<On>[EventTagOf<Event>]> : never
+    : never
+
+  type EventTransitionServicesForPath<Config, Path extends string, Event> = Effect.Services<
+    EventTransitionReturn<EventTransitionAtConfig<ConfigAtPath<Config, Path>, Event>>
+  >
+
+  type LifecycleServices<Config> = Config extends unknown ? Config extends object ? {
+        readonly [Key in keyof Config]:
+          | Effect.Services<AlwaysReturn<HandlerConfigPart<Config[Key]>>>
+          | Effect.Services<DoneReturn<HandlerConfigPart<Config[Key]>>>
+          | Effect.Services<StateActionReturn<HandlerConfigPart<Config[Key]>, "entry">>
+          | Effect.Services<StateActionReturn<HandlerConfigPart<Config[Key]>, "exit">>
+          | (Config[Key] extends { readonly states?: infer Children } ? LifecycleServices<NonNullable<Children>>
+            : never)
+      }[keyof Config]
+    : never
+    : never
+
+  type LifecycleServicesForPath<Config, Path extends string> =
+    | Effect.Services<AlwaysReturn<ConfigAtPath<Config, Path>>>
+    | Effect.Services<DoneReturn<ConfigAtPath<Config, Path>>>
+    | Effect.Services<StateActionReturn<ConfigAtPath<Config, Path>, "entry">>
+    | Effect.Services<StateActionReturn<ConfigAtPath<Config, Path>, "exit">>
+
+  type LifecycleServicesForChain<Config, Chain> = Chain extends string ? LifecycleServicesForPath<Config, Chain>
+    : never
+
+  type LifecycleErrorsForPath<Config, Path extends string> =
+    | Effect.Error<AlwaysReturn<ConfigAtPath<Config, Path>>>
+    | Effect.Error<DoneReturn<ConfigAtPath<Config, Path>>>
+    | Effect.Error<StateActionReturn<ConfigAtPath<Config, Path>, "entry">>
+    | Effect.Error<StateActionReturn<ConfigAtPath<Config, Path>, "exit">>
+
+  type LifecycleErrorsForChain<Config, Chain> = Chain extends string ? LifecycleErrorsForPath<Config, Chain>
+    : never
+
+  /**
+   * Paths whose lifecycle handlers (entry, exit, always, onDone) can fire during
+   * a macrostep starting from `Snapshot` with `Event`.
+   *
+   * The source chain (leaf-to-root of the active snapshot) covers exit handlers
+   * that fire when leaving the source state. The target chain (leaf-to-root of
+   * the handler's return target, extracted from {@link PlanResult}) covers entry
+   * and always handlers that fire after the transition. Together they bound the
+   * lifecycle contribution to the paths the runtime actually walks during the
+   * direct transition, rather than the union of every handler in the machine.
+   *
+   * The iterative settle loop (always→transition→always, raised events) can
+   * reach further paths in deeply nested machines; that over-approximation is
+   * accepted as a known limitation of static plan typing.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  type PlanLifecyclePaths<Config, Snapshot, Event> =
+    | ChainToRoot<Extract<SnapshotLeafPath<Snapshot>, string>>
+    | ChainToRoot<Extract<SnapshotLeafPath<PlanResult<Config, Snapshot, Event>>, string>>
+
+  /**
+   * Service requirements needed to plan a concrete state/event pair.
+   *
+   * Event handler requirements are selected from the planned snapshot's active
+   * leaf path up to its root (matching the runtime's leaf-to-root event
+   * selection), and the event tag. Lifecycle requirements (entry, exit, always,
+   * onDone) are narrowed to the source and target leaf-to-root chains — the
+   * paths the runtime actually walks during the direct transition — rather than
+   * the union of every handler in the machine.
+   *
+   * The `LifecycleR` parameter is retained for signature compatibility but is
+   * not included in the result: the path-narrowed computation replaces the
+   * coarse machine-wide union. For flat machines (leaf == root, single-level
+   * state trees) the two are equivalent; for nested machines the narrowing
+   * excludes lifecycle handlers on subtrees the transition does not touch.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type PlanServices<Config, LifecycleR, Snapshot, Event> =
+    | EventTransitionServicesForPath<Config, ChainToRoot<Extract<SnapshotLeafPath<Snapshot>, string>>, Event>
+    | LifecycleServicesForChain<Config, PlanLifecyclePaths<Config, Snapshot, Event>>
+
+  type EventTransitionErrorsForPath<Config, Path extends string, Event> = Effect.Error<
+    EventTransitionReturn<EventTransitionAtConfig<ConfigAtPath<Config, Path>, Event>>
+  >
+
+  type HandlerSuccess<T> = T extends Effect.Effect<infer A, any, any> ? A : T
+
+  type EventTransitionSuccessForPath<Config, Path extends string, Event> = HandlerSuccess<
+    EventTransitionReturn<EventTransitionAtConfig<ConfigAtPath<Config, Path>, Event>>
+  >
+
+  export type LifecycleErrors<Config> = Config extends unknown ? Config extends object ? {
+        readonly [Key in keyof Config]:
+          | Effect.Error<AlwaysReturn<HandlerConfigPart<Config[Key]>>>
+          | Effect.Error<DoneReturn<HandlerConfigPart<Config[Key]>>>
+          | Effect.Error<StateActionReturn<HandlerConfigPart<Config[Key]>, "entry">>
+          | Effect.Error<StateActionReturn<HandlerConfigPart<Config[Key]>, "exit">>
+          | (Config[Key] extends { readonly states?: infer Children } ? LifecycleErrors<NonNullable<Children>>
+            : never)
+      }[keyof Config]
+    : never
+    : never
+
+  /**
+   * Error channel for planning a concrete state/event pair — the mirror of
+   * {@link PlanServices}. Only the handler selected along the planned snapshot's
+   * active leaf-to-root path and event tag contributes its error, plus lifecycle
+   * handlers (entry, exit, always, onDone) on the source and target chains that
+   * a macrostep may run, so each transition surfaces only the errors it can
+   * actually raise (rather than the union of every handler in the machine).
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type PlanErrors<Config, Snapshot, Event> =
+    | EventTransitionErrorsForPath<Config, ChainToRoot<Extract<SnapshotLeafPath<Snapshot>, string>>, Event>
+    | LifecycleErrorsForChain<Config, PlanLifecyclePaths<Config, Snapshot, Event>>
+
+  /**
+   * Success type for planning a concrete state/event pair — the narrowed snapshot
+   * the matched handler transitions to. Mirrors {@link PlanErrors}.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type PlanResult<Config, Snapshot, Event> = EventTransitionSuccessForPath<
+    Config,
+    ChainToRoot<Extract<SnapshotLeafPath<Snapshot>, string>>,
+    Event
+  >
+
+  /**
+   * Service requirements for {@link plan}, automatically selecting sound
+   * path-narrowed requirements for flat machines and falling back to the coarse
+   * machine-wide `LifecycleR` union for nested machines.
+   *
+   * **Details**
+   *
+   * When `States` is flat (no compound/parallel nodes — enforced by
+   * {@link make}), the path-narrowed {@link PlanServices} is sound because the
+   * iterative settle loop cannot cascade through compound subtrees. When
+   * `States` is nested (compound/parallel — via {@link makeNested}), the settle
+   * loop can reach lifecycle handlers outside the direct transition's
+   * source/target chains, so `LifecycleR` and `LifecycleErrors` are unioned in
+   * as a safe over-approximation.
+   *
+   * **Known limitation: raised events**
+   *
+   * `Runtime.raise(event)` enqueues an event as a side effect and returns
+   * `Effect<void, MachineSchemaDecodeError>` — `R = never`. The raised event's
+   * own event-handler requirements are not part of the handler's return type,
+   * so they cannot be statically tracked. `PlanServices` only accounts for the
+   * *original* event's handler. The lifecycle side of the raised transition
+   * (entry/exit/always) is covered by `LifecycleR` in nested mode, but the
+   * raised event's handler services are invisible to the type system. Fixing
+   * this requires encoding raised events into the handler's return type (an API
+   * change), not just additional type-level computation. This limitation is
+   * inherited from the upstream `effect/unstable/machine` module (PR #2351).
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type PlanServicesFor<States extends StateSchemas, Config, LifecycleR, Snapshot, Event> = [true] extends
+    [NestedStateCheck<States[keyof States]>] ? PlanServices<Config, LifecycleR, Snapshot, Event> | LifecycleR
+    : PlanServices<Config, LifecycleR, Snapshot, Event>
+
+  /**
+   * Error channel for {@link plan}, automatically selecting sound path-narrowed
+   * errors for flat machines and falling back to the coarse machine-wide
+   * `LifecycleErrors` for nested machines. Mirror of {@link PlanServicesFor}.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type PlanErrorsFor<States extends StateSchemas, Config, Snapshot, Event> = [true] extends
+    [NestedStateCheck<States[keyof States]>] ? PlanErrors<Config, Snapshot, Event> | LifecycleErrors<Config>
+    : PlanErrors<Config, Snapshot, Event>
+
+  type HandledPathsFor<Config, AllPaths extends string, Event> = AllPaths extends string
+    ? EventTransitionAtConfig<ConfigAtPath<Config, AllPaths>, Event> extends never ? never : AllPaths
+    : never
+
+  /**
+   * The subset of `AllSnapshot` whose active leaf-to-root path has a registered
+   * handler for `Event`. Passing a `SnapshotFor`-constrained state to
+   * {@link planSafe} eliminates `UnhandledEventError` from the error channel.
+   *
+   * @category utility types
+   * @since 4.0.0
+   */
+  export type SnapshotFor<Config, AllSnapshot, Event> = AllSnapshot extends {
+    readonly path: infer _Path extends string
+  } ? [
+      HandledPathsFor<
+        Config,
+        ChainToRoot<Extract<SnapshotLeafPath<AllSnapshot>, string>>,
+        Event
+      >
+    ] extends [never] ? never
+    : AllSnapshot
+    : never
+
   /**
    * Resolves the tag of a state config when it is final.
    *
@@ -2049,11 +2306,11 @@ export declare namespace Machine {
     Prefix extends string,
     Config,
     AvailableOutputStates extends StateIdentifier<AllStates>
-  > = "states" extends keyof Config ?
-    Config extends { readonly states?: infer ChildrenConfig } ?
-      HandlerChildren<Node> extends infer Children extends StateSchemas ?
-        [Children] extends [never] ?
-          HandlerValidationError<"Handler config contains child states for a state that has no children">
+  > = "states" extends keyof Config
+    ? Config extends { readonly states?: infer ChildrenConfig }
+      ? HandlerChildren<Node> extends infer Children extends StateSchemas
+        ? [Children] extends [never]
+          ? HandlerValidationError<"Handler config contains child states for a state that has no children">
         : HandlerTreeValidation<AllStates, Children, Events, Prefix, NonNullable<ChildrenConfig>, AvailableOutputStates>
       : HandlerValidationError<"Handler config contains child states for a state that has no children">
     : unknown
@@ -2121,8 +2378,8 @@ export declare namespace Machine {
     & HandlerUnknownStateKeyValidation<States, Config>
     & HandlerTreeNodeValidations<AllStates, States, Events, Prefix, Config, AvailableOutputStates>
 
-  type HandlerNodeChildrenConfig<Config> = "states" extends keyof Config ?
-    Config extends { readonly states?: infer Children } ? NonNullable<Children>
+  type HandlerNodeChildrenConfig<Config> = "states" extends keyof Config
+    ? Config extends { readonly states?: infer Children } ? NonNullable<Children>
     : never
     : never
 
@@ -2366,6 +2623,8 @@ export declare namespace Machine {
     FinalStates extends StateIdentifier<AllStates>,
     Output,
     OutputStates extends StateIdentifier<AllStates>,
+    PreviousLifecycleR,
+    PreviousConfig,
     Config
   > = Machine<
     AllStates,
@@ -2383,7 +2642,9 @@ export declare namespace Machine {
     FinalStates | Extract<HandlerTreeFinalStates<AllStates, AllStates, "", Config>, StateIdentifier<AllStates>>,
     Output | HandlerTreeOutput<AllStates, AllStates, "", Config>,
     Emits,
-    OutputStates | Extract<HandlerTreeOutputStates<AllStates, AllStates, "", Config>, StateIdentifier<AllStates>>
+    OutputStates | Extract<HandlerTreeOutputStates<AllStates, AllStates, "", Config>, StateIdentifier<AllStates>>,
+    PreviousLifecycleR | LifecycleServices<Config>,
+    PreviousConfig | Config
   >
 
   /**
@@ -2404,7 +2665,9 @@ export declare namespace Machine {
     InitialR,
     FinalStates extends StateIdentifier<States>,
     Output,
-    OutputStates extends StateIdentifier<States>
+    OutputStates extends StateIdentifier<States>,
+    LifecycleR,
+    HandlerConfig
   > {
     <const Config extends HandlerTree<States, States, Events, Emits, E, R, "">>(
       config:
@@ -2435,6 +2698,8 @@ export declare namespace Machine {
       FinalStates,
       Output,
       OutputStates,
+      LifecycleR,
+      HandlerConfig,
       Config
     >
   }
@@ -2566,7 +2831,7 @@ const flattenHandlers = (
     const { states: childConfig, ...stateConfig } = nodeConfig as Record<string, unknown>
     handlers[path] = stateConfig as Machine.AnyStateConfig
     if (childConfig !== undefined) {
-      const node = Model.getStateNodeDefinition(path, states[key])
+      const node = Model.getStateNodeDefinition(path, states[key]!)
       if (node.states === undefined) {
         throw new Error(`Machine expected state "${path}" to declare child states`)
       }
@@ -2628,7 +2893,7 @@ const makeSnapshotBuilder = (
   const builder: Record<string, unknown> = {}
   for (const key of Object.keys(states)) {
     builder[key] = (value: unknown, selector?: (builder: unknown) => unknown) =>
-      makeSnapshotForNode(states[key], key, value, selector, options)
+      makeSnapshotForNode(states[key]!, key, value, selector, options)
   }
   return builder
 }
@@ -2652,7 +2917,7 @@ const makeParallelSnapshotBuilder = (
       for (const regionKey of Object.keys(regions)) {
         nextRegions[regionKey] = regions[regionKey]
       }
-      nextRegions[key] = makeSnapshotForNode(states[key], key, value, selector, options)
+      nextRegions[key] = makeSnapshotForNode(states[key]!, key, value, selector, options)
       return makeParallelSnapshotBuilder(states, options, nextRegions)
     }
   }
@@ -2699,13 +2964,13 @@ const makeSnapshotForNode = (
   }
   if (node.type === "parallel") {
     const builder = makeParallelSnapshotBuilder(node.states, { ...options, prefix: path }, {})
-    snapshot.states = getParallelSnapshotBuilderRegions(path, node.states, selector(builder))
+    snapshot["states"] = getParallelSnapshotBuilderRegions(path, node.states, selector(builder))
     return snapshot
   }
   const childStates = options.mode === "initial" && node.initial !== undefined
-    ? { [node.initial]: node.states[node.initial] }
+    ? { [node.initial]: node.states[node.initial]! }
     : node.states
-  snapshot.state = selector(makeSnapshotBuilder(childStates, { ...options, prefix: path }))
+  snapshot["state"] = selector(makeSnapshotBuilder(childStates, { ...options, prefix: path }))
   return snapshot
 }
 
@@ -2801,7 +3066,7 @@ const makeLocalTargetBuilder = (
     return {}
   }
   const builder = makeLocalTargetChildBuilder(stateNodes, scope, undefined) as Record<string, unknown>
-  builder.with = (value: unknown, selector?: (builder: unknown) => unknown) => {
+  builder["with"] = (value: unknown, selector?: (builder: unknown) => unknown) => {
     if (selector === undefined) {
       throw new Error(`Machine expected target "${scope}" builder to provide an active child state`)
     }
@@ -2886,7 +3151,7 @@ const makeTargetBuilder = <const States extends Machine.StateSchemas>(
  *
  * ```ts
  * import { Schema } from "effect"
- * import { Machine } from "effect/unstable/machine"
+ * import { Machine } from "#lib/prelude/unstable/machine"
  *
  * class Idle extends Schema.TaggedClass<Idle>("Idle")("Idle", {}) {}
  *
@@ -2913,12 +3178,84 @@ export const defineStates = <
 })
 
 /**
- * Creates a schema-first machine definition.
+ * Creates a schema-first flat machine definition.
+ *
+ * **Details**
+ *
+ * Only atomic state nodes (bare tagged schemas or atomic configs without child
+ * `states`) are accepted. Compound and parallel state nodes are rejected at
+ * compile time via {@link Machine.ValidateFlat}, because the sound
+ * path-narrowed {@link plan} cannot account for lifecycle handlers reachable
+ * only through the iterative settle loop (always→transition→always, raised
+ * events) in nested state trees.
+ *
+ * Use {@link makeNested} for compound/parallel state trees; its
+ * {@link planNested} falls back to the coarse machine-wide `LifecycleR` union.
  *
  * @category constructors
  * @since 4.0.0
  */
 export const make = <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = [],
+  const Input extends Schema.Top = typeof Schema.Void,
+  InitialE = never,
+  InitialR = never
+>(
+  config: {
+    readonly id?: string
+    readonly states: States
+    readonly events: Events
+    readonly emits?: Emits
+    readonly input?: Input
+    readonly initial: (...args: [...Machine.InputArgs<Input>]) => Machine.InitialResult<States, InitialE, InitialR>
+  },
+  ..._flat: ValidateFlat<States>
+): Machine<
+  States,
+  Events,
+  Input,
+  Machine.StateIdentifier<States>,
+  never,
+  never,
+  InitialE,
+  InitialR,
+  Machine.FinalStateFromDefinition<States>,
+  never,
+  Emits
+> => {
+  const self = Object.create(Proto)
+  self.states = config.states
+  self.events = config.events
+  self.emits = config.emits ?? []
+  self.input = config.input
+  self.id = config.id
+  self.initial = config.initial
+  self.stateNodes = Model.compileStateNodes(config.states)
+  self.makeTargetBuilder = makeTargetBuilder(config.states, self.stateNodes)
+  self.handlers = {}
+  self.handle = makeHandle(self)
+  return self
+}
+
+/**
+ * Creates a schema-first machine definition that supports compound and parallel
+ * state nodes.
+ *
+ * **Details**
+ *
+ * Unlike {@link make}, this constructor accepts the full `StateSchemas` range
+ * including nested compound/parallel subtrees. The trade-off is that
+ * {@link planNested} (not {@link plan}) must be used for planning: it falls
+ * back to the coarse machine-wide `LifecycleR` union, because the sound
+ * path-narrowed `PlanServices` cannot statically account for lifecycle handlers
+ * reachable through the iterative settle loop in nested state trees.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const makeNested = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
   const Emits extends ReadonlyArray<Machine.TaggedSchema> = [],
@@ -3075,10 +3412,183 @@ export const enabled = <
 /**
  * Plans the next state snapshot without running deferred actions.
  *
+ * Service requirements from event handlers are scoped to the concrete
+ * state/event pair being planned. Lifecycle handlers that may run while the
+ * macrostep settles (entry, exit, always, onDone) still contribute their
+ * requirements to the plan.
+ *
  * @category combinators
  * @since 4.0.0
  */
-export const plan = internalRuntime.plan
+/**
+ * Extracts the `HandlerConfig` type parameter from a `Machine` instance.
+ * Use this to wire `makeMachineStateAdapter`'s `HC` parameter without
+ * repeating the config type manually.
+ *
+ * @category utility types
+ * @since 4.0.0
+ */
+export type HandlerConfigOf<M> = M extends Machine<
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  any,
+  infer HC
+> ? HC
+  : never
+
+/**
+ * Plans the next state snapshot without running deferred actions.
+ *
+ * **Details**
+ *
+ * Automatically selects sound path-narrowed requirements for flat machines
+ * (created with {@link make}) and falls back to the coarse machine-wide
+ * `LifecycleR` union for nested machines (created with {@link makeNested}).
+ * There is no need to pick a variant — the `States` type parameter drives the
+ * selection.
+ *
+ * @category combinators
+ * @since 4.0.0
+ */
+export const plan: <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.StateIdentifier<States> = Machine.StateIdentifier<States>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never,
+  FinalStates extends Machine.StateIdentifier<States> = never,
+  Output = never,
+  OutputStates extends Machine.StateIdentifier<States> = never,
+  LifecycleR = never,
+  HandlerConfig = {},
+  State extends Machine.Snapshot<States> = Machine.Snapshot<States>,
+  Event extends Machine.EventOf<Events> = Machine.EventOf<Events>
+>(
+  machine: Machine<
+    States,
+    Events,
+    Input,
+    UnhandledStates,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates,
+    Output,
+    Emits,
+    OutputStates,
+    LifecycleR,
+    HandlerConfig
+  >,
+  state: State,
+  event: Event
+) => Effect.Effect<
+  internalRuntime.MacrostepPlan<
+    Machine.Snapshot<States>,
+    Machine.EventOf<Events>,
+    E,
+    ExcludeCompatibleRuntime<
+      Machine.PlanServicesFor<States, HandlerConfig, LifecycleR, State, Event>,
+      Machine.EventOf<Events>,
+      Machine.EmitOf<Emits>
+    >,
+    Output
+  >,
+  | Machine.PlanErrorsFor<States, HandlerConfig, State, Event>
+  | InfiniteTransitionError
+  | MachineSchemaDecodeError
+  | UnhandledEventError,
+  ExcludeCompatibleRuntime<
+    Machine.PlanServicesFor<States, HandlerConfig, LifecycleR, State, Event>,
+    Machine.EventOf<Events>,
+    Machine.EmitOf<Emits>
+  >
+> = internalRuntime.plan as any
+
+/**
+ * Like {@link plan} but constrains `State` to only snapshots whose path has a
+ * registered handler for `Event` (via {@link Machine.SnapshotFor}). In exchange,
+ * `UnhandledEventError` is removed from the error channel — the type system
+ * proves the transition is reachable.
+ *
+ * @since 4.0.0
+ * @category combinators
+ */
+export const planSafe: <
+  const States extends Machine.StateSchemas,
+  const Events extends ReadonlyArray<Machine.TaggedSchema>,
+  const Emits extends ReadonlyArray<Machine.TaggedSchema> = any,
+  const Input extends Schema.Top = typeof Schema.Void,
+  UnhandledStates extends Machine.StateIdentifier<States> = Machine.StateIdentifier<States>,
+  E = never,
+  R = never,
+  InitialE = never,
+  InitialR = never,
+  FinalStates extends Machine.StateIdentifier<States> = never,
+  Output = never,
+  OutputStates extends Machine.StateIdentifier<States> = never,
+  LifecycleR = never,
+  HandlerConfig = {},
+  Event extends Machine.EventOf<Events> = Machine.EventOf<Events>,
+  State extends Machine.SnapshotFor<HandlerConfig, Machine.Snapshot<States>, Event> = Machine.SnapshotFor<
+    HandlerConfig,
+    Machine.Snapshot<States>,
+    Event
+  >
+>(
+  machine: Machine<
+    States,
+    Events,
+    Input,
+    UnhandledStates,
+    E,
+    R,
+    InitialE,
+    InitialR,
+    FinalStates,
+    Output,
+    Emits,
+    OutputStates,
+    LifecycleR,
+    HandlerConfig
+  >,
+  state: State,
+  event: Event
+) => Effect.Effect<
+  internalRuntime.MacrostepPlan<
+    Machine.Snapshot<States>,
+    Machine.EventOf<Events>,
+    E,
+    ExcludeCompatibleRuntime<
+      Machine.PlanServicesFor<States, HandlerConfig, LifecycleR, State, Event>,
+      Machine.EventOf<Events>,
+      Machine.EmitOf<Emits>
+    >,
+    Output
+  >,
+  | Machine.PlanErrorsFor<States, HandlerConfig, State, Event>
+  | InfiniteTransitionError
+  | MachineSchemaDecodeError,
+  ExcludeCompatibleRuntime<
+    Machine.PlanServicesFor<States, HandlerConfig, LifecycleR, State, Event>,
+    Machine.EventOf<Events>,
+    Machine.EmitOf<Emits>
+  >
+> = internalRuntime.plan as any
 
 /**
  * Defers an effectful action until the current machine step is planned.

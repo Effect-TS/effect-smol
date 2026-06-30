@@ -136,7 +136,7 @@ describe("Machine", () => {
   })
 
   it("make accepts defined states", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -154,7 +154,7 @@ describe("Machine", () => {
   })
 
   it("make accepts effectful initial snapshots", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => Effect.succeed(UpStates.initial.down(new Down({})))
@@ -164,7 +164,7 @@ describe("Machine", () => {
   })
 
   it("planInitial carries external initial and lifecycle requirements", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => Effect.as(InitialRequirement, UpStates.initial.down(new Down({})))
@@ -183,7 +183,7 @@ describe("Machine", () => {
   })
 
   it("planInitial provides compatible machine runtime requirements", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () =>
@@ -200,7 +200,7 @@ describe("Machine", () => {
   })
 
   it("plan and getters require snapshots", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -222,7 +222,7 @@ describe("Machine", () => {
   })
 
   it("handlers reject raw decoded state returns", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -246,7 +246,7 @@ describe("Machine", () => {
   })
 
   it("handle accepts nested states through reserved states objects", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -274,7 +274,7 @@ describe("Machine", () => {
   })
 
   it("handle accepts parent config and child config in the same object", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -321,7 +321,7 @@ describe("Machine", () => {
   })
 
   it("onDone handlers receive typed state context and contribute effect requirements", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () =>
@@ -380,7 +380,7 @@ describe("Machine", () => {
   })
 
   it("handle rejects old property and callback APIs", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: UpStates.states,
       events: [SignIn],
       initial: () => UpStates.initial.down(new Down({}))
@@ -394,7 +394,7 @@ describe("Machine", () => {
   })
 
   it("final output callbacks receive lifecycle events", () => {
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: {
         down: {
           schema: Down,
@@ -428,7 +428,7 @@ describe("Machine", () => {
       }
     })
 
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () => States.initial.signedIn(new SignedIn({ userId: "user-1" }))
@@ -451,7 +451,7 @@ describe("Machine", () => {
         output: Schema.String
       }
     })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () => States.initial.signedIn(new SignedIn({ userId: "user-1" }))
@@ -482,7 +482,7 @@ describe("Machine", () => {
       down: Down
     })
 
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () => States.initial.auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
@@ -519,7 +519,7 @@ describe("Machine", () => {
         }
       }
     })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () => States.initial.auth(new Auth({ userId: "user-1" }), (auth) => auth.signedOut(new SignedOut({})))
@@ -558,7 +558,7 @@ describe("Machine", () => {
         }
       }
     })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () => States.initial.payment(new Payment({}), (payment) => payment.pending(new PendingPayment({})))
@@ -631,7 +631,7 @@ describe("Machine", () => {
         }
       }
     })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () =>
@@ -704,7 +704,7 @@ describe("Machine", () => {
         }
       }
     })
-    const machine = Machine.make({
+    const machine = Machine.makeNested({
       states: States.states,
       events: [SignIn],
       initial: () =>
@@ -1025,5 +1025,230 @@ describe("Machine", () => {
         }
       }
     })
+  })
+
+  // --- plan requirement narrowing ---
+
+  type Includes<Haystack, Needle> = Needle extends Haystack ? true : false
+
+  class NestedRequirement extends Context.Service<NestedRequirement>()(
+    "test/Machine/NestedRequirement",
+    { make: Effect.succeed({}) }
+  ) {}
+
+  class ExitReq extends Context.Service<ExitReq>()("test/Machine/ExitReq", { make: Effect.succeed({}) }) {}
+  class EntryReq extends Context.Service<EntryReq>()("test/Machine/EntryReq", { make: Effect.succeed({}) }) {}
+  class AlwaysReq extends Context.Service<AlwaysReq>()("test/Machine/AlwaysReq", { make: Effect.succeed({}) }) {}
+  class UnrelatedReq extends Context.Service<UnrelatedReq>()("test/Machine/UnrelatedReq", {
+    make: Effect.succeed({})
+  }) {}
+  class RaisedReq extends Context.Service<RaisedReq>()("test/Machine/RaisedReq", { make: Effect.succeed({}) }) {}
+
+  class Idle extends Schema.TaggedClass<Idle>("Idle")("Idle", {}) {}
+  class Active extends Schema.TaggedClass<Active>("Active")("Active", {}) {}
+  class Other extends Schema.TaggedClass<Other>("Other")("Other", {}) {}
+  class Done extends Schema.TaggedClass<Done>("Done")("Done", {}) {}
+  class Start extends Schema.TaggedClass<Start>("Start")("Start", {}) {}
+  class Continue extends Schema.TaggedClass<Continue>("Continue")("Continue", {}) {}
+
+  const PlanNestedStates = Machine.defineStates({
+    app: {
+      schema: Auth,
+      initial: "auth",
+      states: {
+        auth: {
+          schema: Auth,
+          initial: "signedOut",
+          states: {
+            signedOut: SignedOut,
+            signedIn: SignedIn
+          }
+        }
+      }
+    }
+  })
+
+  const PlanFlatStates = Machine.defineStates({
+    idle: Idle,
+    active: Active,
+    other: Other
+  })
+
+  it("plan includes requirements from nested active event handlers", () => {
+    const machine = Machine.makeNested({
+      states: PlanNestedStates.states,
+      events: [SignIn],
+      initial: () =>
+        PlanNestedStates.initial.app(
+          new Auth({ userId: "" }),
+          (app) => app.auth(new Auth({ userId: "" }), (auth) => auth.signedOut(new SignedOut({})))
+        )
+    }).handle({
+      app: {
+        states: {
+          auth: {
+            states: {
+              signedOut: {
+                on: {
+                  SignIn: ({ target }) =>
+                    Effect.as(
+                      NestedRequirement,
+                      target.local.signedIn(new SignedIn({ userId: "" }))
+                    )
+                }
+              }
+            }
+          }
+        }
+      }
+    })
+
+    const planned = Machine.plan(
+      machine,
+      PlanNestedStates.initial.app(
+        new Auth({ userId: "" }),
+        (app) => app.auth(new Auth({ userId: "" }), (auth) => auth.signedOut(new SignedOut({})))
+      ),
+      new SignIn({ userId: "" })
+    )
+
+    expect<Effect.Services<typeof planned>>().type.toBe<NestedRequirement>()
+  })
+
+  it("plan narrows lifecycle to source+target chains on flat machines", () => {
+    const machine = Machine.make({
+      states: PlanFlatStates.states,
+      events: [Start],
+      initial: () => PlanFlatStates.initial.idle(new Idle({}))
+    }).handle({
+      idle: {
+        exit: () => Effect.as(ExitReq, void 0),
+        on: {
+          Start: ({ target }) => Effect.as(ExitReq, target.full.active(new Active({})))
+        }
+      },
+      active: {
+        entry: () => Effect.as(EntryReq, void 0),
+        always: () => Effect.as(AlwaysReq, void 0)
+      },
+      other: {
+        entry: () => Effect.as(UnrelatedReq, void 0)
+      }
+    })
+
+    const planned = Machine.plan(machine, PlanFlatStates.initial.idle(new Idle({})), new Start({}))
+
+    expect<Includes<Effect.Services<typeof planned>, ExitReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, EntryReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, AlwaysReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, UnrelatedReq>>().type.toBe<false>()
+  })
+
+  it("plan falls back to coarse LifecycleR on nested machines (includes unrelated subtree)", () => {
+    class Profile extends Schema.TaggedClass<Profile>("Profile")("Profile", {}) {}
+    class ProfileViewing extends Schema.TaggedClass<ProfileViewing>("ProfileViewing")("ProfileViewing", {}) {}
+
+    const states = Machine.defineStates({
+      app: {
+        schema: Auth,
+        initial: "auth",
+        states: {
+          auth: {
+            schema: Auth,
+            initial: "signedOut",
+            states: {
+              signedOut: SignedOut,
+              signedIn: SignedIn
+            }
+          },
+          profile: {
+            schema: Profile,
+            initial: "viewing",
+            states: {
+              viewing: ProfileViewing
+            }
+          }
+        }
+      }
+    })
+
+    const machine = Machine.makeNested({
+      states: states.states,
+      events: [SignIn],
+      initial: () =>
+        states.initial.app(
+          new Auth({ userId: "" }),
+          (app) => app.auth(new Auth({ userId: "" }), (auth) => auth.signedOut(new SignedOut({})))
+        )
+    }).handle({
+      app: {
+        states: {
+          auth: {
+            states: {
+              signedOut: {
+                exit: () => Effect.as(ExitReq, void 0),
+                on: {
+                  SignIn: ({ target }) => Effect.as(ExitReq, target.local.signedIn(new SignedIn({ userId: "" })))
+                }
+              },
+              signedIn: {
+                entry: () => Effect.as(EntryReq, void 0),
+                always: () => Effect.as(AlwaysReq, void 0)
+              }
+            }
+          },
+          profile: {
+            states: {
+              viewing: {
+                entry: () => Effect.as(UnrelatedReq, void 0)
+              }
+            }
+          }
+        }
+      }
+    })
+
+    const planned = Machine.plan(
+      machine,
+      states.initial.app(
+        new Auth({ userId: "" }),
+        (app) => app.auth(new Auth({ userId: "" }), (auth) => auth.signedOut(new SignedOut({})))
+      ),
+      new SignIn({ userId: "" })
+    )
+
+    expect<Includes<Effect.Services<typeof planned>, ExitReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, EntryReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, AlwaysReq>>().type.toBe<true>()
+    expect<Includes<Effect.Services<typeof planned>, UnrelatedReq>>().type.toBe<true>()
+  })
+
+  it("plan does not surface raised event handler requirements (known limitation)", () => {
+    const states = Machine.defineStates({
+      idle: Idle,
+      active: Active,
+      done: Done
+    })
+
+    const machine = Machine.make({
+      states: states.states,
+      events: [Start, Continue],
+      initial: () => states.initial.idle(new Idle({}))
+    }).handle({
+      idle: {
+        on: {
+          Start: ({ target }) => target.full.active(new Active({}))
+        }
+      },
+      active: {
+        on: {
+          Continue: ({ target }) => Effect.as(RaisedReq, target.full.done(new Done({})))
+        }
+      }
+    })
+
+    const planned = Machine.plan(machine, states.initial.idle(new Idle({})), new Start({}))
+
+    expect<Includes<Effect.Services<typeof planned>, RaisedReq>>().type.toBe<false>()
   })
 })
