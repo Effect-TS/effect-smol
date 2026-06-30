@@ -321,9 +321,9 @@ export const urlParams = (url: URL): UrlParams.UrlParams => UrlParams.fromInput(
  * @since 4.0.0
  */
 export const modifyUrlParams: {
-  (f: (urlParams: UrlParams.Input) => UrlParams.UrlParams): (url: URL) => URL
-  (url: URL, f: (urlParams: UrlParams.Input) => UrlParams.UrlParams): URL
-} = dual(2, (url: URL, f: (urlParams: UrlParams.Input) => UrlParams.UrlParams) =>
+  (f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): (url: URL) => URL
+  (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams): URL
+} = dual(2, (url: URL, f: (urlParams: UrlParams.UrlParams) => UrlParams.UrlParams) =>
   mutate(url, (url) => {
     const params = f(UrlParams.fromInput(url.searchParams))
     url.search = UrlParams.toString(params)
