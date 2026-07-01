@@ -49,7 +49,6 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
   & {
     readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
       Group,
-      Group["identifier"],
       E,
       R
     >
@@ -120,6 +119,15 @@ export declare namespace Client {
     : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
     : Success
 
+  type GroupByEndpoint<Group extends HttpApiGroup.Any, E, R> = {
+    readonly [
+      Endpoint in Extract<
+        HttpApiGroup.Endpoints<Group>,
+        HttpApiEndpoint.ConstraintRequest
+      > as HttpApiEndpoint.Name<Endpoint>
+    ]: Method<Endpoint, E, R>
+  }
+
   /**
    * The client object for one API group, mapping each endpoint name in that group to
    * its typed client method.
@@ -127,13 +135,7 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
-    [HttpApiGroup.WithName<Groups, GroupName>] extends [
-      HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints extends HttpApiEndpoint.ConstraintRequest>
-    ] ? {
-        readonly [Endpoint in _Endpoints as HttpApiEndpoint.Name<Endpoint>]: Method<Endpoint, E, R>
-      } :
-      never
+  export type Group<Group extends HttpApiGroup.Any, E, R> = GroupByEndpoint<Group, E, R>
 
   type MethodReturn<
     Endpoint extends HttpApiEndpoint.ConstraintRequest,
@@ -541,7 +543,7 @@ export const group = <
     readonly baseUrl?: URL | string | undefined
   }
 ): Effect.Effect<
-  Client.Group<Groups, GroupName, E, R>,
+  Client.Group<HttpApiGroup.WithName<Groups, GroupName>, E, R>,
   never,
   HttpApiGroup.MiddlewareClient<HttpApiGroup.WithName<Groups, GroupName>>
 > => {

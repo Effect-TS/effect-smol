@@ -183,6 +183,31 @@ describe("HttpApiClient", () => {
     })
   })
 
+  describe("Client.Group", () => {
+    it("should derive a group client from a concrete group", () => {
+      const Users = HttpApiGroup.make("users")
+        .add(
+          HttpApiEndpoint.get("getUser", "/users/:id", {
+            params: {
+              id: Schema.FiniteFromString
+            },
+            success: Schema.Struct({ id: Schema.String })
+          })
+        )
+
+      type UsersClient = HttpApiClient.Client.Group<typeof Users, never, never>
+      const client = hole<UsersClient>()
+
+      expect<keyof UsersClient>().type.toBe<"getUser">()
+      expect<Parameters<typeof client.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(client.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+    })
+  })
+
   describe("headers option", () => {
     it("should accept a record of fields", () => {
       const Api = HttpApi.make("Api")

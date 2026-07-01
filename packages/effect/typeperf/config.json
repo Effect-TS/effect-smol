@@ -149,6 +149,10 @@
           "file": "suites/httpapi/fixtures/client-methods-request-response-mode-only-count-1000.ts"
         },
         {
+          "name": "client-methods-request-no-response-mode-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-no-response-mode-count-1000.ts"
+        },
+        {
           "name": "client-methods-request-no-simplify-count-1000",
           "file": "suites/httpapi/fixtures/client-methods-request-no-simplify-count-1000.ts"
         },
@@ -181,12 +185,36 @@
           "file": "suites/httpapi/fixtures/client-methods-decoded-and-response-count-1000.ts"
         },
         {
+          "name": "client-methods-return-no-response-mode-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-return-no-response-mode-count-1000.ts"
+        },
+        {
+          "name": "client-methods-return-response-mode-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-return-response-mode-only-count-1000.ts"
+        },
+        {
           "name": "client-methods-overload-count-1000",
           "file": "suites/httpapi/fixtures/client-methods-overload-count-1000.ts"
         },
         {
           "name": "client-endpoint-method-count-1000",
           "file": "suites/httpapi/fixtures/client-endpoint-method-count-1000.ts"
+        },
+        {
+          "name": "client-group-constructor-count-1000",
+          "file": "suites/httpapi/fixtures/client-group-constructor-count-1000.ts"
+        },
+        {
+          "name": "client-group-constructor-client-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-group-constructor-client-only-count-1000.ts"
+        },
+        {
+          "name": "client-group-constructor-middleware-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-group-constructor-middleware-only-count-1000.ts"
+        },
+        {
+          "name": "client-group-constructor-100x10-count-1000",
+          "file": "suites/httpapi/fixtures/client-group-constructor-100x10-count-1000.ts"
         },
         {
           "name": "url-builder-count-1000",

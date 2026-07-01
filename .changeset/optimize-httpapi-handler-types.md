@@ -16,6 +16,7 @@ This change makes the type model more direct:
 - expose endpoint and handler request shapes through direct request metadata
 - derive handler, client method, and URL builder types from cached request/response parts
 - factor generated client method return types through a shared helper
+- derive group clients from concrete groups instead of group-name lookups
 - derive top-level client methods directly instead of remapping through tuple unions
 - derive top-level URL builder methods directly instead of remapping through tuple unions
 - remove duplicated error/client-error contributions while keeping cache helpers internal
@@ -36,7 +37,8 @@ Type instantiations for generated client stress tests are now covered separately
 
 | fixture                         |  before |   after |
 | ------------------------------- | ------: | ------: |
-| client methods, 1000 eps        | 429,906 | 348,382 |
+| client methods, 1000 eps        | 429,906 | 349,317 |
+| client groups, 100x10 eps       | 124,098 | 122,041 |
 | top-level methods, 1000 eps     | 375,246 | 355,251 |
 | endpoint method, 1000 eps       |  95,340 |  96,754 |
 | url builder, 1000 eps           | 306,024 | 182,122 |

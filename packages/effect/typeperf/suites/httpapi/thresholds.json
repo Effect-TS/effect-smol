@@ -30,7 +30,7 @@
     "maxDelta": 12641904
   },
   "client-methods-count-1000": {
-    "maxDelta": 348382
+    "maxDelta": 349317
   },
   "url-builder-count-1000": {
     "maxDelta": 182122
@@ -138,9 +138,30 @@
     "maxDelta": 355251
   },
   "client-groups-100x10-count-1000": {
-    "maxDelta": 124098
+    "maxDelta": 122041
   },
   "url-builder-top-level-count-1000": {
     "maxDelta": 185038
+  },
+  "client-group-constructor-count-1000": {
+    "maxDelta": 357547
+  },
+  "client-group-constructor-100x10-count-1000": {
+    "maxDelta": 107214
+  },
+  "client-group-constructor-client-only-count-1000": {
+    "maxDelta": 351206
+  },
+  "client-group-constructor-middleware-only-count-1000": {
+    "maxDelta": 103902
+  },
+  "client-methods-request-no-response-mode-count-1000": {
+    "maxDelta": 221063
+  },
+  "client-methods-return-no-response-mode-count-1000": {
+    "maxDelta": 240234
+  },
+  "client-methods-return-response-mode-only-count-1000": {
+    "maxDelta": 264041
   }
 }
