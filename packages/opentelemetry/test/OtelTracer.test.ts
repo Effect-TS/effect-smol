@@ -1,5 +1,5 @@
 import * as NodeSdk from "@effect/opentelemetry/NodeSdk"
-import * as Tracer from "@effect/opentelemetry/Tracer"
+import * as OtelTracer from "@effect/opentelemetry/OtelTracer"
 import { assert, describe, it } from "@effect/vitest"
 import * as OtelApi from "@opentelemetry/api"
 import { AsyncHooksContextManager } from "@opentelemetry/context-async-hooks"
@@ -24,7 +24,7 @@ describe("Tracer", () => {
     it.effect("withSpan", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        assert.instanceOf(span, Tracer.OtelSpan)
+        assert.instanceOf(span, OtelTracer.OtelSpan)
       }).pipe(
         Effect.withSpan("ok"),
         Effect.provide(TracingLive)
@@ -37,7 +37,7 @@ describe("Tracer", () => {
           Effect.withSpan("A"),
           Effect.linkSpans(linkedSpan)
         )
-        assert.instanceOf(span, Tracer.OtelSpan)
+        assert.instanceOf(span, OtelTracer.OtelSpan)
         assert.lengthOf(span.links, 1)
       }).pipe(
         Effect.scoped,
@@ -50,10 +50,10 @@ describe("Tracer", () => {
           Effect.withSpan("child"),
           Effect.withSpan("parent")
         )
-        assert.instanceOf(child, Tracer.OtelSpan)
+        assert.instanceOf(child, OtelTracer.OtelSpan)
         assert.strictEqual(child.name, "child")
         assert.isDefined(child.parent)
-        assert.strictEqual((child.parent.valueOrUndefined! as Tracer.OtelSpan).name, "parent")
+        assert.strictEqual((child.parent.valueOrUndefined! as OtelTracer.OtelSpan).name, "parent")
       }).pipe(
         Effect.provide(TracingLive)
       ))
@@ -80,8 +80,8 @@ describe("Tracer", () => {
     it.effect("currentOtelSpan", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        const otelSpan = yield* Tracer.currentOtelSpan
-        assert.strictEqual((span as Tracer.OtelSpan).span, otelSpan)
+        const otelSpan = yield* OtelTracer.currentOtelSpan
+        assert.strictEqual((span as OtelTracer.OtelSpan).span, otelSpan)
       }).pipe(
         Effect.withSpan("ok"),
         Effect.provide(TracingLive)
@@ -90,7 +90,7 @@ describe("Tracer", () => {
     it.effect("preserves the sampling decision of generic external spans", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        assert.instanceOf(span, Tracer.OtelSpan)
+        assert.instanceOf(span, OtelTracer.OtelSpan)
         assert.strictEqual(span.span.spanContext().traceFlags, OtelApi.TraceFlags.NONE)
       }).pipe(
         Effect.withSpan("child"),
@@ -180,7 +180,7 @@ describe("Tracer", () => {
           }, async (span) => {
             try {
               const parent = await effect.pipe(
-                Tracer.withSpanContext(span.spanContext()),
+                OtelTracer.withSpanContext(span.spanContext()),
                 Effect.provideContext(services),
                 Effect.runPromise
               )
@@ -204,7 +204,7 @@ describe("Tracer", () => {
     it.effect("withSpan", () =>
       Effect.gen(function*() {
         const span = yield* Effect.currentSpan
-        assert.notInstanceOf(span, Tracer.OtelSpan)
+        assert.notInstanceOf(span, OtelTracer.OtelSpan)
       }).pipe(
         Effect.withSpan("ok")
       ))
