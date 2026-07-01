@@ -14,6 +14,12 @@ import type * as Exit from "./Exit.ts"
 import type { Fiber } from "./Fiber.ts"
 import { constFalse, type LazyArg } from "./Function.ts"
 import type * as core from "./internal/core.ts"
+// Value imports for `instrumenting`, taken from the lowest-level internals to
+// avoid the `Tracer` <-> `Effect` barrel cycle: `core` holds no edge back to
+// this module, and `withSpan` (which does) is referenced only inside the
+// `instrumenting` closure, never at module-init time.
+import { exitSucceed, isEffect, isExit } from "./internal/core.ts"
+import { withSpan } from "./internal/effect.ts"
 import type { LogLevel } from "./LogLevel.ts"
 import * as Option from "./Option.ts"
 
@@ -417,6 +423,111 @@ export interface SpanLink {
  * @since 2.0.0
  */
 export const make = (options: Tracer): Tracer => options
+
+/**
+ * Builds a `Tracer` that automatically wraps the methods of matched services in
+ * spans, so a failure renders the business call chain with **zero per-method
+ * ceremony** — no need to hand-wrap each method in `Effect.fn`.
+ *
+ * **When to use**
+ *
+ * Use when you want every method of your own services to appear in failure
+ * traces without annotating each one. Install it once, around your provided
+ * program.
+ *
+ * **Details**
+ *
+ * When a service whose `Context` tag key satisfies `match` is resolved, the
+ * tracer returns a span-wrapped copy of its implementation (cached per
+ * instance): every `Effect`-returning method runs inside a span named by
+ * `spanName` (default `${serviceKey}.${method}`). Because wrapping happens at
+ * *resolution*, dependencies a service grabs at make-time
+ * (`const repo = yield* Repo`) are wrapped too, so the whole nested chain is
+ * traced. It hooks the public `context` seam only — no monkey-patching — so it
+ * behaves the same on every runtime. Span creation is delegated to `tracer`
+ * (the native tracer by default); pass a base `tracer` to compose with another
+ * backend's span allocation and its `context` hook.
+ *
+ * **Example** (Tracing every method of services under a tag prefix)
+ *
+ * ```ts
+ * import { Effect, Layer, Tracer } from "effect"
+ *
+ * declare const program: Effect.Effect<void, never, never>
+ * declare const appLayer: Layer.Layer<never>
+ *
+ * const traced = program.pipe(
+ *   Effect.provide(appLayer),
+ *   Effect.withTracer(Tracer.instrumenting({ match: (key) => key.startsWith("@app/") }))
+ * )
+ * ```
+ *
+ * @see {@link make} for building a tracer from a raw implementation
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const instrumenting = (options: {
+  readonly match: (serviceKey: string) => boolean
+  readonly spanName?: ((serviceKey: string, method: string) => string) | undefined
+  readonly tracer?: Tracer | undefined
+}): Tracer => {
+  const spanName = options.spanName ?? ((key: string, method: string) => `${key}.${method}`)
+  const base = options.tracer ?? make({ span: (spanOptions) => new NativeSpan(spanOptions) })
+  const cache = new WeakMap<object, object>()
+
+  const wrap = (impl: object, serviceKey: string): object => {
+    const copy: Record<string, unknown> = Object.create(Object.getPrototypeOf(impl))
+    for (const name of Object.getOwnPropertyNames(impl)) {
+      const value = (impl as Record<string, unknown>)[name]
+      if (typeof value !== "function") {
+        copy[name] = value
+        continue
+      }
+      const fn = value as (...args: Array<unknown>) => unknown
+      const span = spanName(serviceKey, name)
+      copy[name] = (...args: Array<unknown>): unknown => {
+        // Bind `this` to the wrapped copy (not the raw impl) so a method that
+        // calls a sibling via `this.other()` hits the wrapped sibling and that
+        // inner span is captured too. (Sibling calls through a closure-captured
+        // local rather than `this` still bypass instrumentation.)
+        const result = fn.apply(copy, args)
+        return isEffect(result) ? withSpan(result, span) : result
+      }
+    }
+    return copy
+  }
+
+  return make({
+    span(spanOptions) {
+      return base.span(spanOptions)
+    },
+    context(primitive, fiber) {
+      // Only intercept genuine service `Key` resolutions: a primitive carries the
+      // `ServiceTypeId` marker iff it is a Context service. Matching on `key`
+      // alone would also catch unrelated primitives that happen to expose a
+      // string `key`, and speculatively evaluating those throws.
+      const key = (primitive as { readonly key?: unknown }).key
+      if (
+        typeof key !== "string" ||
+        !(Context.ServiceTypeId in primitive) ||
+        !options.match(key)
+      ) {
+        return base.context ? base.context(primitive, fiber) : primitive[evaluate](fiber)
+      }
+      const exit = primitive[evaluate](fiber)
+      if (!isExit(exit) || exit._tag !== "Success") return exit
+      const value: unknown = (exit as { readonly value: unknown }).value
+      if (value === null || typeof value !== "object") return exit
+      let copy = cache.get(value)
+      if (copy === undefined) {
+        copy = wrap(value, key)
+        cache.set(value, copy)
+      }
+      return exitSucceed(copy) as typeof exit
+    }
+  })
+}
 
 /**
  * Creates an `ExternalSpan` from trace and span identifiers, defaulting
