@@ -15,6 +15,51 @@ import * as Result from "../../Result.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
+ * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
+ *
+ * **Details**
+ *
+ * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
+ * constructed.
+ *
+ * @category constructors
+ * @since 4.0.0
+ */
+export const make = (
+  url: string,
+  params: UrlParams.UrlParams,
+  hash: string | undefined
+): Result.Result<URL, UrlParams.UrlParamsError> =>
+  Result.try({
+    try: () => {
+      const urlInstance = new URL(url, baseUrl())
+      for (let i = 0; i < params.params.length; i++) {
+        const [key, value] = params.params[i]
+        if (value !== undefined) {
+          urlInstance.searchParams.append(key, value)
+        }
+      }
+      if (hash !== undefined) {
+        urlInstance.hash = hash
+      }
+      return urlInstance
+    },
+    catch: (cause) => new UrlParams.UrlParamsError({ cause })
+  })
+
+const baseUrl = (): string | undefined => {
+  if (
+    "location" in globalThis &&
+    globalThis.location !== undefined &&
+    globalThis.location.origin !== undefined &&
+    globalThis.location.pathname !== undefined
+  ) {
+    return location.origin + location.pathname
+  }
+  return undefined
+}
+
+/**
  * Parses a URL string safely into a `URL` object, returning a `Result` type for
  * error handling.
  *

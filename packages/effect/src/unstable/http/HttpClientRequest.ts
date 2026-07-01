@@ -28,6 +28,7 @@ import * as Stream from "../../Stream.ts"
 import * as Headers from "./Headers.ts"
 import * as HttpBody from "./HttpBody.ts"
 import { hasBody, type HttpMethod } from "./HttpMethod.ts"
+import * as Url from "./Url.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 const TypeId = "~effect/http/HttpClientRequest"
@@ -853,7 +854,7 @@ export const bodyFile: {
  * @since 4.0.0
  */
 export function toUrl(self: HttpClientRequest): Option.Option<URL> {
-  const r = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
+  const r = Url.make(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isSuccess(r)) {
     return Option.some(r.success)
   }
@@ -904,7 +905,7 @@ export const toWebResult = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
   readonly context?: Context.Context<never> | undefined
 }): Result.Result<Request, UrlParams.UrlParamsError> => {
-  const url = UrlParams.makeUrl(self.url, self.urlParams, Option.getOrUndefined(self.hash))
+  const url = Url.make(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isFailure(url)) {
     return Result.fail(url.failure)
   }
