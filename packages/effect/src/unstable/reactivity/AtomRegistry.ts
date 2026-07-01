@@ -69,6 +69,7 @@ export interface AtomRegistry {
   readonly get: <A>(atom: Atom.Atom<A>) => A
   readonly mount: <A>(atom: Atom.Atom<A>) => () => void
   readonly refresh: <A>(atom: Atom.Atom<A>) => void
+  readonly invalidate: <A>(atom: Atom.Atom<A>) => void
   readonly set: <R, W>(atom: Atom.Writable<R, W>, value: W) => void
   readonly setSerializable: (key: string, encoded: unknown) => void
   readonly modify: <R, W, A>(atom: Atom.Writable<R, W>, f: (_: R) => [returnValue: A, nextValue: W]) => A
@@ -395,6 +396,10 @@ class RegistryImpl implements AtomRegistry {
     } else {
       this.invalidateAtom(atom)
     }
+  }
+
+  invalidate = <A>(atom: Atom.Atom<A>): void => {
+    this.invalidateAtom(atom)
   }
 
   subscribe<A>(atom: Atom.Atom<A>, f: (_: A) => void, options?: { readonly immediate?: boolean }): () => void {
