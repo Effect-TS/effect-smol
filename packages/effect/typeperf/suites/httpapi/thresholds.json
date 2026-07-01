@@ -30,7 +30,7 @@
     "maxDelta": 12641904
   },
   "client-methods-count-1000": {
-    "maxDelta": 396692
+    "maxDelta": 348382
   },
   "url-builder-count-1000": {
     "maxDelta": 182039
@@ -39,7 +39,7 @@
     "maxDelta": 12638902
   },
   "client-endpoint-method-count-1000": {
-    "maxDelta": 96012
+    "maxDelta": 96754
   },
   "builder-handle-chain-erased-handler-count-1000": {
     "maxDelta": 7351727
@@ -91,5 +91,44 @@
   },
   "builder-handle-chain-typed-request-count-1000": {
     "maxDelta": 10592900
+  },
+  "client-methods-name-only-count-1000": {
+    "maxDelta": 179928
+  },
+  "client-methods-request-only-count-1000": {
+    "maxDelta": 306091
+  },
+  "client-methods-success-only-count-1000": {
+    "maxDelta": 241980
+  },
+  "client-methods-error-only-count-1000": {
+    "maxDelta": 252226
+  },
+  "client-methods-services-only-count-1000": {
+    "maxDelta": 255958
+  },
+  "client-methods-decoded-only-count-1000": {
+    "maxDelta": 259437
+  },
+  "client-methods-request-params-only-count-1000": {
+    "maxDelta": 252934
+  },
+  "client-methods-request-response-mode-only-count-1000": {
+    "maxDelta": 179964
+  },
+  "client-methods-request-no-simplify-count-1000": {
+    "maxDelta": 282051
+  },
+  "client-methods-request-fixed-mode-count-1000": {
+    "maxDelta": 225093
+  },
+  "client-methods-response-only-count-1000": {
+    "maxDelta": 247399
+  },
+  "client-methods-decoded-and-response-count-1000": {
+    "maxDelta": 262438
+  },
+  "client-methods-overload-count-1000": {
+    "maxDelta": 319700
   }
 }

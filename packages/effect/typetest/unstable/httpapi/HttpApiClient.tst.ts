@@ -323,6 +323,63 @@ describe("HttpApiClient", () => {
       >()
     })
 
+    it("should preserve method parameter introspection for all response modes", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                },
+                success: Schema.Struct({ a: Schema.FiniteFromString })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      type Request = Parameters<typeof f>[0]
+      expect<Request>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(f).type.toBeCallableWith({ params: { id: 1 } })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "decoded-only" })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "decoded-and-response" })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "response-only" })
+      expect(f).type.not.toBeCallableWith({ params: { id: "1" } })
+    })
+
+    it("should preserve responseMode inference for generic callers", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                success: Schema.Struct({ a: Schema.FiniteFromString })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      const call = <Mode extends ResponseMode>(mode: Mode) => f({ responseMode: mode })
+      expect(call).type.toBeAssignableTo<
+        <Mode extends ResponseMode>(
+          mode: Mode
+        ) => Effect.Effect<
+          HttpApiClient.Client.Response<{ readonly a: number }, Mode>,
+          | HttpClientError.HttpClientError
+          | ([Mode] extends ["response-only"] ? never : Schema.SchemaError),
+          never
+        >
+      >()
+    })
+
     it("should return decoded streams for StreamSse successes", () => {
       const Api = HttpApi.make("Api")
         .add(

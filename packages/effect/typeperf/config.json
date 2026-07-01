@@ -125,6 +125,58 @@
           "file": "suites/httpapi/fixtures/client-methods-count-1000.ts"
         },
         {
+          "name": "client-methods-name-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-name-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-request-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-request-params-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-params-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-request-response-mode-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-response-mode-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-request-no-simplify-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-no-simplify-count-1000.ts"
+        },
+        {
+          "name": "client-methods-request-fixed-mode-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-request-fixed-mode-count-1000.ts"
+        },
+        {
+          "name": "client-methods-success-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-success-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-error-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-error-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-services-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-services-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-decoded-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-decoded-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-response-only-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-response-only-count-1000.ts"
+        },
+        {
+          "name": "client-methods-decoded-and-response-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-decoded-and-response-count-1000.ts"
+        },
+        {
+          "name": "client-methods-overload-count-1000",
+          "file": "suites/httpapi/fixtures/client-methods-overload-count-1000.ts"
+        },
+        {
           "name": "client-endpoint-method-count-1000",
           "file": "suites/httpapi/fixtures/client-endpoint-method-count-1000.ts"
         },

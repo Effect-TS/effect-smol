@@ -137,6 +137,29 @@ export declare namespace Client {
       } :
       never
 
+  type MethodReturn<
+    Endpoint extends HttpApiEndpoint.ConstraintRequest,
+    E,
+    R,
+    Mode extends ResponseMode
+  > = Effect.Effect<
+    Response<SuccessType<Endpoint["~Success"]>, Mode>,
+    | HttpApiMiddleware.Error<Endpoint["~Middleware"]>
+    | HttpApiMiddleware.ClientError<Endpoint["~Middleware"]>
+    | E
+    | HttpClientError.HttpClientError
+    | ([Mode] extends ["response-only"] ? never : Endpoint["~Error"]["Type"] | Schema.SchemaError),
+    | R
+    | Endpoint["~Params"]["EncodingServices"]
+    | Endpoint["~Query"]["EncodingServices"]
+    | Endpoint["~Payload"]["EncodingServices"]
+    | Endpoint["~Headers"]["EncodingServices"]
+    | ([Mode] extends ["response-only"] ? never
+      :
+        | SuccessDecodingServices<Endpoint["~Success"]>
+        | Endpoint["~Error"]["DecodingServices"])
+  >
+
   /**
    * The typed function generated for an endpoint, accepting the endpoint request
    * shape and returning an effect whose success, error, and service channels reflect
@@ -159,23 +182,7 @@ export declare namespace Client {
         Mode
       >
     >
-  ) => Effect.Effect<
-    Response<SuccessType<Endpoint["~Success"]>, Mode>,
-    | HttpApiMiddleware.Error<Endpoint["~Middleware"]>
-    | HttpApiMiddleware.ClientError<Endpoint["~Middleware"]>
-    | E
-    | HttpClientError.HttpClientError
-    | ([Mode] extends ["response-only"] ? never : Endpoint["~Error"]["Type"] | Schema.SchemaError),
-    | R
-    | Endpoint["~Params"]["EncodingServices"]
-    | Endpoint["~Query"]["EncodingServices"]
-    | Endpoint["~Payload"]["EncodingServices"]
-    | Endpoint["~Headers"]["EncodingServices"]
-    | ([Mode] extends ["response-only"] ? never
-      :
-        | SuccessDecodingServices<Endpoint["~Success"]>
-        | Endpoint["~Error"]["DecodingServices"])
-  >
+  ) => MethodReturn<Endpoint, E, R, Mode>
 
   /**
    * Extracts client methods for endpoints in top-level groups so they can be exposed
