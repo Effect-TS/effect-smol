@@ -499,7 +499,7 @@ export const makeUrl = (
  * @category converting
  * @since 4.0.0
  */
-export const toString = (self: UrlParams): string => new URLSearchParams(self.params as any).toString()
+export const toString = (input: Input): string => new URLSearchParams(fromInput(input).params as any).toString()
 
 const baseUrl = (): string | undefined => {
   if (
