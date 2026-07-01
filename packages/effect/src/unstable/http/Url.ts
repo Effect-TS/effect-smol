@@ -9,18 +9,28 @@
  * @since 4.0.0
  */
 import * as Cause from "../../Cause.ts"
+import * as Data from "../../Data.ts"
 import { dual } from "../../Function.ts"
 import * as Redacted from "../../Redacted.ts"
 import * as Result from "../../Result.ts"
 import * as UrlParams from "./UrlParams.ts"
 
 /**
+ * Error returned when constructing a `URL` fails.
+ *
+ * @category errors
+ * @since 4.0.0
+ */
+export class UrlError extends Data.TaggedError("UrlError")<{
+  readonly cause: unknown
+}> {}
+
+/**
  * Creates a `URL` safely by appending `UrlParams` and an optional hash to a URL string.
  *
  * **Details**
  *
- * Returns a `Result` that fails with `UrlParamsError` if the URL cannot be
- * constructed.
+ * Returns a `Result` that fails with `UrlError` if the URL cannot be constructed.
  *
  * @category constructors
  * @since 4.0.0
@@ -29,7 +39,7 @@ export const make = (
   url: string,
   params: UrlParams.UrlParams,
   hash: string | undefined
-): Result.Result<URL, UrlParams.UrlParamsError> =>
+): Result.Result<URL, UrlError> =>
   Result.try({
     try: () => {
       const urlInstance = new URL(url, baseUrl())
@@ -44,7 +54,7 @@ export const make = (
       }
       return urlInstance
     },
-    catch: (cause) => new UrlParams.UrlParamsError({ cause })
+    catch: (cause) => new UrlError({ cause })
   })
 
 const baseUrl = (): string | undefined => {

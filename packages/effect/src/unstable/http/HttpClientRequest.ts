@@ -904,7 +904,7 @@ const parseContentLength = (contentLength: string | null): number | undefined =>
 export const toWebResult = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
   readonly context?: Context.Context<never> | undefined
-}): Result.Result<Request, UrlParams.UrlParamsError> => {
+}): Result.Result<Request, Url.UrlError> => {
   const url = Url.make(self.url, self.urlParams, Option.getOrUndefined(self.hash))
   if (Result.isFailure(url)) {
     return Result.fail(url.failure)
@@ -945,7 +945,7 @@ export const toWebResult = (self: HttpClientRequest, options?: {
   }
   return Result.try({
     try: () => new Request(url.success, requestInit),
-    catch: (cause) => new UrlParams.UrlParamsError({ cause })
+    catch: (cause) => new Url.UrlError({ cause })
   })
 }
 
@@ -953,14 +953,14 @@ const isReadableStream = (u: unknown): u is ReadableStream<Uint8Array> =>
   typeof ReadableStream !== "undefined" && u instanceof ReadableStream
 
 /**
- * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlParamsError` when the request URL is invalid.
+ * Converts an `HttpClientRequest` to a Web `Request`, failing with `UrlError` when the request URL is invalid.
  *
  * @category converting
  * @since 4.0.0
  */
 export const toWeb = (self: HttpClientRequest, options?: {
   readonly signal?: AbortSignal | undefined
-}): Effect.Effect<Request, UrlParams.UrlParamsError> =>
+}): Effect.Effect<Request, Url.UrlError> =>
   Effect.contextWith((context) =>
     Effect.fromResult(toWebResult(self, {
       context: context,

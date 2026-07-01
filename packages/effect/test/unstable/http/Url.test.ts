@@ -36,7 +36,7 @@ describe("Url", () => {
       const result = Url.make("http://%", UrlParams.empty, undefined)
 
       assertTrue(Result.isFailure(result))
-      assertInstanceOf(result.failure, UrlParams.UrlParamsError)
+      assertInstanceOf(result.failure, Url.UrlError)
     })
   })
 

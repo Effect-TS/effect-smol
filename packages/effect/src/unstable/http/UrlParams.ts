@@ -9,7 +9,6 @@
  * @since 4.0.0
  */
 import * as Arr from "../../Array.ts"
-import * as Data from "../../Data.ts"
 import * as Effect from "../../Effect.ts"
 import * as Equal from "../../Equal.ts"
 import * as Equ from "../../Equivalence.ts"
@@ -444,16 +443,6 @@ export const remove: {
   (key: string): (self: UrlParams) => UrlParams
   (self: UrlParams, key: string): UrlParams
 } = dual(2, (self: UrlParams, key: string): UrlParams => transform(self, Arr.filter(([k]) => k !== key)))
-
-/**
- * Error returned when constructing a `URL` from `UrlParams` fails.
- *
- * @category errors
- * @since 4.0.0
- */
-export class UrlParamsError extends Data.TaggedError("UrlParamsError")<{
-  cause: unknown
-}> {}
 
 /**
  * Serializes `UrlParams` to a URL query string without a leading question mark.
