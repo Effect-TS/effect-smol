@@ -141,6 +141,48 @@ describe("HttpApiClient", () => {
     })
   })
 
+  describe("top-level group", () => {
+    it("should expose top-level endpoints directly on the generated client", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                },
+                success: Schema.Struct({ id: Schema.String })
+              })
+            )
+        )
+        .add(
+          HttpApiGroup.make("top", { topLevel: true })
+            .add(
+              HttpApiEndpoint.get("topHealth", "/top-health", {
+                success: Schema.Struct({ ok: Schema.Boolean })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+
+      expect(client.users.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.topHealth()).type.toBe<
+        Effect.Effect<{ readonly ok: boolean }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.topHealth({ responseMode: "response-only" })).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+      >()
+      expect<Parameters<typeof client.topHealth>[0]>().type.toBe<
+        void | { readonly responseMode?: ResponseMode } | undefined
+      >()
+      expect(client).type.not.toHaveProperty("top")
+    })
+  })
+
   describe("headers option", () => {
     it("should accept a record of fields", () => {
       const Api = HttpApi.make("Api")

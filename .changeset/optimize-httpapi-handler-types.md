@@ -16,6 +16,7 @@ This change makes the type model more direct:
 - expose endpoint and handler request shapes through direct request metadata
 - derive handler, client method, and URL builder types from cached request/response parts
 - factor generated client method return types through a shared helper
+- derive top-level client methods directly instead of remapping through tuple unions
 - remove duplicated error/client-error contributions while keeping cache helpers internal
 - align duplicate handler registration typing with the existing runtime last-write-wins behavior
 - add `HttpApiBuilder.Handlers.handleAll` to register name-keyed handler batches
@@ -32,11 +33,12 @@ Type instantiations for the handler-chain stress test improved as follows:
 
 Type instantiations for generated client stress tests are now covered separately:
 
-| fixture                   |  before |   after |
-| ------------------------- | ------: | ------: |
-| client methods, 1000 eps  | 429,906 | 348,382 |
-| endpoint method, 1000 eps |  95,340 |  96,754 |
-| url builder, 1000 eps     | 306,024 | 182,138 |
+| fixture                     |  before |   after |
+| --------------------------- | ------: | ------: |
+| client methods, 1000 eps    | 429,906 | 348,382 |
+| top-level methods, 1000 eps | 375,246 | 355,251 |
+| endpoint method, 1000 eps   |  95,340 |  96,754 |
+| url builder, 1000 eps       | 306,024 | 182,138 |
 
 Additional targeted stress tests:
 

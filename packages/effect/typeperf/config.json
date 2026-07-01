@@ -125,6 +125,14 @@
           "file": "suites/httpapi/fixtures/client-methods-count-1000.ts"
         },
         {
+          "name": "client-top-level-methods-count-1000",
+          "file": "suites/httpapi/fixtures/client-top-level-methods-count-1000.ts"
+        },
+        {
+          "name": "client-groups-100x10-count-1000",
+          "file": "suites/httpapi/fixtures/client-groups-100x10-count-1000.ts"
+        },
+        {
           "name": "client-methods-name-only-count-1000",
           "file": "suites/httpapi/fixtures/client-methods-name-only-count-1000.ts"
         },
@@ -183,6 +191,10 @@
         {
           "name": "url-builder-count-1000",
           "file": "suites/httpapi/fixtures/url-builder-count-1000.ts"
+        },
+        {
+          "name": "builder-endpoint-count-1000",
+          "file": "suites/httpapi/fixtures/builder-endpoint-count-1000.ts"
         },
         {
           "name": "builder-handlers-count-10",

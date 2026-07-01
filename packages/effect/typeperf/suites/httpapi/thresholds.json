@@ -130,5 +130,14 @@
   },
   "client-methods-overload-count-1000": {
     "maxDelta": 319700
+  },
+  "builder-endpoint-count-1000": {
+    "maxDelta": 105432
+  },
+  "client-top-level-methods-count-1000": {
+    "maxDelta": 355251
+  },
+  "client-groups-100x10-count-1000": {
+    "maxDelta": 124098
   }
 }

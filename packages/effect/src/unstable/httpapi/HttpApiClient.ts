@@ -54,9 +54,7 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
       R
     >
   }
-  & {
-    readonly [Method in Client.TopLevelMethods<Groups, E, R> as Method[0]]: Method[1]
-  }
+  & Client.TopLevelMethods<Groups, E, R>
 >
 
 /**
@@ -191,13 +189,14 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> =
-    Extract<Groups, { readonly topLevel: true }> extends
-      HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
-      _Endpoints extends infer Endpoint extends HttpApiEndpoint.ConstraintRequest ?
-        [HttpApiEndpoint.Name<Endpoint>, Method<Endpoint, E, R>]
-      : never :
-      never
+  export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> = {
+    readonly [
+      Endpoint in Extract<
+        HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>>,
+        HttpApiEndpoint.ConstraintRequest
+      > as HttpApiEndpoint.Name<Endpoint>
+    ]: Method<Endpoint, E, R>
+  }
 }
 
 type UrlBuilderRequestPart<Key extends string, Value> = [Value] extends [never] ? {}
