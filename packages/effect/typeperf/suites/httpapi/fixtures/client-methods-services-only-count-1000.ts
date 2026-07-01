@@ -10,15 +10,17 @@ HttpApiEndpoint.get("warmup", "/warmup")
 
 type ResponseMode = HttpApiEndpoint.ClientResponseMode
 type SuccessDecodingServices<S> = S extends Schema.Constraint ? S["DecodingServices"] : never
-type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() => Effect.Effect<
-  unknown,
-  never,
-  | E["~Params"]["EncodingServices"]
-  | E["~Query"]["EncodingServices"]
-  | E["~Payload"]["EncodingServices"]
-  | E["~Headers"]["EncodingServices"]
-  | ([Mode] extends ["response-only"] ? never : SuccessDecodingServices<E["~Success"]> | E["~Error"]["DecodingServices"])
->
+type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() =>
+  Effect.Effect<
+    unknown,
+    never,
+    | E["~Params"]["EncodingServices"]
+    | E["~Query"]["EncodingServices"]
+    | E["~Payload"]["EncodingServices"]
+    | E["~Headers"]["EncodingServices"]
+    | ([Mode] extends ["response-only"] ? never
+      : SuccessDecodingServices<E["~Success"]> | E["~Error"]["DecodingServices"])
+  >
 
 type Users = {
   readonly [E in Endpoint as HttpApiEndpoint.Name<E>]: Method<E>

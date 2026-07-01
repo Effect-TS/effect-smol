@@ -10,11 +10,12 @@ HttpApiEndpoint.get("warmup", "/warmup")
 
 type ResponseMode = HttpApiEndpoint.ClientResponseMode
 type SuccessType<S> = S extends Schema.Constraint ? S["Type"] : never
-type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() => Effect.Effect<
-  HttpApiClient.Client.Response<SuccessType<E["~Success"]>, Mode>,
-  never,
-  never
->
+type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() =>
+  Effect.Effect<
+    HttpApiClient.Client.Response<SuccessType<E["~Success"]>, Mode>,
+    never,
+    never
+  >
 
 type Users = {
   readonly [E in Endpoint as HttpApiEndpoint.Name<E>]: Method<E>

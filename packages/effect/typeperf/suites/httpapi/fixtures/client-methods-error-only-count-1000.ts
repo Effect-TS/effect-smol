@@ -10,14 +10,15 @@ HttpApiGroup.make("users")
 HttpApiEndpoint.get("warmup", "/warmup")
 
 type ResponseMode = HttpApiEndpoint.ClientResponseMode
-type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() => Effect.Effect<
-  unknown,
-  | HttpApiMiddleware.Error<E["~Middleware"]>
-  | HttpApiMiddleware.ClientError<E["~Middleware"]>
-  | HttpClientError.HttpClientError
-  | ([Mode] extends ["response-only"] ? never : E["~Error"]["Type"] | Schema.SchemaError),
-  never
->
+type Method<E extends HttpApiEndpoint.ConstraintRequest> = <Mode extends ResponseMode = ResponseMode>() =>
+  Effect.Effect<
+    unknown,
+    | HttpApiMiddleware.Error<E["~Middleware"]>
+    | HttpApiMiddleware.ClientError<E["~Middleware"]>
+    | HttpClientError.HttpClientError
+    | ([Mode] extends ["response-only"] ? never : E["~Error"]["Type"] | Schema.SchemaError),
+    never
+  >
 
 type Users = {
   readonly [E in Endpoint as HttpApiEndpoint.Name<E>]: Method<E>
