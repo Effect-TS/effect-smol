@@ -33,7 +33,7 @@
     "maxDelta": 348382
   },
   "url-builder-count-1000": {
-    "maxDelta": 182039
+    "maxDelta": 182122
   },
   "builder-raw-handlers-count-1000": {
     "maxDelta": 12638902
@@ -139,5 +139,8 @@
   },
   "client-groups-100x10-count-1000": {
     "maxDelta": 124098
+  },
+  "url-builder-top-level-count-1000": {
+    "maxDelta": 185038
   }
 }

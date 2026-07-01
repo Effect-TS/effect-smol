@@ -228,9 +228,7 @@ export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<in
         HttpApiGroup.Endpoints<Group>
       >
     }
-    & {
-      readonly [Method in UrlBuilderTopLevelMethods<Groups> as Method[0]]: Method[1]
-    }
+    & UrlBuilderTopLevelMethods<Groups>
   >
   : never
 
@@ -242,12 +240,11 @@ type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
   ...args: UrlBuilderArgs<UrlBuilderRequest<Endpoint>>
 ) => string
 
-type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups, { readonly topLevel: true }> extends
-  HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
-  _Endpoints extends infer Endpoint extends HttpApiEndpoint.Any ?
-    [HttpApiEndpoint.Name<Endpoint>, UrlBuilderMethod<Endpoint>]
-  : never :
-  never
+type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = {
+  readonly [
+    Endpoint in HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>> as HttpApiEndpoint.Name<Endpoint>
+  ]: UrlBuilderMethod<Endpoint>
+}
 
 /** @internal */
 export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(

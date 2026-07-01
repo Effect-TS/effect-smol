@@ -193,6 +193,10 @@
           "file": "suites/httpapi/fixtures/url-builder-count-1000.ts"
         },
         {
+          "name": "url-builder-top-level-count-1000",
+          "file": "suites/httpapi/fixtures/url-builder-top-level-count-1000.ts"
+        },
+        {
           "name": "builder-endpoint-count-1000",
           "file": "suites/httpapi/fixtures/builder-endpoint-count-1000.ts"
         },
