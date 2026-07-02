@@ -103,6 +103,7 @@
     "coverage": "vitest --run --coverage --sequence.concurrent=false"
   },
   "devDependencies": {
+    "@sinclair/typebox": "0.27.10",
     "@types/ini": "^4.1.1",
     "@types/node": "^25.7.0",
     "ajv": "^8.20.0",

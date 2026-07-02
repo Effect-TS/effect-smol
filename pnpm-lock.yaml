@@ -372,6 +372,9 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
     devDependencies:
+      '@sinclair/typebox':
+        specifier: 0.27.10
+        version: 0.27.10
       '@types/ini':
         specifier: ^4.1.1
         version: 4.1.1
