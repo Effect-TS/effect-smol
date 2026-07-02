@@ -240,6 +240,43 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.deepStrictEqual(createUser, { id: "created", name: "Grace" })
     }))
 
+  it.effect("executes effectful handler builders", () =>
+    Effect.gen(function*() {
+      const User = Schema.Struct({
+        id: Schema.String,
+        name: Schema.String
+      })
+
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("getUser", "/users/:id", {
+            params: {
+              id: Schema.String
+            },
+            success: User
+          })
+        )
+      )
+
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) =>
+          Effect.succeed(
+            handlers.handle("getUser", ({ params }) =>
+              Effect.succeed({
+                id: params.id,
+                name: "Ada"
+              }))
+          )
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["users"]).pipe(Effect.provide(GroupLive))
+      const getUser = yield* client.users.getUser({ params: { id: "user-1" } })
+
+      assert.deepStrictEqual(getUser, { id: "user-1", name: "Ada" })
+    }))
+
   it.effect("does not try another security scheme after the handler fails", () =>
     Effect.gen(function*() {
       class HandlerFailure extends Schema.TaggedErrorClass<HandlerFailure>()("HandlerFailure", {

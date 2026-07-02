@@ -288,6 +288,40 @@ describe("HttpApiBuilder", () => {
       )
     })
 
+    it("accepts complete effectful handler collections", () => {
+      const User = Schema.Struct({
+        id: Schema.String
+      })
+      const Api = HttpApi.make("api").add(
+        HttpApiGroup.make("users")
+          .add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              params: {
+                id: Schema.String
+              },
+              success: User
+            })
+          )
+          .add(
+            HttpApiEndpoint.get("listUsers", "/users", {
+              success: Schema.Array(User)
+            })
+          )
+      )
+      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+        Effect.succeed(
+          handlers
+            .handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
+            .handle("listUsers", () => Effect.succeed([]))
+        )
+
+      expect(HttpApiBuilder.group).type.toBeCallableWith(
+        Api,
+        "users",
+        build
+      )
+    })
+
     it("rejects unknown endpoint names and allows duplicate handlers", () => {
       const User = Schema.Struct({
         id: Schema.String
