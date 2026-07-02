@@ -215,7 +215,7 @@ type HandleAllExtraKeys<
 
 type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
 
-type HandleAllContext<
+type HandleAllRequirements<
   EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
   HandlersByName extends HandleAllHandlers<EndpointsByName>
 > = {
@@ -280,7 +280,7 @@ export interface Handlers<
   handleAll<const HandlersByName extends HandleAllHandlers<EndpointsByName>>(
     handlers: HandlersByName & HandleAllExtraKeys<EndpointsByName, HandlersByName>
   ): Handlers<
-    R | HandleAllContext<EndpointsByName, HandlersByName>,
+    R | HandleAllRequirements<EndpointsByName, HandlersByName>,
     EndpointsByName,
     HandledNames | keyof HandlersByName & keyof EndpointsByName
   >
@@ -585,6 +585,23 @@ export const securitySetCookie = (
 
 const basicLen = `Basic `.length
 
+const registerHandler = (
+  self: Handlers<any, any, any>,
+  name: string,
+  handler: HttpApiEndpoint.Handler<any, any, any>,
+  isRaw: boolean,
+  options?: HandlerOptions | undefined
+) => {
+  const endpoint = self.group.endpoints[name]
+  self.handlers.set(name, {
+    endpoint,
+    handler,
+    isRaw,
+    uninterruptible: options?.uninterruptible ?? false
+  })
+  return self
+}
+
 const HandlersProto = {
   [HandlersTypeId]: {
     _EndpointsByName: identity,
@@ -599,14 +616,7 @@ const HandlersProto = {
     handler: HttpApiEndpoint.Handler<any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    const endpoint = this.group.endpoints[name]
-    this.handlers.set(name, {
-      endpoint,
-      handler,
-      isRaw: false,
-      uninterruptible: options?.uninterruptible ?? false
-    })
-    return this
+    return registerHandler(this, name, handler, false, options)
   },
   handleAll(
     this: Handlers<any, any, any>,
@@ -619,16 +629,10 @@ const HandlersProto = {
     >
   ) {
     for (const name in handlers) {
-      const entry = handlers[name]!
+      const entry = handlers[name]
       const handler = typeof entry === "function" ? entry : entry.handler
       const options = typeof entry === "function" ? undefined : entry.options
-      const endpoint = this.group.endpoints[name]
-      this.handlers.set(name, {
-        endpoint,
-        handler,
-        isRaw: false,
-        uninterruptible: options?.uninterruptible ?? false
-      })
+      registerHandler(this, name, handler, false, options)
     }
     return this
   },
@@ -638,14 +642,7 @@ const HandlersProto = {
     handler: HttpApiEndpoint.Handler<any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    const endpoint = this.group.endpoints[name]
-    this.handlers.set(name, {
-      endpoint,
-      handler,
-      isRaw: true,
-      uninterruptible: options?.uninterruptible ?? false
-    })
-    return this
+    return registerHandler(this, name, handler, true, options)
   }
 }
 

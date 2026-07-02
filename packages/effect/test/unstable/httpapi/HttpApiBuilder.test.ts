@@ -186,6 +186,60 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       ])
     }))
 
+  it.effect("registers handleAll handlers at runtime", () =>
+    Effect.gen(function*() {
+      const User = Schema.Struct({
+        id: Schema.String,
+        name: Schema.String
+      })
+      const CreateUser = Schema.Struct({
+        name: Schema.String
+      })
+
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("getUser", "/users/:id", {
+            params: {
+              id: Schema.String
+            },
+            success: User
+          }),
+          HttpApiEndpoint.post("createUser", "/users", {
+            payload: CreateUser,
+            success: User
+          })
+        )
+      )
+
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) =>
+          handlers.handleAll({
+            getUser: ({ params }) =>
+              Effect.succeed({
+                id: params.id,
+                name: "Ada"
+              }),
+            createUser: {
+              handler: ({ payload }) =>
+                Effect.succeed({
+                  id: "created",
+                  name: payload.name
+                }),
+              options: { uninterruptible: true }
+            }
+          })
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["users"]).pipe(Effect.provide(GroupLive))
+      const getUser = yield* client.users.getUser({ params: { id: "user-1" } })
+      const createUser = yield* client.users.createUser({ payload: { name: "Grace" } })
+
+      assert.deepStrictEqual(getUser, { id: "user-1", name: "Ada" })
+      assert.deepStrictEqual(createUser, { id: "created", name: "Grace" })
+    }))
+
   it.effect("does not try another security scheme after the handler fails", () =>
     Effect.gen(function*() {
       class HandlerFailure extends Schema.TaggedErrorClass<HandlerFailure>()("HandlerFailure", {

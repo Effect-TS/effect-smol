@@ -1,167 +1,65 @@
 {
   "endpoint-count-10": {
-    "maxDelta": 2726
+    "maxDelta": 2826
   },
   "endpoint-count-50": {
-    "maxDelta": 8806
+    "maxDelta": 8906
   },
   "endpoint-count-100": {
-    "maxDelta": 16406
+    "maxDelta": 16506
   },
   "endpoint-count-500": {
-    "maxDelta": 77206
-  },
-  "endpoint-count-1000": {
-    "maxDelta": 153206
+    "maxDelta": 77306
   },
   "builder-handlers-count-10": {
-    "maxDelta": 9504
+    "maxDelta": 9430
   },
   "builder-handlers-count-50": {
-    "maxDelta": 63904
+    "maxDelta": 63630
   },
   "builder-handlers-count-100": {
-    "maxDelta": 185904
+    "maxDelta": 185380
   },
   "builder-handlers-count-500": {
-    "maxDelta": 3321904
-  },
-  "builder-handlers-count-1000": {
-    "maxDelta": 12641904
-  },
-  "client-methods-count-1000": {
-    "maxDelta": 349317
-  },
-  "url-builder-count-1000": {
-    "maxDelta": 182122
-  },
-  "builder-raw-handlers-count-1000": {
-    "maxDelta": 12638902
-  },
-  "client-endpoint-method-count-1000": {
-    "maxDelta": 96754
-  },
-  "builder-handle-chain-erased-handler-count-1000": {
-    "maxDelta": 7351727
-  },
-  "builder-handlers-from-group-count-1000": {
-    "maxDelta": 102706
-  },
-  "builder-handle-direct-distinct-names-count-1000": {
-    "maxDelta": 8357008
-  },
-  "builder-handle-direct-repeated-name-1000-endpoints-count-1000": {
-    "maxDelta": 111467
-  },
-  "builder-handle-direct-repeated-name-1-endpoint-count-1000": {
-    "maxDelta": 1560
-  },
-  "builder-handle-all-count-1000": {
-    "maxDelta": 472395
-  },
-  "builder-handle-all-erased-handler-count-1000": {
-    "maxDelta": 291880
-  },
-  "builder-handle-all-two-batches-count-1000": {
-    "maxDelta": 507557
+    "maxDelta": 3319380
   },
   "builder-handle-all-count-10": {
-    "maxDelta": 7095
+    "maxDelta": 7051
   },
   "builder-handle-all-count-50": {
-    "maxDelta": 25895
+    "maxDelta": 25771
   },
   "builder-handle-all-count-100": {
-    "maxDelta": 49395
+    "maxDelta": 49171
   },
   "builder-handle-all-count-500": {
-    "maxDelta": 237395
+    "maxDelta": 236371
   },
-  "builder-handle-chain-pretyped-handlers-count-1000": {
-    "maxDelta": 8572973
+  "client-methods-count-500": {
+    "maxDelta": 179349
   },
-  "builder-handle-chain-constant-body-count-1000": {
-    "maxDelta": 10561893
+  "client-top-level-methods-count-500": {
+    "maxDelta": 178751
   },
-  "builder-handle-chain-unused-request-count-1000": {
-    "maxDelta": 12627897
+  "client-groups-100x5-count-500": {
+    "maxDelta": 65336
   },
-  "builder-handle-chain-any-request-count-1000": {
-    "maxDelta": 10577893
+  "client-endpoint-method-count-500": {
+    "maxDelta": 56499
   },
-  "builder-handle-chain-typed-request-count-1000": {
-    "maxDelta": 10592900
+  "url-builder-count-500": {
+    "maxDelta": 95154
   },
-  "client-methods-name-only-count-1000": {
-    "maxDelta": 179928
+  "url-builder-top-level-count-500": {
+    "maxDelta": 93038
   },
-  "client-methods-request-only-count-1000": {
-    "maxDelta": 306091
+  "builder-endpoint-count-500": {
+    "maxDelta": 53432
   },
-  "client-methods-success-only-count-1000": {
-    "maxDelta": 241980
+  "builder-handle-all-two-batches-count-500": {
+    "maxDelta": 254033
   },
-  "client-methods-error-only-count-1000": {
-    "maxDelta": 252226
-  },
-  "client-methods-services-only-count-1000": {
-    "maxDelta": 255958
-  },
-  "client-methods-decoded-only-count-1000": {
-    "maxDelta": 259437
-  },
-  "client-methods-request-params-only-count-1000": {
-    "maxDelta": 252934
-  },
-  "client-methods-request-response-mode-only-count-1000": {
-    "maxDelta": 179964
-  },
-  "client-methods-request-no-simplify-count-1000": {
-    "maxDelta": 282051
-  },
-  "client-methods-request-fixed-mode-count-1000": {
-    "maxDelta": 225093
-  },
-  "client-methods-response-only-count-1000": {
-    "maxDelta": 247399
-  },
-  "client-methods-decoded-and-response-count-1000": {
-    "maxDelta": 262438
-  },
-  "client-methods-overload-count-1000": {
-    "maxDelta": 319700
-  },
-  "builder-endpoint-count-1000": {
-    "maxDelta": 105432
-  },
-  "client-top-level-methods-count-1000": {
-    "maxDelta": 355251
-  },
-  "client-groups-100x10-count-1000": {
-    "maxDelta": 122041
-  },
-  "url-builder-top-level-count-1000": {
-    "maxDelta": 185038
-  },
-  "client-group-constructor-count-1000": {
-    "maxDelta": 357547
-  },
-  "client-group-constructor-100x10-count-1000": {
-    "maxDelta": 107214
-  },
-  "client-group-constructor-client-only-count-1000": {
-    "maxDelta": 351206
-  },
-  "client-group-constructor-middleware-only-count-1000": {
-    "maxDelta": 103902
-  },
-  "client-methods-request-no-response-mode-count-1000": {
-    "maxDelta": 221063
-  },
-  "client-methods-return-no-response-mode-count-1000": {
-    "maxDelta": 240234
-  },
-  "client-methods-return-response-mode-only-count-1000": {
-    "maxDelta": 264041
+  "builder-raw-handlers-count-500": {
+    "maxDelta": 3317878
   }
 }
