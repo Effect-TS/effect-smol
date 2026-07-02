@@ -3,7 +3,7 @@ spec: https://app.stainless.com/api/spec/documented/openai/openapi.documented.ym
 output: src/Generated.ts
 name: OpenAiClient
 header: |
-  /** 
+  /**
    * @since 1.0.0
    */
 patches:
@@ -28,14 +28,9 @@ patches:
   # Add both events to ResponseStreamEvent anyOf array
   - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDeltaEvent"}}]'
   - '[{"op":"add","path":"/components/schemas/ResponseStreamEvent/anyOf/-","value":{"$ref":"#/components/schemas/ResponseApplyPatchCallOperationDiffDoneEvent"}}]'
+  # Replace unsupported $recursiveRef with a normal self-reference
+  - '[{"op":"replace","path":"/components/schemas/CompoundFilter/properties/filters/items/oneOf/1","value":{"$ref":"#/components/schemas/CompoundFilter"}}]'
 excludeAnnotations:
   - examples
   - default
 disableAdditionalProperties: true
-replacements:
-  # Schema.Unknown doesn't work with Schema.toCodecJson (used by HttpClientResponse.schemaBodyJson)
-  # Replace with Schema.Json which properly handles arbitrary JSON values
-  - from: "Schema.Record(Schema.String, Schema.Unknown)"
-    to: "Schema.Record(Schema.String, Schema.Json)"
-  - from: "{ readonly [x: string]: unknown }"
-    to: "{ readonly [x: string]: Schema.Json }"
