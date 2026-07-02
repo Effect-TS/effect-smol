@@ -374,7 +374,7 @@ export const make = <const Id extends string, const TopLevel extends boolean = f
 }): HttpApiGroup<Id, never, TopLevel> =>
   makeProto({
     identifier,
-    topLevel: options?.topLevel ?? false as any,
-    endpoints: Record.empty(),
+    topLevel: (options?.topLevel ?? false) as TopLevel,
+    endpoints: {},
     annotations: Context.empty()
-  }) as any
+  })

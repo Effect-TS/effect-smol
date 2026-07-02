@@ -187,6 +187,14 @@ type HandlerRequirements<
 
 type HandlerOptions = { readonly uninterruptible?: boolean | undefined }
 
+/** @internal */
+export type HandlerItem = {
+  readonly endpoint: HttpApiEndpoint.AnyWithProps
+  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
+  readonly isRaw: boolean
+  readonly uninterruptible: boolean
+}
+
 type HandleAllEntry<Endpoint extends HttpApiEndpoint.Any> =
   | HttpApiEndpoint.Handler<
     Endpoint,
@@ -251,8 +259,10 @@ export interface Handlers<
     _EndpointsByName: Covariant<EndpointsByName>
     _HandledNames: Covariant<HandledNames>
   }
+  /** @internal */
   readonly group: HttpApiGroup.AnyWithProps
-  readonly handlers: Map<string, Handlers.Item<R>>
+  /** @internal */
+  readonly handlers: Map<string, HandlerItem>
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
@@ -313,24 +323,6 @@ export interface Handlers<
  * @since 4.0.0
  */
 export declare namespace Handlers {
-  /**
-   * Record stored for a registered endpoint handler.
-   *
-   * **Details**
-   *
-   * It keeps the endpoint metadata, handler function, whether raw request handling
-   * is used, and whether the handler should run uninterruptibly.
-   *
-   * @category handlers
-   * @since 4.0.0
-   */
-  export type Item<R> = {
-    readonly endpoint: HttpApiEndpoint.AnyWithProps
-    readonly handler: HttpApiEndpoint.Handler<any, any, R>
-    readonly isRaw: boolean
-    readonly uninterruptible: boolean
-  }
-
   /**
    * Creates a handler collection for a group where every endpoint in the group is
    * still awaiting an implementation.
@@ -578,7 +570,7 @@ const basicLen = `Basic `.length
 const registerHandler = (
   self: Handlers<any, any, any>,
   name: string,
-  handler: HttpApiEndpoint.Handler<any, any, any>,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
   isRaw: boolean,
   options?: HandlerOptions | undefined
 ) => {
@@ -603,7 +595,7 @@ const HandlersProto = {
   handle(
     this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     return registerHandler(this, name, handler, false, options)
@@ -612,8 +604,8 @@ const HandlersProto = {
     this: Handlers<any, any, any>,
     handlers: Record<
       string,
-      HttpApiEndpoint.Handler<any, any, any> | {
-        readonly handler: HttpApiEndpoint.Handler<any, any, any>
+      HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any> | {
+        readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
         readonly options?: HandlerOptions | undefined
       }
     >
@@ -629,7 +621,7 @@ const HandlersProto = {
   handleRaw(
     this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     return registerHandler(this, name, handler, true, options)
@@ -641,7 +633,7 @@ const makeHandlers = <R, Group extends HttpApiGroup.Any>(
 ): Handlers<R, EndpointMap<HttpApiGroup.Endpoints<Group>>> => {
   const self = Object.create(HandlersProto)
   self.group = group
-  self.handlers = new Map<string, Handlers.Item<R>>()
+  self.handlers = new Map<string, HandlerItem>()
   return self
 }
 
@@ -741,7 +733,7 @@ function handlerToHttpEffect(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
   context: Context.Context<any>,
-  handler: HttpApiEndpoint.Handler<any, any, any>,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
   isRaw: boolean
 ) {
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
@@ -810,7 +802,7 @@ function handlerToHttpEffect(
 /** @internal */
 export function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
-  handler: Handlers.Item<any>,
+  handler: HandlerItem,
   context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint
