@@ -493,9 +493,19 @@ const parseOpenApi = (
         }
         const representable: Array<ParsedOperation.ParsedOperationMediaTypeSchema> = []
 
+        const statusLower = parsedStatus.toLowerCase()
+        const statusMajorNumber = Number(parsedStatus[0])
+        const isSuccessStatus = !Number.isNaN(statusMajorNumber) && statusMajorNumber < 4
+
         let jsonSchemaName: string | undefined
         const jsonResponseSchema = content?.["application/json"]?.schema
-        if (Predicate.isNotUndefined(jsonResponseSchema)) {
+        const jsonResponseSchemaResolved = Predicate.isNotUndefined(jsonResponseSchema)
+          ? resolveReference(jsonResponseSchema, resolveRef)
+          : undefined
+        if (
+          Predicate.isNotUndefined(jsonResponseSchema) &&
+          !isBinarySchema(jsonResponseSchemaResolved)
+        ) {
           jsonSchemaName = addSchema(`${schemaId}${status}`, jsonResponseSchema, op)
           if (isHttpApi) {
             representable.push({
@@ -584,6 +594,16 @@ const parseOpenApi = (
           op.defaultResponse = parsedResponse
         }
 
+        for (const [, mediaType] of Object.entries(content ?? {})) {
+          if (!Predicate.isObject(mediaType) || Predicate.isUndefined(mediaType.schema)) {
+            continue
+          }
+          if (isSuccessStatus && isBinarySchema(resolveReference(mediaType.schema, resolveRef))) {
+            op.binaryResponse = true
+            op.binaryResponseStatusCodes.add(statusLower)
+          }
+        }
+
         if (Predicate.isNotUndefined(jsonSchemaName)) {
           const schemaName = jsonSchemaName
 
@@ -592,8 +612,6 @@ const parseOpenApi = (
             continue
           }
 
-          const statusLower = parsedStatus.toLowerCase()
-          const statusMajorNumber = Number(parsedStatus[0])
           if (Number.isNaN(statusMajorNumber)) {
             continue
           }
@@ -613,9 +631,9 @@ const parseOpenApi = (
         }
 
         if (Predicate.isNotUndefined(content?.["application/octet-stream"])) {
-          const statusMajorNumber = Number(parsedStatus[0])
-          if (!Number.isNaN(statusMajorNumber) && statusMajorNumber < 4) {
+          if (isSuccessStatus) {
             op.binaryResponse = true
+            op.binaryResponseStatusCodes.add(statusLower)
           }
         }
 
@@ -864,7 +882,7 @@ const transformMultipartSchema = (
       return transformed
     }
 
-    if (isMultipartBinaryFile(value)) {
+    if (isBinarySchema(value)) {
       return { $ref: singleFileRef }
     }
 
@@ -896,7 +914,7 @@ const resolveSchemaReference = (ref: string, resolveRef: (ref: string) => unknow
   return current
 }
 
-const isMultipartBinaryFile = (value: unknown): value is JsonSchema.JsonSchema =>
+const isBinarySchema = (value: unknown): value is JsonSchema.JsonSchema =>
   Predicate.isObject(value) &&
   value.type === "string" &&
   (
@@ -909,7 +927,7 @@ const isMultipartBinaryFiles = (value: Record<string, unknown>, singleFileRef: s
     return false
   }
   const items = value.items
-  return isMultipartBinaryFile(items) || (Predicate.isObject(items) && items.$ref === singleFileRef)
+  return isBinarySchema(items) || (Predicate.isObject(items) && items.$ref === singleFileRef)
 }
 
 const isJsonMediaType = (contentType: string): boolean =>
@@ -920,6 +938,7 @@ const isTextMediaType = (contentType: string): boolean => contentType.startsWith
 
 const isBinaryMediaType = (contentType: string): boolean =>
   contentType === "application/octet-stream" ||
+  contentType === "application/pdf" ||
   (contentType.startsWith("application/") && (contentType.includes("binary") || contentType.endsWith("+octet-stream")))
 
 const getRequestMediaTypeEncoding = (

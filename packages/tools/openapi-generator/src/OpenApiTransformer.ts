@@ -60,6 +60,9 @@ const computeImportRequirements = (operations: ReadonlyArray<ParsedOperation>): 
 const requiresStreaming = (requirements: ImportRequirements): boolean =>
   requirements.eventStream || requirements.octetStream
 
+const hasNonBinaryMethod = (operation: ParsedOperation): boolean =>
+  operation.successSchemas.size > 0 || operation.voidSchemas.size > 0 || operation.binaryResponseStatusCodes.size === 0
+
 /**
  * Create the transformer used for schema-backed HttpClient output.
  *
@@ -80,7 +83,9 @@ export const makeTransformerSchema = () => {
   ) => {
     const methods: Array<string> = []
     for (const op of operations) {
-      methods.push(operationToMethod(name, op))
+      if (hasNonBinaryMethod(op)) {
+        methods.push(operationToMethod(name, op))
+      }
       if (op.sseSchema) {
         methods.push(operationToSseMethod(name, op))
       }
@@ -204,7 +209,16 @@ ${clientErrorSource(name)}`
     const jsdoc = Utils.toComment(operation.description)
     const methodKey = `readonly "${operation.id}Stream"`
     const parameters = args.join(", ")
-    const returnType = `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+    const errors = ["HttpClientError.HttpClientError", "SchemaError"]
+    if (operation.errorSchemas.size > 0) {
+      Utils.spreadElementsInto(
+        Array.from(operation.errorSchemas.values()).map(
+          (schema) => `${_name}Error<"${schema}", typeof ${schema}.Type>`
+        ),
+        errors
+      )
+    }
+    const returnType = `Stream.Stream<Uint8Array, ${errors.join(" | ")}>`
     return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
   }
 
@@ -216,7 +230,9 @@ ${clientErrorSource(name)}`
     const requirements = computeImportRequirements(operations)
     const implMethods: Array<string> = []
     for (const op of operations) {
-      implMethods.push(operationToImpl(op))
+      if (hasNonBinaryMethod(op)) {
+        implMethods.push(operationToImpl(op))
+      }
       if (op.sseSchema) {
         implMethods.push(operationToSseImpl(importName, op))
       }
@@ -411,7 +427,20 @@ export const make = (
       pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
     }
 
-    pipeline.push(`binaryRequest`)
+    const decodes: Array<string> = []
+    const singleSuccessCode = operation.binaryResponseStatusCodes.size === 1
+    operation.binaryResponseStatusCodes.forEach((status) => {
+      const statusCode = singleSuccessCode && status.startsWith("2") ? "2xx" : status
+      decodes.push(`"${statusCode}": (response) => Effect.succeed(response.stream)`)
+    })
+    operation.errorSchemas.forEach((schema, status) => {
+      decodes.push(`"${status}": decodeError("${schema}", ${schema})`)
+    })
+    decodes.push(`orElse: unexpectedStatus`)
+
+    pipeline.push(`binaryRequest(HttpClientResponse.matchStatus({
+      ${decodes.join(",\n      ")}
+    }))`)
 
     return (
       `"${operation.id}Stream": (${params}) => ` +
@@ -491,12 +520,14 @@ export const makeTransformerTs = () => {
   ) => {
     const methods: Array<string> = []
     for (const op of operations) {
-      methods.push(operationToMethod(name, op))
+      if (hasNonBinaryMethod(op)) {
+        methods.push(operationToMethod(name, op))
+      }
       if (op.sseSchema) {
         methods.push(operationToSseMethod(op))
       }
       if (op.binaryResponse) {
-        methods.push(operationToBinaryMethod(op))
+        methods.push(operationToBinaryMethod(name, op))
       }
     }
     return `export interface ${name} {
@@ -582,7 +613,7 @@ ${clientErrorSource(name)}`
     return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
   }
 
-  const operationToBinaryMethod = (operation: ParsedOperation) => {
+  const operationToBinaryMethod = (name: string, operation: ParsedOperation) => {
     const args: Array<string> = []
     if (operation.pathIds.length > 0) {
       Utils.spreadElementsInto(operation.pathIds.map((id) => `${id}: string`), args)
@@ -608,7 +639,13 @@ ${clientErrorSource(name)}`
     const jsdoc = Utils.toComment(operation.description)
     const methodKey = `readonly "${operation.id}Stream"`
     const parameters = args.join(", ")
-    const returnType = `Stream.Stream<Uint8Array, HttpClientError.HttpClientError>`
+    const errors = ["HttpClientError.HttpClientError"]
+    if (operation.errorSchemas.size > 0) {
+      for (const schema of operation.errorSchemas.values()) {
+        errors.push(`${name}Error<"${schema}", ${schema}>`)
+      }
+    }
+    const returnType = `Stream.Stream<Uint8Array, ${errors.join(" | ")}>`
     return `${jsdoc}${methodKey}: (${parameters}) => ${returnType}`
   }
 
@@ -620,7 +657,9 @@ ${clientErrorSource(name)}`
     const requirements = computeImportRequirements(operations)
     const implMethods: Array<string> = []
     for (const op of operations) {
-      implMethods.push(operationToImpl(op))
+      if (hasNonBinaryMethod(op)) {
+        implMethods.push(operationToImpl(op))
+      }
       if (op.sseSchema) {
         implMethods.push(operationToSseImpl(op))
       }
@@ -738,18 +777,18 @@ export const make = (
     }
 
     const successCodesRaw = Array.from(operation.successSchemas.keys())
+    const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2")
     const successCodes = successCodesRaw
       .map((_) => JSON.stringify(_))
       .join(", ")
-    const singleSuccessCode = successCodesRaw.length === 1 && successCodesRaw[0].startsWith("2")
     const errorCodes = operation.errorSchemas.size > 0 &&
       Object.fromEntries(operation.errorSchemas.entries())
     const configAccessor = resolveConfigAccessor(operation, "options", "config")
-    pipeline.push(
-      `onRequest(${configAccessor})([${singleSuccessCode ? `"2xx"` : successCodes}]${
-        errorCodes ? `, ${JSON.stringify(errorCodes)}` : ""
-      })`
-    )
+    const onRequestArgs = [`[${singleSuccessCode ? `"2xx"` : successCodes}]`]
+    if (errorCodes) {
+      onRequestArgs.push(JSON.stringify(errorCodes))
+    }
+    pipeline.push(`onRequest(${configAccessor})(${onRequestArgs.join(", ")})`)
 
     return (
       `"${operation.id}": (${params}) => ` +
@@ -831,7 +870,20 @@ export const make = (
       pipeline.push(`HttpClientRequest.bodyJsonUnsafe(options.payload)`)
     }
 
-    pipeline.push(`binaryRequest`)
+    const decodes: Array<string> = []
+    const singleSuccessCode = operation.binaryResponseStatusCodes.size === 1
+    operation.binaryResponseStatusCodes.forEach((status) => {
+      const statusCode = singleSuccessCode && status.startsWith("2") ? "2xx" : status
+      decodes.push(`"${statusCode}": (response) => Effect.succeed(response.stream)`)
+    })
+    operation.errorSchemas.forEach((schema, status) => {
+      decodes.push(`"${status}": decodeError("${schema}")`)
+    })
+    decodes.push(`orElse: unexpectedStatus`)
+
+    pipeline.push(`binaryRequest(HttpClientResponse.matchStatus({
+      ${decodes.join(",\n      ")}
+    }))`)
 
     return (
       `"${operation.id}Stream": (${params}) => ` +
@@ -933,10 +985,14 @@ const sseRequestSource = (_importName: string) =>
         Stream.pipeThroughChannel(Sse.decodeDataSchema(schema))
       )`
 
-const binaryRequestSource =
-  `const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
-    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
-      Effect.map((response) => response.stream),
+const binaryRequestSource = `const binaryRequest = <E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<Stream.Stream<Uint8Array, HttpClientError.HttpClientError>, E>
+  ) =>
+  (
+    request: HttpClientRequest.HttpClientRequest
+  ): Stream.Stream<Uint8Array, E | HttpClientError.HttpClientError> =>
+    httpClient.execute(request).pipe(
+      Effect.flatMap(f),
       Stream.unwrap
     )`
 
@@ -952,10 +1008,14 @@ const sseRequestSourceTs =
       Stream.map((line) => JSON.parse(line.slice(6)))
     )`
 
-const binaryRequestSourceTs =
-  `const binaryRequest = (request: HttpClientRequest.HttpClientRequest): Stream.Stream<Uint8Array, HttpClientError.HttpClientError> =>
-    HttpClient.filterStatusOk(httpClient).execute(request).pipe(
-      Effect.map((response) => response.stream),
+const binaryRequestSourceTs = `const binaryRequest = <E>(
+    f: (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<Stream.Stream<Uint8Array, HttpClientError.HttpClientError>, E>
+  ) =>
+  (
+    request: HttpClientRequest.HttpClientRequest
+  ): Stream.Stream<Uint8Array, E | HttpClientError.HttpClientError> =>
+    httpClient.execute(request).pipe(
+      Effect.flatMap(f),
       Stream.unwrap
     )`
 

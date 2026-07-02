@@ -35,7 +35,11 @@ function assertTypeOnly(spec: OpenAPISpec, expected: string) {
   )
 }
 
-function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string>) {
+function assertRuntimeIncludes(
+  spec: OpenAPISpec,
+  includes: ReadonlyArray<string>,
+  excludes: ReadonlyArray<string> = []
+) {
   return Effect.gen(function*() {
     const generator = yield* OpenApiGenerator.OpenApiGenerator
 
@@ -46,6 +50,9 @@ function assertRuntimeIncludes(spec: OpenAPISpec, includes: ReadonlyArray<string
 
     for (const expected of includes) {
       assert.include(result, expected)
+    }
+    for (const excluded of excludes) {
+      assert.notInclude(result, excluded)
     }
   }).pipe(
     Effect.provide(OpenApiGenerator.layerTransformerSchema)
@@ -522,6 +529,82 @@ export const TestClientError = <Tag extends string, E>(
           `"streamEventsSse": () => HttpClientRequest.get(\`/events\`).pipe(`,
           `sseRequest(StreamEvents200Sse)`,
           `schema: Schema.ConstraintDecoder<Type, DecodingServices>`
+        ]
+      ))
+
+    it.effect("binary response schema generates typed stream with typed errors", () =>
+      assertRuntimeIncludes(
+        {
+          openapi: "3.1.0",
+          info: {
+            title: "Test API",
+            version: "1.0.0"
+          },
+          paths: {
+            "/invoice/{id}": {
+              get: {
+                operationId: "getInvoice",
+                parameters: [
+                  {
+                    name: "id",
+                    in: "path",
+                    schema: {
+                      type: "string"
+                    },
+                    required: true
+                  }
+                ],
+                responses: {
+                  200: {
+                    description: "Invoice PDF",
+                    content: {
+                      "application/pdf": {
+                        schema: {
+                          type: "string",
+                          format: "binary"
+                        }
+                      }
+                    }
+                  },
+                  400: {
+                    description: "Bad request",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            code: { type: "string" },
+                            message: { type: "string" }
+                          },
+                          required: ["code", "message"],
+                          additionalProperties: false
+                        }
+                      }
+                    }
+                  }
+                },
+                tags: ["Invoices"],
+                security: []
+              }
+            }
+          },
+          components: {
+            schemas: {},
+            securitySchemes: {}
+          },
+          security: [],
+          tags: []
+        },
+        [
+          `readonly "getInvoiceStream": (id: string) => Stream.Stream<Uint8Array, HttpClientError.HttpClientError | SchemaError | TestClientError<"GetInvoice400", typeof GetInvoice400.Type>>`,
+          `"getInvoiceStream": (id) => HttpClientRequest.get(\`/invoice/\${id}\`).pipe(`,
+          `binaryRequest(HttpClientResponse.matchStatus({`,
+          `"2xx": (response) => Effect.succeed(response.stream)`,
+          `"400": decodeError("GetInvoice400", GetInvoice400)`
+        ],
+        [
+          `readonly "getInvoice":`,
+          `schemaBodyJson(GetInvoice200)`
         ]
       ))
 
