@@ -63,8 +63,9 @@ export const groups = Effect.fnUntraced(function*<
 > {
   let context = yield* Effect.context<HttpApiGroup.ToService<ApiId, SelectedGroups>>()
 
-  for (const name in api.groups) {
-    const group = api.groups[name]
+  const groups = api.groupsRecord()
+  for (const name in groups) {
+    const group = groups[name]
     if (groupNames.includes(name as any)) {
       continue
     }

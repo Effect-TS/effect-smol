@@ -87,7 +87,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
     const availableGroups = Array.from(services.mapUnsafe.keys()).filter((key) =>
       key.startsWith("effect/httpapi/HttpApiGroup/")
     )
-    for (const group of Object.values(api.groups)) {
+    const groups = api.groupsRecord()
+    for (const group of Object.values(groups)) {
       const groupRoutes = services.mapUnsafe.get(group.key)?.routes as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
@@ -136,7 +137,7 @@ export const group = <
     const services = (yield* Effect.context<any>()).pipe(
       Context.omit(Scope.Scope)
     )
-    const group = api.groups[groupName]!
+    const group = api.groups[groupName]
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any, any> = Effect.isEffect(result)
       ? (yield* result as Effect.Effect<any, any, any>)
@@ -456,8 +457,8 @@ export const endpoint = <
   >
 ): EndpointReturn<Groups, GroupName, EndpointName, R> =>
   Effect.contextWith((context: Context.Context<any>) => {
-    const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
-    const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
+    const group = api.groupsRecord()[groupName]!
+    const endpoint = group.endpoints[endpointName]
     return Effect.succeed(handlerToHttpEffect(
       group,
       endpoint,

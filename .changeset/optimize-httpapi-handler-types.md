@@ -8,6 +8,7 @@ large APIs with many endpoints, handlers, and generated client methods.
 ## New Features
 
 - Add `HttpApiBuilder.Handlers.handleAll`, which registers a name-keyed batch of endpoint handlers for a group. Each entry can be either a handler function or `{ handler, options }`, and the object can be supplied in multiple partial batches.
+- `HttpApi.groups` now preserves the concrete group type for each group name. For example, `Api.groups.users` is typed as the `users` group instead of the full group union.
 
 ## Breaking Changes
 
@@ -25,6 +26,7 @@ types.
 - Endpoint helper types now read metadata fields directly instead of re-inferring all type parameters from the full `HttpApiEndpoint` interface. This affects helpers such as `Name`, `Success`, `Error`, `Params`, `Query`, `Payload`, `Headers`, `Middleware`, `Request`, `RequestRaw`, `ServerServices`, and `ClientServices`.
 - `HttpApiClient.Client.Method` and related generated-client helpers now require endpoint types that satisfy `HttpApiEndpoint.ConstraintRequest`. Endpoint-like structural types must include the lightweight request metadata fields to be accepted.
 - `HttpApiGroup.Name` now reads the group identifier from `HttpApiGroup.Any`; group-like structural types must satisfy that lightweight group constraint.
+- `HttpApi.groups` is now typed as a name-keyed group map instead of `ReadonlyRecord<string, Groups>`, and `HttpApi` tracks its group union invariantly. Dynamic string indexing must refine the key first or cast to a broad runtime record.
 
 ## Type-Level Performance
 
