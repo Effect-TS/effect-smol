@@ -669,6 +669,8 @@ export const untupled = <A extends ReadonlyArray<unknown>, B>(f: (a: A) => B): (
  * )
  *
  * console.log(result) // "11"
+ * 
+ * pipe currently support up to 20 functions
  * ```
  *
  * @category combinators
