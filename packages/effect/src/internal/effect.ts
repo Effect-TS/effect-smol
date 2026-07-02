@@ -310,7 +310,9 @@ export const causeSquash = <E>(self: Cause.Cause<E>): unknown => {
 }
 
 /** @internal */
-export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
+export const causePrettyErrors = <E>(self: Cause.Cause<E>, options?: {
+  readonly includeCauseInStack?: boolean | undefined
+}): Array<Error> => {
   const errors: Array<Error> = []
   const interrupts: Array<Cause.Interrupt> = []
   if (self.reasons.length === 0) return errors
@@ -326,7 +328,8 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     errors.push(
       causePrettyError(
         failure._tag === "Die" ? failure.defect : failure.error as any,
-        failure.annotations
+        failure.annotations,
+        options
       )
     )
   }
@@ -337,7 +340,7 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
     const error = new globalThis.Error("All fibers interrupted without error", { cause })
     error.name = "InterruptError"
     error.stack = `${error.name}: ${error.message}`
-    errors.push(causePrettyError(error, interrupts[0].annotations))
+    errors.push(causePrettyError(error, interrupts[0].annotations, options))
   }
 
   setStackTraceLimit(prevStackLimit)
@@ -347,7 +350,10 @@ export const causePrettyErrors = <E>(self: Cause.Cause<E>): Array<Error> => {
 /** @internal */
 export const causePrettyError = (
   original: Record<string, unknown> | Error,
-  annotations?: ReadonlyMap<string, unknown>
+  annotations?: ReadonlyMap<string, unknown>,
+  options?: {
+    readonly includeCauseInStack?: boolean | undefined
+  }
 ): Error => {
   const kind = typeof original
   let error: Error
@@ -363,6 +369,9 @@ export const causePrettyError = (
     } else {
       const stack = `${error.name}: ${error.message}`
       error.stack = annotations ? addStackAnnotations(stack, annotations) : stack
+    }
+    if (options?.includeCauseInStack) {
+      error.stack = renderPrettyError(error)!
     }
     for (const key of Object.keys(original)) {
       if (!(key in error)) {
@@ -461,8 +470,7 @@ const currentStackTrace = (frame: StackFrame): string => {
 export const causePretty = <E>(cause: Cause.Cause<E>): string =>
   causePrettyErrors<E>(cause).map(renderPrettyError).join("\n")
 
-/** @internal */
-export const renderPrettyError = (e: Error): string | undefined =>
+const renderPrettyError = (e: Error): string | undefined =>
   e.cause ? `${e.stack} {\n${renderErrorCause(e.cause as Error, "  ")}\n}` : e.stack
 
 const renderErrorCause = (cause: Error, prefix: string) => {

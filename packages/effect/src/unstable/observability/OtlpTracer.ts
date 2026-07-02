@@ -17,7 +17,6 @@ import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
 import type * as Exit from "../../Exit.ts"
 import { flow } from "../../Function.ts"
-import { renderPrettyError } from "../../internal/effect.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
 import type * as Scope from "../../Scope.ts"
@@ -285,7 +284,9 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
       value: { boolValue: true }
     })
   } else {
-    const errors = Cause.prettyErrors(status.exit.cause)
+    const errors = Cause.prettyErrors(status.exit.cause, {
+      includeCauseInStack: true
+    })
     otelStatus = {
       code: StatusCode.Error
     }
@@ -312,7 +313,7 @@ const makeOtlpSpan = (self: SpanImpl): OtlpSpan => {
             {
               "key": "exception.stacktrace",
               "value": {
-                "stringValue": renderPrettyError(error) ?? "No stack trace available"
+                "stringValue": error.stack ?? "No stack trace available"
               }
             }
           ]
