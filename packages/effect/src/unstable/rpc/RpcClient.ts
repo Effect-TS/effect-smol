@@ -26,6 +26,7 @@ import * as Queue from "../../Queue.ts"
 import * as Result from "../../Result.ts"
 import * as Schedule from "../../Schedule.ts"
 import * as Schema from "../../Schema.ts"
+import type * as AST from "../../SchemaAST.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Struct from "../../Struct.ts"
@@ -49,6 +50,8 @@ import * as RpcSchema from "./RpcSchema.ts"
 import * as RpcSerialization from "./RpcSerialization.ts"
 import * as RpcWorker from "./RpcWorker.ts"
 import { withRunClient } from "./Utils.ts"
+
+type RpcParseOptions = Pick<AST.ParseOptions, "concurrency">
 
 /**
  * The object-shaped client generated from a union of RPC definitions, with one
@@ -631,6 +634,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
     readonly spanAttributes?: Record<string, unknown> | undefined
     readonly generateRequestId?: (() => RequestId) | undefined
     readonly disableTracing?: boolean | undefined
+    readonly parseOptions?: RpcParseOptions | undefined
     readonly flatten?: Flatten | undefined
   } | undefined
 ) => Effect.Effect<
@@ -644,11 +648,17 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
     readonly spanAttributes?: Record<string, unknown> | undefined
     readonly generateRequestId?: (() => RequestId) | undefined
     readonly disableTracing?: boolean | undefined
+    readonly parseOptions?: RpcParseOptions | undefined
     readonly flatten?: Flatten | undefined
   } | undefined
 ) {
   const clientId = clientIdCounter++
   const { run, send, supportsAck, supportsTransferables } = yield* Protocol
+  const parseConcurrency = options?.parseOptions?.concurrency
+  const parseOptions: RpcParseOptions | undefined = parseConcurrency !== undefined
+    ? { concurrency: parseConcurrency }
+    : undefined
+  const getRpcSchemas = makeRpcSchemas(parseOptions)
 
   type ClientEntry = {
     readonly rpc: Rpc.AnyWithProps
@@ -671,7 +681,7 @@ export const make: <Rpcs extends Rpc.Any, const Flatten extends boolean = false>
           const entry: ClientEntry = {
             rpc,
             context: collector ? Context.add(fiber.context, Transferable.Collector, collector) : fiber.context,
-            schemas: rpcSchemas(rpc)
+            schemas: getRpcSchemas(rpc)
           }
           entries.set(message.id, entry)
 
@@ -778,23 +788,26 @@ interface RpcSchemas {
   readonly encodePayload: (payload: any) => Effect.Effect<any, Schema.SchemaError, unknown>
   readonly decodeExit: (encoded: unknown) => Effect.Effect<Exit.Exit<any, any>, Schema.SchemaError, unknown>
 }
-const rpcSchemasCache = new WeakMap<Rpc.AnyWithProps, RpcSchemas>()
-const rpcSchemas = (rpc: Rpc.AnyWithProps) => {
-  let entry = rpcSchemasCache.get(rpc)
-  if (entry !== undefined) {
+const makeRpcSchemas = (parseOptions: RpcParseOptions | undefined) => {
+  const rpcSchemasCache = new WeakMap<Rpc.AnyWithProps, RpcSchemas>()
+  return (rpc: Rpc.AnyWithProps) => {
+    let entry = rpcSchemasCache.get(rpc)
+    if (entry !== undefined) {
+      return entry
+    }
+    const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
+    entry = {
+      decodeChunk: Option.map(
+        streamSchemas,
+        (streamSchemas) =>
+          Schema.decodeUnknownEffect(Schema.toCodecJson(Schema.NonEmptyArray(streamSchemas.success)), parseOptions)
+      ),
+      encodePayload: Schema.encodeEffect(Schema.toCodecJson(rpc.payloadSchema), parseOptions),
+      decodeExit: Schema.decodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any)), parseOptions)
+    }
+    rpcSchemasCache.set(rpc, entry)
     return entry
   }
-  const streamSchemas = RpcSchema.getStreamSchemas(rpc.successSchema)
-  entry = {
-    decodeChunk: Option.map(
-      streamSchemas,
-      (streamSchemas) => Schema.decodeUnknownEffect(Schema.toCodecJson(Schema.NonEmptyArray(streamSchemas.success)))
-    ),
-    encodePayload: Schema.encodeEffect(Schema.toCodecJson(rpc.payloadSchema)),
-    decodeExit: Schema.decodeUnknownEffect(Schema.toCodecJson(Rpc.exitSchema(rpc as any)))
-  }
-  rpcSchemasCache.set(rpc, entry)
-  return entry
 }
 
 /**
