@@ -65,6 +65,8 @@
       "@effect/sql-clickhouse/*": ["./packages/sql/clickhouse/src/*.ts"],
       "@effect/sql-d1": ["./packages/sql/d1/src/index.ts"],
       "@effect/sql-d1/*": ["./packages/sql/d1/src/*.ts"],
+      "@effect/sql-duckdb": ["./packages/sql/duckdb/src/index.ts"],
+      "@effect/sql-duckdb/*": ["./packages/sql/duckdb/src/*.ts"],
       "@effect/sql-libsql": ["./packages/sql/libsql/src/index.ts"],
       "@effect/sql-libsql/*": ["./packages/sql/libsql/src/*.ts"],
       "@effect/sql-mssql": ["./packages/sql/mssql/src/index.ts"],
