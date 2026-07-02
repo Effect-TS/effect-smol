@@ -17,10 +17,25 @@ import * as references from "./internal/references.ts"
 import type { Logger } from "./Logger.ts"
 import type { LogLevel, Severity } from "./LogLevel.ts"
 import type { ReadonlyRecord } from "./Record.ts"
-import { MaxOpsBeforeYield, PreventSchedulerYield } from "./Scheduler.ts"
+import { AsyncActivity, MacrotaskDispatch, MaxOpsBeforeYield, PreventSchedulerYield } from "./Scheduler.ts"
 import { CurrentTraceLevel, DisablePropagation, MinimumTraceLevel, type SpanLink, Tracer } from "./Tracer.ts"
 
 export {
+  /**
+   * Context reference for the mutable state fibers update when resuming from
+   * asynchronous work.
+   *
+   * **When to use**
+   *
+   * Use when an observer needs to know whether fibers are resuming from
+   * asynchronous work, such as host promises or callbacks. Used by
+   * `TestClock` to let in-flight async work settle while advancing virtual
+   * time.
+   *
+   * @category references
+   * @since 4.0.0
+   */
+  AsyncActivity,
   /**
    * Context reference for the current trace level used for dynamic trace filtering.
    *
@@ -54,6 +69,23 @@ export {
    * @since 4.0.0
    */
   DisablePropagation,
+  /**
+   * Context reference for whether a fiber's task flushes are dispatched on
+   * the macrotask queue.
+   *
+   * **When to use**
+   *
+   * Use when fibers must observe the host event loop turning between task
+   * flushes, so host async work interleaves with fiber execution at task
+   * flush granularity. Provided by `TestClock` for tests driven by virtual
+   * time.
+   *
+   * @see {@link MaxOpsBeforeYield} and {@link PreventSchedulerYield} for the other scheduler tuning references
+   *
+   * @category references
+   * @since 4.0.0
+   */
+  MacrotaskDispatch,
   /**
    * Context reference for the maximum operation budget before a fiber yields to the scheduler.
    *

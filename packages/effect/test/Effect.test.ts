@@ -889,6 +889,25 @@ describe("Effect", () => {
         assert.deepStrictEqual(result, Option.none())
       }))
 
+    it.effect("looping on async work does not starve the event loop", () =>
+      Effect.gen(function*() {
+        const fiber = yield* Effect.forkChild(
+          // a loop with no voluntary yield: every iteration suspends on the
+          // async primitive and is resumed by a microtask
+          Effect.gen(function*() {
+            while (true) {
+              yield* Effect.promise(() => Promise.resolve())
+            }
+          })
+        )
+        // async resumptions do not refill the operation budget, so the
+        // looping fiber still yields to the scheduler after
+        // `maxOpsBeforeYield` cumulative operations and the host event loop
+        // keeps turning: the timer below would otherwise never fire
+        yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 0)))
+        yield* Fiber.interrupt(fiber)
+      }))
+
     it.effect("repeat/until - repeats until a condition is true", () =>
       Effect.gen(function*() {
         let input = 10

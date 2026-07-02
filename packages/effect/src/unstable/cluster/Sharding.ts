@@ -787,9 +787,7 @@ const make = Effect.gen(function*() {
     > {
       const address = message.envelope.address
       const state = entityManagers.get(address.entityType)
-      if (!state) {
-        return Effect.flatMap(waitForEntityManager(address.entityType), loop)
-      } else if (state.status === "closed" || !isEntityOnLocalShards(address)) {
+      if (state && (state.status === "closed" || !isEntityOnLocalShards(address))) {
         return Effect.fail(new EntityNotAssignedToRunner({ address }))
       }
 
@@ -799,7 +797,12 @@ const make = Effect.gen(function*() {
         : () => Effect.die("Sharding.notifyLocal: storage is disabled")
 
       if (message._tag === "IncomingRequest" || message._tag === "IncomingEnvelope") {
-        if (!isLocal) {
+        if (!state) {
+          // incoming messages are processed by the local entity, so we need to
+          // wait for it to be registered. Outgoing notifications only need to
+          // be persisted, so they can proceed without a local entity manager.
+          return Effect.flatMap(waitForEntityManager(address.entityType), loop)
+        } else if (!isLocal) {
           return Effect.fail(new EntityNotAssignedToRunner({ address }))
         } else if (
           message._tag === "IncomingRequest" && state.manager.isProcessingFor(message, { excludeReplies: true })

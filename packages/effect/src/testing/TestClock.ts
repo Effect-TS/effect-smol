@@ -12,14 +12,15 @@
  */
 import * as Arr from "../Array.ts"
 import * as Clock from "../Clock.ts"
+import * as Context from "../Context.ts"
 import * as Data from "../Data.ts"
 import * as Duration from "../Duration.ts"
 import * as Effect from "../Effect.ts"
 import * as Fiber from "../Fiber.ts"
-import { flow } from "../Function.ts"
 import * as Latch from "../Latch.ts"
 import * as Layer from "../Layer.ts"
 import * as Order from "../Order.ts"
+import * as Scheduler from "../Scheduler.ts"
 import * as Semaphore from "../Semaphore.ts"
 
 /**
@@ -233,6 +234,8 @@ export const make = Effect.fnUntraced(function*(
     readonly latch: Latch.Latch
   }> = []
   const liveClock = yield* Clock.clockWith(Effect.succeed)
+  const macrotaskDispatch = yield* Scheduler.MacrotaskDispatch
+  const asyncActivity = yield* Scheduler.AsyncActivity
   const warningSemaphore = yield* Semaphore.make(1)
 
   let currentTimestamp: number = new Date(0).getTime()
@@ -313,27 +316,57 @@ export const make = Effect.fnUntraced(function*(
     yield* latch.await
   })
 
+  // Lets pending work settle at the current virtual time: keeps yielding to
+  // the host event loop while yields produce async resumptions, so work in
+  // flight on the host (e.g. a pending promise) completes and runs before
+  // the clock moves on. A yield producing no resumptions means the remaining
+  // suspended fibers are waiting either on the clock itself or on events
+  // produced by other fibers, so there is nothing left to settle.
+  const settle = Effect.fnUntraced(function*() {
+    while (true) {
+      const resumptions = asyncActivity.resumptions
+      yield* Effect.yieldNow
+      if (asyncActivity.resumptions === resumptions) break
+    }
+  })
+
   const runSemaphore = yield* Semaphore.make(1)
   const run = Effect.fnUntraced(function*(step: (currentTimestamp: number) => number) {
-    yield* Fiber.await(yield* Effect.forkChild(Effect.yieldNow))
+    yield* settle()
     const endTimestamp = step(currentTimestamp)
     while (Arr.isArrayNonEmpty(sleeps)) {
       if (Arr.lastNonEmpty(sleeps).timestamp > endTimestamp) break
       const entry = sleeps.pop()!
       currentTimestamp = entry.timestamp
       entry.latch.openUnsafe()
-      yield* Effect.yieldNow
+      yield* settle()
     }
     currentTimestamp = endTimestamp
+    yield* settle()
   }, runSemaphore.withPermits(1))
+
+  // While the clock is flushing, fibers dispatch their task flushes on the
+  // macrotask queue, so the host event loop turns between flushes and host
+  // async work (promises resolved by the event loop) interleaves with the
+  // execution of woken sleepers.
+  const flushing = <A, E, R>(effect: Effect.Effect<A, E, R>): Effect.Effect<A, E, R> =>
+    Effect.suspend(() => {
+      macrotaskDispatch.current = true
+      return Effect.ensuring(
+        effect,
+        Effect.sync(() => {
+          macrotaskDispatch.current = false
+        })
+      )
+    })
 
   function adjust(duration: Duration.Input) {
     const millis = Duration.toMillis(Duration.fromInputUnsafe(duration))
-    return warningDone.pipe(Effect.andThen(run((timestamp) => timestamp + millis)))
+    return flushing(warningDone.pipe(Effect.andThen(run((timestamp) => timestamp + millis))))
   }
 
   function setTime(timestamp: number) {
-    return warningDone.pipe(Effect.andThen(run(() => timestamp)))
+    return flushing(warningDone.pipe(Effect.andThen(run(() => timestamp))))
   }
 
   yield* Effect.addFinalizer(() => warningDone)
@@ -352,6 +385,14 @@ export const make = Effect.fnUntraced(function*(
 
 /**
  * Creates a `Layer` which constructs a `TestClock`.
+ *
+ * **Details**
+ *
+ * The layer also provides a `Scheduler.MacrotaskDispatch` state shared with
+ * the clock. While the clock is flushing virtual time forward, fibers under
+ * the layer dispatch their task flushes on the macrotask queue: the host
+ * event loop turns between task flushes and host async work interleaves with
+ * fiber execution while virtual time advances.
  *
  * **Example** (Providing a test clock layer)
  *
@@ -376,10 +417,22 @@ export const make = Effect.fnUntraced(function*(
  * @category layers
  * @since 4.0.0
  */
-export const layer: (options?: TestClock.Options) => Layer.Layer<TestClock> = flow(
-  make,
-  Layer.effect(Clock.Clock)
-) as any
+export const layer = (options?: TestClock.Options): Layer.Layer<TestClock> =>
+  Layer.effectContext(Effect.gen(function*() {
+    // The dispatch state is shared between the clock, which activates it
+    // while flushing, and the fibers under this layer, whose scheduler
+    // consults it through the fiber context to decide the dispatch medium.
+    const macrotaskDispatch: Scheduler.MacrotaskDispatchState = { current: false }
+    const asyncActivity: Scheduler.AsyncActivityState = { resumptions: 0 }
+    const clock = yield* make(options).pipe(
+      Effect.provideService(Scheduler.MacrotaskDispatch, macrotaskDispatch),
+      Effect.provideService(Scheduler.AsyncActivity, asyncActivity)
+    )
+    return Context.make(Clock.Clock, clock).pipe(
+      Context.add(Scheduler.MacrotaskDispatch, macrotaskDispatch),
+      Context.add(Scheduler.AsyncActivity, asyncActivity)
+    )
+  })) as any
 
 /**
  * Retrieves the `TestClock` service for this test and uses it to run the
