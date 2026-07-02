@@ -248,6 +248,21 @@ like web handlers, framework hooks, worker queues, or legacy callback APIs.
 
 - **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
 
+## Working with Predicates
+
+The `Predicate` module contains small, reusable runtime checks. A
+`Predicate<A>` returns `true` or `false` for a value, while a
+`Refinement<A, B>` is a predicate that also narrows the TypeScript type when
+it succeeds.
+
+Use predicates at the boundary of your program when data is `unknown`, and
+then compose those checks with helpers such as `Predicate.and`,
+`Predicate.or`, `Predicate.not`, and `Predicate.compose`.
+
+- **[Introducing Predicate](./ai-docs/src/04_predicate/10_basics.ts)**:
+  Use predicates to validate unknown data and keep type narrowing close to the
+  runtime checks that make it safe.
+
 ## Batching external requests
 
 Learn how to batch multiple requests into fewer external calls.
