@@ -32,10 +32,10 @@ Type instantiations for the handler-chain stress test improved as follows:
 
 | endpoints |        before |     after |
 | --------: | ------------: | --------: |
-|        10 |        32,523 |     9,132 |
-|        50 |       560,763 |    63,332 |
-|       100 |     2,139,063 |   185,082 |
-|       500 | OOM / SIGKILL | 3,319,082 |
+|        10 |        32,523 |     8,996 |
+|        50 |       560,763 |    62,996 |
+|       100 |     2,139,063 |   184,496 |
+|       500 | OOM / SIGKILL | 3,316,496 |
 
 Retained generated client and URL builder guardrails now focus on 500-endpoint
 stress tests:
@@ -54,14 +54,14 @@ Additional retained server guardrails:
 | fixture                    |   current |
 | -------------------------- | --------: |
 | builder endpoint, 500 eps  |    53,381 |
-| raw handler chain, 500 eps | 3,317,580 |
+| raw handler chain, 500 eps | 3,314,994 |
 
 For handler groups, `handleAll` avoids the fluent-chain handled-name growth:
 
 | fixture                      | fluent chain | `handleAll` |
 | ---------------------------- | -----------: | ----------: |
-| handlers, 10 eps             |        9,132 |       6,753 |
-| handlers, 50 eps             |       63,332 |      25,473 |
-| handlers, 100 eps            |      185,082 |      48,873 |
-| handlers, 500 eps            |    3,319,082 |     236,073 |
-| two handler batches, 500 eps |    3,319,082 |     253,735 |
+| handlers, 10 eps             |        8,996 |       6,617 |
+| handlers, 50 eps             |       62,996 |      25,137 |
+| handlers, 100 eps            |      184,496 |      48,287 |
+| handlers, 500 eps            |    3,316,496 |     233,487 |
+| two handler batches, 500 eps |    3,316,496 |     251,149 |

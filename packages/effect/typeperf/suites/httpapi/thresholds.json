@@ -12,28 +12,28 @@
     "maxDelta": 77306
   },
   "builder-handlers-count-10": {
-    "maxDelta": 9132
+    "maxDelta": 8996
   },
   "builder-handlers-count-50": {
-    "maxDelta": 63332
+    "maxDelta": 62996
   },
   "builder-handlers-count-100": {
-    "maxDelta": 185082
+    "maxDelta": 184496
   },
   "builder-handlers-count-500": {
-    "maxDelta": 3319082
+    "maxDelta": 3316496
   },
   "builder-handle-all-count-10": {
-    "maxDelta": 6753
+    "maxDelta": 6617
   },
   "builder-handle-all-count-50": {
-    "maxDelta": 25473
+    "maxDelta": 25137
   },
   "builder-handle-all-count-100": {
-    "maxDelta": 48873
+    "maxDelta": 48287
   },
   "builder-handle-all-count-500": {
-    "maxDelta": 236073
+    "maxDelta": 233487
   },
   "client-methods-count-500": {
     "maxDelta": 179349
@@ -57,9 +57,9 @@
     "maxDelta": 53381
   },
   "builder-handle-all-two-batches-count-500": {
-    "maxDelta": 253735
+    "maxDelta": 251149
   },
   "builder-raw-handlers-count-500": {
-    "maxDelta": 3317580
+    "maxDelta": 3314994
   }
 }

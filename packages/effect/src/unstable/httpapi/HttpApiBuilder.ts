@@ -237,6 +237,21 @@ type HandleAllRequirements<
     never
 }[keyof HandlersByName & keyof EndpointsByName]
 
+type HandlersResult<A> = A extends Effect.Effect<infer H, any, any> ? H : A
+
+type MissingHandlerNames<H extends Handlers<any, any, any>> = Exclude<
+  keyof H["~EndpointsByName"],
+  H["~HandledNames"]
+>
+
+type ValidateHandlersReturn<
+  A,
+  H = HandlersResult<A>,
+  Missing = H extends Handlers<any, any, any> ? MissingHandlerNames<H> : never
+> = H extends Handlers<any, any, any> ? [Missing] extends [never] ? A
+  : `Endpoint not handled: ${Missing & string}`
+  : `Must return the implemented handlers`
+
 /**
  * Mutable handler collection for one `HttpApi` group.
  *
@@ -342,25 +357,7 @@ export declare namespace Handlers {
    * @category handlers
    * @since 4.0.0
    */
-  export type ValidateReturn<A> = A extends (
-    | Handlers<
-      infer _R,
-      infer _EndpointsByName,
-      infer _HandledNames
-    >
-    | Effect.Effect<
-      Handlers<
-        infer _R,
-        infer _EndpointsByName,
-        infer _HandledNames
-      >,
-      infer _EX,
-      infer _RX
-    >
-  ) ? Exclude<keyof _EndpointsByName, _HandledNames> extends infer _MissingNames ? [_MissingNames] extends [never] ? A
-      : `Endpoint not handled: ${_MissingNames & string}`
-    : never :
-    `Must return the implemented handlers`
+  export type ValidateReturn<A> = ValidateHandlersReturn<A>
 
   /**
    * Extracts the error channel from an effect that produces a `Handlers`

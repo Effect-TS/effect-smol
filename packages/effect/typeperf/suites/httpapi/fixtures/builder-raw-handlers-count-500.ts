@@ -4522,7 +4522,7 @@ export const layer = HttpApiBuilder.group(api, "users", (handlers) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      })) )
+      })))
 
 export type Layer = typeof layer
 export type Handlers = HttpApiBuilder.Handlers.FromGroup<typeof group>
