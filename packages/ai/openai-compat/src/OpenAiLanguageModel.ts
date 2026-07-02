@@ -112,7 +112,7 @@ export class Config extends Context.Service<
        * Defaults to `true`.
        */
       readonly strictJsonSchema?: boolean | undefined
-      readonly [x: string]: unknown
+      readonly custom?: Record<string, unknown>
     }
   >
 >()("@effect/ai-openai-compat/OpenAiLanguageModel/Config") {}
@@ -573,9 +573,11 @@ export const make = Effect.fnUntraced(function*({ model, config: providerConfig 
 }): Effect.fn.Return<LanguageModel.Service, never, OpenAiClient> {
   const client = yield* OpenAiClient
 
+  const { custom: customConfig, ...knownConfig } = providerConfig ?? {}
+
   const makeConfig = Effect.gen(function*() {
     const services = yield* Effect.context<never>()
-    return { model, ...providerConfig, ...services.mapUnsafe.get(Config.key) }
+    return { model, ...customConfig, ...knownConfig, ...services.mapUnsafe.get(Config.key) }
   })
 
   const makeRequest = Effect.fnUntraced(
