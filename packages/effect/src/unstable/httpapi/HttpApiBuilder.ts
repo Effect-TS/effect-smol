@@ -30,7 +30,7 @@ import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import type { Covariant, NoInfer } from "../../Types.ts"
+import type { NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as Sse from "../encoding/Sse.ts"
 import type { Cookie } from "../http/Cookies.ts"
@@ -255,10 +255,9 @@ export interface Handlers<
   EndpointsByName extends Record<string, HttpApiEndpoint.Any> = {},
   HandledNames extends keyof EndpointsByName = never
 > extends Pipeable {
-  readonly [HandlersTypeId]: {
-    _EndpointsByName: Covariant<EndpointsByName>
-    _HandledNames: Covariant<HandledNames>
-  }
+  readonly [HandlersTypeId]: typeof HandlersTypeId
+  readonly "~EndpointsByName": EndpointsByName
+  readonly "~HandledNames": HandledNames
   /** @internal */
   readonly group: HttpApiGroup.AnyWithProps
   /** @internal */
@@ -585,10 +584,7 @@ const registerHandler = (
 }
 
 const HandlersProto = {
-  [HandlersTypeId]: {
-    _EndpointsByName: identity,
-    _HandledNames: identity
-  },
+  [HandlersTypeId]: HandlersTypeId,
   pipe() {
     return pipeArguments(this, arguments)
   },

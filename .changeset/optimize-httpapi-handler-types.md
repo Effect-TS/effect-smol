@@ -14,7 +14,7 @@ large APIs with many endpoints, handlers, and generated client methods.
 These changes affect unstable `HttpApi` type-level APIs and structural endpoint
 types.
 
-- `HttpApiBuilder.Handlers` now tracks endpoints through a name-keyed endpoint map and a set of handled names, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByName, HandledNames>`, and its phantom fields changed from `_Endpoints` to `_EndpointsByName` / `_HandledNames`.
+- `HttpApiBuilder.Handlers` now tracks endpoints through a name-keyed endpoint map and a set of handled names, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByName, HandledNames>`, and its phantom fields changed from `_Endpoints` to `~EndpointsByName` / `~HandledNames`.
 - The unused `HttpApiBuilder.Handlers.Any` helper type has been removed. The internal handler item shape moved from `HttpApiBuilder.Handlers.Item` to the `@internal` `HttpApiBuilder.HandlerItem` export.
 - Duplicate `handle` / `handleRaw` registrations for the same endpoint are no longer rejected at the call site. Missing endpoint handlers are still rejected by the final `HttpApiBuilder.group` return validation.
 - `HttpApiClient.Client.Group` now derives a client from a concrete group type: `Client.Group<Group, E, R>`. The previous group-union plus group-name form is no longer supported.
@@ -32,10 +32,10 @@ Type instantiations for the handler-chain stress test improved as follows:
 
 | endpoints |        before |     after |
 | --------: | ------------: | --------: |
-|        10 |        32,523 |     9,430 |
-|        50 |       560,763 |    63,630 |
-|       100 |     2,139,063 |   185,380 |
-|       500 | OOM / SIGKILL | 3,319,380 |
+|        10 |        32,523 |     9,132 |
+|        50 |       560,763 |    63,332 |
+|       100 |     2,139,063 |   185,082 |
+|       500 | OOM / SIGKILL | 3,319,082 |
 
 Retained generated client and URL builder guardrails now focus on 500-endpoint
 stress tests:
@@ -45,7 +45,7 @@ stress tests:
 | client methods, 500 eps        | 179,349 |
 | client groups, 100x5 eps       |  65,336 |
 | top-level methods, 500 eps     | 178,751 |
-| endpoint method, 500 eps       |  56,499 |
+| endpoint method, 500 eps       |  56,507 |
 | url builder, 500 eps           |  95,154 |
 | top-level URL builder, 500 eps |  93,038 |
 
@@ -53,15 +53,15 @@ Additional retained server guardrails:
 
 | fixture                    |   current |
 | -------------------------- | --------: |
-| builder endpoint, 500 eps  |    53,432 |
-| raw handler chain, 500 eps | 3,317,878 |
+| builder endpoint, 500 eps  |    53,381 |
+| raw handler chain, 500 eps | 3,317,580 |
 
 For handler groups, `handleAll` avoids the fluent-chain handled-name growth:
 
 | fixture                      | fluent chain | `handleAll` |
 | ---------------------------- | -----------: | ----------: |
-| handlers, 10 eps             |        9,430 |       7,051 |
-| handlers, 50 eps             |       63,630 |      25,771 |
-| handlers, 100 eps            |      185,380 |      49,171 |
-| handlers, 500 eps            |    3,319,380 |     236,371 |
-| two handler batches, 500 eps |    3,319,380 |     254,033 |
+| handlers, 10 eps             |        9,132 |       6,753 |
+| handlers, 50 eps             |       63,332 |      25,473 |
+| handlers, 100 eps            |      185,082 |      48,873 |
+| handlers, 500 eps            |    3,319,082 |     236,073 |
+| two handler batches, 500 eps |    3,319,082 |     253,735 |
