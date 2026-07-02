@@ -11,7 +11,7 @@
  */
 import * as Context from "effect/Context"
 import * as Effect from "effect/Effect"
-import { flow } from "effect/Function"
+import { constTrue, flow } from "effect/Function"
 import * as Inspectable from "effect/Inspectable"
 import * as Layer from "effect/Layer"
 import * as Option from "effect/Option"
@@ -21,10 +21,10 @@ import type * as Scope from "effect/Scope"
 import * as Stream from "effect/Stream"
 import * as Cookies from "effect/unstable/http/Cookies"
 import * as Headers from "effect/unstable/http/Headers"
-import type * as Body from "effect/unstable/http/HttpBody"
+import * as Body from "effect/unstable/http/HttpBody"
 import * as Client from "effect/unstable/http/HttpClient"
 import * as Error from "effect/unstable/http/HttpClientError"
-import type { HttpClientRequest } from "effect/unstable/http/HttpClientRequest"
+import { type HttpClientRequest, makeWith } from "effect/unstable/http/HttpClientRequest"
 import * as Response from "effect/unstable/http/HttpClientResponse"
 import type { HttpClientResponse } from "effect/unstable/http/HttpClientResponse"
 import * as IncomingMessage from "effect/unstable/http/HttpIncomingMessage"
@@ -132,6 +132,28 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
 )
 
 /**
+ * Controls whether successful Undici responses retain the original request body.
+ *
+ * **When to use**
+ *
+ * Use with long-lived responses when uploaded request bodies are no
+ * longer needed after response headers arrive.
+ *
+ * **Details**
+ *
+ * The default is `true`. When disabled, successful responses expose an empty
+ * request body while preserving request metadata. Large byte-array uploads use
+ * a one-shot `Readable` so Undici can release consumed bytes.
+ *
+ * @category Undici
+ * @since 4.0.0
+ */
+export const RetainResponseRequestBody = Context.Reference<boolean>(
+  "@effect/platform-node/NodeHttpClient/RetainResponseRequestBody",
+  { defaultValue: constTrue }
+)
+
+/**
  * Creates an `HttpClient` that sends requests through the current Undici
  * `Dispatcher`, converts Effect HTTP bodies to Undici bodies, and maps
  * transport and decode failures to `HttpClientError`.
@@ -141,8 +163,9 @@ export const UndiciOptions = Context.Reference<Partial<Undici.Dispatcher.Request
  */
 export const makeUndici = Effect.gen(function*() {
   const dispatcher = yield* Dispatcher
-  return Client.make((request, url, signal, fiber) =>
-    convertBody(request.body).pipe(
+  return Client.make((request, url, signal, fiber) => {
+    const retainRequestBody = fiber.getRef(RetainResponseRequestBody)
+    return convertBody(request.body, retainRequestBody).pipe(
       Effect.flatMap((body) =>
         Effect.tryPromise({
           try: () =>
@@ -167,19 +190,28 @@ export const makeUndici = Effect.gen(function*() {
             })
         })
       ),
-      Effect.map((response) => new UndiciResponse(request, response))
+      Effect.map((response) => new UndiciResponse(retainRequestBody ? request : withoutBody(request), response))
     )
-  )
+  })
 })
 
+// The Readable wrapper makes consumed bytes releasable but is slower for small
+// uploads. Keep the direct path where retained memory is strictly bounded.
+const oneShotBodyThreshold = 64 * 1024
+
 function convertBody(
-  body: Body.HttpBody
+  body: Body.HttpBody,
+  retainRequestBody: boolean
 ): Effect.Effect<Exclude<Undici.Dispatcher.DispatchOptions["body"], undefined>> {
   switch (body._tag) {
     case "Empty": {
       return Effect.succeed(null)
     }
-    case "Uint8Array":
+    case "Uint8Array": {
+      return Effect.succeed(
+        retainRequestBody || body.body.byteLength < oneShotBodyThreshold ? body.body : oneShotBody(body.body)
+      )
+    }
     case "Raw": {
       return Effect.succeed(body.body as Uint8Array)
     }
@@ -192,7 +224,32 @@ function convertBody(
   }
 }
 
+const oneShotBody = (input: Uint8Array): Readable => {
+  let body: Uint8Array | undefined = input
+  return new Readable({
+    read() {
+      const value = body
+      // Undici retains the Readable while the response is active, so release
+      // the emitted byte array as soon as the upload pulls it.
+      body = undefined
+      this.push(value ?? null)
+    }
+  })
+}
+
 function noopErrorHandler(_: any) {}
+
+// Successful responses only need request metadata for diagnostics. Keeping the
+// immutable body here would retain uploaded payloads for the response lifetime.
+const withoutBody = (request: HttpClientRequest): HttpClientRequest =>
+  makeWith(
+    request.method,
+    request.url,
+    request.urlParams,
+    request.hash,
+    request.headers,
+    Body.empty
+  )
 
 class UndiciResponse extends Inspectable.Class implements HttpClientResponse, Pipeable {
   readonly [IncomingMessage.TypeId]: typeof IncomingMessage.TypeId
