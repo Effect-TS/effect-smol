@@ -248,6 +248,90 @@ like web handlers, framework hooks, worker queues, or legacy callback APIs.
 
 - **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
 
+## Working with Schema
+
+`Schema` lets you describe the shape of data once and use that description for
+both TypeScript types and runtime validation. Use it at boundaries where data is
+unknown, such as HTTP requests, environment variables, database rows, messages,
+or AI/tool outputs.
+
+For a comprehensive guide, see [packages/effect/SCHEMA.md](./packages/effect/SCHEMA.md).
+
+Essentials:
+
+- Use `Schema.Class`, `Schema.TaggedClass`, `Schema.ErrorClass`, and
+  `Schema.TaggedErrorClass` when you want schema-backed classes for domain
+  models, tagged unions, or typed errors.
+- Decode untrusted data with `Schema.decodeUnknownEffect` inside Effect code,
+  or `Schema.decodeUnknownSync` / `Schema.decodeUnknownPromise` at sync or
+  Promise-based application boundaries.
+- Encode typed values with `Schema.encodeEffect`, `Schema.encodeSync`, or
+  `Schema.encodePromise` before returning them to external systems.
+- Prefer creating reusable decoders and encoders once, then call those functions
+  wherever the boundary is crossed.
+
+### Schema basics
+
+Define schema-backed classes, decode unknown input into typed values, and
+encode typed values back into their external representation.
+
+```ts
+import { Effect, Schema } from "effect"
+
+// Schema.Class defines both a runtime validator and a TypeScript class.
+// This is useful for domain models that should only be constructed from valid
+// data. The static `Type` and `Encoded` members are available when you need
+// the decoded or encoded TypeScript representation.
+export class User extends Schema.Class<User>("User")({
+  id: Schema.Number,
+  name: Schema.NonEmptyString,
+  email: Schema.String,
+  role: Schema.Literals(["admin", "member"])
+}) {}
+
+export type UserType = (typeof User)["Type"]
+export type UserEncoded = (typeof User)["Encoded"]
+
+// Reuse parsers at the edges of your application instead of rebuilding them for
+// every request. Use the Effect-returning APIs when you are already inside
+// Effect code so validation errors remain typed in the error channel.
+export const decodeUser = Schema.decodeUnknownEffect(User)
+export const encodeUser = Schema.encodeEffect(User)
+
+export class InvalidUserPayload extends Schema.TaggedErrorClass<InvalidUserPayload>()("InvalidUserPayload", {
+  message: Schema.String
+}) {}
+
+export const parseUserPayload = Effect.fn("parseUserPayload")((input: unknown) =>
+  decodeUser(input).pipe(
+    Effect.mapError((error) => new InvalidUserPayload({ message: error.message }))
+  )
+)
+
+// Class schemas also support transformations. NumberFromString decodes a string
+// from the outside world into a number for application code, and encodes the
+// number back to a string when sending it out again.
+export class ListUsersQuery extends Schema.Class<ListUsersQuery>("ListUsersQuery")({
+  page: Schema.NumberFromString,
+  pageSize: Schema.NumberFromString
+}) {}
+
+const decodeListUsersQuery = Schema.decodeUnknownSync(ListUsersQuery)
+const encodeListUsersQuery = Schema.encodeSync(ListUsersQuery)
+
+// Decoding turns unknown external input into a validated class instance.
+export const query = decodeListUsersQuery({ page: "1", pageSize: "50" })
+
+// Encoding turns the class instance back into the external representation.
+export const encodedQuery = encodeListUsersQuery(query)
+
+// Schema.TaggedClass adds a literal _tag field, which is convenient for
+// discriminated unions and event/message payloads.
+export class UserCreated extends Schema.TaggedClass<UserCreated>()("UserCreated", {
+  user: User
+}) {}
+```
+
 ## Batching external requests
 
 Learn how to batch multiple requests into fewer external calls.
