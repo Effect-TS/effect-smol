@@ -100,6 +100,40 @@ Note: `positive`, `negative`, `nonNegative`, `nonPositive` have been removed in 
 
 ## Detailed migrations
 
+### Redacted
+
+**Migration: rename with behavior distinction**
+
+In v3, `Schema.Redacted(value)` decoded the raw encoded value and wrapped the decoded value in `Redacted`.
+
+In v4, that behavior is named `Schema.RedactedFromValue(value)`.
+
+v3
+
+```ts
+import { Schema } from "effect"
+
+const schema = Schema.Redacted(Schema.String)
+const decode = Schema.decodeSync(schema)
+
+decode("secret")
+```
+
+v4
+
+```ts
+import { Redacted, Schema } from "effect"
+
+const schema = Schema.RedactedFromValue(Schema.String)
+const decode = Schema.decodeSync(schema)
+
+const redacted = decode("secret")
+console.log(Redacted.value(redacted))
+// secret
+```
+
+`Schema.Redacted(value)` in v4 is the replacement for v3 `Schema.RedactedFromSelf(value)`: it expects the input to already be a `Redacted` value, so both `Type` and `Encoded` are `Redacted<...>`.
+
 ### asserts signature
 
 **Migration: semi-auto**
@@ -185,6 +219,8 @@ const schema = Schema.TemplateLiteral([Schema.String, ".", Schema.String])
 // use the `parts` property instead of repeating the template parts
 const parser = Schema.TemplateLiteralParser(schema.parts)
 ```
+
+Behavior note: `TemplateLiteral` and `TemplateLiteralParser` match parts semantically. Checks on string, number, and bigint schema parts are applied while matching each segment, so refined parts can reject strings that would match the broader primitive shape.
 
 ### format
 
@@ -293,6 +329,8 @@ import { Schema } from "effect"
 
 const schema = Schema.Record(Schema.String, Schema.Number)
 ```
+
+Behavior note: dynamic record key schemas select matching own properties before the value schema is applied. Refined key schemas such as `Schema.String.check(...)`, `Schema.Int`, or checked template literals ignore properties that do not match the key schema; they do not validate the value at those ignored keys. For transformed key schemas, selection is based on encoded property names before selected keys are decoded.
 
 ### pick / omit
 

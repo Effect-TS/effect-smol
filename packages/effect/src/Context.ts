@@ -17,7 +17,7 @@ import { dual, type LazyArg } from "./Function.ts"
 import * as Hash from "./Hash.ts"
 import type { Inspectable } from "./Inspectable.ts"
 import { exitSucceed, PipeInspectableProto, withFiber } from "./internal/core.ts"
-import type { ErrorWithStackTraceLimit } from "./internal/tracer.ts"
+import { getStackTraceLimit, setStackTraceLimit } from "./internal/stackTraceLimit.ts"
 import * as Option from "./Option.ts"
 import type { Pipeable } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
@@ -231,11 +231,10 @@ export const Service: {
     >
     & { readonly make: Make }
 } = function() {
-  const prevLimit = (Error as ErrorWithStackTraceLimit).stackTraceLimit
-  ;(Error as ErrorWithStackTraceLimit)
-    .stackTraceLimit = 2
+  const prevLimit = getStackTraceLimit()
+  setStackTraceLimit(2)
   const err = new Error()
-  ;(Error as ErrorWithStackTraceLimit).stackTraceLimit = prevLimit
+  setStackTraceLimit(prevLimit)
   function KeyClass() {}
   const self = KeyClass as any as Types.Mutable<Reference<any>>
   Object.setPrototypeOf(self, ServiceProto)

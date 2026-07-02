@@ -220,12 +220,24 @@ Use `PubSub` when you need one producer to fan out messages to many consumers.
 
 - **[Broadcasting domain events with PubSub](./ai-docs/src/01_effect/06_pubsub/10_pubsub.ts)**: Build an in-process event bus with `PubSub` and expose it as a service.
 
+## Defining schemas and domain models
+
+All validation and domain modeling in Effect is done with `Schema`.
+
+**AVOID** using predicates or manual parsing, instead use `Schema` to parse untrusted data and validate it.
+
+For a comprehensive guide, see [packages/effect/SCHEMA.md](./packages/effect/SCHEMA.md). Make sure to read the file in chunks, as it is a large document.
+
+- **[Schema basics](./ai-docs/src/02_schema/10_schema-basics.ts)**:
+  Define `Schema.Class`s, decode unknown input into typed values, and
+  encode typed values back into their external representation.
+
 ## Working with Streams
 
 Effect Streams represent effectful, pull-based sequences of values over time.
 They let you model finite or infinite data sources.
 
-- **[Creating streams from common data sources](./ai-docs/src/02_stream/10_creating-streams.ts)**:
+- **[Creating streams from common data sources](./ai-docs/src/03_stream/10_creating-streams.ts)**:
   Learn how to create streams from various data sources. Includes:
   
   - `Stream.fromIterable` for arrays and other iterables
@@ -235,8 +247,8 @@ They let you model finite or infinite data sources.
   - `Stream.fromEventListener` for DOM events
   - `Stream.callback` for any callback-based API
   - `NodeStream.fromReadable` for Node.js readable streams
-- **[Consuming and transforming streams](./ai-docs/src/02_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
-- **[Decoding and encoding streams](./ai-docs/src/02_stream/30_encoding.ts)**:
+- **[Consuming and transforming streams](./ai-docs/src/03_stream/20_consuming-streams.ts)**: How to transform and consume streams using operators like `map`, `flatMap`, `filter`, `mapEffect`, and various `run*` methods.
+- **[Decoding and encoding streams](./ai-docs/src/03_stream/30_encoding.ts)**:
   Use `Stream.pipeThroughChannel` with the `Ndjson` & `Msgpack` modules to
   decode and encode streams of structured data.
 
@@ -246,7 +258,7 @@ They let you model finite or infinite data sources.
 from your application Layer, then use it anywhere you need imperative execution,
 like web handlers, framework hooks, worker queues, or legacy callback APIs.
 
-- **[Using ManagedRuntime with Hono](./ai-docs/src/03_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
+- **[Using ManagedRuntime with Hono](./ai-docs/src/04_integration/10_managed-runtime.ts)**: Use `ManagedRuntime` to run Effect programs from external frameworks while keeping your domain logic in services and Layers.
 
 ## Batching external requests
 
@@ -288,6 +300,34 @@ setup.
 
 - **[Writing Effect tests with @effect/vitest](./ai-docs/src/09_testing/10_effect-tests.ts)**: Using `it.effect` for Effect-based tests.
 - **[Testing services with shared layers](./ai-docs/src/09_testing/20_layer-tests.ts)**: How to test Effect services that depend on other services.
+
+## Runtime type guards
+
+The `Predicate` module contains small, reusable runtime checks.
+
+**NEVER** write your own helper functions like `isRecord` or `isString`, instead
+use the helpers from the `Predicate` module.
+
+Predicates can be composed with apis such as `Predicate.and`,
+`Predicate.or`, `Predicate.not`, and `Predicate.compose`.
+
+### Using the Predicate module
+
+
+
+```ts
+import { Predicate } from "effect"
+
+const thing: unknown = {
+  a: 1
+}
+
+if (Predicate.isObject(thing)) {
+  if (Predicate.isNumber(thing.a)) {
+    console.log("number", thing.a)
+  }
+}
+```
 
 ## Effect HttpClient
 
