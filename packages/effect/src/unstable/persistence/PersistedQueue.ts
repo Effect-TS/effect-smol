@@ -613,7 +613,9 @@ local key_pending = KEYS[2]
 local prefix = ARGV[1]
 
 local entries = redis.call("HGETALL", key_pending)
-for id, payload in pairs(entries) do
+for i = 1, #entries, 2 do
+  local id = entries[i]
+  local payload = entries[i + 1]
   local lock_key = prefix .. id .. ":lock"
   local exists = redis.call("EXISTS", lock_key)
   if exists == 0 then
@@ -673,7 +675,7 @@ redis.call("DEL", key_lock)
 redis.call("HDEL", key_pending, id)
 redis.call("RPUSH", key_failed, payload)
 `,
-    numberOfKeys: 2
+    numberOfKeys: 3
   }
 )
 
