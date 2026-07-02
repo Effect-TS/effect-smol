@@ -224,15 +224,17 @@ type UrlBuilderArgs<Request> = [Request] extends [void | undefined] ? [request?:
  * @category models
  * @since 4.0.0
  */
-export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Simplify<
-    & {
-      readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
-        HttpApiGroup.Endpoints<Group>
-      >
-    }
-    & UrlBuilderTopLevelMethods<Groups>
-  >
+export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ?
+  [Extract<Groups, { readonly topLevel: true }>] extends [never] ? UrlBuilderGroups<Groups>
+  : [Extract<Groups, { readonly topLevel: false }>] extends [never] ? UrlBuilderTopLevelMethods<Groups>
+  : Simplify<UrlBuilderGroups<Groups> & UrlBuilderTopLevelMethods<Groups>>
   : never
+
+type UrlBuilderGroups<Groups extends HttpApiGroup.Any> = {
+  readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
+    HttpApiGroup.Endpoints<Group>
+  >
+}
 
 type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>

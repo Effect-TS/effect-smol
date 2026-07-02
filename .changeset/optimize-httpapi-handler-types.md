@@ -48,8 +48,8 @@ stress tests:
 | client groups, 100x5 eps       |  65,336 |
 | top-level methods, 500 eps     | 178,751 |
 | endpoint method, 500 eps       |  56,507 |
-| url builder, 500 eps           |  95,154 |
-| top-level URL builder, 500 eps |  93,038 |
+| url builder, 500 eps           |  92,556 |
+| top-level URL builder, 500 eps |  90,016 |
 
 Additional retained server guardrails:
 
