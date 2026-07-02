@@ -15,6 +15,7 @@ These changes affect unstable `HttpApi` type-level APIs and structural endpoint
 types.
 
 - `HttpApiBuilder.Handlers` now tracks endpoints through a name-keyed endpoint map and a set of handled names, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByName, HandledNames>`, and its phantom fields changed from `_Endpoints` to `_EndpointsByName` / `_HandledNames`.
+- The unused `HttpApiBuilder.Handlers.Any` helper type has been removed.
 - Duplicate `handle` / `handleRaw` registrations for the same endpoint are no longer rejected at the call site. Missing endpoint handlers are still rejected by the final `HttpApiBuilder.group` return validation.
 - `HttpApiClient.Client.Group` now derives a client from a concrete group type: `Client.Group<Group, E, R>`. The previous group-union plus group-name form is no longer supported.
 - `HttpApiClient.Client.TopLevelMethods` now returns a name-keyed method record instead of a union of `[name, method]` tuples.

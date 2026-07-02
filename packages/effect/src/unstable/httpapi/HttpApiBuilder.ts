@@ -314,16 +314,6 @@ export interface Handlers<
  */
 export declare namespace Handlers {
   /**
-   * A `Handlers` value with its context and endpoint types erased.
-   *
-   * @category handlers
-   * @since 4.0.0
-   */
-  export interface Any {
-    readonly [HandlersTypeId]: any
-  }
-
-  /**
    * Record stored for a registered endpoint handler.
    *
    * **Details**
