@@ -1,5 +1,12 @@
 # @effect/platform-browser
 
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- Updated dependencies [[`f11ce73`](https://github.com/Effect-TS/effect-smol/commit/f11ce73af60823754dc24194f4ffc561b9ea1c2d)]:
+  - effect@4.0.0-beta.94
+
 ## 4.0.0-beta.93
 
 ### Patch Changes

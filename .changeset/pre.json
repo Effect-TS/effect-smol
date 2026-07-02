@@ -264,6 +264,7 @@
     "fix-http-tracer-response-cause",
     "fix-httpapi-endpoint-error-inference",
     "fix-httpapi-malformed-json-400",
+    "fix-httpapi-runtime-shape",
     "fix-httpapi-schema-types",
     "fix-httpapi-security-middleware-cache",
     "fix-is-json-dag",
