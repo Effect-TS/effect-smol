@@ -121,4 +121,34 @@ describe("Command", () => {
       expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
     })
   })
+
+  describe("mutuallyExclusive", () => {
+    it("accepts config keys and preserves the command type", () => {
+      const command = Command.make("download", {
+        useApi: Flag.boolean("use-api"),
+        useDocker: Flag.boolean("use-docker")
+      }).pipe(
+        Command.mutuallyExclusive(["useApi", "useDocker"])
+      )
+
+      expect(command).type.toBe<
+        Command.Command<
+          "download",
+          { readonly useApi: boolean; readonly useDocker: boolean },
+          {},
+          never,
+          never
+        >
+      >()
+    })
+
+    it("rejects keys that are not part of the config", () => {
+      Command.make("download", {
+        useApi: Flag.boolean("use-api")
+      }).pipe(
+        // @ts-expect-error is not assignable to parameter of type
+        Command.mutuallyExclusive(["nope"])
+      )
+    })
+  })
 })
