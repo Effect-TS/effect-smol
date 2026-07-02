@@ -1,5 +1,5 @@
 /**
- * Connects Effect SQL to SQLite on Node.js using `better-sqlite3`.
+ * Connects Effect SQL to SQLite on Node.js using `node:sqlite`.
  *
  * This module opens a SQLite database and exposes it as both `SqliteClient` and
  * the generic Effect SQL client. It serializes access through one connection,
@@ -9,7 +9,6 @@
  *
  * @since 4.0.0
  */
-import Sqlite from "better-sqlite3"
 import * as Cache from "effect/Cache"
 import * as Config from "effect/Config"
 import * as Context from "effect/Context"
@@ -26,11 +25,51 @@ import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
+import { mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { backup as backupDatabase, DatabaseSync } from "node:sqlite"
+import type { StatementSync } from "node:sqlite"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
 
+const sqliteCauseWithErrno = (cause: unknown): unknown => {
+  if (typeof cause !== "object" || cause === null || !("errcode" in cause) || "errno" in cause) {
+    return cause
+  }
+  const errcode = (cause as { readonly errcode: unknown }).errcode
+  if (typeof errcode !== "number") {
+    return cause
+  }
+  return {
+    cause,
+    code: "code" in cause ? (cause as { readonly code: unknown }).code : undefined,
+    errno: errcode,
+    message: "message" in cause ? (cause as { readonly message: unknown }).message : undefined
+  }
+}
+
 const classifyError = (cause: unknown, message: string, operation: string) =>
-  classifySqliteError(cause, { message, operation })
+  classifySqliteError(sqliteCauseWithErrno(cause), { message, operation })
+
+const normalizeRows = (rows: ReadonlyArray<Record<string, unknown>>): ReadonlyArray<Record<string, unknown>> =>
+  rows.map((row) => ({ ...row }))
+
+const hasResultColumns = (statement: StatementSync): boolean => statement.columns().length > 0
+
+const exportDatabase = (db: DatabaseSync): Promise<Uint8Array> => {
+  const serialize = (db as { readonly serialize?: () => Uint8Array }).serialize
+  if (serialize !== undefined) {
+    return Promise.resolve(serialize.call(db))
+  }
+  return Promise.resolve().then(() => {
+    const directory = mkdtempSync(join(tmpdir(), "effect-sqlite-node-"))
+    const destination = join(directory, "export.db")
+    return backupDatabase(db, destination).then((): Uint8Array => readFileSync(destination)).finally(() => {
+      rmSync(directory, { recursive: true, force: true })
+    })
+  })
+}
 
 /**
  * Runtime type identifier used to mark Node `SqliteClient` values.
@@ -85,7 +124,7 @@ export interface BackupMetadata {
 export const SqliteClient = Context.Service<SqliteClient>("@effect/sql-sqlite-node/SqliteClient")
 
 /**
- * Configuration for a node SQLite client backed by `better-sqlite3`, including the database filename, read-only mode, statement cache settings, WAL behavior, span attributes, and query/result name transforms.
+ * Configuration for a node SQLite client backed by `node:sqlite`, including the database filename, read-only mode, statement cache settings, WAL behavior, span attributes, and query/result name transforms.
  *
  * @category models
  * @since 4.0.0
@@ -127,13 +166,15 @@ export const make = (
 
     const makeConnection = Effect.gen(function*() {
       const scope = yield* Effect.scope
-      const db = new Sqlite(options.filename, {
-        readonly: options.readonly ?? false
+      const db = new DatabaseSync(options.filename, {
+        readOnly: options.readonly ?? false,
+        allowExtension: true
       })
       yield* Scope.addFinalizer(scope, Effect.sync(() => db.close()))
+      db.enableLoadExtension(false)
 
       if (options.disableWAL !== true) {
-        db.pragma("journal_mode = WAL")
+        db.exec("PRAGMA journal_mode = WAL")
       }
 
       const prepareCache = yield* Cache.make({
@@ -147,23 +188,62 @@ export const make = (
       })
 
       const runStatement = (
-        statement: Sqlite.Statement,
+        statement: StatementSync,
         params: ReadonlyArray<unknown>,
         raw: boolean
       ) =>
         Effect.withFiber<ReadonlyArray<any>, SqlError>((fiber) => {
-          if (Context.get(fiber.context, Client.SafeIntegers)) {
-            statement.safeIntegers(true)
-          }
-          try {
-            if (statement.reader) {
-              return Effect.succeed(statement.all(...params))
-            }
-            const result = statement.run(...params)
-            return Effect.succeed(raw ? result as unknown as ReadonlyArray<any> : [])
-          } catch (cause) {
-            return Effect.fail(new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") }))
-          }
+          const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
+          return Effect.try({
+            try: () => {
+              statement.setReadBigInts(useSafeIntegers)
+              if (hasResultColumns(statement)) {
+                return normalizeRows(statement.all(...(params as Array<any>))) as ReadonlyArray<any>
+              }
+              const result = statement.run(...(params as Array<any>))
+              return raw ? { changes: result.changes, lastInsertRowid: result.lastInsertRowid } as any : []
+            },
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
+          })
+        })
+
+      const runStatementValues = (
+        statement: StatementSync,
+        params: ReadonlyArray<unknown>
+      ) =>
+        Effect.withFiber<ReadonlyArray<ReadonlyArray<unknown>>, SqlError>((fiber) => {
+          const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
+          return Effect.try({
+            try: () => {
+              statement.setReadBigInts(useSafeIntegers)
+              if (hasResultColumns(statement)) {
+                return statement.all(...(params as Array<any>)) as unknown as ReadonlyArray<ReadonlyArray<unknown>>
+              }
+              statement.run(...(params as Array<any>))
+              return []
+            },
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
+          })
+        })
+
+      const runStatementValuesUnprepared = (
+        statement: StatementSync,
+        params: ReadonlyArray<unknown>
+      ) =>
+        Effect.withFiber<ReadonlyArray<ReadonlyArray<unknown>>, SqlError>((fiber) => {
+          const useSafeIntegers = Context.get(fiber.context, Client.SafeIntegers)
+          return Effect.try({
+            try: () => {
+              statement.setReadBigInts(useSafeIntegers)
+              statement.setReturnArrays(true)
+              if (hasResultColumns(statement)) {
+                return statement.all(...(params as Array<any>)) as unknown as ReadonlyArray<ReadonlyArray<unknown>>
+              }
+              statement.run(...(params as Array<any>))
+              return []
+            },
+            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
+          })
         })
 
       const run = (
@@ -183,40 +263,17 @@ export const make = (
         Effect.acquireUseRelease(
           Cache.get(prepareCache, sql),
           (statement) =>
-            Effect.try({
-              try: () => {
-                if (statement.reader) {
-                  statement.raw(true)
-                  return statement.all(...params) as ReadonlyArray<
-                    ReadonlyArray<unknown>
-                  >
-                }
-                statement.run(...params)
-                return []
-              },
-              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
-            }),
-          (statement) => Effect.sync(() => statement.reader && statement.raw(false))
+            Effect.andThen(
+              Effect.sync(() => statement.setReturnArrays(true)),
+              runStatementValues(statement, params)
+            ),
+          (statement) => Effect.sync(() => statement.setReturnArrays(false))
         )
 
       const runValuesUnprepared = (
         sql: string,
         params: ReadonlyArray<unknown>
-      ) =>
-        Effect.try({
-          try: () => {
-            const statement = db.prepare(sql)
-            if (statement.reader) {
-              statement.raw(true)
-              return statement.all(...params) as ReadonlyArray<
-                ReadonlyArray<unknown>
-              >
-            }
-            statement.run(...params)
-            return []
-          },
-          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to execute statement", "execute") })
-        })
+      ) => runStatementValuesUnprepared(db.prepare(sql), params)
 
       return identity<SqliteConnection>({
         execute(sql, params, transformRows) {
@@ -240,22 +297,33 @@ export const make = (
         executeStream(_sql, _params) {
           return Stream.die("executeStream not implemented")
         },
-        export: Effect.try({
-          try: () => db.serialize(),
+        export: Effect.tryPromise({
+          try: () => exportDatabase(db),
           catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to export database", "export") })
         }),
         backup(destination) {
+          let totalPages = 0
           return Effect.tryPromise({
-            try: () => db.backup(destination),
+            try: () =>
+              backupDatabase(db, destination, {
+                progress: (progress) => {
+                  totalPages = progress.totalPages
+                }
+              }).then((pages): BackupMetadata => ({ totalPages: totalPages || pages, remainingPages: 0 })),
             catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to backup database", "backup") })
           })
         },
         loadExtension(path) {
-          return Effect.try({
-            try: () => db.loadExtension(path),
-            catch: (cause) =>
-              new SqlError({ reason: classifyError(cause, "Failed to load extension", "loadExtension") })
-          })
+          return Effect.acquireUseRelease(
+            Effect.sync(() => db.enableLoadExtension(true)),
+            () =>
+              Effect.try({
+                try: () => db.loadExtension(path),
+                catch: (cause) =>
+                  new SqlError({ reason: classifyError(cause, "Failed to load extension", "loadExtension") })
+              }),
+            () => Effect.sync(() => db.enableLoadExtension(false))
+          )
         }
       })
     })
