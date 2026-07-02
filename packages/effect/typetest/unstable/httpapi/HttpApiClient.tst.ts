@@ -76,6 +76,12 @@ describe("HttpApiClient", () => {
                   page: Schema.FiniteFromString
                 }
               }),
+              HttpApiEndpoint.get("searchUsers", "/users", {
+                disableCodecs: true,
+                query: {
+                  q: Schema.String
+                }
+              }),
               HttpApiEndpoint.get("health", "/health", {
                 disableCodecs: true
               })
@@ -87,9 +93,20 @@ describe("HttpApiClient", () => {
       })
 
       expect(builder.users.getUser({ params: { id: 123 }, query: { page: 1 } })).type.toBe<string>()
+      expect<Parameters<typeof builder.users.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly query: { readonly page: number } }
+      >()
+      expect(builder.users.searchUsers({ query: { q: "Ada" } })).type.toBe<string>()
+      expect<Parameters<typeof builder.users.searchUsers>[0]>().type.toBe<
+        { readonly query: { readonly q: string } }
+      >()
       expect(builder.users.health()).type.toBe<string>()
+      expect<Parameters<typeof builder.users.health>[0]>().type.toBe<void | undefined>()
       expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: "123" }, query: { page: 1 } })
       expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: 123 }, query: { page: "1" } })
+      expect(builder.users.searchUsers).type.not.toBeCallableWith({ params: { id: 123 } })
+      expect(builder.users.health).type.not.toBeCallableWith({ params: { id: 123 } })
+      expect(builder.users.health).type.not.toBeCallableWith({ query: { q: "Ada" } })
       expect(builder.users).type.not.toHaveProperty("missing")
     })
 
@@ -121,6 +138,73 @@ describe("HttpApiClient", () => {
       expect(builder.topHealth()).type.toBe<string>()
       expect(builder.users.getUser).type.not.toBeCallableWith({ params: { id: "123" } })
       expect(builder).type.not.toHaveProperty("top")
+    })
+  })
+
+  describe("top-level group", () => {
+    it("should expose top-level endpoints directly on the generated client", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                },
+                success: Schema.Struct({ id: Schema.String })
+              })
+            )
+        )
+        .add(
+          HttpApiGroup.make("top", { topLevel: true })
+            .add(
+              HttpApiEndpoint.get("topHealth", "/top-health", {
+                success: Schema.Struct({ ok: Schema.Boolean })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+
+      expect(client.users.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.topHealth()).type.toBe<
+        Effect.Effect<{ readonly ok: boolean }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.topHealth({ responseMode: "response-only" })).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+      >()
+      expect<Parameters<typeof client.topHealth>[0]>().type.toBe<
+        void | { readonly responseMode?: ResponseMode } | undefined
+      >()
+      expect(client).type.not.toHaveProperty("top")
+    })
+  })
+
+  describe("Client.Group", () => {
+    it("should derive a group client from a concrete group", () => {
+      const Users = HttpApiGroup.make("users")
+        .add(
+          HttpApiEndpoint.get("getUser", "/users/:id", {
+            params: {
+              id: Schema.FiniteFromString
+            },
+            success: Schema.Struct({ id: Schema.String })
+          })
+        )
+
+      type UsersClient = HttpApiClient.Client.Group<typeof Users, never, never>
+      const client = hole<UsersClient>()
+
+      expect<keyof UsersClient>().type.toBe<"getUser">()
+      expect<Parameters<typeof client.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(client.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
     })
   })
 
@@ -303,6 +387,63 @@ describe("HttpApiClient", () => {
 
       expect(f({ responseMode: "response-only" })).type.toBe<
         Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+      >()
+    })
+
+    it("should preserve method parameter introspection for all response modes", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a/:id", {
+                params: {
+                  id: Schema.FiniteFromString
+                },
+                success: Schema.Struct({ a: Schema.FiniteFromString })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      type Request = Parameters<typeof f>[0]
+      expect<Request>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(f).type.toBeCallableWith({ params: { id: 1 } })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "decoded-only" })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "decoded-and-response" })
+      expect(f).type.toBeCallableWith({ params: { id: 1 }, responseMode: "response-only" })
+      expect(f).type.not.toBeCallableWith({ params: { id: "1" } })
+    })
+
+    it("should preserve responseMode inference for generic callers", () => {
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("group")
+            .add(
+              HttpApiEndpoint.get("a", "/a", {
+                success: Schema.Struct({ a: Schema.FiniteFromString })
+              })
+            )
+        )
+      const client = Effect.runSync(
+        HttpApiClient.make(Api).pipe(Effect.provide(FetchHttpClient.layer))
+      )
+      const f = client.group.a
+
+      const call = <Mode extends ResponseMode>(mode: Mode) => f({ responseMode: mode })
+      expect(call).type.toBeAssignableTo<
+        <Mode extends ResponseMode>(
+          mode: Mode
+        ) => Effect.Effect<
+          HttpApiClient.Client.Response<{ readonly a: number }, Mode>,
+          | HttpClientError.HttpClientError
+          | ([Mode] extends ["response-only"] ? never : Schema.SchemaError),
+          never
+        >
       >()
     })
 
@@ -530,6 +671,149 @@ describe("HttpApiClient", () => {
           | { readonly a: number }
           | HttpClientError.HttpClientError
           | Schema.SchemaError
+        >
+      >()
+    })
+  })
+
+  describe("makeWith", () => {
+    it("should normalize the default HttpClientError for generic clients", () => {
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+        api: HttpApi.HttpApi<ApiId, Groups>,
+        httpClient: HttpClient.HttpClient
+      ): Effect.Effect<
+        HttpApiClient.Client<Groups>,
+        never,
+        HttpApiGroup.MiddlewareClient<Groups>
+      > => HttpApiClient.makeWith(api, { httpClient })
+
+      expect(makeClient).type.toBeCallableWith(
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpClient.HttpClient>()
+      )
+    })
+
+    it("should preserve custom client errors when normalizing HttpClientError", () => {
+      class CustomClientError extends Schema.ErrorClass<CustomClientError>("CustomClientError")({
+        _tag: Schema.tag("CustomClientError")
+      }) {}
+
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+        api: HttpApi.HttpApi<ApiId, Groups>,
+        httpClient: HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>
+      ): Effect.Effect<
+        HttpApiClient.Client<Groups, CustomClientError>,
+        never,
+        HttpApiGroup.MiddlewareClient<Groups>
+      > => HttpApiClient.makeWith(api, { httpClient })
+
+      expect(makeClient).type.toBeCallableWith(
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>>()
+      )
+    })
+  })
+
+  describe("endpoint", () => {
+    it("should select the endpoint and preserve request and response types", () => {
+      const User = Schema.Struct({
+        id: Schema.String,
+        age: Schema.FiniteFromString
+      })
+
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                query: {
+                  page: Schema.FiniteFromString
+                },
+                success: User
+              }),
+              HttpApiEndpoint.get("searchUsers", "/users", {
+                query: {
+                  q: Schema.String
+                },
+                success: Schema.Array(User)
+              })
+            )
+        )
+
+      const TestHttpClient = HttpClient.make(() => Effect.die("not used"))
+      const getUser = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "getUser", httpClient: TestHttpClient })
+      )
+
+      expect<Parameters<typeof getUser>[0]>().type.toBe<
+        {
+          readonly params: { readonly id: string }
+          readonly query: { readonly page: number }
+          readonly responseMode?: ResponseMode
+        }
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 } })).type.toBe<
+        Effect.Effect<
+          { readonly id: string; readonly age: number },
+          HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 }, responseMode: "decoded-and-response" })).type.toBe<
+        Effect.Effect<
+          [{ readonly id: string; readonly age: number }, HttpClientResponse.HttpClientResponse],
+          HttpClientError.HttpClientError | Schema.SchemaError
+        >
+      >()
+      expect(getUser({ params: { id: "1" }, query: { page: 1 }, responseMode: "response-only" })).type.toBe<
+        Effect.Effect<HttpClientResponse.HttpClientResponse, HttpClientError.HttpClientError>
+      >()
+      expect(getUser).type.not.toBeCallableWith({ query: { q: "Ada" } })
+
+      const searchUsers = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "searchUsers", httpClient: TestHttpClient })
+      )
+
+      expect<Parameters<typeof searchUsers>[0]>().type.toBe<
+        { readonly query: { readonly q: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect(searchUsers).type.not.toBeCallableWith({ params: { id: "1" }, query: { page: 1 } })
+    })
+
+    it("should preserve custom http client errors and requirements", () => {
+      interface CustomService {
+        readonly customService: "customService"
+      }
+
+      class CustomClientError extends Schema.ErrorClass<CustomClientError>("CustomClientError")({
+        _tag: Schema.tag("CustomClientError")
+      }) {}
+
+      const Api = HttpApi.make("Api")
+        .add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: Schema.String
+              })
+            )
+        )
+
+      const httpClient = hole<HttpClient.HttpClient.With<CustomClientError, CustomService>>()
+      const getUser = Effect.runSync(
+        HttpApiClient.endpoint(Api, { group: "users", endpoint: "getUser", httpClient })
+      )
+
+      expect(getUser({ params: { id: "1" } })).type.toBe<
+        Effect.Effect<
+          string,
+          CustomClientError | HttpClientError.HttpClientError | Schema.SchemaError,
+          CustomService
         >
       >()
     })

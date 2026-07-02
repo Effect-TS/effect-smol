@@ -94,6 +94,97 @@
           "file": "suites/schema/fixtures/exit.ts"
         }
       ]
+    },
+    {
+      "name": "httpapi",
+      "baseline": "suites/httpapi/baseline.ts",
+      "thresholds": "suites/httpapi/thresholds.json",
+      "fixtures": [
+        {
+          "name": "endpoint-count-10",
+          "file": "suites/httpapi/fixtures/endpoint-count-10.ts"
+        },
+        {
+          "name": "endpoint-count-50",
+          "file": "suites/httpapi/fixtures/endpoint-count-50.ts"
+        },
+        {
+          "name": "endpoint-count-100",
+          "file": "suites/httpapi/fixtures/endpoint-count-100.ts"
+        },
+        {
+          "name": "endpoint-count-500",
+          "file": "suites/httpapi/fixtures/endpoint-count-500.ts"
+        },
+        {
+          "name": "client-methods-count-500",
+          "file": "suites/httpapi/fixtures/client-methods-count-500.ts"
+        },
+        {
+          "name": "client-top-level-methods-count-500",
+          "file": "suites/httpapi/fixtures/client-top-level-methods-count-500.ts"
+        },
+        {
+          "name": "client-groups-100x5-count-500",
+          "file": "suites/httpapi/fixtures/client-groups-100x5-count-500.ts"
+        },
+        {
+          "name": "client-endpoint-method-count-500",
+          "file": "suites/httpapi/fixtures/client-endpoint-method-count-500.ts"
+        },
+        {
+          "name": "url-builder-count-500",
+          "file": "suites/httpapi/fixtures/url-builder-count-500.ts"
+        },
+        {
+          "name": "url-builder-top-level-count-500",
+          "file": "suites/httpapi/fixtures/url-builder-top-level-count-500.ts"
+        },
+        {
+          "name": "builder-endpoint-count-500",
+          "file": "suites/httpapi/fixtures/builder-endpoint-count-500.ts"
+        },
+        {
+          "name": "builder-handlers-count-10",
+          "file": "suites/httpapi/fixtures/builder-handlers-count-10.ts"
+        },
+        {
+          "name": "builder-handlers-count-50",
+          "file": "suites/httpapi/fixtures/builder-handlers-count-50.ts"
+        },
+        {
+          "name": "builder-handlers-count-100",
+          "file": "suites/httpapi/fixtures/builder-handlers-count-100.ts"
+        },
+        {
+          "name": "builder-handlers-count-500",
+          "file": "suites/httpapi/fixtures/builder-handlers-count-500.ts"
+        },
+        {
+          "name": "builder-handle-all-count-10",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-10.ts"
+        },
+        {
+          "name": "builder-handle-all-count-50",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-50.ts"
+        },
+        {
+          "name": "builder-handle-all-count-100",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-100.ts"
+        },
+        {
+          "name": "builder-handle-all-count-500",
+          "file": "suites/httpapi/fixtures/builder-handle-all-count-500.ts"
+        },
+        {
+          "name": "builder-handle-all-two-batches-count-500",
+          "file": "suites/httpapi/fixtures/builder-handle-all-two-batches-count-500.ts"
+        },
+        {
+          "name": "builder-raw-handlers-count-500",
+          "file": "suites/httpapi/fixtures/builder-raw-handlers-count-500.ts"
+        }
+      ]
     }
   ]
 }

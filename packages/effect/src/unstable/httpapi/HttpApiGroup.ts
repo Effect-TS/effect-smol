@@ -172,8 +172,7 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * @category models
  * @since 4.0.0
  */
-export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name
-  : never
+export type Name<Group> = Group extends Any ? Group["identifier"] : never
 
 /**
  * Extracts the endpoint union contained in an `HttpApiGroup`.
@@ -375,7 +374,7 @@ export const make = <const Id extends string, const TopLevel extends boolean = f
 }): HttpApiGroup<Id, never, TopLevel> =>
   makeProto({
     identifier,
-    topLevel: options?.topLevel ?? false as any,
-    endpoints: Record.empty(),
+    topLevel: (options?.topLevel ?? false) as TopLevel,
+    endpoints: {},
     annotations: Context.empty()
-  }) as any
+  })
