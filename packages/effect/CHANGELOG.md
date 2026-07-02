@@ -1,5 +1,11 @@
 # effect
 
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- [#2524](https://github.com/Effect-TS/effect-smol/pull/2524) [`f11ce73`](https://github.com/Effect-TS/effect-smol/commit/f11ce73af60823754dc24194f4ffc561b9ea1c2d) Thanks @gcanti! - Fix `HttpApi.make` so it stores the API identifier and starts with an empty `groups` object instead of a `Map`. This makes empty APIs match the shape they have after groups are added.
+
 ## 4.0.0-beta.93
 
 ### Patch Changes
