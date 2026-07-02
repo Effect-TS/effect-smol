@@ -132,7 +132,7 @@ importers:
         version: 4.22.1(core-js@3.47.0)(rolldown@1.0.0)(rollup@4.60.3)(vite@7.3.3(@types/node@25.7.0)(lightningcss@1.32.0)(terser@5.47.1)(tsx@4.21.0)(yaml@2.9.0))
       rollup-plugin-esbuild:
         specifier: ^6.2.1
-        version: 6.2.1(esbuild@0.27.2)(rollup@4.60.3)
+        version: 6.2.1(esbuild@0.27.7)(rollup@4.60.3)
       rollup-plugin-visualizer:
         specifier: ^7.0.1
         version: 7.0.1(rolldown@1.0.0)(rollup@4.60.3)
@@ -683,6 +683,19 @@ importers:
         specifier: workspace:^
         version: link:../../effect
 
+  packages/sql/tursodatabase:
+    dependencies:
+      '@tursodatabase/database':
+        specifier: ^0.6.1
+        version: 0.6.1
+      '@tursodatabase/database-common':
+        specifier: ^0.6.1
+        version: 0.6.1
+    devDependencies:
+      effect:
+        specifier: workspace:^
+        version: link:../../effect
+
   packages/tools/ai-codegen:
     dependencies:
       '@effect/openapi-generator':
@@ -749,7 +762,7 @@ importers:
         version: 4.60.3
       rollup-plugin-esbuild:
         specifier: ^6.2.1
-        version: 6.2.1(esbuild@0.27.2)(rollup@4.60.3)
+        version: 6.2.1(esbuild@0.27.7)(rollup@4.60.3)
       rollup-plugin-visualizer:
         specifier: ^7.0.1
         version: 7.0.1(rolldown@1.0.0)(rollup@4.60.3)
@@ -1506,6 +1519,7 @@ packages:
 
   '@clickhouse/client-common@1.18.4':
     resolution: {integrity: sha512-kPPtv8yQmplNAxfrAJvwBJq5dd+IWRewEbXSpUvtyEJXlrB8lt/ZH63jUS81Nmd+lK5MRvpOFXPoN3iogkvg+A==}
+    deprecated: 'Deprecated: import from @clickhouse/client or @clickhouse/client-web instead.'
 
   '@clickhouse/client@1.18.4':
     resolution: {integrity: sha512-jjCrddI+e2OVXGh/MQY92K9r8Z/iwqaZtUXNI/MfZ/y9VGYwfbQsXRzp4Jv6w4Hgxvr4sLcz9YwIvkCBQ6X/mw==}
@@ -3161,6 +3175,32 @@ packages:
   '@ts-graphviz/core@2.0.7':
     resolution: {integrity: sha512-w071DSzP94YfN6XiWhOxnLpYT3uqtxJBDYdh6Jdjzt+Ce6DNspJsPQgpC7rbts/B8tEkq0LHoYuIF/O5Jh5rPg==}
     engines: {node: '>=18'}
+
+  '@tursodatabase/database-common@0.6.1':
+    resolution: {integrity: sha512-fkmkhgSUDg3MXkcziTG9Ime3AY5+YvvDN7VvUDEMNV7MP+XgwE/i5tU6eQP1EKa/zDkdSYPq8gPcmROmKmKL8Q==}
+
+  '@tursodatabase/database-darwin-arm64@0.6.1':
+    resolution: {integrity: sha512-2/nlqulI/kWlrh7vHMwF5fkuavGRWB83SIhzHZmoHSQovq0a28Z4+WAHerjh9yNs7DTj70U9PIsvAtRdh77l7g==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@tursodatabase/database-linux-arm64-gnu@0.6.1':
+    resolution: {integrity: sha512-ixooF2xyxV84GYIYPLI5D9VEp+cX3WPBmXRyoCGw7+l9G66eOp8QppGF0dKFYhtp/AJ8YmOp+lemqBoCue9N8Q==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@tursodatabase/database-linux-x64-gnu@0.6.1':
+    resolution: {integrity: sha512-cNZ3FS8XBn4X8zHSzd31nvEeBbR4hCDBGs2P3ViND1Egu5oDZ822a+hWxNxMgMPgUJf/aGBEAk5p+j11fAC/QQ==}
+    cpu: [x64]
+    os: [linux]
+
+  '@tursodatabase/database-win32-x64-msvc@0.6.1':
+    resolution: {integrity: sha512-3CASiW3BbeNT4qryxPKKZECGxaAtfUeM/Bjx1NWIxShCLLtRpnaEUt7WLOT2hz+sqU322H6fmMuaN9sYrcwBxw==}
+    cpu: [x64]
+    os: [win32]
+
+  '@tursodatabase/database@0.6.1':
+    resolution: {integrity: sha512-qg6LO1XHA9kc2s97crg0/nHiKFk3xTzylRuZPYggO0vA4hx2rp8fk0Je2vFGOkfVv+ZmzsXOIb+DBHmdrG+72A==}
 
   '@tybys/wasm-util@0.10.2':
     resolution: {integrity: sha512-RoBvJ2X0wuKlWFIjrwffGw1IqZHKQqzIchKaadZZfnNpsAYp2mM0h36JtPCjNDAHGgYez/15uMBpfGwchhiMgg==}
@@ -6575,6 +6615,7 @@ packages:
   tsconfck@3.1.6:
     resolution: {integrity: sha512-ks6Vjr/jEw0P1gmOVwutM3B7fWxoWBL2KRDb1JfqGVawBmO5UsvmWOQFGHBPl5yxYz4eERr19E6L7NMv+Fej4w==}
     engines: {node: ^18 || >=20}
+    deprecated: unmaintained
     hasBin: true
     peerDependencies:
       typescript: ^5.0.0
@@ -9174,6 +9215,29 @@ snapshots:
     dependencies:
       '@ts-graphviz/ast': 2.0.7
       '@ts-graphviz/common': 2.1.5
+
+  '@tursodatabase/database-common@0.6.1': {}
+
+  '@tursodatabase/database-darwin-arm64@0.6.1':
+    optional: true
+
+  '@tursodatabase/database-linux-arm64-gnu@0.6.1':
+    optional: true
+
+  '@tursodatabase/database-linux-x64-gnu@0.6.1':
+    optional: true
+
+  '@tursodatabase/database-win32-x64-msvc@0.6.1':
+    optional: true
+
+  '@tursodatabase/database@0.6.1':
+    dependencies:
+      '@tursodatabase/database-common': 0.6.1
+    optionalDependencies:
+      '@tursodatabase/database-darwin-arm64': 0.6.1
+      '@tursodatabase/database-linux-arm64-gnu': 0.6.1
+      '@tursodatabase/database-linux-x64-gnu': 0.6.1
+      '@tursodatabase/database-win32-x64-msvc': 0.6.1
 
   '@tybys/wasm-util@0.10.2':
     dependencies:
@@ -12431,11 +12495,11 @@ snapshots:
     transitivePeerDependencies:
       - core-js
 
-  rollup-plugin-esbuild@6.2.1(esbuild@0.27.2)(rollup@4.60.3):
+  rollup-plugin-esbuild@6.2.1(esbuild@0.27.7)(rollup@4.60.3):
     dependencies:
       debug: 4.4.3(supports-color@10.2.2)
       es-module-lexer: 1.7.0
-      esbuild: 0.27.2
+      esbuild: 0.27.7
       get-tsconfig: 4.14.0
       rollup: 4.60.3
       unplugin-utils: 0.2.5
@@ -13118,7 +13182,7 @@ snapshots:
 
   tsx@4.21.0:
     dependencies:
-      esbuild: 0.27.2
+      esbuild: 0.27.7
       get-tsconfig: 4.14.0
     optionalDependencies:
       fsevents: 2.3.3
