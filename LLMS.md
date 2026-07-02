@@ -226,7 +226,7 @@ All validation and domain modeling in Effect is done with `Schema`.
 
 **AVOID** using predicates or manual parsing, instead use `Schema` to parse untrusted data and validate it.
 
-For a comprehensive guide, see [packages/effect/SCHEMA.md](./packages/effect/SCHEMA.md).
+For a comprehensive guide, see [packages/effect/SCHEMA.md](./packages/effect/SCHEMA.md). Make sure to read the file in chunks, as it is a large document.
 
 - **[Schema basics](./ai-docs/src/02_schema/10_schema-basics.ts)**:
   Define `Schema.Class`s, decode unknown input into typed values, and
