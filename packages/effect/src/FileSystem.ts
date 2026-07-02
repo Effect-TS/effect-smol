@@ -119,6 +119,16 @@ export interface FileSystem {
     gid: number
   ) => Effect.Effect<void, PlatformError>
   /**
+   * Glob a directory.
+   */
+  readonly glob: (
+    pattern: string,
+    options?: {
+      cwd?: string,
+      exclude?: readonly string[] | ((fileName: string) => boolean) | undefined
+    }
+  ) => Effect.Effect<Array<string>, PlatformError>
+  /**
    * Checks whether a path exists.
    */
   readonly exists: (
@@ -916,6 +926,9 @@ export const makeNoop = (fileSystem: Partial<FileSystem>): FileSystem =>
     },
     copyFile(path) {
       return Effect.fail(notFound("copyFile", path))
+    },
+    glob(pattern) {
+      return Effect.fail(notFound("glob", pattern))
     },
     exists() {
       return Effect.succeed(false)
