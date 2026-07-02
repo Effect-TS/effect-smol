@@ -18,6 +18,39 @@ const makeReversedUndirectedPath = () =>
     Graph.addEdge(mutable, c, b, 1)
   })
 
+type SetNode = { readonly id: string; readonly label: string }
+
+const graphNodeIds = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) =>
+  new Set(Array.from(graph, ([, node]) => node.id))
+
+const graphNodeLabels = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) =>
+  new Map(Array.from(graph, ([, node]) => [node.id, node.label]))
+
+const graphEdgeKeys = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) => {
+  const nodeIds = new Map(Array.from(graph, ([index, node]) => [index, node.id]))
+  return new Set(
+    Array.from(Graph.edges(graph), ([, edge]) =>
+      graph.type === "directed"
+        ? `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`
+        : `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`)
+  )
+}
+
+const graphEdgeData = <E, T extends Graph.Kind>(graph: Graph.Graph<SetNode, E, T>) => {
+  const nodeIds = new Map(Array.from(graph, ([index, node]) => [index, node.id]))
+  return new Map(
+    Array.from(
+      Graph.edges(graph),
+      ([, edge]) => [
+        graph.type === "directed"
+          ? `${nodeIds.get(edge.source)}->${nodeIds.get(edge.target)}`
+          : `${nodeIds.get(edge.source)}--${nodeIds.get(edge.target)}`,
+        edge.data
+      ]
+    )
+  )
+}
+
 describe("Graph", () => {
   describe("constructors", () => {
     it("should create empty directed graph", () => {
@@ -34,6 +67,209 @@ describe("Graph", () => {
       expect(graph.type).toBe("undirected")
       expect(Graph.nodeCount(graph)).toBe(0)
       expect(Graph.edgeCount(graph)).toBe(0)
+    })
+  })
+
+  describe("set operations", () => {
+    const makeLeft = () =>
+      Graph.directed<{ readonly id: string; readonly label: string }, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "a", label: "A1" })
+        const b = Graph.addNode(mutable, { id: "b", label: "B1" })
+        const c = Graph.addNode(mutable, { id: "c", label: "C1" })
+        Graph.addEdge(mutable, a, b, "left-ab")
+        Graph.addEdge(mutable, b, c, "left-bc")
+      })
+
+    const makeRight = () =>
+      Graph.directed<{ readonly id: string; readonly label: string }, string>((mutable) => {
+        const b = Graph.addNode(mutable, { id: "b", label: "B2" })
+        const c = Graph.addNode(mutable, { id: "c", label: "C2" })
+        const d = Graph.addNode(mutable, { id: "d", label: "D2" })
+        Graph.addEdge(mutable, b, c, "right-bc")
+        Graph.addEdge(mutable, c, d, "right-cd")
+      })
+
+    it("compose merges nodes and edges by identity", () => {
+      const graph = Graph.compose(makeLeft(), makeRight(), (n) => n.id)
+
+      expect(graphNodeIds(graph)).toEqual(new Set(["a", "b", "c", "d"]))
+      expect(graphNodeLabels(graph)).toEqual(
+        new Map([
+          ["a", "A1"],
+          ["b", "B2"],
+          ["c", "C2"],
+          ["d", "D2"]
+        ])
+      )
+      expect(graphEdgeKeys(graph)).toEqual(new Set(["a->b", "b->c", "c->d"]))
+      expect(graphEdgeData(graph)).toEqual(
+        new Map([
+          ["a->b", "left-ab"],
+          ["b->c", "right-bc"],
+          ["c->d", "right-cd"]
+        ])
+      )
+    })
+
+    it("intersection keeps shared nodes and shared edges", () => {
+      const graph = Graph.intersection(makeLeft(), makeRight(), (n) => n.id)
+
+      expect(graphNodeIds(graph)).toEqual(new Set(["b", "c"]))
+      expect(graphNodeLabels(graph)).toEqual(
+        new Map([
+          ["b", "B1"],
+          ["c", "C1"]
+        ])
+      )
+      expect(graphEdgeKeys(graph)).toEqual(new Set(["b->c"]))
+      expect(graphEdgeData(graph)).toEqual(new Map([["b->c", "right-bc"]]))
+    })
+
+    it("difference preserves self nodes and removes shared edges", () => {
+      const graph = Graph.difference(makeLeft(), makeRight(), (n) => n.id)
+
+      expect(graphNodeIds(graph)).toEqual(new Set(["a", "b", "c"]))
+      expect(graphNodeLabels(graph)).toEqual(
+        new Map([
+          ["a", "A1"],
+          ["b", "B1"],
+          ["c", "C1"]
+        ])
+      )
+      expect(graphEdgeKeys(graph)).toEqual(new Set(["a->b"]))
+      expect(graphEdgeData(graph)).toEqual(new Map([["a->b", "left-ab"]]))
+    })
+
+    it("symmetricDifference keeps edges present in exactly one graph", () => {
+      const graph = Graph.symmetricDifference(makeLeft(), makeRight(), (n) => n.id)
+
+      expect(graphNodeIds(graph)).toEqual(new Set(["a", "b", "c", "d"]))
+      expect(graphNodeLabels(graph)).toEqual(
+        new Map([
+          ["a", "A1"],
+          ["b", "B2"],
+          ["c", "C2"],
+          ["d", "D2"]
+        ])
+      )
+      expect(graphEdgeKeys(graph)).toEqual(new Set(["a->b", "c->d"]))
+      expect(graphEdgeData(graph)).toEqual(
+        new Map([
+          ["a->b", "left-ab"],
+          ["c->d", "right-cd"]
+        ])
+      )
+    })
+
+    it("matches undirected edges regardless of endpoint order", () => {
+      const left = Graph.undirected<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, "left")
+      })
+      const right = Graph.undirected<string, string>((mutable) => {
+        const b = Graph.addNode(mutable, "B")
+        const a = Graph.addNode(mutable, "A")
+        Graph.addEdge(mutable, b, a, "right")
+      })
+
+      strictEqual(Graph.edgeCount(Graph.intersection(left, right, (n) => n)), 1)
+      strictEqual(Graph.edgeCount(Graph.difference(left, right, (n) => n)), 0)
+    })
+
+    it("complement adds missing directed edges", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "a", label: "A" })
+        const b = Graph.addNode(mutable, { id: "b", label: "B" })
+        const c = Graph.addNode(mutable, { id: "c", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+      })
+
+      const result = Graph.complement(graph, (source, target) => `${source.label}-${target.label}`)
+
+      expect(Graph.nodeCount(result)).toBe(3)
+      expect(Graph.edgeCount(result)).toBe(4)
+      expect(graphEdgeData(result)).toEqual(
+        new Map([
+          ["a->c", "A-C"],
+          ["b->a", "B-A"],
+          ["c->a", "C-A"],
+          ["c->b", "C-B"]
+        ])
+      )
+    })
+
+    it("complement adds missing undirected edges once", () => {
+      const graph = Graph.undirected<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        Graph.addNode(mutable, { id: "C", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+      })
+
+      const result = Graph.complement(graph, (source, target) => `${source.label}-${target.label}`)
+
+      expect(result.type).toBe("undirected")
+      expect(Graph.edgeCount(result)).toBe(2)
+      expect(graphEdgeData(result)).toEqual(
+        new Map([
+          ["A--C", "A-C"],
+          ["B--C", "B-C"]
+        ])
+      )
+    })
+
+    it("neighborhood returns the induced subgraph within radius", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        const c = Graph.addNode(mutable, { id: "C", label: "C" })
+        const d = Graph.addNode(mutable, { id: "D", label: "D" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+        Graph.addEdge(mutable, c, d, "C-D")
+        Graph.addEdge(mutable, c, b, "C-B")
+      })
+
+      const result = Graph.neighborhood(graph, 1, { radius: 1, direction: "outgoing" })
+
+      expect(graphNodeIds(result)).toEqual(new Set(["B", "C"]))
+      expect(graphEdgeKeys(result)).toEqual(new Set(["B->C", "C->B"]))
+    })
+
+    it("neighborhood can include incoming and outgoing nodes", () => {
+      const graph = Graph.directed<SetNode, string>((mutable) => {
+        const a = Graph.addNode(mutable, { id: "A", label: "A" })
+        const b = Graph.addNode(mutable, { id: "B", label: "B" })
+        const c = Graph.addNode(mutable, { id: "C", label: "C" })
+        Graph.addEdge(mutable, a, b, "A-B")
+        Graph.addEdge(mutable, b, c, "B-C")
+      })
+
+      const result = Graph.neighborhood(graph, 1)
+
+      expect(graphNodeIds(result)).toEqual(new Set(["A", "B", "C"]))
+      expect(graphEdgeKeys(result)).toEqual(new Set(["A->B", "B->C"]))
+    })
+
+    it("sum keeps equal nodes disjoint", () => {
+      const left = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, "left")
+      })
+      const right = Graph.directed<string, string>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, "right")
+      })
+
+      const result = Graph.sum(left, right)
+
+      expect(Graph.nodeCount(result)).toBe(4)
+      expect(Graph.edgeCount(result)).toBe(2)
+      expect(Array.from(Graph.values(Graph.nodes(result)))).toEqual(["A", "B", "A", "B"])
     })
   })
 
@@ -2865,6 +3101,49 @@ describe("Graph", () => {
       const entries = Array.from(Graph.entries(bfsIterator))
 
       expect(entries).toEqual([[0, "A"], [1, "B"], [2, "C"]])
+    })
+
+    it("should limit DFS traversal by maxDepth", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        const d = Graph.addNode(mutable, "D")
+        Graph.addEdge(mutable, a, b, 1)
+        Graph.addEdge(mutable, b, c, 2)
+        Graph.addEdge(mutable, c, d, 3)
+      })
+
+      const dfsIterator = Graph.dfs(graph, { start: [0], maxDepth: 1 })
+
+      expect(Array.from(Graph.indices(dfsIterator))).toEqual([0, 1])
+    })
+
+    it("should limit BFS traversal by maxDepth", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        const c = Graph.addNode(mutable, "C")
+        const d = Graph.addNode(mutable, "D")
+        Graph.addEdge(mutable, a, b, 1)
+        Graph.addEdge(mutable, a, c, 2)
+        Graph.addEdge(mutable, b, d, 3)
+      })
+
+      const bfsIterator = Graph.bfs(graph, { start: [0], maxDepth: 1 })
+
+      expect(Array.from(Graph.indices(bfsIterator))).toEqual([0, 1, 2])
+    })
+
+    it("should only include start nodes when maxDepth is zero", () => {
+      const graph = Graph.directed<string, number>((mutable) => {
+        const a = Graph.addNode(mutable, "A")
+        const b = Graph.addNode(mutable, "B")
+        Graph.addEdge(mutable, a, b, 1)
+      })
+
+      expect(Array.from(Graph.indices(Graph.dfs(graph, { start: [0], maxDepth: 0 })))).toEqual([0])
+      expect(Array.from(Graph.indices(Graph.bfs(graph, { start: [0], maxDepth: 0 })))).toEqual([0])
     })
 
     it("should provide values() method for Topo iterator", () => {

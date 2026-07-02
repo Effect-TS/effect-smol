@@ -579,6 +579,650 @@ export const mutate: {
 })
 
 // =============================================================================
+// Set Operations
+// =============================================================================
+
+/** @internal */
+type NodeMaps<N> = {
+  readonly byId: Map<string, { readonly index: NodeIndex; readonly data: N }>
+  readonly byIndex: Map<NodeIndex, string>
+}
+
+/** @internal */
+type EdgeIdentity<E> = { readonly sourceId: string; readonly targetId: string; readonly data: E }
+
+/** @internal */
+const buildNodeMaps = <N, E, T extends Kind>(graph: Graph<N, E, T>, nodeId: (node: N) => string): NodeMaps<N> => {
+  const byId = new Map<string, { readonly index: NodeIndex; readonly data: N }>()
+  const byIndex = new Map<NodeIndex, string>()
+
+  for (const [index, data] of graph.nodes) {
+    const id = nodeId(data)
+    byId.set(id, { index, data })
+    byIndex.set(index, id)
+  }
+
+  return { byId, byIndex }
+}
+
+/** @internal */
+const edgeKey = (type: Kind, sourceId: string, targetId: string): string =>
+  type === "undirected" && sourceId > targetId ? `${targetId}\0${sourceId}` : `${sourceId}\0${targetId}`
+
+/** @internal */
+const emptyLike = <N, E, T extends Kind>(
+  graph: Graph<N, E, T>,
+  mutate: (mutable: MutableGraph<N, E, T>) => void
+): Graph<N, E, T> => {
+  const mutable = beginMutation(graph)
+
+  mutable.nodes.clear()
+  mutable.edges.clear()
+  mutable.adjacency.clear()
+  mutable.reverseAdjacency.clear()
+  mutable.nextNodeIndex = 0
+  mutable.nextEdgeIndex = 0
+  mutable.acyclic = Option.some(true)
+
+  mutate(mutable)
+
+  return endMutation(mutable)
+}
+
+/**
+ * Returns the union of two graphs, merging nodes by identity.
+ *
+ * **Details**
+ *
+ * Nodes and edges present in both graphs use data from `that`. The result has
+ * the same graph kind as `self`.
+ *
+ * `G1 ∪ G2 = {V1 ∪ V2, E1 ∪ E2}`
+ *
+ * **Example** (Composing graphs)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const left = Graph.directed<{ id: string }, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, { id: "A" })
+ *   const b = Graph.addNode(mutable, { id: "B" })
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ * })
+ *
+ * const right = Graph.directed<{ id: string }, string>((mutable) => {
+ *   const b = Graph.addNode(mutable, { id: "B" })
+ *   const c = Graph.addNode(mutable, { id: "C" })
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ * })
+ *
+ * const result = Graph.compose(left, right, (node) => node.id)
+ *
+ * console.log(Graph.nodeCount(result)) // 3
+ * console.log(Graph.edgeCount(result)) // 2
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const compose: {
+  <N, E, T extends Kind = "directed">(
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): (self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): Graph<N, E, T>
+} = dual(
+  3,
+  <N, E, T extends Kind>(self: Graph<N, E, T>, that: Graph<N, E, T>, nodeId: (node: N) => string): Graph<N, E, T> => {
+    const selfMaps = buildNodeMaps(self, nodeId)
+    const thatMaps = buildNodeMaps(that, nodeId)
+    const allNodeIds = new Set([...selfMaps.byId.keys(), ...thatMaps.byId.keys()])
+    const edgeMap = new Map<string, EdgeIdentity<E>>()
+
+    for (const edge of self.edges.values()) {
+      const sourceId = selfMaps.byIndex.get(edge.source)
+      const targetId = selfMaps.byIndex.get(edge.target)
+      if (sourceId !== undefined && targetId !== undefined) {
+        edgeMap.set(edgeKey(self.type, sourceId, targetId), { sourceId, targetId, data: edge.data })
+      }
+    }
+
+    for (const edge of that.edges.values()) {
+      const sourceId = thatMaps.byIndex.get(edge.source)
+      const targetId = thatMaps.byIndex.get(edge.target)
+      if (sourceId !== undefined && targetId !== undefined) {
+        edgeMap.set(edgeKey(that.type, sourceId, targetId), { sourceId, targetId, data: edge.data })
+      }
+    }
+
+    return emptyLike(self, (mutable) => {
+      const newIndexMap = new Map<string, NodeIndex>()
+
+      for (const id of allNodeIds) {
+        const entry = thatMaps.byId.get(id) ?? selfMaps.byId.get(id)
+        if (entry !== undefined) {
+          newIndexMap.set(id, addNode(mutable, entry.data))
+        }
+      }
+
+      for (const { sourceId, targetId, data } of edgeMap.values()) {
+        const sourceIndex = newIndexMap.get(sourceId)
+        const targetIndex = newIndexMap.get(targetId)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, data)
+        }
+      }
+    })
+  }
+)
+
+/**
+ * Returns the intersection of two graphs, matching nodes by identity.
+ *
+ * **Details**
+ *
+ * Node data comes from `self`, and edge data comes from `that`. The result has
+ * the same graph kind as `self`.
+ *
+ * `G1 ∩ G2 = {V1 ∩ V2, E1 ∩ E2}`
+ *
+ * **Example** (Finding shared structure)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const left = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "left")
+ * })
+ *
+ * const right = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "right")
+ * })
+ *
+ * const result = Graph.intersection(left, right, (node) => node)
+ *
+ * console.log(Graph.nodeCount(result)) // 2
+ * console.log(Graph.edgeCount(result)) // 1
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const intersection: {
+  <N, E, T extends Kind = "directed">(
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): (self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): Graph<N, E, T>
+} = dual(3, <N, E, T extends Kind>(
+  self: Graph<N, E, T>,
+  that: Graph<N, E, T>,
+  nodeId: (node: N) => string
+): Graph<N, E, T> => {
+  const selfMaps = buildNodeMaps(self, nodeId)
+  const thatMaps = buildNodeMaps(that, nodeId)
+  const commonNodeIds = [...selfMaps.byId.keys()].filter((id) => thatMaps.byId.has(id))
+  const commonNodeIdSet = new Set(commonNodeIds)
+  const selfEdgeKeys = new Set<string>()
+
+  for (const edge of self.edges.values()) {
+    const sourceId = selfMaps.byIndex.get(edge.source)
+    const targetId = selfMaps.byIndex.get(edge.target)
+    if (sourceId !== undefined && targetId !== undefined) {
+      selfEdgeKeys.add(edgeKey(self.type, sourceId, targetId))
+    }
+  }
+
+  return emptyLike(self, (mutable) => {
+    const newIndexMap = new Map<string, NodeIndex>()
+
+    for (const id of commonNodeIds) {
+      const entry = selfMaps.byId.get(id)
+      if (entry !== undefined) {
+        newIndexMap.set(id, addNode(mutable, entry.data))
+      }
+    }
+
+    for (const edge of that.edges.values()) {
+      const sourceId = thatMaps.byIndex.get(edge.source)
+      const targetId = thatMaps.byIndex.get(edge.target)
+      if (
+        sourceId !== undefined &&
+        targetId !== undefined &&
+        commonNodeIdSet.has(sourceId) &&
+        commonNodeIdSet.has(targetId) &&
+        selfEdgeKeys.has(edgeKey(that.type, sourceId, targetId))
+      ) {
+        const sourceIndex = newIndexMap.get(sourceId)
+        const targetIndex = newIndexMap.get(targetId)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, edge.data)
+        }
+      }
+    }
+  })
+})
+
+/**
+ * Returns `self` without edges also present in `that`.
+ *
+ * **Details**
+ *
+ * All nodes from `self` are preserved. Edges are matched by endpoint identity,
+ * and edge data is ignored. The result has the same graph kind as `self`.
+ *
+ * `G1 \ G2 = {V1, E1 \ E2}`
+ *
+ * **Example** (Removing shared edges)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const left = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ * })
+ *
+ * const right = Graph.directed<string, string>((mutable) => {
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, b, c, "other")
+ * })
+ *
+ * const result = Graph.difference(left, right, (node) => node)
+ *
+ * console.log(Graph.nodeCount(result)) // 3
+ * console.log(Graph.edgeCount(result)) // 1
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const difference: {
+  <N, E, T extends Kind = "directed">(
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): (self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): Graph<N, E, T>
+} = dual(3, <N, E, T extends Kind>(
+  self: Graph<N, E, T>,
+  that: Graph<N, E, T>,
+  nodeId: (node: N) => string
+): Graph<N, E, T> => {
+  const selfMaps = buildNodeMaps(self, nodeId)
+  const thatMaps = buildNodeMaps(that, nodeId)
+  const thatEdgeKeys = new Set<string>()
+
+  for (const edge of that.edges.values()) {
+    const sourceId = thatMaps.byIndex.get(edge.source)
+    const targetId = thatMaps.byIndex.get(edge.target)
+    if (sourceId !== undefined && targetId !== undefined) {
+      thatEdgeKeys.add(edgeKey(that.type, sourceId, targetId))
+    }
+  }
+
+  return emptyLike(self, (mutable) => {
+    const newIndexMap = new Map<string, NodeIndex>()
+
+    for (const [id, entry] of selfMaps.byId) {
+      newIndexMap.set(id, addNode(mutable, entry.data))
+    }
+
+    for (const edge of self.edges.values()) {
+      const sourceId = selfMaps.byIndex.get(edge.source)
+      const targetId = selfMaps.byIndex.get(edge.target)
+      if (
+        sourceId !== undefined && targetId !== undefined && !thatEdgeKeys.has(edgeKey(self.type, sourceId, targetId))
+      ) {
+        const sourceIndex = newIndexMap.get(sourceId)
+        const targetIndex = newIndexMap.get(targetId)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, edge.data)
+        }
+      }
+    }
+  })
+})
+
+/**
+ * Returns edges present in exactly one of two graphs.
+ *
+ * **Details**
+ *
+ * Keeps nodes from both graphs. Overlapping nodes use data from `that`. The
+ * result has the same graph kind as `self`.
+ *
+ * `G1 Δ G2 = {V1 ∪ V2, (E1 ∪ E2) \ (E1 ∩ E2)}`
+ *
+ * **Gotchas**
+ *
+ * Edges present in both graphs are removed even when their edge data differs.
+ *
+ * **Example** (Finding differing edges)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const left = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ * })
+ *
+ * const right = Graph.directed<string, string>((mutable) => {
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   const d = Graph.addNode(mutable, "D")
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ *   Graph.addEdge(mutable, c, d, "C-D")
+ * })
+ *
+ * const result = Graph.symmetricDifference(left, right, (node) => node)
+ *
+ * console.log(Graph.nodeCount(result)) // 4
+ * console.log(Graph.edgeCount(result)) // 2
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const symmetricDifference: {
+  <N, E, T extends Kind = "directed">(
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): (self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    that: Graph<N, E, T>,
+    nodeId: (node: N) => string
+  ): Graph<N, E, T>
+} = dual(3, <N, E, T extends Kind>(
+  self: Graph<N, E, T>,
+  that: Graph<N, E, T>,
+  nodeId: (node: N) => string
+): Graph<N, E, T> => {
+  const selfMaps = buildNodeMaps(self, nodeId)
+  const thatMaps = buildNodeMaps(that, nodeId)
+  const allNodeIds = new Set([...selfMaps.byId.keys(), ...thatMaps.byId.keys()])
+  const selfEdges = new Map<string, EdgeIdentity<E>>()
+  const thatEdges = new Map<string, EdgeIdentity<E>>()
+
+  for (const edge of self.edges.values()) {
+    const sourceId = selfMaps.byIndex.get(edge.source)
+    const targetId = selfMaps.byIndex.get(edge.target)
+    if (sourceId !== undefined && targetId !== undefined) {
+      selfEdges.set(edgeKey(self.type, sourceId, targetId), { sourceId, targetId, data: edge.data })
+    }
+  }
+
+  for (const edge of that.edges.values()) {
+    const sourceId = thatMaps.byIndex.get(edge.source)
+    const targetId = thatMaps.byIndex.get(edge.target)
+    if (sourceId !== undefined && targetId !== undefined) {
+      thatEdges.set(edgeKey(that.type, sourceId, targetId), { sourceId, targetId, data: edge.data })
+    }
+  }
+
+  return emptyLike(self, (mutable) => {
+    const newIndexMap = new Map<string, NodeIndex>()
+
+    for (const id of allNodeIds) {
+      const entry = thatMaps.byId.get(id) ?? selfMaps.byId.get(id)
+      if (entry !== undefined) {
+        newIndexMap.set(id, addNode(mutable, entry.data))
+      }
+    }
+
+    for (const [key, { sourceId, targetId, data }] of selfEdges) {
+      if (!thatEdges.has(key)) {
+        const sourceIndex = newIndexMap.get(sourceId)
+        const targetIndex = newIndexMap.get(targetId)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, data)
+        }
+      }
+    }
+
+    for (const [key, { sourceId, targetId, data }] of thatEdges) {
+      if (!selfEdges.has(key)) {
+        const sourceIndex = newIndexMap.get(sourceId)
+        const targetIndex = newIndexMap.get(targetId)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, data)
+        }
+      }
+    }
+  })
+})
+
+/**
+ * Returns the complement over the existing node set.
+ *
+ * **Details**
+ *
+ * Adds every missing edge between distinct nodes. The `createEdge` function
+ * receives the source and target node data for each added edge. The result has
+ * the same graph kind as `self`.
+ *
+ * `G' = {V, (V x V) \ E}`
+ *
+ * **Example** (Finding missing relationships)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ * })
+ *
+ * const result = Graph.complement(graph, (source, target) => `${source}-${target}`)
+ *
+ * console.log(Graph.edgeCount(result)) // 1
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const complement: {
+  <N, E>(
+    createEdge: (source: N, target: N) => E
+  ): <T extends Kind = "directed">(self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    createEdge: (source: N, target: N) => E
+  ): Graph<N, E, T>
+} = dual(2, <N, E, T extends Kind>(
+  self: Graph<N, E, T>,
+  createEdge: (source: N, target: N) => E
+): Graph<N, E, T> => {
+  const nodeEntries = Array.from(self.nodes)
+
+  return emptyLike(self, (mutable) => {
+    const newIndexMap = new Map<NodeIndex, NodeIndex>()
+
+    for (const [oldIndex, data] of nodeEntries) {
+      newIndexMap.set(oldIndex, addNode(mutable, data))
+    }
+
+    for (let i = 0; i < nodeEntries.length; i++) {
+      const [sourceOldIndex, sourceData] = nodeEntries[i]
+      const start = self.type === "undirected" ? i + 1 : 0
+
+      for (let j = start; j < nodeEntries.length; j++) {
+        const [targetOldIndex, targetData] = nodeEntries[j]
+        if (sourceOldIndex === targetOldIndex || hasEdge(self, sourceOldIndex, targetOldIndex)) {
+          continue
+        }
+
+        const sourceIndex = newIndexMap.get(sourceOldIndex)
+        const targetIndex = newIndexMap.get(targetOldIndex)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, createEdge(sourceData, targetData))
+        }
+      }
+    }
+  })
+})
+
+/**
+ * Direction for neighborhood expansion in directed graphs.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type NeighborhoodDirection = "outgoing" | "incoming" | "both"
+
+/**
+ * Returns the induced subgraph containing nodes within a radius of a node.
+ *
+ * **Details**
+ *
+ * The `radius` option is the maximum edge distance from `nodeIndex` and
+ * defaults to `1`. The `direction` option controls directed graph traversal and
+ * defaults to `"both"`. The result has the same graph kind as `self` and keeps
+ * all original edges whose endpoints are both reached.
+ *
+ * **Example** (Getting a local neighborhood)
+ *
+ * ```ts
+ * import { Graph } from "effect"
+ *
+ * const graph = Graph.directed<string, string>((mutable) => {
+ *   const a = Graph.addNode(mutable, "A")
+ *   const b = Graph.addNode(mutable, "B")
+ *   const c = Graph.addNode(mutable, "C")
+ *   Graph.addEdge(mutable, a, b, "A-B")
+ *   Graph.addEdge(mutable, b, c, "B-C")
+ * })
+ *
+ * const result = Graph.neighborhood(graph, 1, { radius: 1 })
+ *
+ * console.log(Graph.nodeCount(result)) // 3
+ * ```
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const neighborhood: {
+  (
+    nodeIndex: NodeIndex,
+    options?: { readonly radius?: number; readonly direction?: NeighborhoodDirection }
+  ): <N, E, T extends Kind = "directed">(self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    nodeIndex: NodeIndex,
+    options?: { readonly radius?: number; readonly direction?: NeighborhoodDirection }
+  ): Graph<N, E, T>
+} = dual((args) => isGraph(args[0]), <N, E, T extends Kind>(
+  self: Graph<N, E, T>,
+  nodeIndex: NodeIndex,
+  options?: { readonly radius?: number; readonly direction?: NeighborhoodDirection }
+): Graph<N, E, T> => {
+  const radius = options?.radius ?? 1
+  const direction = options?.direction ?? "both"
+  const reached = new Set<NodeIndex>()
+
+  if (direction === "outgoing" || direction === "both") {
+    for (const index of indices(bfs(self, { start: [nodeIndex], direction: "outgoing", maxDepth: radius }))) {
+      reached.add(index)
+    }
+  }
+
+  if (direction === "incoming" || direction === "both") {
+    for (const index of indices(bfs(self, { start: [nodeIndex], direction: "incoming", maxDepth: radius }))) {
+      reached.add(index)
+    }
+  }
+
+  return emptyLike(self, (mutable) => {
+    const newIndexMap = new Map<NodeIndex, NodeIndex>()
+
+    for (const oldIndex of reached) {
+      newIndexMap.set(oldIndex, addNode(mutable, Option.getOrThrow(getNode(self, oldIndex))))
+    }
+
+    for (const edge of self.edges.values()) {
+      if (reached.has(edge.source) && reached.has(edge.target)) {
+        const sourceIndex = newIndexMap.get(edge.source)
+        const targetIndex = newIndexMap.get(edge.target)
+        if (sourceIndex !== undefined && targetIndex !== undefined) {
+          addEdge(mutable, sourceIndex, targetIndex, edge.data)
+        }
+      }
+    }
+  })
+})
+
+/**
+ * Returns the disjoint union of two graphs.
+ *
+ * **Details**
+ *
+ * Copies all nodes and edges from both graphs without merging equal node data.
+ * The result has the same graph kind as `self`.
+ *
+ * `G1 + G2 = {disjoint V1 + V2, disjoint E1 + E2}`
+ *
+ * @category set operations
+ * @since 4.0.0
+ */
+export const sum: {
+  <N, E, T extends Kind = "directed">(
+    that: Graph<N, E, T>
+  ): (self: Graph<N, E, T>) => Graph<N, E, T>
+  <N, E, T extends Kind = "directed">(
+    self: Graph<N, E, T>,
+    that: Graph<N, E, T>
+  ): Graph<N, E, T>
+} = dual(
+  2,
+  <N, E, T extends Kind>(self: Graph<N, E, T>, that: Graph<N, E, T>): Graph<N, E, T> =>
+    emptyLike(self, (mutable) => {
+      const copyInto = (graph: Graph<N, E, T>) => {
+        const indexMap = new Map<NodeIndex, NodeIndex>()
+
+        for (const [oldIndex, data] of graph.nodes) {
+          indexMap.set(oldIndex, addNode(mutable, data))
+        }
+
+        for (const edge of graph.edges.values()) {
+          const sourceIndex = indexMap.get(edge.source)
+          const targetIndex = indexMap.get(edge.target)
+          if (sourceIndex !== undefined && targetIndex !== undefined) {
+            addEdge(mutable, sourceIndex, targetIndex, edge.data)
+          }
+        }
+      }
+
+      copyInto(self)
+      copyInto(that)
+    })
+)
+
+// =============================================================================
 // Basic Node Operations
 // =============================================================================
 
@@ -4211,6 +4855,7 @@ export const entries = <T, N>(walker: Walker<T, N>): Iterable<[T, N]> =>
 export interface SearchConfig {
   readonly start?: Array<NodeIndex>
   readonly direction?: Direction
+  readonly maxDepth?: number
 }
 
 /**
@@ -4220,7 +4865,8 @@ export interface SearchConfig {
  * **Details**
  *
  * If no start nodes are supplied, the iterator is empty. The `direction` option
- * chooses whether to follow outgoing or incoming edges. Throws a `GraphError`
+ * chooses whether to follow outgoing or incoming edges. The `maxDepth` option
+ * limits traversal by edge distance from the start nodes. Throws a `GraphError`
  * if any configured start node does not exist.
  *
  * **Example** (Traversing depth-first)
@@ -4264,6 +4910,7 @@ export const dfs: {
 ): NodeWalker<N> => {
   const start = config.start ?? []
   const direction = config.direction ?? "outgoing"
+  const maxDepth = config.maxDepth ?? Infinity
 
   // Validate that all start nodes exist
   for (const nodeIndex of start) {
@@ -4274,12 +4921,12 @@ export const dfs: {
 
   return new Walker((f) => ({
     [Symbol.iterator]: () => {
-      const stack = [...start]
+      const stack: Array<readonly [NodeIndex, number]> = start.map((node) => [node, 0])
       const discovered = new Set<NodeIndex>()
 
       const nextMapped = () => {
         while (stack.length > 0) {
-          const current = stack.pop()!
+          const [current, depth] = stack.pop()!
 
           if (discovered.has(current)) {
             continue
@@ -4292,11 +4939,13 @@ export const dfs: {
             continue
           }
 
-          const neighbors = getTraversalNeighbors(graph, current, direction)
-          for (let i = neighbors.length - 1; i >= 0; i--) {
-            const neighbor = neighbors[i]
-            if (!discovered.has(neighbor)) {
-              stack.push(neighbor)
+          if (depth < maxDepth) {
+            const neighbors = getTraversalNeighbors(graph, current, direction)
+            for (let i = neighbors.length - 1; i >= 0; i--) {
+              const neighbor = neighbors[i]
+              if (!discovered.has(neighbor)) {
+                stack.push([neighbor, depth + 1])
+              }
             }
           }
 
@@ -4318,7 +4967,8 @@ export const dfs: {
  * **Details**
  *
  * If no start nodes are supplied, the iterator is empty. The `direction` option
- * chooses whether to follow outgoing or incoming edges. Throws a `GraphError`
+ * chooses whether to follow outgoing or incoming edges. The `maxDepth` option
+ * limits traversal by edge distance from the start nodes. Throws a `GraphError`
  * if any configured start node does not exist.
  *
  * **Example** (Traversing breadth-first)
@@ -4362,6 +5012,7 @@ export const bfs: {
 ): NodeWalker<N> => {
   const start = config.start ?? []
   const direction = config.direction ?? "outgoing"
+  const maxDepth = config.maxDepth ?? Infinity
 
   // Validate that all start nodes exist
   for (const nodeIndex of start) {
@@ -4372,20 +5023,22 @@ export const bfs: {
 
   return new Walker((f) => ({
     [Symbol.iterator]: () => {
-      const queue = [...start]
+      const queue: Array<readonly [NodeIndex, number]> = start.map((node) => [node, 0])
       const discovered = new Set<NodeIndex>()
 
       const nextMapped = () => {
         while (queue.length > 0) {
-          const current = queue.shift()!
+          const [current, depth] = queue.shift()!
 
           if (!discovered.has(current)) {
             discovered.add(current)
 
-            const neighbors = getTraversalNeighbors(graph, current, direction)
-            for (const neighbor of neighbors) {
-              if (!discovered.has(neighbor)) {
-                queue.push(neighbor)
+            if (depth < maxDepth) {
+              const neighbors = getTraversalNeighbors(graph, current, direction)
+              for (const neighbor of neighbors) {
+                if (!discovered.has(neighbor)) {
+                  queue.push([neighbor, depth + 1])
+                }
               }
             }
 
