@@ -166,6 +166,28 @@ export type Options = {
   readonly apiKey?: Redacted.Redacted<string> | undefined
 
   /**
+   * The name of the HTTP header used to send the `apiKey`.
+   *
+   * **Details**
+   *
+   * Override this when targeting a gateway or proxy in front of Anthropic's API (or an Anthropic-compatible API)
+   * that authenticates requests using a different header, such as `"authorization"`.
+   *
+   * @default "x-api-key"
+   */
+  readonly apiKeyHeader?: string | undefined
+
+  /**
+   * The authentication scheme prefix to prepend to the `apiKey` value before it is sent in the `apiKeyHeader`.
+   *
+   * **Details**
+   *
+   * Set this when `apiKeyHeader` is changed to `"authorization"` and the downstream service expects a scheme
+   * prefix, e.g. `"Bearer"` to produce an `authorization: Bearer <apiKey>` header.
+   */
+  readonly apiKeyScheme?: string | undefined
+
+  /**
    * The base URL for the Anthropic API. Override this to use a proxy or a different API-compatible endpoint.
    *
    * @default "https://api.anthropic.com"
@@ -178,6 +200,16 @@ export type Options = {
    * @default "2023-06-01"
    */
   readonly apiVersion?: string | undefined
+
+  /**
+   * Additional HTTP headers to send with every request made by this client.
+   *
+   * **Details**
+   *
+   * Merged in after all standard headers (`apiKeyHeader`, `anthropic-version`, `accept`), so these values take
+   * precedence and may be used to override them if needed.
+   */
+  readonly headers?: Headers.Input | undefined
 
   /**
    * Optional transformer for the underlying HTTP client, such as middleware, logging, or custom request/response
@@ -218,6 +250,7 @@ export const make = Effect.fnUntraced(
   function*(options: Options): Effect.fn.Return<Service, never, HttpClient.HttpClient> {
     const baseClient = yield* HttpClient.HttpClient
     const apiVersion = options.apiVersion ?? "2023-06-01"
+    const apiKeyHeader = options.apiKeyHeader ?? RedactedAnthropicHeaders.AnthropicApiKey
 
     const httpClient = baseClient.pipe(
       HttpClient.mapRequest((request) =>
@@ -225,12 +258,17 @@ export const make = Effect.fnUntraced(
           HttpClientRequest.prependUrl(options.apiUrl ?? "https://api.anthropic.com"),
           Predicate.isNotUndefined(options.apiKey)
             ? HttpClientRequest.setHeader(
-              RedactedAnthropicHeaders.AnthropicApiKey,
-              Redacted.value(options.apiKey)
+              apiKeyHeader,
+              Predicate.isNotUndefined(options.apiKeyScheme)
+                ? `${options.apiKeyScheme} ${Redacted.value(options.apiKey)}`
+                : Redacted.value(options.apiKey)
             )
             : identity,
           HttpClientRequest.setHeader("anthropic-version", apiVersion),
-          HttpClientRequest.acceptJson
+          HttpClientRequest.acceptJson,
+          Predicate.isNotUndefined(options.headers)
+            ? HttpClientRequest.setHeaders(options.headers)
+            : identity
         )
       ),
       Predicate.isNotUndefined(options.transformClient)
@@ -340,10 +378,12 @@ export const make = Effect.fnUntraced(
       createMessageStream
     })
   },
-  Effect.updateService(
-    Headers.CurrentRedactedNames,
-    Array.appendAll(Object.values(RedactedAnthropicHeaders))
-  )
+  (effect, options: Options) =>
+    Effect.updateService(
+      effect,
+      Headers.CurrentRedactedNames,
+      Array.append(options.apiKeyHeader ?? RedactedAnthropicHeaders.AnthropicApiKey)
+    )
 )
 
 // =============================================================================
@@ -391,6 +431,28 @@ export const layerConfig = (options?: {
   readonly apiKey?: Config.Config<Redacted.Redacted<string> | undefined> | undefined
 
   /**
+   * The name of the HTTP header used to send the `apiKey`.
+   *
+   * **Details**
+   *
+   * Override this when targeting a gateway or proxy in front of Anthropic's API (or an Anthropic-compatible API)
+   * that authenticates requests using a different header, such as `"authorization"`.
+   *
+   * @default "x-api-key"
+   */
+  readonly apiKeyHeader?: Config.Config<string> | undefined
+
+  /**
+   * The authentication scheme prefix to prepend to the `apiKey` value before it is sent in the `apiKeyHeader`.
+   *
+   * **Details**
+   *
+   * Set this when `apiKeyHeader` is changed to `"authorization"` and the downstream service expects a scheme
+   * prefix, e.g. `"Bearer"` to produce an `authorization: Bearer <apiKey>` header.
+   */
+  readonly apiKeyScheme?: Config.Config<string> | undefined
+
+  /**
    * The base URL for the Anthropic API. Override this to use a proxy or a different API-compatible endpoint.
    *
    * @default "https://api.anthropic.com"
@@ -405,6 +467,16 @@ export const layerConfig = (options?: {
   readonly apiVersion?: Config.Config<string> | undefined
 
   /**
+   * Additional HTTP headers to send with every request made by this client.
+   *
+   * **Details**
+   *
+   * Merged in after all standard headers (`apiKeyHeader`, `anthropic-version`, `accept`), so these values take
+   * precedence and may be used to override them if needed.
+   */
+  readonly headers?: Config.Config<Record<string, string>> | undefined
+
+  /**
    * Optional transformer for the underlying HTTP client, such as middleware, logging, or custom request/response
    * handling.
    */
@@ -416,16 +488,28 @@ export const layerConfig = (options?: {
       const apiKey = Predicate.isNotUndefined(options?.apiKey)
         ? yield* options.apiKey :
         undefined
+      const apiKeyHeader = Predicate.isNotUndefined(options?.apiKeyHeader)
+        ? yield* options.apiKeyHeader :
+        undefined
+      const apiKeyScheme = Predicate.isNotUndefined(options?.apiKeyScheme)
+        ? yield* options.apiKeyScheme :
+        undefined
       const apiUrl = Predicate.isNotUndefined(options?.apiUrl)
         ? yield* options.apiUrl :
         undefined
       const apiVersion = Predicate.isNotUndefined(options?.apiVersion)
         ? yield* options.apiVersion :
         undefined
+      const headers = Predicate.isNotUndefined(options?.headers)
+        ? yield* options.headers :
+        undefined
       return yield* make({
         apiKey,
+        apiKeyHeader,
+        apiKeyScheme,
         apiUrl,
         apiVersion,
+        headers,
         transformClient: options?.transformClient
       })
     })
