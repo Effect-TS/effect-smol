@@ -1,9 +1,20 @@
 import { type Effect, hole, Schema, type Stream, Struct } from "effect"
 import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse"
-import { HttpApiEndpoint, HttpApiError, HttpApiSchema } from "effect/unstable/httpapi"
+import { HttpApiEndpoint, HttpApiError, HttpApiMiddleware, HttpApiSchema } from "effect/unstable/httpapi"
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
+  describe("Name", () => {
+    it("should extract endpoint names", () => {
+      const a = HttpApiEndpoint.get("a", "/a")
+      const b = HttpApiEndpoint.get("b", "/b")
+
+      expect<HttpApiEndpoint.Name<typeof a>>().type.toBe<"a">()
+      expect<HttpApiEndpoint.Name<typeof a | typeof b>>().type.toBe<"a" | "b">()
+      expect<HttpApiEndpoint.Name<unknown>>().type.toBe<never>()
+    })
+  })
+
   describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
@@ -182,6 +193,96 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
+  describe("Handler", () => {
+    it("should expose decoded request parts through Request", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        headers: {
+          authorization: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = HttpApiEndpoint.Request<typeof endpoint>
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request["query"]>().type.toBe<{ readonly page: number }>()
+      expect<Request["headers"]>().type.toBe<{ readonly authorization: string }>()
+      expect<Request["payload"]>().type.toBe<{ readonly name: string }>()
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+
+    it("should expose decoded request parts through RequestRaw without payload", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = HttpApiEndpoint.RequestRaw<typeof endpoint>
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request>().type.not.toHaveProperty("payload")
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+
+    it("should expose decoded request parts to normal handlers", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        headers: {
+          authorization: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = Parameters<HttpApiEndpoint.Handler<typeof endpoint, never, never>>[0]
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request["query"]>().type.toBe<{ readonly page: number }>()
+      expect<Request["headers"]>().type.toBe<{ readonly authorization: string }>()
+      expect<Request["payload"]>().type.toBe<{ readonly name: string }>()
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+
+    it("should expose decoded request parts to raw handlers without payload", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        params: {
+          id: Schema.String
+        },
+        payload: Schema.Struct({
+          name: Schema.String
+        }),
+        success: Schema.String
+      })
+
+      type Request = Parameters<HttpApiEndpoint.HandlerRaw<typeof endpoint, never, never>>[0]
+
+      expect<Request["params"]>().type.toBe<{ readonly id: string }>()
+      expect<Request>().type.not.toHaveProperty("payload")
+      expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
+    })
+  })
+
   describe("success option", () => {
     it("should default to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
@@ -317,6 +418,46 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.ServerServices<typeof endpoint>>().type.toBe<"EventsEncoding" | "ErrorEncoding">()
       expect<HttpApiEndpoint.ClientServices<typeof endpoint>>().type.toBe<"EventsDecoding" | "ErrorDecoding">()
     })
+
+    it("should include endpoint and middleware error decoding services", () => {
+      type EndpointError = { readonly reason: string }
+      type MiddlewareError = { readonly reason: string }
+
+      const EndpointError = hole<Schema.Codec<EndpointError, EndpointError, "EndpointErrorDecoding", never>>()
+      const MiddlewareError = hole<Schema.Codec<MiddlewareError, MiddlewareError, "MiddlewareErrorDecoding", never>>()
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.ErrorServicesDecode<typeof endpoint>>().type.toBe<
+        "EndpointErrorDecoding" | "MiddlewareErrorDecoding"
+      >()
+    })
+
+    it("should include endpoint and middleware error encoding services", () => {
+      type EndpointError = { readonly reason: string }
+      type MiddlewareError = { readonly reason: string }
+
+      const EndpointError = hole<Schema.Codec<EndpointError, EndpointError, never, "EndpointErrorEncoding">>()
+      const MiddlewareError = hole<Schema.Codec<MiddlewareError, MiddlewareError, never, "MiddlewareErrorEncoding">>()
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.ErrorServicesEncode<typeof endpoint>>().type.toBe<
+        "EndpointErrorEncoding" | "MiddlewareErrorEncoding"
+      >()
+    })
   })
 
   describe("error option", () => {
@@ -345,6 +486,26 @@ describe("HttpApiEndpoint", () => {
           | Schema.Struct<{ readonly a: Schema.String }>
           | Schema.Uint8Array
         >
+      >()
+    })
+
+    it("should include endpoint and middleware errors", () => {
+      type EndpointError = { readonly _tag: "EndpointError" }
+      type MiddlewareError = { readonly _tag: "MiddlewareError" }
+
+      const EndpointError = Schema.Struct({ _tag: Schema.Literal("EndpointError") })
+      const MiddlewareError = Schema.Struct({ _tag: Schema.Literal("MiddlewareError") })
+
+      class Middleware extends HttpApiMiddleware.Service<Middleware>()("Middleware", {
+        error: MiddlewareError
+      }) {}
+
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        error: EndpointError
+      }).middleware(Middleware)
+
+      expect<HttpApiEndpoint.Errors<typeof endpoint>>().type.toBe<
+        EndpointError | MiddlewareError
       >()
     })
 

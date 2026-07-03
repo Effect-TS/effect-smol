@@ -96,6 +96,30 @@ type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S
   ExtractStreamSuccess<S>
   : Json<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
 
+type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([PayloadType] extends [never] ? {}
+    : PayloadType extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
+      { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
+    : { readonly payload: PayloadType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
+
+type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
+  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
+  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & {
+    readonly request: HttpServerRequest
+    readonly endpoint: Endpoint
+    readonly group: HttpApiGroup.AnyWithProps
+  }
+
 /**
  * Represents an API endpoint. An API endpoint is mapped to a single route on
  * the underlying `HttpRouter`.
@@ -114,17 +138,19 @@ export interface HttpApiEndpoint<
   out Success extends Schema.Top = typeof HttpApiSchema.NoContent,
   out Error extends Schema.Top = never,
   in out Middleware = never,
-  out MiddlewareR = never
+  out MiddlewareServices = never
 > extends Pipeable {
-  readonly [TypeId]: {
-    readonly _MiddlewareR: Types.Covariant<MiddlewareR>
-  }
+  readonly [TypeId]: typeof TypeId
   readonly "~Params": Params
   readonly "~Query": Query
   readonly "~Headers": Headers
   readonly "~Payload": Payload
   readonly "~Success": Success
   readonly "~Error": Error
+  readonly "~Middleware": Middleware
+  readonly "~MiddlewareServices": MiddlewareServices
+  readonly "~Request": RequestFromParts<this, Params["Type"], Query["Type"], Payload["Type"], Headers["Type"]>
+  readonly "~RequestRaw": RequestRawFromParts<this, Params["Type"], Query["Type"], Headers["Type"]>
 
   readonly name: Name
   readonly path: Path
@@ -154,7 +180,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 
   /**
@@ -171,7 +197,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware | I,
-    HttpApiMiddleware.ApplyServices<I, MiddlewareR>
+    HttpApiMiddleware.ApplyServices<I, MiddlewareServices>
   >
 
   /**
@@ -191,7 +217,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 
   /**
@@ -210,7 +236,7 @@ export interface HttpApiEndpoint<
     Success,
     Error,
     Middleware,
-    MiddlewareR
+    MiddlewareServices
   >
 }
 
@@ -248,11 +274,27 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
  * @category models
  * @since 4.0.0
  */
-export interface Any extends Pipeable {
-  readonly [TypeId]: any
+export interface Any {
+  readonly [TypeId]: typeof TypeId
   readonly name: string
-  readonly ["~Success"]: Schema.Top
-  readonly ["~Error"]: Schema.Top
+  readonly ["~Success"]: Schema.Constraint
+  readonly ["~Error"]: Schema.Constraint
+  readonly ["~Request"]: unknown
+  readonly ["~RequestRaw"]: unknown
+}
+
+/**
+ * A widened endpoint type that preserves request and middleware pipeline phantom fields.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export interface ConstraintRequest extends Any {
+  readonly ["~Params"]: Schema.Constraint
+  readonly ["~Query"]: Schema.Constraint
+  readonly ["~Payload"]: Schema.Constraint
+  readonly ["~Headers"]: Schema.Constraint
+  readonly ["~Middleware"]: unknown
 }
 
 /**
@@ -282,20 +324,7 @@ export interface AnyWithProps extends
  * @category models
  * @since 4.0.0
  */
-export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Name
-  : never
+export type Name<Endpoint> = Endpoint extends Any ? Endpoint["name"] : never
 
 /**
  * Extracts the success schema associated with an endpoint.
@@ -303,20 +332,7 @@ export type Name<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Success
-  : never
+export type Success<Endpoint> = Endpoint extends Any ? Endpoint["~Success"] : never
 
 /**
  * Extracts the error schema associated with an endpoint.
@@ -324,20 +340,7 @@ export type Success<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error
-  : never
+export type Error<Endpoint> = Endpoint extends Any ? Endpoint["~Error"] : never
 
 /**
  * Extracts the schema used for an endpoint's path parameters.
@@ -345,19 +348,7 @@ export type Error<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Params
+export type Params<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~Params"]
   : never
 
 /**
@@ -366,19 +357,7 @@ export type Params<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Query
+export type Query<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~Query"]
   : never
 
 /**
@@ -387,19 +366,7 @@ export type Query<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Payload
+export type Payload<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~Payload"]
   : never
 
 /**
@@ -408,19 +375,7 @@ export type Payload<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Headers
+export type Headers<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~Headers"]
   : never
 
 /**
@@ -429,19 +384,7 @@ export type Headers<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type Middleware<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _M
+export type Middleware<Endpoint> = Endpoint extends { readonly "~Middleware": infer M } ? M
   : never
 
 /**
@@ -476,19 +419,8 @@ export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Midd
  * @category models
  * @since 4.0.0
  */
-export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["Type"] | HttpApiMiddleware.Error<Middleware<Endpoint>>
+export type Errors<Endpoint> = Endpoint extends ConstraintRequest ?
+  Endpoint["~Error"]["Type"] | HttpApiMiddleware.Error<Endpoint["~Middleware"]>
   : never
 
 /**
@@ -498,19 +430,9 @@ export type Errors<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["EncodingServices"] | HttpApiMiddleware.ErrorServicesEncode<Middleware<Endpoint>>
+export type ErrorServicesEncode<Endpoint> = Endpoint extends ConstraintRequest ?
+    | Endpoint["~Error"]["EncodingServices"]
+    | HttpApiMiddleware.ErrorServicesEncode<Endpoint["~Middleware"]>
   : never
 
 /**
@@ -521,31 +443,7 @@ export type ErrorServicesEncode<Endpoint extends Any> = Endpoint extends HttpApi
  * @category models
  * @since 4.0.0
  */
-export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
-    & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
-    & ([_Payload["Type"]] extends [never] ? {}
-      : _Payload["Type"] extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
-        { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
-      : { readonly payload: _Payload["Type"] })
-    & ([_Headers] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
+export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
   : {}
 
 /**
@@ -556,27 +454,7 @@ export type Request<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type RequestRaw<Endpoint extends Any> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    & ([_Params["Type"]] extends [never] ? {} : { readonly params: _Params["Type"] })
-    & ([_Query["Type"]] extends [never] ? {} : { readonly query: _Query["Type"] })
-    & ([_Headers["Type"]] extends [never] ? {} : { readonly headers: _Headers["Type"] })
-    & {
-      readonly request: HttpServerRequest
-      readonly endpoint: Endpoint
-      readonly group: HttpApiGroup.AnyWithProps
-    }
+export type RequestRaw<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
   : {}
 
 /**
@@ -623,26 +501,14 @@ export type ClientResponseMode = "decoded-only" | "decoded-and-response" | "resp
  * @category models
  * @since 4.0.0
  */
-export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    | _Params["DecodingServices"]
-    | _Query["DecodingServices"]
-    | _Payload["DecodingServices"]
-    | _Headers["DecodingServices"]
-    | SuccessEncodingServices<_Success>
-    | _Error["EncodingServices"]
-    | HttpApiMiddleware.ErrorServicesEncode<_M>
+export type ServerServices<Endpoint> = Endpoint extends ConstraintRequest ?
+    | Endpoint["~Params"]["DecodingServices"]
+    | Endpoint["~Query"]["DecodingServices"]
+    | Endpoint["~Payload"]["DecodingServices"]
+    | Endpoint["~Headers"]["DecodingServices"]
+    | SuccessEncodingServices<Endpoint["~Success"]>
+    | Endpoint["~Error"]["EncodingServices"]
+    | HttpApiMiddleware.ErrorServicesEncode<Endpoint["~Middleware"]>
   : never
 
 /**
@@ -652,25 +518,13 @@ export type ServerServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ?
-    | _Params["EncodingServices"]
-    | _Query["EncodingServices"]
-    | _Payload["EncodingServices"]
-    | _Headers["EncodingServices"]
-    | SuccessDecodingServices<_Success>
-    | _Error["DecodingServices"]
+export type ClientServices<Endpoint> = Endpoint extends ConstraintRequest ?
+    | Endpoint["~Params"]["EncodingServices"]
+    | Endpoint["~Query"]["EncodingServices"]
+    | Endpoint["~Payload"]["EncodingServices"]
+    | Endpoint["~Headers"]["EncodingServices"]
+    | SuccessDecodingServices<Endpoint["~Success"]>
+    | Endpoint["~Error"]["DecodingServices"]
   : never
 
 /**
@@ -679,19 +533,7 @@ export type ClientServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _MR
+export type MiddlewareServices<Endpoint> = Endpoint extends { readonly "~MiddlewareServices": infer R } ? R
   : never
 
 /**
@@ -701,19 +543,9 @@ export type MiddlewareServices<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @category models
  * @since 4.0.0
  */
-export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? _Error["DecodingServices"] | HttpApiMiddleware.ErrorServicesDecode<Middleware<Endpoint>>
+export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
+    | Endpoint["~Error"]["DecodingServices"]
+    | HttpApiMiddleware.ErrorServicesDecode<Endpoint["~Middleware"]>
   : never
 
 /**
@@ -724,7 +556,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends HttpApiEndpoint<
  * @since 4.0.0
  */
 export type Handler<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<Request<Endpoint>>
+  request: Types.Simplify<Endpoint["~Request"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
@@ -735,7 +567,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Any, E, R> = (
-  request: Types.Simplify<RequestRaw<Endpoint>>
+  request: Types.Simplify<Endpoint["~RequestRaw"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**

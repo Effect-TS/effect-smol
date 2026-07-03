@@ -44,13 +44,12 @@ export const layerHttpApi = <
   HttpApiBuilder.group(
     api,
     name,
-    Effect.fnUntraced(function*(handlers_) {
-      let handlers = handlers_ as any
+    Effect.fnUntraced(function*(handlers: any) {
       for (const workflow_ of workflows) {
         const workflow = workflow_ as Workflow.AnyWithProps
         handlers = handlers
           .handle(
-            workflow._tag as any,
+            workflow._tag,
             ({ payload }: { payload: any }) =>
               workflow.execute(payload).pipe(
                 Effect.tapDefect(Effect.logError),
@@ -61,9 +60,9 @@ export const layerHttpApi = <
               )
           )
           .handle(
-            workflow._tag + "Discard" as any,
+            workflow._tag + "Discard",
             ({ payload }: { payload: any }) =>
-              workflow.execute(payload, { discard: true } as any).pipe(
+              workflow.execute(payload, { discard: true }).pipe(
                 Effect.tapDefect(Effect.logError),
                 Effect.annotateLogs({
                   module: "WorkflowProxyServer",
@@ -72,7 +71,7 @@ export const layerHttpApi = <
               )
           )
           .handle(
-            workflow._tag + "Resume" as any,
+            workflow._tag + "Resume",
             ({ payload }: { payload: any }) =>
               workflow.resume(payload.executionId).pipe(
                 Effect.tapDefect(Effect.logError),
@@ -83,7 +82,7 @@ export const layerHttpApi = <
               )
           )
       }
-      return handlers as HttpApiBuilder.Handlers<never, never>
+      return handlers as HttpApiBuilder.Handlers<never>
     })
   )
 

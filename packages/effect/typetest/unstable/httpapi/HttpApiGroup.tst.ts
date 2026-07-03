@@ -1,0 +1,48 @@
+import { Schema } from "effect"
+import { HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware } from "effect/unstable/httpapi"
+import { describe, expect, it } from "tstyche"
+
+describe("HttpApiGroup", () => {
+  describe("endpoints", () => {
+    it("preserves endpoint types by name", () => {
+      const User = Schema.Struct({
+        id: Schema.String
+      })
+      const GetUser = HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.String
+        },
+        success: User
+      })
+      const CreateUser = HttpApiEndpoint.post("createUser", "/users", {
+        payload: User,
+        success: User
+      })
+      const Group = HttpApiGroup.make("users").add(GetUser, CreateUser)
+
+      expect(Group.endpoints.getUser).type.toBe<typeof GetUser>()
+      expect(Group.endpoints.createUser).type.toBe<typeof CreateUser>()
+      expect(Group.endpoints).type.not.toHaveProperty("deleteUser")
+    })
+
+    it("preserves endpoint types by name after group transformations", () => {
+      class M extends HttpApiMiddleware.Service<M>()("M") {}
+
+      const GetUser = HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.String
+        }
+      })
+      const CreateUser = HttpApiEndpoint.post("createUser", "/users")
+      const Group = HttpApiGroup.make("users").add(GetUser, CreateUser)
+
+      const Prefixed = Group.prefix("/v1")
+      const WithMiddleware = Group.middleware(M)
+
+      expect(Prefixed.endpoints.getUser).type.toBe<HttpApiEndpoint.AddPrefix<typeof GetUser, "/v1">>()
+      expect(Prefixed.endpoints.createUser).type.toBe<HttpApiEndpoint.AddPrefix<typeof CreateUser, "/v1">>()
+      expect(WithMiddleware.endpoints.getUser).type.toBe<HttpApiEndpoint.AddMiddleware<typeof GetUser, M>>()
+      expect(WithMiddleware.endpoints.createUser).type.toBe<HttpApiEndpoint.AddMiddleware<typeof CreateUser, M>>()
+    })
+  })
+})

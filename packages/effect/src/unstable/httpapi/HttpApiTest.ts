@@ -21,7 +21,7 @@ import * as HttpRouter from "../http/HttpRouter.ts"
 import * as HttpServerRequest from "../http/HttpServerRequest.ts"
 import * as HttpServerResponse from "../http/HttpServerResponse.ts"
 import type * as HttpApi from "./HttpApi.ts"
-import type { Handlers } from "./HttpApiBuilder.ts"
+import type { HandlerItem } from "./HttpApiBuilder.ts"
 import * as HttpApiBuilder from "./HttpApiBuilder.ts"
 import * as HttpApiClient from "./HttpApiClient.ts"
 import type * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
@@ -63,16 +63,17 @@ export const groups = Effect.fnUntraced(function*<
 > {
   let context = yield* Effect.context<HttpApiGroup.ToService<ApiId, SelectedGroups>>()
 
-  for (const name in api.groups) {
-    const group = api.groups[name]
+  const groups = api.groupsRecord()
+  for (const name in groups) {
+    const group = groups[name]
     if (groupNames.includes(name as any)) {
       continue
     }
-    const handlers = new Map<string, Handlers.Item<never>>()
+    const handlers = new Map<string, HandlerItem>()
     const routes: Array<HttpRouter.Route<any, any>> = []
     for (const endpointName in group.endpoints) {
       const endpoint = group.endpoints[endpointName]
-      const handler: Handlers.Item<never> = {
+      const handler: HandlerItem = {
         endpoint: endpoint as any,
         handler: () => Effect.die(new Error(`Unhandled endpoint: ${endpointName}`)),
         isRaw: false,

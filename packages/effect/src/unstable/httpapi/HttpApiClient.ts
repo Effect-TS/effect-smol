@@ -49,14 +49,11 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
   & {
     readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
       Group,
-      Group["identifier"],
       E,
       R
     >
   }
-  & {
-    readonly [Method in Client.TopLevelMethods<Groups, E, R> as Method[0]]: Method[1]
-  }
+  & Client.TopLevelMethods<Groups, E, R>
 >
 
 /**
@@ -122,6 +119,15 @@ export declare namespace Client {
     : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
     : Success
 
+  type GroupByEndpoint<Group extends HttpApiGroup.Any, E, R> = {
+    readonly [
+      Endpoint in Extract<
+        HttpApiGroup.Endpoints<Group>,
+        HttpApiEndpoint.ConstraintRequest
+      > as HttpApiEndpoint.Name<Endpoint>
+    ]: Method<Endpoint, E, R>
+  }
+
   /**
    * The client object for one API group, mapping each endpoint name in that group to
    * its typed client method.
@@ -129,12 +135,30 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type Group<Groups extends HttpApiGroup.Any, GroupName extends Groups["identifier"], E, R> =
-    [HttpApiGroup.WithName<Groups, GroupName>] extends [HttpApiGroup.HttpApiGroup<infer _GroupName, infer _Endpoints>] ?
-      {
-        readonly [Endpoint in _Endpoints as HttpApiEndpoint.Name<Endpoint>]: Method<Endpoint, E, R>
-      } :
-      never
+  export type Group<Group extends HttpApiGroup.Any, E, R> = GroupByEndpoint<Group, E, R>
+
+  type MethodReturn<
+    Endpoint extends HttpApiEndpoint.ConstraintRequest,
+    E,
+    R,
+    Mode extends ResponseMode
+  > = Effect.Effect<
+    Response<SuccessType<Endpoint["~Success"]>, Mode>,
+    | HttpApiMiddleware.Error<Endpoint["~Middleware"]>
+    | HttpApiMiddleware.ClientError<Endpoint["~Middleware"]>
+    | E
+    | HttpClientError.HttpClientError
+    | ([Mode] extends ["response-only"] ? never : Endpoint["~Error"]["Type"] | Schema.SchemaError),
+    | R
+    | Endpoint["~Params"]["EncodingServices"]
+    | Endpoint["~Query"]["EncodingServices"]
+    | Endpoint["~Payload"]["EncodingServices"]
+    | Endpoint["~Headers"]["EncodingServices"]
+    | ([Mode] extends ["response-only"] ? never
+      :
+        | SuccessDecodingServices<Endpoint["~Success"]>
+        | Endpoint["~Error"]["DecodingServices"])
+  >
 
   /**
    * The typed function generated for an endpoint, accepting the endpoint request
@@ -144,40 +168,21 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type Method<Endpoint, E, R> = [Endpoint] extends [
-    HttpApiEndpoint.HttpApiEndpoint<
-      infer _Name,
-      infer _Method,
-      infer _Path,
-      infer _Params,
-      infer _Query,
-      infer _Payload,
-      infer _Headers,
-      infer _Success,
-      infer _Error,
-      infer _Middleware,
-      infer _MR
+  export type Method<
+    Endpoint extends HttpApiEndpoint.ConstraintRequest,
+    E,
+    R
+  > = <Mode extends ResponseMode = ResponseMode>(
+    request: Simplify<
+      HttpApiEndpoint.ClientRequest<
+        Endpoint["~Params"],
+        Endpoint["~Query"],
+        Endpoint["~Payload"],
+        Endpoint["~Headers"],
+        Mode
+      >
     >
-  ] ? <Mode extends ResponseMode = ResponseMode>(
-      request: Simplify<HttpApiEndpoint.ClientRequest<_Params, _Query, _Payload, _Headers, Mode>>
-    ) => Effect.Effect<
-      Response<SuccessType<_Success>, Mode>,
-      | HttpApiMiddleware.Error<_Middleware>
-      | HttpApiMiddleware.ClientError<_Middleware>
-      | E
-      | HttpClientError.HttpClientError
-      | ([Mode] extends ["response-only"] ? never : _Error["Type"] | Schema.SchemaError),
-      | R
-      | _Params["EncodingServices"]
-      | _Query["EncodingServices"]
-      | _Payload["EncodingServices"]
-      | _Headers["EncodingServices"]
-      | ([Mode] extends ["response-only"] ? never
-        :
-          | SuccessDecodingServices<_Success>
-          | _Error["DecodingServices"])
-    > :
-    never
+  ) => MethodReturn<Endpoint, E, R, Mode>
 
   /**
    * Extracts client methods for endpoints in top-level groups so they can be exposed
@@ -186,25 +191,31 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> =
-    Extract<Groups, { readonly topLevel: true }> extends
-      HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
-      _Endpoints extends infer Endpoint ? [HttpApiEndpoint.Name<Endpoint>, Method<Endpoint, E, R>]
-      : never :
-      never
+  export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> = {
+    readonly [
+      Endpoint in Extract<
+        HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>>,
+        HttpApiEndpoint.ConstraintRequest
+      > as HttpApiEndpoint.Name<Endpoint>
+    ]: Method<Endpoint, E, R>
+  }
 }
 
-type UrlBuilderRequest<Endpoint extends HttpApiEndpoint.Any> = (
-  & ([HttpApiEndpoint.Params<Endpoint>["Type"]] extends [never] ? {}
-    : { readonly params: HttpApiEndpoint.Params<Endpoint>["Type"] })
-  & ([HttpApiEndpoint.Query<Endpoint>["Type"]] extends [never] ? {}
-    : { readonly query: HttpApiEndpoint.Query<Endpoint>["Type"] })
+type UrlBuilderRequestPart<Key extends string, Value> = [Value] extends [never] ? {}
+  : { readonly [K in Key]: Value }
+
+type UrlBuilderRequest<
+  Endpoint extends HttpApiEndpoint.Any,
+  Params = HttpApiEndpoint.Params<Endpoint>["Type"],
+  Query = HttpApiEndpoint.Query<Endpoint>["Type"]
+> = (
+  & UrlBuilderRequestPart<"params", Params>
+  & UrlBuilderRequestPart<"query", Query>
 ) extends infer Request ? keyof Request extends never ? void | undefined : Request
   : never
 
-type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<Endpoint>] extends [void | undefined] ?
-  [request?: UrlBuilderRequest<Endpoint>]
-  : [request: UrlBuilderRequest<Endpoint>]
+type UrlBuilderArgs<Request> = [Request] extends [void | undefined] ? [request?: Request]
+  : [request: Request]
 
 /**
  * The type-safe URL builder shape for an HTTP API, mirroring the generated client
@@ -213,32 +224,31 @@ type UrlBuilderArgs<Endpoint extends HttpApiEndpoint.Any> = [UrlBuilderRequest<E
  * @category models
  * @since 4.0.0
  */
-export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ? Simplify<
-    & {
-      readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
-        HttpApiGroup.Endpoints<Group>
-      >
-    }
-    & {
-      readonly [Method in UrlBuilderTopLevelMethods<Groups> as Method[0]]: Method[1]
-    }
-  >
+export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ?
+  [Extract<Groups, { readonly topLevel: true }>] extends [never] ? UrlBuilderGroups<Groups>
+  : [Extract<Groups, { readonly topLevel: false }>] extends [never] ? UrlBuilderTopLevelMethods<Groups>
+  : Simplify<UrlBuilderGroups<Groups> & UrlBuilderTopLevelMethods<Groups>>
   : never
+
+type UrlBuilderGroups<Groups extends HttpApiGroup.Any> = {
+  readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
+    HttpApiGroup.Endpoints<Group>
+  >
+}
 
 type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>
 }
 
 type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
-  ...args: UrlBuilderArgs<Endpoint>
+  ...args: UrlBuilderArgs<UrlBuilderRequest<Endpoint>>
 ) => string
 
-type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = Extract<Groups, { readonly topLevel: true }> extends
-  HttpApiGroup.HttpApiGroup<infer _Id, infer _Endpoints, infer _TopLevel> ?
-  _Endpoints extends infer Endpoint extends HttpApiEndpoint.Any ?
-    [HttpApiEndpoint.Name<Endpoint>, UrlBuilderMethod<Endpoint>]
-  : never :
-  never
+type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = {
+  readonly [
+    Endpoint in HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>> as HttpApiEndpoint.Name<Endpoint>
+  ]: UrlBuilderMethod<Endpoint>
+}
 
 /** @internal */
 export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
@@ -493,7 +503,11 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<Client<Groups, E, R>, never, HttpApiGroup.MiddlewareClient<Groups>> => {
+): Effect.Effect<
+  Client<Groups, Exclude<E, HttpClientError.HttpClientError>, R>,
+  never,
+  HttpApiGroup.MiddlewareClient<Groups>
+> => {
   const client: Record<string, Record<string, any>> = {}
   return makeClient(api, {
     ...options,
@@ -531,7 +545,7 @@ export const group = <
     readonly baseUrl?: URL | string | undefined
   }
 ): Effect.Effect<
-  Client.Group<Groups, GroupName, E, R>,
+  Client.Group<HttpApiGroup.WithName<Groups, GroupName>, E, R>,
   never,
   HttpApiGroup.MiddlewareClient<HttpApiGroup.WithName<Groups, GroupName>>
 > => {
@@ -544,6 +558,18 @@ export const group = <
     }
   }).pipe(Effect.map(() => client)) as any
 }
+
+type EndpointReturn<
+  Groups extends HttpApiGroup.Any,
+  GroupName extends HttpApiGroup.Name<Groups>,
+  EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
+  E,
+  R,
+  Endpoint extends HttpApiEndpoint.ConstraintRequest = Extract<
+    HttpApiEndpoint.WithName<HttpApiGroup.EndpointsWithName<Groups, GroupName>, EndpointName>,
+    HttpApiEndpoint.ConstraintRequest
+  >
+> = Effect.Effect<Client.Method<Endpoint, E, R>, never, HttpApiEndpoint.MiddlewareClient<Endpoint>>
 
 /**
  * Builds the typed client method for one endpoint in one API group, using the
@@ -571,17 +597,7 @@ export const endpoint = <
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): Effect.Effect<
-  Client.Method<
-    HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>, EndpointName>,
-    E,
-    R
-  >,
-  never,
-  HttpApiEndpoint.MiddlewareClient<
-    HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>, EndpointName>
-  >
-> => {
+): EndpointReturn<Groups, GroupName, EndpointName, E, R> => {
   let client: any = undefined
   return makeClient(api, {
     ...options,

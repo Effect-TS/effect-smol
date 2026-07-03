@@ -214,6 +214,7 @@ export const Service = <Self>() =>
   const catchErrors = Effect.catch((e: unknown) =>
     Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
   )
+  const groups = options.api.groupsRecord()
 
   const mutationFamily = Atom.family(({ endpoint, group, responseMode }: MutationKey) => {
     const atom = self.runtime.fn<{
@@ -235,7 +236,7 @@ export const Service = <Self>() =>
       })
     )
     if (responseMode === "decoded-only") {
-      const definition = options.api.groups[group]!.endpoints[endpoint]! as HttpApiEndpoint.AnyWithProps
+      const definition = groups[group].endpoints[endpoint]
       return Atom.serializable(atom, {
         key: `AtomHttpApi:mutation:${group}:${endpoint}`,
         schema: AsyncResult.Schema({
@@ -265,7 +266,7 @@ export const Service = <Self>() =>
       >)
     }))
     if (opts.responseMode === "decoded-only" && opts.serializationKey) {
-      const endpoint = options.api.groups[opts.group]!.endpoints[opts.endpoint]! as HttpApiEndpoint.AnyWithProps
+      const endpoint = groups[opts.group].endpoints[opts.endpoint]
       atom = Atom.serializable(atom, {
         key: `AtomHttpApi:${opts.group}:${opts.endpoint}:${opts.serializationKey}`,
         schema: AsyncResult.Schema({

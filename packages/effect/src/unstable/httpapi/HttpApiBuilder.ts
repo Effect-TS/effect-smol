@@ -30,7 +30,7 @@ import * as SchemaIssue from "../../SchemaIssue.ts"
 import * as SchemaTransformation from "../../SchemaTransformation.ts"
 import * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import type { Covariant, NoInfer } from "../../Types.ts"
+import type { NoInfer } from "../../Types.ts"
 import * as UndefinedOr from "../../UndefinedOr.ts"
 import * as Sse from "../encoding/Sse.ts"
 import type { Cookie } from "../http/Cookies.ts"
@@ -87,7 +87,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
     const availableGroups = Array.from(services.mapUnsafe.keys()).filter((key) =>
       key.startsWith("effect/httpapi/HttpApiGroup/")
     )
-    for (const group of Object.values(api.groups)) {
+    const groups = api.groupsRecord()
+    for (const group of Object.values(groups)) {
       const groupRoutes = services.mapUnsafe.get(group.key)?.routes as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
@@ -136,9 +137,9 @@ export const group = <
     const services = (yield* Effect.context<any>()).pipe(
       Context.omit(Scope.Scope)
     )
-    const group = api.groups[groupName]!
+    const group = api.groups[groupName]
     const result = build(makeHandlers(group))
-    const handlers: Handlers<any, any> = Effect.isEffect(result)
+    const handlers: Handlers<any, any, any> = Effect.isEffect(result)
       ? (yield* result as Effect.Effect<any, any, any>)
       : result
     const routes: Array<HttpRouter.Route<any, any>> = []
@@ -169,65 +170,167 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
+type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
+}
+
+type HandlerRequirements<
+  Endpoint extends HttpApiEndpoint.Any,
+  R1,
+  R = HttpApiEndpoint.ExcludeProvided<
+    Endpoint,
+    R1 | HttpApiEndpoint.ServerServices<Endpoint>
+  >
+> =
+  | HttpApiEndpoint.Middleware<Endpoint>
+  | HttpApiEndpoint.MiddlewareServices<Endpoint>
+  | ([R] extends [never] ? never : HttpRouter.Request<"Requires", R>)
+
+interface HandlerOptions {
+  readonly uninterruptible?: boolean | undefined
+}
+
+/** @internal */
+export interface HandlerItem {
+  readonly endpoint: HttpApiEndpoint.AnyWithProps
+  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
+  readonly isRaw: boolean
+  readonly uninterruptible: boolean
+}
+
+type HandleAllEntry<Endpoint extends HttpApiEndpoint.Any> =
+  | HttpApiEndpoint.Handler<
+    Endpoint,
+    HttpApiEndpoint.MiddlewareError<Endpoint>,
+    any
+  >
+  | {
+    readonly handler: HttpApiEndpoint.Handler<
+      Endpoint,
+      HttpApiEndpoint.MiddlewareError<Endpoint>,
+      any
+    >
+    readonly options?: HandlerOptions | undefined
+  }
+
+type HandleAllHandlers<EndpointsByName extends Record<string, HttpApiEndpoint.Any>> = {
+  readonly [Name in keyof EndpointsByName]?: HandleAllEntry<EndpointsByName[Name]>
+}
+
+type HandleAllExtraKeys<
+  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  HandlersByName
+> = {
+  readonly [Name in Exclude<keyof HandlersByName, keyof EndpointsByName>]: never
+}
+
+type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
+
+type HandleAllRequirements<
+  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  HandlersByName extends HandleAllHandlers<EndpointsByName>
+> = {
+  readonly [Name in keyof HandlersByName & keyof EndpointsByName]: HandleAllEntryHandler<
+    HandlersByName[Name]
+  > extends HttpApiEndpoint.Handler<
+    EndpointsByName[Name],
+    HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+    infer R1
+  > ? HandlerRequirements<EndpointsByName[Name], R1> :
+    never
+}[keyof HandlersByName & keyof EndpointsByName]
+
+type HandlersResult<A> = A extends Effect.Effect<infer H, any, any> ? H : A
+
+type MissingHandlerNames<H extends Handlers<any, any, any>> = Exclude<
+  keyof H["~EndpointsByName"],
+  H["~HandledNames"]
+>
+
+type ValidateHandlersReturn<
+  A,
+  H = HandlersResult<A>,
+  Missing = H extends Handlers<any, any, any> ? MissingHandlerNames<H> : never
+> = H extends Handlers<any, any, any> ? [Missing] extends [never] ? A
+  : `Endpoint not handled: ${Missing & string}`
+  : `Must return the implemented handlers`
+
 /**
  * Mutable handler collection for one `HttpApi` group.
  *
  * **Details**
  *
  * Each call to `handle` or `handleRaw` registers an endpoint implementation and
- * removes that endpoint from the type-level set of endpoints still requiring
- * handlers.
+ * adds that endpoint name to the type-level set of implemented endpoints. If an
+ * endpoint is registered more than once, the latest handler replaces the
+ * previous one.
  *
  * @category handlers
  * @since 4.0.0
  */
 export interface Handlers<
   R,
-  Endpoints extends HttpApiEndpoint.Any = never
+  EndpointsByName extends Record<string, HttpApiEndpoint.Any> = {},
+  HandledNames extends keyof EndpointsByName = never
 > extends Pipeable {
-  readonly [HandlersTypeId]: {
-    _Endpoints: Covariant<Endpoints>
-  }
+  readonly [HandlersTypeId]: typeof HandlersTypeId
+  readonly "~EndpointsByName": EndpointsByName
+  readonly "~HandledNames": HandledNames
+  /** @internal */
   readonly group: HttpApiGroup.AnyWithProps
-  readonly handlers: Map<string, Handlers.Item<R>>
+  /** @internal */
+  readonly handlers: Map<string, HandlerItem>
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
    */
-  handle<Name extends HttpApiEndpoint.Name<Endpoints>, R1>(
+  handle<
+    Name extends keyof EndpointsByName,
+    R1
+  >(
     name: Name,
-    handler: HttpApiEndpoint.HandlerWithName<Endpoints, Name, HttpApiEndpoint.ErrorsWithName<Endpoints, Name>, R1>,
+    handler: HttpApiEndpoint.Handler<
+      EndpointsByName[Name],
+      HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+      R1
+    >,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
-    | R
-    | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
-    | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
-    | (HttpApiEndpoint.ExcludeProvidedWithName<
-      Endpoints,
-      Name,
-      R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
-    > extends infer _R ? _R extends never ? never : HttpRouter.Request<"Requires", _R> : never),
-    HttpApiEndpoint.ExcludeName<Endpoints, Name>
+    R | HandlerRequirements<EndpointsByName[Name], R1>,
+    EndpointsByName,
+    HandledNames | Name
+  >
+
+  /**
+   * Add implementations for every `HttpApiEndpoint` in a `Handlers` group.
+   */
+  handleAll<const HandlersByName extends HandleAllHandlers<EndpointsByName>>(
+    handlers: HandlersByName & HandleAllExtraKeys<EndpointsByName, HandlersByName>
+  ): Handlers<
+    R | HandleAllRequirements<EndpointsByName, HandlersByName>,
+    EndpointsByName,
+    HandledNames | keyof HandlersByName & keyof EndpointsByName
   >
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
    * This version opts out of automatic payload decoding and provides the raw request.
    */
-  handleRaw<Name extends HttpApiEndpoint.Name<Endpoints>, R1>(
+  handleRaw<
+    Name extends keyof EndpointsByName,
+    R1
+  >(
     name: Name,
-    handler: HttpApiEndpoint.HandlerRawWithName<Endpoints, Name, HttpApiEndpoint.ErrorsWithName<Endpoints, Name>, R1>,
+    handler: HttpApiEndpoint.HandlerRaw<
+      EndpointsByName[Name],
+      HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+      R1
+    >,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
-    | R
-    | HttpApiEndpoint.MiddlewareWithName<Endpoints, Name>
-    | HttpApiEndpoint.MiddlewareServicesWithName<Endpoints, Name>
-    | (HttpApiEndpoint.ExcludeProvidedWithName<
-      Endpoints,
-      Name,
-      R1 | HttpApiEndpoint.ServerServicesWithName<Endpoints, Name>
-    > extends infer _R ? _R extends never ? never : HttpRouter.Request<"Requires", _R> : never),
-    HttpApiEndpoint.ExcludeName<Endpoints, Name>
+    R | HandlerRequirements<EndpointsByName[Name], R1>,
+    EndpointsByName,
+    HandledNames | Name
   >
 }
 
@@ -238,34 +341,6 @@ export interface Handlers<
  */
 export declare namespace Handlers {
   /**
-   * A `Handlers` value with its context and endpoint types erased.
-   *
-   * @category handlers
-   * @since 4.0.0
-   */
-  export interface Any {
-    readonly [HandlersTypeId]: any
-  }
-
-  /**
-   * Record stored for a registered endpoint handler.
-   *
-   * **Details**
-   *
-   * It keeps the endpoint metadata, handler function, whether raw request handling
-   * is used, and whether the handler should run uninterruptibly.
-   *
-   * @category handlers
-   * @since 4.0.0
-   */
-  export type Item<R> = {
-    readonly endpoint: HttpApiEndpoint.AnyWithProps
-    readonly handler: HttpApiEndpoint.Handler<any, any, R>
-    readonly isRaw: boolean
-    readonly uninterruptible: boolean
-  }
-
-  /**
    * Creates a handler collection for a group where every endpoint in the group is
    * still awaiting an implementation.
    *
@@ -274,7 +349,7 @@ export declare namespace Handlers {
    */
   export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
     never,
-    HttpApiGroup.Endpoints<Group>
+    EndpointMap<HttpApiGroup.Endpoints<Group>>
   >
 
   /**
@@ -285,22 +360,7 @@ export declare namespace Handlers {
    * @category handlers
    * @since 4.0.0
    */
-  export type ValidateReturn<A> = A extends (
-    | Handlers<
-      infer _R,
-      infer _Endpoints
-    >
-    | Effect.Effect<
-      Handlers<
-        infer _R,
-        infer _Endpoints
-      >,
-      infer _EX,
-      infer _RX
-    >
-  ) ? [_Endpoints] extends [never] ? A
-    : `Endpoint not handled: ${HttpApiEndpoint.Name<_Endpoints>}` :
-    `Must return the implemented handlers`
+  export type ValidateReturn<A> = ValidateHandlersReturn<A>
 
   /**
    * Extracts the error channel from an effect that produces a `Handlers`
@@ -312,7 +372,8 @@ export declare namespace Handlers {
   export type Error<A> = A extends Effect.Effect<
     Handlers<
       infer _R,
-      infer _Endpoints
+      infer _EndpointsByName,
+      infer _HandledNames
     >,
     infer _EX,
     infer _RX
@@ -328,12 +389,14 @@ export declare namespace Handlers {
    */
   export type Context<A> = A extends Handlers<
     infer _R,
-    infer _Endpoints
+    infer _EndpointsByName,
+    infer _HandledNames
   > ? _R :
     A extends Effect.Effect<
       Handlers<
         infer _R,
-        infer _Endpoints
+        infer _EndpointsByName,
+        infer _HandledNames
       >,
       infer _EX,
       infer _RX
@@ -341,34 +404,16 @@ export declare namespace Handlers {
     never
 }
 
-/**
- * Builds the server-side HTTP effect for a single endpoint in an API group using
- * the endpoint metadata, middleware, codecs, and supplied handler.
- *
- * @category handlers
- * @since 4.0.0
- */
-export const endpoint = <
-  ApiId extends string,
+type EndpointReturn<
   Groups extends HttpApiGroup.Any,
-  const GroupName extends HttpApiGroup.Name<Groups>,
-  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  GroupName extends HttpApiGroup.Name<Groups>,
+  EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
   R,
-  Group extends HttpApiGroup.Any = HttpApiGroup.WithName<Groups, GroupName>,
-  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<HttpApiGroup.Endpoints<Group>, EndpointName>
->(
-  api: HttpApi.HttpApi<ApiId, Groups>,
-  groupName: GroupName,
-  endpointName: EndpointName,
-  handler: NoInfer<
-    HttpApiEndpoint.HandlerWithName<
-      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
-      EndpointName,
-      never,
-      R
-    >
+  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<
+    HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
+    EndpointName
   >
-): Effect.Effect<
+> = Effect.Effect<
   Effect.Effect<
     HttpServerResponse,
     never,
@@ -385,10 +430,37 @@ export const endpoint = <
   | FileSystem
   | HttpPlatform
   | Path
-> =>
+>
+
+/**
+ * Builds the server-side HTTP effect for a single endpoint in an API group using
+ * the endpoint metadata, middleware, codecs, and supplied handler.
+ *
+ * @category handlers
+ * @since 4.0.0
+ */
+export const endpoint = <
+  ApiId extends string,
+  Groups extends HttpApiGroup.Any,
+  const GroupName extends HttpApiGroup.Name<Groups>,
+  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  R
+>(
+  api: HttpApi.HttpApi<ApiId, Groups>,
+  groupName: GroupName,
+  endpointName: EndpointName,
+  handler: NoInfer<
+    HttpApiEndpoint.HandlerWithName<
+      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
+      EndpointName,
+      never,
+      R
+    >
+  >
+): EndpointReturn<Groups, GroupName, EndpointName, R> =>
   Effect.contextWith((context: Context.Context<any>) => {
-    const group = api.groups[groupName] as unknown as HttpApiGroup.AnyWithProps
-    const endpoint = group.endpoints[endpointName] as unknown as HttpApiEndpoint.AnyWithProps
+    const group = api.groupsRecord()[groupName]!
+    const endpoint = group.endpoints[endpointName]
     return Effect.succeed(handlerToHttpEffect(
       group,
       endpoint,
@@ -494,51 +566,70 @@ export const securitySetCookie = (
 
 const basicLen = `Basic `.length
 
+const registerHandler = (
+  self: Handlers<any, any, any>,
+  name: string,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
+  isRaw: boolean,
+  options?: HandlerOptions | undefined
+) => {
+  const endpoint = self.group.endpoints[name]
+  self.handlers.set(name, {
+    endpoint,
+    handler,
+    isRaw,
+    uninterruptible: options?.uninterruptible ?? false
+  })
+  return self
+}
+
 const HandlersProto = {
-  [HandlersTypeId]: {
-    _Endpoints: identity
-  },
+  [HandlersTypeId]: HandlersTypeId,
   pipe() {
     return pipeArguments(this, arguments)
   },
   handle(
-    this: Handlers<any, HttpApiEndpoint.Any>,
+    this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    const endpoint = this.group.endpoints[name]
-    this.handlers.set(name, {
-      endpoint,
-      handler,
-      isRaw: false,
-      uninterruptible: options?.uninterruptible ?? false
-    })
+    return registerHandler(this, name, handler, false, options)
+  },
+  handleAll(
+    this: Handlers<any, any, any>,
+    handlers: Record<
+      string,
+      HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any> | {
+        readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
+        readonly options?: HandlerOptions | undefined
+      }
+    >
+  ) {
+    for (const name in handlers) {
+      const entry = handlers[name]
+      const handler = typeof entry === "function" ? entry : entry.handler
+      const options = typeof entry === "function" ? undefined : entry.options
+      registerHandler(this, name, handler, false, options)
+    }
     return this
   },
   handleRaw(
-    this: Handlers<any, HttpApiEndpoint.Any>,
+    this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    const endpoint = this.group.endpoints[name]
-    this.handlers.set(name, {
-      endpoint,
-      handler,
-      isRaw: true,
-      uninterruptible: options?.uninterruptible ?? false
-    })
-    return this
+    return registerHandler(this, name, handler, true, options)
   }
 }
 
-const makeHandlers = <R, Endpoints extends HttpApiEndpoint.Any>(
-  group: HttpApiGroup.Any
-): Handlers<R, Endpoints> => {
+const makeHandlers = <R, Group extends HttpApiGroup.Any>(
+  group: Group
+): Handlers<R, EndpointMap<HttpApiGroup.Endpoints<Group>>> => {
   const self = Object.create(HandlersProto)
   self.group = group
-  self.handlers = new Map<string, Handlers.Item<R>>()
+  self.handlers = new Map<string, HandlerItem>()
   return self
 }
 
@@ -638,7 +729,7 @@ function handlerToHttpEffect(
   group: HttpApiGroup.AnyWithProps,
   endpoint: HttpApiEndpoint.AnyWithProps,
   context: Context.Context<any>,
-  handler: HttpApiEndpoint.Handler<any, any, any>,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
   isRaw: boolean
 ) {
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
@@ -707,7 +798,7 @@ function handlerToHttpEffect(
 /** @internal */
 export function handlerToRoute(
   group: HttpApiGroup.AnyWithProps,
-  handler: Handlers.Item<any>,
+  handler: HandlerItem,
   context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint

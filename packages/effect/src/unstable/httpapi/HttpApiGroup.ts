@@ -31,6 +31,13 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
 export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Endpoints indexed by their name.
+ */
+type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
+}
+
+/**
  * An `HttpApiGroup` is a named collection of `HttpApiEndpoint`s that represents
  * a portion of your domain.
  *
@@ -43,7 +50,7 @@ export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u,
  */
 export interface HttpApiGroup<
   out Id extends string,
-  out Endpoints extends HttpApiEndpoint.Any = never,
+  in out Endpoints extends HttpApiEndpoint.Any = never,
   out TopLevel extends boolean = false
 > extends Pipeable {
   new(_: never): {}
@@ -51,7 +58,7 @@ export interface HttpApiGroup<
   readonly identifier: Id
   readonly key: string
   readonly topLevel: TopLevel
-  readonly endpoints: Record.ReadonlyRecord<string, Endpoints>
+  readonly endpoints: EndpointMap<Endpoints>
   readonly annotations: Context.Context<never>
 
   /**
@@ -146,7 +153,7 @@ export interface Any {
  * @category models
  * @since 4.0.0
  */
-export type AnyWithProps = HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean>
+export interface AnyWithProps extends HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean> {}
 
 /**
  * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
@@ -172,8 +179,7 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * @category models
  * @since 4.0.0
  */
-export type Name<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Name
-  : never
+export type Name<Group> = Group extends Any ? Group["identifier"] : never
 
 /**
  * Extracts the endpoint union contained in an `HttpApiGroup`.
@@ -349,7 +355,7 @@ const makeProto = <
 >(options: {
   readonly identifier: Id
   readonly topLevel: TopLevel
-  readonly endpoints: Record.ReadonlyRecord<string, Endpoints>
+  readonly endpoints: EndpointMap<Endpoints>
   readonly annotations: Context.Context<never>
 }): HttpApiGroup<Id, Endpoints, TopLevel> => {
   function HttpApiGroup() {}
@@ -375,7 +381,7 @@ export const make = <const Id extends string, const TopLevel extends boolean = f
 }): HttpApiGroup<Id, never, TopLevel> =>
   makeProto({
     identifier,
-    topLevel: options?.topLevel ?? false as any,
-    endpoints: Record.empty(),
+    topLevel: (options?.topLevel ?? false) as TopLevel,
+    endpoints: {},
     annotations: Context.empty()
-  }) as any
+  })

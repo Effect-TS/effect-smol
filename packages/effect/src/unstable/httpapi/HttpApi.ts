@@ -33,6 +33,17 @@ const TypeId = "~effect/httpapi/HttpApi"
 export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
 
 /**
+ * Groups indexed by their identifier.
+ */
+type GroupByName<Groups extends HttpApiGroup.Any, Name extends string> = Groups extends { readonly identifier: Name } ?
+  Groups
+  : never
+
+type GroupsByName<Groups extends HttpApiGroup.Any> = {
+  readonly [Name in HttpApiGroup.Name<Groups>]: GroupByName<Groups, Name>
+}
+
+/**
  * An `HttpApi` is a collection of HTTP API groups and endpoints that represents a
  * portion of your domain.
  *
@@ -46,13 +57,16 @@ export const isHttpApi = (u: unknown): u is Any => Predicate.hasProperty(u, Type
  */
 export interface HttpApi<
   out Id extends string,
-  out Groups extends HttpApiGroup.Any = never
+  in out Groups extends HttpApiGroup.Any = never
 > extends Pipeable {
   new(_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly identifier: Id
-  readonly groups: Record.ReadonlyRecord<string, Groups>
+  readonly groups: GroupsByName<Groups>
   readonly annotations: Context.Context<never>
+
+  /** @internal */
+  groupsRecord(): Record.ReadonlyRecord<string, HttpApiGroup.AnyWithProps>
 
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
@@ -110,12 +124,15 @@ export interface Any {
  * @category models
  * @since 4.0.0
  */
-export type AnyWithProps = HttpApi<string, HttpApiGroup.AnyWithProps>
+export interface AnyWithProps extends HttpApi<string, HttpApiGroup.AnyWithProps> {}
 
 const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
+  },
+  groupsRecord(this: AnyWithProps) {
+    return this.groups
   },
   add(
     this: AnyWithProps,
@@ -180,7 +197,7 @@ const Proto = {
 const makeProto = <Id extends string, Groups extends HttpApiGroup.Any>(
   options: {
     readonly identifier: Id
-    readonly groups: Record.ReadonlyRecord<string, Groups>
+    readonly groups: GroupsByName<Groups>
     readonly annotations: Context.Context<never>
   }
 ): HttpApi<Id, Groups> => {
