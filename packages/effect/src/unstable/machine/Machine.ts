@@ -19,6 +19,7 @@ import type {
   UnhandledEventError
 } from "./internal/machineErrors.ts"
 import * as Model from "./internal/machineModel.ts"
+import * as internalPlanner from "./internal/machinePlanner.ts"
 import * as internalProcess from "./internal/machineProcess.ts"
 import * as internalRuntime from "./internal/machineRuntime.ts"
 
@@ -46,7 +47,7 @@ export const TypeId: TypeId = "~effect/Machine"
  * @category type IDs
  * @since 4.0.0
  */
-export const InitialEventTypeId: typeof internalRuntime.InitialEventTypeId = internalRuntime.InitialEventTypeId
+export const InitialEventTypeId: typeof internalPlanner.InitialEventTypeId = internalPlanner.InitialEventTypeId
 
 /**
  * Synthetic event passed to entry, exit, always, invoke, and output callbacks
@@ -65,7 +66,7 @@ export interface InitialEvent {
  * @category constructors
  * @since 4.0.0
  */
-export const InitialEvent: InitialEvent = internalRuntime.InitialEvent
+export const InitialEvent: InitialEvent = internalPlanner.InitialEvent
 
 /**
  * Returns `true` if a value is the synthetic machine initial event.
@@ -2614,7 +2615,7 @@ export const isFinal = <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R, InitialE, InitialR, FinalStates>,
   state: Machine.Snapshot<States>
-): state is Machine.SnapshotContainingFinal<States, FinalStates> => internalRuntime.isFinal(machine, state)
+): state is Machine.SnapshotContainingFinal<States, FinalStates> => internalPlanner.isFinal(machine, state)
 
 type SnapshotBuilderOptions = {
   readonly mode: "initial" | "full"
@@ -3052,7 +3053,7 @@ export const planInitial: <
   },
   InitialE | MachineSchemaDecodeError | StartupError,
   ExcludeCompatibleRuntime<InitialR | R, Machine.EventOf<Events>, Machine.EmitOf<Emits>>
-> = internalRuntime.planInitial
+> = internalPlanner.planInitial
 
 /**
  * Returns the event tags handled by the current state snapshot.
@@ -3070,7 +3071,7 @@ export const enabled = <
 >(
   machine: Machine<States, Events, Input, UnhandledStates, E, R>,
   state: Machine.Snapshot<States>
-): ReadonlyArray<Machine.TagOf<Events[number]>> => internalRuntime.enabled(machine, state)
+): ReadonlyArray<Machine.TagOf<Events[number]>> => internalPlanner.enabled(machine, state)
 
 /**
  * Plans the next state snapshot without running deferred actions.
@@ -3078,7 +3079,7 @@ export const enabled = <
  * @category combinators
  * @since 4.0.0
  */
-export const plan = internalRuntime.plan
+export const plan = internalPlanner.plan
 
 /**
  * Defers an effectful action until the current machine step is planned.
@@ -3088,7 +3089,7 @@ export const plan = internalRuntime.plan
  */
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
-): Effect.Effect<void, E, R> => internalRuntime.action(effect)
+): Effect.Effect<void, E, R> => internalPlanner.action(effect)
 
 /**
  * Returns the typed runtime capability for the current machine.
@@ -3100,7 +3101,7 @@ export const runtime = <const Protocol extends Runtime.Protocol = {}>(): Effect.
   Runtime<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>,
   never,
   Runtime.Requirement<Runtime.Events<Protocol>, Runtime.Emits<Protocol>>
-> => internalRuntime.runtime<Protocol>()
+> => internalPlanner.runtime<Protocol>()
 
 /**
  * Creates child process logic from low-level initialization and execution

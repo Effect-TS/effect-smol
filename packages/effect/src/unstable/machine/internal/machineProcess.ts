@@ -20,6 +20,7 @@ import type {
   UnhandledEventError
 } from "./machineErrors.ts"
 import * as Model from "./machineModel.ts"
+import * as internalPlanner from "./machinePlanner.ts"
 import * as internalRuntime from "./machineRuntime.ts"
 
 type IsAny<A> = 0 extends (1 & A) ? true : false
@@ -31,6 +32,22 @@ type ExcludeCompatibleRuntime<Requirements, Events, Emits> = Requirements extend
   : [RequiredEvents] extends [Events] ? [RequiredEmits] extends [Emits] ? never : Requirements
   : Requirements
   : Requirements
+
+type AnyInvokeConfig = Machine.InvokeConfig<any, any, any, any, any, any, any, any, any, any, any>
+
+interface InvokeSession {
+  readonly token: symbol
+  readonly scope: Scope.Closeable
+  readonly childId: string
+}
+
+const getInvokes = (config: Machine.AnyStateConfig | undefined): ReadonlyArray<AnyInvokeConfig> => {
+  const invokes = config?.invoke
+  if (invokes === undefined) {
+    return []
+  }
+  return Array.isArray(invokes) ? invokes as ReadonlyArray<AnyInvokeConfig> : [invokes as AnyInvokeConfig]
+}
 
 export const toProcessLogic: <
   const States extends Machine.StateSchemas,
@@ -78,10 +95,10 @@ export const toProcessLogic: <
     initial: (scope) =>
       internalRuntime.provideMachineRuntime(
         Effect.gen(function*() {
-          const planned = yield* internalRuntime.planInitial(machine, ...args)
-          yield* internalRuntime.runActions(
+          const planned = yield* internalPlanner.planInitial(machine, ...args)
+          yield* internalPlanner.runActions(
             planned.actions,
-            internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, scope)
+            internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, scope)
           )
           return planned.state
         }),
@@ -95,15 +112,15 @@ export const toProcessLogic: <
           let output: Output | undefined = undefined
 
           const initialState = yield* state
-          if (internalRuntime.isFinalState(machine, initialState)) {
-            return yield* internalRuntime.getFinalOutputEffect<States, Events, Output>(
+          if (internalPlanner.isFinalState(machine, initialState)) {
+            return yield* internalPlanner.getFinalOutputEffect<States, Events, Output>(
               machine,
               initialState,
-              internalRuntime.InitialEvent
+              internalPlanner.InitialEvent
             )
           }
 
-          const invokeSessions = yield* Ref.make<HashMap.HashMap<string, internalRuntime.InvokeSession>>(
+          const invokeSessions = yield* Ref.make<HashMap.HashMap<string, InvokeSession>>(
             HashMap.empty()
           )
           const makeInvokeSessionKey = (path: string, id: string): string => `${path.length}:${path}${id}`
@@ -154,7 +171,7 @@ export const toProcessLogic: <
               )
             )
           const startInvokeWatchers = (
-            config: internalRuntime.AnyInvokeConfig,
+            config: AnyInvokeConfig,
             child: internalRuntime.MachineRef<any, any, any, any>,
             key: string,
             token: symbol,
@@ -202,10 +219,10 @@ export const toProcessLogic: <
                   Effect.asVoid
                 )
               }
-            })
+          })
           const startInvoke = <StateId extends Machine.StateIdentifier<States>>(
             path: StateId,
-            config: internalRuntime.AnyInvokeConfig,
+            config: AnyInvokeConfig,
             state: Machine.StateByIdentifier<States, StateId>,
             event: Machine.LifecycleEvent<Events>
           ) =>
@@ -218,7 +235,7 @@ export const toProcessLogic: <
                 config.src({
                   state,
                   event,
-                  runtime: internalRuntime.runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
+                  runtime: internalPlanner.runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
                 }),
                 { id: childId }
               ).pipe(
@@ -241,10 +258,10 @@ export const toProcessLogic: <
           ) {
             const configuration = yield* Model.normalizeConfigurationEffect(machine, state)
             yield* Effect.all(
-              internalRuntime.sortEntryPaths(machine, paths)
+              internalPlanner.sortEntryPaths(machine, paths)
                 .filter((path) => configuration.active.has(path))
                 .flatMap((path) =>
-                  internalRuntime.getInvokes(Model.getStateConfigByPath(machine, path)).map((config) =>
+                  getInvokes(Model.getStateConfigByPath(machine, path)).map((config) =>
                     startInvoke(
                       path as Machine.StateIdentifier<States>,
                       config,
@@ -261,8 +278,8 @@ export const toProcessLogic: <
           })
           const stopInvokes = (paths: ReadonlyArray<string>): Effect.Effect<void> =>
             Effect.all(
-              internalRuntime.sortExitPaths(machine, paths).flatMap((path) =>
-                internalRuntime.getInvokes(Model.getStateConfigByPath(machine, path)).map((config) =>
+              internalPlanner.sortExitPaths(machine, paths).flatMap((path) =>
+                getInvokes(Model.getStateConfigByPath(machine, path)).map((config) =>
                   stopInvoke(makeInvokeSessionKey(path, String(config.id)), Exit.void)
                 )
               ),
@@ -273,7 +290,7 @@ export const toProcessLogic: <
             yield* startInvokes(
               initialState,
               Model.getInitialEntryPaths(machine, yield* Model.normalizeConfigurationEffect(machine, initialState)),
-              internalRuntime.InitialEvent
+              internalPlanner.InitialEvent
             )
 
             yield* Effect.whileLoop({
@@ -282,7 +299,7 @@ export const toProcessLogic: <
                 Effect.gen(function*() {
                   const event = yield* receive
                   const current = yield* state
-                  const planned = yield* internalRuntime.plan(machine, current, event)
+                  const planned = yield* internalPlanner.plan(machine, current, event)
                   const changed = planned.microsteps.some((step) => step.changed)
                   const exitPaths = planned.microsteps.flatMap((step) => step.exitPaths)
                   const entryPaths = planned.microsteps.flatMap((step) => step.entryPaths)
@@ -291,12 +308,12 @@ export const toProcessLogic: <
                     yield* stopInvokes(exitPaths)
                   }
                   yield* setState(planned.next)
-                  yield* internalRuntime.runActions(
+                  yield* internalPlanner.runActions(
                     planned.actions,
-                    internalRuntime.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, context)
+                    internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, context)
                   )
 
-                  if (internalRuntime.isFinalState(machine, planned.next)) {
+                  if (internalPlanner.isFinalState(machine, planned.next)) {
                     done = true
                     output = planned.output
                     yield* stopAllInvokes(Exit.succeed(output))
