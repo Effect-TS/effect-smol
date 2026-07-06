@@ -1,6 +1,6 @@
 ---
-"@effect/platform-node-shared": minor
-"effect": minor
+"@effect/platform-node-shared": patch
+"effect": patch
 ---
 
 Add glob to filesystem

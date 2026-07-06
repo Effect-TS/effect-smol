@@ -109,10 +109,11 @@ const glob = ((): FileSystem.FileSystem["glob"] => {
     handleErrnoException("FileSystem", "glob"),
     handleBadArgument("glob")
   )
-  return (pattern: string, options) => nodeGlob(pattern, {
-    cwd: options?.cwd,
-    exclude: options?.exclude
-  })
+  return (pattern: string, options) =>
+    nodeGlob(pattern, {
+      cwd: options?.root,
+      exclude: options?.exclude
+    })
 })()
 
 // == link

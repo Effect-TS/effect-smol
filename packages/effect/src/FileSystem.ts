@@ -124,8 +124,8 @@ export interface FileSystem {
   readonly glob: (
     pattern: string,
     options?: {
-      cwd?: string,
-      exclude?: readonly string[] | ((fileName: string) => boolean) | undefined
+      readonly root?: string | undefined
+      readonly exclude?: ReadonlyArray<string> | undefined
     }
   ) => Effect.Effect<Array<string>, PlatformError>
   /**
