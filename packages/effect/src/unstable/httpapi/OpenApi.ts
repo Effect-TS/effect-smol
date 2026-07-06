@@ -208,7 +208,7 @@ export const annotations: (
   transform: Transform
 })
 
-const apiCache = new WeakMap<HttpApi.Any, OpenAPISpec>()
+const apiCache = new WeakMap<HttpApi.Constraint, OpenAPISpec>()
 
 /**
  * This function checks if a given tag exists within the provided context. If
@@ -246,7 +246,7 @@ function processAnnotation<Services, S, I>(
  * @category constructors
  * @since 4.0.0
  */
-export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
+export function fromApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>
 ): OpenAPISpec {
   const cached = apiCache.get(api)
@@ -627,7 +627,7 @@ type ResponseBodies = Map<
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
-function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): ResponseBodies {
+function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.Top): ResponseBodies {
   return extractResponseBodies(
     HttpApiEndpoint.getSuccessSchemas(endpoint),
     HttpApiSchema.getStatusSuccess,

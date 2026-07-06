@@ -45,7 +45,7 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  * @category models
  * @since 4.0.0
  */
-export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simplify<
+export type Client<Groups extends HttpApiGroup.Constraint, E = never, R = never> = Simplify<
   & {
     readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
       Group,
@@ -63,7 +63,7 @@ export type Client<Groups extends HttpApiGroup.Any, E = never, R = never> = Simp
  * @category models
  * @since 4.0.0
  */
-export type ForApi<Api extends HttpApi.Any, E = never, R = never> = Api extends
+export type ForApi<Api extends HttpApi.Constraint, E = never, R = never> = Api extends
   HttpApi.HttpApi<infer _Id, infer Groups> ? Client<Groups, E, R> :
   never
 
@@ -119,7 +119,7 @@ export declare namespace Client {
     : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
     : Success
 
-  type GroupByEndpoint<Group extends HttpApiGroup.Any, E, R> = {
+  type GroupByEndpoint<Group extends HttpApiGroup.Constraint, E, R> = {
     readonly [
       Endpoint in Extract<
         HttpApiGroup.Endpoints<Group>,
@@ -135,7 +135,7 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type Group<Group extends HttpApiGroup.Any, E, R> = GroupByEndpoint<Group, E, R>
+  export type Group<Group extends HttpApiGroup.Constraint, E, R> = GroupByEndpoint<Group, E, R>
 
   type MethodReturn<
     Endpoint extends HttpApiEndpoint.ConstraintRequest,
@@ -191,7 +191,7 @@ export declare namespace Client {
    * @category models
    * @since 4.0.0
    */
-  export type TopLevelMethods<Groups extends HttpApiGroup.Any, E, R> = {
+  export type TopLevelMethods<Groups extends HttpApiGroup.Constraint, E, R> = {
     readonly [
       Endpoint in Extract<
         HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>>,
@@ -205,7 +205,7 @@ type UrlBuilderRequestPart<Key extends string, Value> = [Value] extends [never] 
   : { readonly [K in Key]: Value }
 
 type UrlBuilderRequest<
-  Endpoint extends HttpApiEndpoint.Any,
+  Endpoint extends HttpApiEndpoint.Constraint,
   Params = HttpApiEndpoint.Params<Endpoint>["Type"],
   Query = HttpApiEndpoint.Query<Endpoint>["Type"]
 > = (
@@ -224,48 +224,48 @@ type UrlBuilderArgs<Request> = [Request] extends [void | undefined] ? [request?:
  * @category models
  * @since 4.0.0
  */
-export type UrlBuilder<Api extends HttpApi.Any> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ?
+export type UrlBuilder<Api extends HttpApi.Constraint> = Api extends HttpApi.HttpApi<infer _ApiId, infer Groups> ?
   [Extract<Groups, { readonly topLevel: true }>] extends [never] ? UrlBuilderGroups<Groups>
   : [Extract<Groups, { readonly topLevel: false }>] extends [never] ? UrlBuilderTopLevelMethods<Groups>
   : Simplify<UrlBuilderGroups<Groups> & UrlBuilderTopLevelMethods<Groups>>
   : never
 
-type UrlBuilderGroups<Groups extends HttpApiGroup.Any> = {
+type UrlBuilderGroups<Groups extends HttpApiGroup.Constraint> = {
   readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
     HttpApiGroup.Endpoints<Group>
   >
 }
 
-type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Any> = {
+type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Constraint> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>
 }
 
-type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Any> = (
+type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Constraint> = (
   ...args: UrlBuilderArgs<UrlBuilderRequest<Endpoint>>
 ) => string
 
-type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Any> = {
+type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Constraint> = {
   readonly [
     Endpoint in HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>> as HttpApiEndpoint.Name<Endpoint>
   ]: UrlBuilderMethod<Endpoint>
 }
 
 /** @internal */
-export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
+export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Constraint, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly predicate?: Predicate.Predicate<{
-      readonly endpoint: HttpApiEndpoint.AnyWithProps
-      readonly group: HttpApiGroup.AnyWithProps
+      readonly endpoint: HttpApiEndpoint.Top
+      readonly group: HttpApiGroup.ConstraintWithProps
     }>
     readonly onGroup?: (options: {
-      readonly group: HttpApiGroup.AnyWithProps
+      readonly group: HttpApiGroup.ConstraintWithProps
       readonly mergedAnnotations: Context.Context<never>
     }) => void
     readonly onEndpoint: (options: {
-      readonly group: HttpApiGroup.AnyWithProps
-      readonly endpoint: HttpApiEndpoint.AnyWithProps
+      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly endpoint: HttpApiEndpoint.Top
       readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
       readonly successes: ReadonlyMap<number, readonly [Schema.Top, ...Array<Schema.Top>]>
@@ -290,8 +290,8 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
     )
 
     function executeMiddleware(
-      group: HttpApiGroup.AnyWithProps,
-      endpoint: HttpApiEndpoint.AnyWithProps,
+      group: HttpApiGroup.ConstraintWithProps,
+      endpoint: HttpApiEndpoint.Top,
       request: HttpClientRequest.HttpClientRequest,
       middlewareKeys: ReadonlyArray<string>,
       index: number
@@ -466,7 +466,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any
  * @category constructors
  * @since 4.0.0
  */
-export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+export const make = <ApiId extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options?: {
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
@@ -494,7 +494,7 @@ export const make = <ApiId extends string, Groups extends HttpApiGroup.Any>(
  * @category constructors
  * @since 4.0.0
  */
-export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, E, R>(
+export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Constraint, E, R>(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
     readonly httpClient: HttpClient.HttpClient.With<E, R>
@@ -530,7 +530,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Any, 
  */
 export const group = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   const GroupName extends HttpApiGroup.Name<Groups>,
   E,
   R
@@ -560,7 +560,7 @@ export const group = <
 }
 
 type EndpointReturn<
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   GroupName extends HttpApiGroup.Name<Groups>,
   EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
   E,
@@ -580,7 +580,7 @@ type EndpointReturn<
  */
 export const endpoint = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   const GroupName extends HttpApiGroup.Name<Groups>,
   const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
   E,
@@ -638,12 +638,12 @@ export const endpoint = <
  * @category constructors
  * @since 4.0.0
  */
-export const urlBuilder = <Api extends HttpApi.Any>(api: Api, options?: {
+export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
   readonly baseUrl?: URL | string | undefined
 }): UrlBuilder<Api> => {
   const builder: Record<string, any> = {}
 
-  HttpApi.reflect(api as unknown as HttpApi.AnyWithProps, {
+  HttpApi.reflect(api as unknown as HttpApi.ConstraintWithProps, {
     onGroup({ group }) {
       if (group.topLevel) return
       builder[group.identifier] = {}
@@ -788,7 +788,7 @@ function failUnsupportedContentType(
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
-function getStreamSuccessSchemas(endpoint: HttpApiEndpoint.AnyWithProps): Array<HttpApiSchema.StreamSchema> {
+function getStreamSuccessSchemas(endpoint: HttpApiEndpoint.Top): Array<HttpApiSchema.StreamSchema> {
   const schemas: Array<HttpApiSchema.StreamSchema> = []
   for (const schema of endpoint.success) {
     if (HttpApiSchema.isStreamSchema(schema)) {

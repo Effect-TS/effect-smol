@@ -151,7 +151,7 @@ type ScalarSource =
     readonly source: string
   }
 
-const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options: {
+const makeHandler = <Id extends string, Groups extends HttpApiGroup.Constraint>(options: {
   readonly api: HttpApi.HttpApi<Id, Groups>
   readonly source: ScalarSource
   readonly scalar: ScalarConfig | undefined
@@ -215,7 +215,7 @@ const makeHandler = <Id extends string, Groups extends HttpApiGroup.Any>(options
  * @category layers
  * @since 4.0.0
  */
-export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
+export const layer = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly path?: `/${string}` | undefined
@@ -246,7 +246,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  * @category layers
  * @since 4.0.0
  */
-export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Any>(
+export const layerCdn = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly path?: `/${string}` | undefined

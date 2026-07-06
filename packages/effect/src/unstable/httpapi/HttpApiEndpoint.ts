@@ -107,7 +107,7 @@ type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType>
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.AnyWithProps
+    readonly group: HttpApiGroup.ConstraintWithProps
   }
 
 type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
@@ -117,7 +117,7 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.AnyWithProps
+    readonly group: HttpApiGroup.ConstraintWithProps
   }
 
 /**
@@ -241,7 +241,7 @@ export interface HttpApiEndpoint<
 }
 
 /** @internal */
-export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
+export function getPayloadSchemas(endpoint: Top): Array<Schema.Top> {
   const result: Array<Schema.Top> = []
   for (const { schemas } of endpoint.payload.values()) {
     result.push(...schemas)
@@ -250,13 +250,13 @@ export function getPayloadSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
 }
 
 /** @internal */
-export function getSuccessSchemas(endpoint: AnyWithProps): [Schema.Top, ...Array<Schema.Top>] {
+export function getSuccessSchemas(endpoint: Top): [Schema.Top, ...Array<Schema.Top>] {
   const schemas = Array.from(endpoint.success)
   return Arr.isArrayNonEmpty(schemas) ? schemas : [HttpApiSchema.NoContent]
 }
 
 /** @internal */
-export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
+export function getErrorSchemas(endpoint: Top): Array<Schema.Top> {
   const schemas = new Set<Schema.Top>(endpoint.error)
   for (const middleware of endpoint.middlewares) {
     const key = middleware as any as HttpApiMiddleware.AnyService
@@ -274,7 +274,7 @@ export function getErrorSchemas(endpoint: AnyWithProps): Array<Schema.Top> {
  * @category models
  * @since 4.0.0
  */
-export interface Any {
+export interface Constraint {
   readonly [TypeId]: typeof TypeId
   readonly name: string
   readonly ["~Success"]: Schema.Constraint
@@ -289,7 +289,7 @@ export interface Any {
  * @category models
  * @since 4.0.0
  */
-export interface ConstraintRequest extends Any {
+export interface ConstraintRequest extends Constraint {
   readonly ["~Params"]: Schema.Constraint
   readonly ["~Query"]: Schema.Constraint
   readonly ["~Payload"]: Schema.Constraint
@@ -304,7 +304,7 @@ export interface ConstraintRequest extends Any {
  * @category models
  * @since 4.0.0
  */
-export interface AnyWithProps extends
+export interface Top extends
   HttpApiEndpoint<
     string,
     HttpMethod,
@@ -313,8 +313,8 @@ export interface AnyWithProps extends
     Schema.Top,
     Schema.Top,
     Schema.Top,
-    any,
-    any
+    Schema.Top,
+    Schema.Top
   >
 {}
 
@@ -324,7 +324,7 @@ export interface AnyWithProps extends
  * @category models
  * @since 4.0.0
  */
-export type Name<Endpoint> = Endpoint extends Any ? Endpoint["name"] : never
+export type Name<Endpoint> = Endpoint extends Constraint ? Endpoint["name"] : never
 
 /**
  * Extracts the success schema associated with an endpoint.
@@ -332,7 +332,7 @@ export type Name<Endpoint> = Endpoint extends Any ? Endpoint["name"] : never
  * @category models
  * @since 4.0.0
  */
-export type Success<Endpoint> = Endpoint extends Any ? Endpoint["~Success"] : never
+export type Success<Endpoint> = Endpoint extends Constraint ? Endpoint["~Success"] : never
 
 /**
  * Extracts the error schema associated with an endpoint.
@@ -340,7 +340,7 @@ export type Success<Endpoint> = Endpoint extends Any ? Endpoint["~Success"] : ne
  * @category models
  * @since 4.0.0
  */
-export type Error<Endpoint> = Endpoint extends Any ? Endpoint["~Error"] : never
+export type Error<Endpoint> = Endpoint extends Constraint ? Endpoint["~Error"] : never
 
 /**
  * Extracts the schema used for an endpoint's path parameters.
@@ -393,7 +393,7 @@ export type Middleware<Endpoint> = Endpoint extends { readonly "~Middleware": in
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
+export type MiddlewareProvides<Endpoint extends Constraint> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
 
 /**
  * Computes the client-side middleware services required by an endpoint.
@@ -401,7 +401,7 @@ export type MiddlewareProvides<Endpoint extends Any> = HttpApiMiddleware.Provide
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareClient<Endpoint extends Any> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
+export type MiddlewareClient<Endpoint extends Constraint> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
 
 /**
  * Computes the error types that can be produced by the middleware attached to an
@@ -410,7 +410,7 @@ export type MiddlewareClient<Endpoint extends Any> = HttpApiMiddleware.Middlewar
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareError<Endpoint extends Any> = HttpApiMiddleware.Error<Middleware<Endpoint>>
+export type MiddlewareError<Endpoint extends Constraint> = HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**
  * Computes the full error value union for an endpoint, including the endpoint
@@ -443,7 +443,7 @@ export type ErrorServicesEncode<Endpoint> = Endpoint extends ConstraintRequest ?
  * @category models
  * @since 4.0.0
  */
-export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
+export type Request<Endpoint extends Constraint> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
   : {}
 
 /**
@@ -454,7 +454,7 @@ export type Request<Endpoint extends Any> = Endpoint extends ConstraintRequest ?
  * @category models
  * @since 4.0.0
  */
-export type RequestRaw<Endpoint extends Any> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
+export type RequestRaw<Endpoint extends Constraint> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
   : {}
 
 /**
@@ -555,7 +555,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
  * @category models
  * @since 4.0.0
  */
-export type Handler<Endpoint extends Any, E, R> = (
+export type Handler<Endpoint extends Constraint, E, R> = (
   request: Types.Simplify<Endpoint["~Request"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
@@ -566,7 +566,7 @@ export type Handler<Endpoint extends Any, E, R> = (
  * @category models
  * @since 4.0.0
  */
-export type HandlerRaw<Endpoint extends Any, E, R> = (
+export type HandlerRaw<Endpoint extends Constraint, E, R> = (
   request: Types.Simplify<Endpoint["~RequestRaw"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
@@ -576,7 +576,7 @@ export type HandlerRaw<Endpoint extends Any, E, R> = (
  * @category models
  * @since 4.0.0
  */
-export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpoints, { readonly name: Name }>
+export type WithName<Endpoints extends Constraint, Name extends string> = Extract<Endpoints, { readonly name: Name }>
 
 /**
  * Removes endpoints with the specified name from a union of endpoints.
@@ -584,7 +584,7 @@ export type WithName<Endpoints extends Any, Name extends string> = Extract<Endpo
  * @category models
  * @since 4.0.0
  */
-export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
+export type ExcludeName<Endpoints extends Constraint, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
 
 /**
  * Derives the normal handler type for the endpoint with the specified name in an
@@ -593,7 +593,7 @@ export type ExcludeName<Endpoints extends Any, Name extends string> = Exclude<En
  * @category models
  * @since 4.0.0
  */
-export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = Handler<
+export type HandlerWithName<Endpoints extends Constraint, Name extends string, E, R> = Handler<
   WithName<Endpoints, Name>,
   E,
   R
@@ -606,7 +606,7 @@ export type HandlerWithName<Endpoints extends Any, Name extends string, E, R> = 
  * @category models
  * @since 4.0.0
  */
-export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R> = HandlerRaw<
+export type HandlerRawWithName<Endpoints extends Constraint, Name extends string, E, R> = HandlerRaw<
   WithName<Endpoints, Name>,
   E,
   R
@@ -619,7 +619,7 @@ export type HandlerRawWithName<Endpoints extends Any, Name extends string, E, R>
  * @category models
  * @since 4.0.0
  */
-export type SuccessWithName<Endpoints extends Any, Name extends string> = Success<
+export type SuccessWithName<Endpoints extends Constraint, Name extends string> = Success<
   WithName<Endpoints, Name>
 > extends infer S ? SuccessType<S> : never
 
@@ -630,7 +630,7 @@ export type SuccessWithName<Endpoints extends Any, Name extends string> = Succes
  * @category models
  * @since 4.0.0
  */
-export type ErrorsWithName<Endpoints extends Any, Name extends string> = Errors<WithName<Endpoints, Name>>
+export type ErrorsWithName<Endpoints extends Constraint, Name extends string> = Errors<WithName<Endpoints, Name>>
 
 /**
  * Computes the server-side service requirements for the endpoint with the
@@ -639,7 +639,7 @@ export type ErrorsWithName<Endpoints extends Any, Name extends string> = Errors<
  * @category models
  * @since 4.0.0
  */
-export type ServerServicesWithName<Endpoints extends Any, Name extends string> = ServerServices<
+export type ServerServicesWithName<Endpoints extends Constraint, Name extends string> = ServerServices<
   WithName<Endpoints, Name>
 >
 
@@ -650,7 +650,9 @@ export type ServerServicesWithName<Endpoints extends Any, Name extends string> =
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Middleware<WithName<Endpoints, Name>>
+export type MiddlewareWithName<Endpoints extends Constraint, Name extends string> = Middleware<
+  WithName<Endpoints, Name>
+>
 
 /**
  * Extracts the middleware service requirements for the endpoint with the specified
@@ -659,7 +661,7 @@ export type MiddlewareWithName<Endpoints extends Any, Name extends string> = Mid
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareServicesWithName<Endpoints extends Any, Name extends string> = MiddlewareServices<
+export type MiddlewareServicesWithName<Endpoints extends Constraint, Name extends string> = MiddlewareServices<
   WithName<Endpoints, Name>
 >
 
@@ -670,7 +672,7 @@ export type MiddlewareServicesWithName<Endpoints extends Any, Name extends strin
  * @category models
  * @since 4.0.0
  */
-export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, R> = ExcludeProvided<
+export type ExcludeProvidedWithName<Endpoints extends Constraint, Name extends string, R> = ExcludeProvided<
   WithName<Endpoints, Name>,
   R
 >
@@ -682,7 +684,7 @@ export type ExcludeProvidedWithName<Endpoints extends Any, Name extends string, 
  * @category models
  * @since 4.0.0
  */
-export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
+export type ExcludeProvided<Endpoint extends Constraint, R> = Exclude<
   R,
   | HttpRouter.Provided
   | HttpApiMiddleware.Provides<Middleware<Endpoint>>
@@ -695,19 +697,20 @@ export type ExcludeProvided<Endpoint extends Any, R> = Exclude<
  * @category models
  * @since 4.0.0
  */
-export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? HttpApiEndpoint<
+export type AddPrefix<Endpoint extends Constraint, Prefix extends HttpRouter.PathInput> = Endpoint extends
+  HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _Params,
+    infer _Query,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  > ? HttpApiEndpoint<
     _Name,
     _Method,
     `${Prefix}${_Path}`,
@@ -729,7 +732,7 @@ export type AddPrefix<Endpoint extends Any, Prefix extends HttpRouter.PathInput>
  * @category models
  * @since 4.0.0
  */
-export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint extends HttpApiEndpoint<
+export type AddError<Endpoint extends Constraint, E extends Schema.Top> = Endpoint extends HttpApiEndpoint<
   infer _Name,
   infer _Method,
   infer _Path,
@@ -763,19 +766,20 @@ export type AddError<Endpoint extends Any, E extends Schema.Top> = Endpoint exte
  * @category models
  * @since 4.0.0
  */
-export type AddMiddleware<Endpoint extends Any, M extends HttpApiMiddleware.AnyId> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
-  infer _Method,
-  infer _Path,
-  infer _Params,
-  infer _Query,
-  infer _Payload,
-  infer _Headers,
-  infer _Success,
-  infer _Error,
-  infer _M,
-  infer _MR
-> ? HttpApiEndpoint<
+export type AddMiddleware<Endpoint extends Constraint, M extends HttpApiMiddleware.AnyId> = Endpoint extends
+  HttpApiEndpoint<
+    infer _Name,
+    infer _Method,
+    infer _Path,
+    infer _Params,
+    infer _Query,
+    infer _Payload,
+    infer _Headers,
+    infer _Success,
+    infer _Error,
+    infer _M,
+    infer _MR
+  > ? HttpApiEndpoint<
     _Name,
     _Method,
     _Path,
@@ -795,25 +799,25 @@ const Proto = {
   pipe() {
     return pipeArguments(this, arguments)
   },
-  prefix(this: AnyWithProps, prefix: HttpRouter.PathInput) {
+  prefix(this: Top, prefix: HttpRouter.PathInput) {
     return makeProto({
       ...this,
       path: HttpRouter.prefixPath(this.path, prefix)
     })
   },
-  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyService) {
+  middleware(this: Top, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
       ...this,
       middlewares: new Set([...this.middlewares, middleware as any])
     })
   },
-  annotate(this: AnyWithProps, key: Context.Key<any, any>, value: any) {
+  annotate(this: Top, key: Context.Key<any, any>, value: any) {
     return makeProto({
       ...this,
       annotations: Context.add(this.annotations, key, value)
     })
   },
-  annotateMerge(this: AnyWithProps, annotations: Context.Context<any>) {
+  annotateMerge(this: Top, annotations: Context.Context<any>) {
     return makeProto({
       ...this,
       annotations: Context.merge(this.annotations, annotations)

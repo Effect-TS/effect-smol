@@ -34,7 +34,7 @@ import type { Sharding } from "./Sharding.ts"
  */
 export const layerHttpApi = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   Name extends HttpApiGroup.Name<Groups>,
   Type extends string,
   Rpcs extends Rpc.Any

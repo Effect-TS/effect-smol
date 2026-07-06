@@ -678,7 +678,7 @@ describe("HttpApiClient", () => {
 
   describe("makeWith", () => {
     it("should normalize the default HttpClientError for generic clients", () => {
-      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Constraint>(
         api: HttpApi.HttpApi<ApiId, Groups>,
         httpClient: HttpClient.HttpClient
       ): Effect.Effect<
@@ -688,7 +688,7 @@ describe("HttpApiClient", () => {
       > => HttpApiClient.makeWith(api, { httpClient })
 
       expect(makeClient).type.toBeCallableWith(
-        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Constraint>>(),
         hole<HttpClient.HttpClient>()
       )
     })
@@ -698,7 +698,7 @@ describe("HttpApiClient", () => {
         _tag: Schema.tag("CustomClientError")
       }) {}
 
-      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Any>(
+      const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Constraint>(
         api: HttpApi.HttpApi<ApiId, Groups>,
         httpClient: HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>
       ): Effect.Effect<
@@ -708,7 +708,7 @@ describe("HttpApiClient", () => {
       > => HttpApiClient.makeWith(api, { httpClient })
 
       expect(makeClient).type.toBeCallableWith(
-        hole<HttpApi.HttpApi<string, HttpApiGroup.Any>>(),
+        hole<HttpApi.HttpApi<string, HttpApiGroup.Constraint>>(),
         hole<HttpClient.HttpClient.With<HttpClientError.HttpClientError | CustomClientError>>()
       )
     })

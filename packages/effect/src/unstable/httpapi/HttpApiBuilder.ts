@@ -60,7 +60,7 @@ import * as OpenApi from "./OpenApi.ts"
  * @category constructors
  * @since 4.0.0
  */
-export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
+export const layer = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>,
   options?: {
     readonly openapiPath?: `/${string}` | undefined
@@ -119,7 +119,7 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Any>(
  */
 export const group = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   const Name extends HttpApiGroup.Name<Groups>,
   Return
 >(
@@ -170,12 +170,12 @@ export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpAp
  */
 export type HandlersTypeId = typeof HandlersTypeId
 
-type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
+type EndpointMap<Endpoints extends HttpApiEndpoint.Constraint> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
 }
 
 type HandlerRequirements<
-  Endpoint extends HttpApiEndpoint.Any,
+  Endpoint extends HttpApiEndpoint.Constraint,
   R1,
   R = HttpApiEndpoint.ExcludeProvided<
     Endpoint,
@@ -192,13 +192,13 @@ interface HandlerOptions {
 
 /** @internal */
 export interface HandlerItem {
-  readonly endpoint: HttpApiEndpoint.AnyWithProps
-  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
+  readonly endpoint: HttpApiEndpoint.Top
+  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>
   readonly isRaw: boolean
   readonly uninterruptible: boolean
 }
 
-type HandleAllEntry<Endpoint extends HttpApiEndpoint.Any> =
+type HandleAllEntry<Endpoint extends HttpApiEndpoint.Constraint> =
   | HttpApiEndpoint.Handler<
     Endpoint,
     HttpApiEndpoint.MiddlewareError<Endpoint>,
@@ -213,12 +213,12 @@ type HandleAllEntry<Endpoint extends HttpApiEndpoint.Any> =
     readonly options?: HandlerOptions | undefined
   }
 
-type HandleAllHandlers<EndpointsByName extends Record<string, HttpApiEndpoint.Any>> = {
+type HandleAllHandlers<EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>> = {
   readonly [Name in keyof EndpointsByName]?: HandleAllEntry<EndpointsByName[Name]>
 }
 
 type HandleAllExtraKeys<
-  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>,
   HandlersByName
 > = {
   readonly [Name in Exclude<keyof HandlersByName, keyof EndpointsByName>]: never
@@ -227,7 +227,7 @@ type HandleAllExtraKeys<
 type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
 
 type HandleAllRequirements<
-  EndpointsByName extends Record<string, HttpApiEndpoint.Any>,
+  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>,
   HandlersByName extends HandleAllHandlers<EndpointsByName>
 > = {
   readonly [Name in keyof HandlersByName & keyof EndpointsByName]: HandleAllEntryHandler<
@@ -270,14 +270,14 @@ type ValidateHandlersReturn<
  */
 export interface Handlers<
   R,
-  EndpointsByName extends Record<string, HttpApiEndpoint.Any> = {},
+  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint> = {},
   HandledNames extends keyof EndpointsByName = never
 > extends Pipeable {
   readonly [HandlersTypeId]: typeof HandlersTypeId
   readonly "~EndpointsByName": EndpointsByName
   readonly "~HandledNames": HandledNames
   /** @internal */
-  readonly group: HttpApiGroup.AnyWithProps
+  readonly group: HttpApiGroup.ConstraintWithProps
   /** @internal */
   readonly handlers: Map<string, HandlerItem>
 
@@ -347,7 +347,7 @@ export declare namespace Handlers {
    * @category handlers
    * @since 4.0.0
    */
-  export type FromGroup<Group extends HttpApiGroup.Any> = Handlers<
+  export type FromGroup<Group extends HttpApiGroup.Constraint> = Handlers<
     never,
     EndpointMap<HttpApiGroup.Endpoints<Group>>
   >
@@ -405,11 +405,11 @@ export declare namespace Handlers {
 }
 
 type EndpointReturn<
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   GroupName extends HttpApiGroup.Name<Groups>,
   EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
   R,
-  Endpoint extends HttpApiEndpoint.Any = HttpApiEndpoint.WithName<
+  Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithName<
     HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
     EndpointName
   >
@@ -441,7 +441,7 @@ type EndpointReturn<
  */
 export const endpoint = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   const GroupName extends HttpApiGroup.Name<Groups>,
   const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
   R
@@ -569,7 +569,7 @@ const basicLen = `Basic `.length
 const registerHandler = (
   self: Handlers<any, any, any>,
   name: string,
-  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
   isRaw: boolean,
   options?: HandlerOptions | undefined
 ) => {
@@ -591,7 +591,7 @@ const HandlersProto = {
   handle(
     this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     return registerHandler(this, name, handler, false, options)
@@ -600,8 +600,8 @@ const HandlersProto = {
     this: Handlers<any, any, any>,
     handlers: Record<
       string,
-      HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any> | {
-        readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>
+      HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any> | {
+        readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>
         readonly options?: HandlerOptions | undefined
       }
     >
@@ -617,14 +617,14 @@ const HandlersProto = {
   handleRaw(
     this: Handlers<any, any, any>,
     name: string,
-    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
+    handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
     return registerHandler(this, name, handler, true, options)
   }
 }
 
-const makeHandlers = <R, Group extends HttpApiGroup.Any>(
+const makeHandlers = <R, Group extends HttpApiGroup.Constraint>(
   group: Group
 ): Handlers<R, EndpointMap<HttpApiGroup.Endpoints<Group>>> => {
   const self = Object.create(HandlersProto)
@@ -726,10 +726,10 @@ function decodePayload(
 }
 
 function handlerToHttpEffect(
-  group: HttpApiGroup.AnyWithProps,
-  endpoint: HttpApiEndpoint.AnyWithProps,
+  group: HttpApiGroup.ConstraintWithProps,
+  endpoint: HttpApiEndpoint.Top,
   context: Context.Context<any>,
-  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Any, any, any>,
+  handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
   isRaw: boolean
 ) {
   const encodeSuccess = Schema.encodeUnknownEffect(makeSuccessSchema(endpoint))
@@ -797,7 +797,7 @@ function handlerToHttpEffect(
 
 /** @internal */
 export function handlerToRoute(
-  group: HttpApiGroup.AnyWithProps,
+  group: HttpApiGroup.ConstraintWithProps,
   handler: HandlerItem,
   context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
@@ -822,8 +822,8 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
 }
 
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
-  group: HttpApiGroup.AnyWithProps,
-  endpoint: HttpApiEndpoint.AnyWithProps,
+  group: HttpApiGroup.ConstraintWithProps,
+  endpoint: HttpApiEndpoint.Top,
   context: Context.Context<any>,
   handler: A
 ) => {
@@ -862,8 +862,8 @@ const makeSecurityMiddleware = (
   }
 
   const middleware = Effect.fnUntraced(function*(handler: Effect.Effect<any, any, any>, options: {
-    readonly group: HttpApiGroup.AnyWithProps
-    readonly endpoint: HttpApiEndpoint.AnyWithProps
+    readonly group: HttpApiGroup.ConstraintWithProps
+    readonly endpoint: HttpApiEndpoint.Top
   }) {
     handler = Effect.mapError(handler, (error) => new HandlerError(error))
     let lastResult: Result.Result<any, any> | undefined
@@ -907,7 +907,7 @@ type StreamEncoder = (response: unknown, context: Context.Context<never>) =>
   | Effect.Effect<HttpServerResponse, Schema.SchemaError, unknown>
   | undefined
 
-function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncoder | undefined {
+function makeStreamEncoder(endpoint: HttpApiEndpoint.Top): StreamEncoder | undefined {
   const streamSchema = getStreamSuccessSchema(endpoint)
   if (streamSchema === undefined) {
     return undefined
@@ -954,7 +954,7 @@ function makeStreamEncoder(endpoint: HttpApiEndpoint.AnyWithProps): StreamEncode
   }
 }
 
-function getStreamSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps) {
+function getStreamSuccessSchema(endpoint: HttpApiEndpoint.Top) {
   for (const schema of endpoint.success) {
     if (HttpApiSchema.isStreamSchema(schema)) {
       return schema
@@ -962,7 +962,7 @@ function getStreamSuccessSchema(endpoint: HttpApiEndpoint.AnyWithProps) {
   }
 }
 
-function hasBufferedSuccess(endpoint: HttpApiEndpoint.AnyWithProps): boolean {
+function hasBufferedSuccess(endpoint: HttpApiEndpoint.Top): boolean {
   for (const schema of endpoint.success) {
     if (Schema.isSchema(schema) && !HttpApiSchema.isStreamSchema(schema)) return true
   }
@@ -1033,14 +1033,14 @@ const toResponseSuccessSchema = toResponseSchema(HttpApiSchema.getStatusSuccess)
 const toResponseErrorSchema = toResponseSchema(HttpApiSchema.getStatusError)
 
 function makeSuccessSchema(
-  endpoint: HttpApiEndpoint.AnyWithProps
+  endpoint: HttpApiEndpoint.Top
 ): Schema.ConstraintEncoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getSuccessSchemas(endpoint).map(toResponseSuccessSchema)
   return schemas.length === 1 ? schemas[0] : Schema.Union(schemas)
 }
 
 function makeErrorSchema(
-  endpoint: HttpApiEndpoint.AnyWithProps
+  endpoint: HttpApiEndpoint.Top
 ): Schema.ConstraintEncoder<HttpServerResponse, unknown> {
   const schemas = HttpApiEndpoint.getErrorSchemas(endpoint).map(toResponseErrorSchema)
   if (schemas.length === 0) return Schema.Never

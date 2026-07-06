@@ -40,7 +40,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
  */
 export const groups = Effect.fnUntraced(function*<
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   const Names extends ReadonlyArray<HttpApiGroup.Name<Groups>>,
   SelectedGroups = HttpApiGroup.WithName<Groups, Names[number]>
 >(

@@ -28,12 +28,12 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
  * @category guards
  * @since 4.0.0
  */
-export const isHttpApiGroup = (u: unknown): u is Any => Predicate.hasProperty(u, TypeId)
+export const isHttpApiGroup = (u: unknown): u is Constraint => Predicate.hasProperty(u, TypeId)
 
 /**
  * Endpoints indexed by their name.
  */
-type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
+type EndpointMap<Endpoints extends HttpApiEndpoint.Constraint> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
 }
 
@@ -50,7 +50,7 @@ type EndpointMap<Endpoints extends HttpApiEndpoint.Any> = {
  */
 export interface HttpApiGroup<
   out Id extends string,
-  in out Endpoints extends HttpApiEndpoint.Any = never,
+  in out Endpoints extends HttpApiEndpoint.Constraint = never,
   out TopLevel extends boolean = false
 > extends Pipeable {
   new(_: never): {}
@@ -64,7 +64,7 @@ export interface HttpApiGroup<
   /**
    * Add an `HttpApiEndpoint` to an `HttpApiGroup`.
    */
-  add<const A extends NonEmptyReadonlyArray<HttpApiEndpoint.Any>>(
+  add<const A extends NonEmptyReadonlyArray<HttpApiEndpoint.Constraint>>(
     ...endpoints: A
   ): HttpApiGroup<Id, Endpoints | A[number], TopLevel>
 
@@ -139,11 +139,11 @@ export interface ApiGroup<ApiId extends string, Name extends string> {
  * @category models
  * @since 4.0.0
  */
-export interface Any {
+export interface Constraint {
   readonly [TypeId]: typeof TypeId
   readonly identifier: string
   readonly key: string
-  readonly endpoints: Record.ReadonlyRecord<string, HttpApiEndpoint.Any>
+  readonly endpoints: Record.ReadonlyRecord<string, HttpApiEndpoint.Constraint>
 }
 
 /**
@@ -153,7 +153,7 @@ export interface Any {
  * @category models
  * @since 4.0.0
  */
-export interface AnyWithProps extends HttpApiGroup<string, HttpApiEndpoint.AnyWithProps, boolean> {}
+export interface ConstraintWithProps extends HttpApiGroup<string, HttpApiEndpoint.Top, boolean> {}
 
 /**
  * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
@@ -179,7 +179,7 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * @category models
  * @since 4.0.0
  */
-export type Name<Group> = Group extends Any ? Group["identifier"] : never
+export type Name<Group> = Group extends Constraint ? Group["identifier"] : never
 
 /**
  * Extracts the endpoint union contained in an `HttpApiGroup`.
@@ -247,7 +247,7 @@ export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpo
  * @category models
  * @since 4.0.0
  */
-export type EndpointsWithName<Group extends Any, Name extends string> = Endpoints<WithName<Group, Name>>
+export type EndpointsWithName<Group extends Constraint, Name extends string> = Endpoints<WithName<Group, Name>>
 
 /**
  * Computes the schema encoding and decoding services required by clients for all endpoints in a group.
@@ -283,7 +283,7 @@ export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group ext
 
 const Proto = {
   [TypeId]: TypeId,
-  add(this: AnyWithProps, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.AnyWithProps>) {
+  add(this: ConstraintWithProps, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.Top>) {
     const endpoints = { ...this.endpoints }
     for (const endpoint of toAdd) {
       endpoints[endpoint.name] = endpoint
@@ -295,7 +295,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  prefix(this: AnyWithProps, prefix: PathInput) {
+  prefix(this: ConstraintWithProps, prefix: PathInput) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -303,7 +303,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  middleware(this: AnyWithProps, middleware: HttpApiMiddleware.AnyService) {
+  middleware(this: ConstraintWithProps, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -311,7 +311,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotateMerge<I>(this: AnyWithProps, annotations: Context.Context<I>) {
+  annotateMerge<I>(this: ConstraintWithProps, annotations: Context.Context<I>) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -319,7 +319,7 @@ const Proto = {
       annotations: Context.merge(this.annotations, annotations)
     })
   },
-  annotate<I, S>(this: AnyWithProps, annotation: Context.Key<I, S>, value: S) {
+  annotate<I, S>(this: ConstraintWithProps, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -327,7 +327,7 @@ const Proto = {
       annotations: Context.add(this.annotations, annotation, value)
     })
   },
-  annotateEndpointsMerge<I>(this: AnyWithProps, annotations: Context.Context<I>) {
+  annotateEndpointsMerge<I>(this: ConstraintWithProps, annotations: Context.Context<I>) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -335,7 +335,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotateEndpoints<I, S>(this: AnyWithProps, annotation: Context.Key<I, S>, value: S) {
+  annotateEndpoints<I, S>(this: ConstraintWithProps, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -350,7 +350,7 @@ const Proto = {
 
 const makeProto = <
   Id extends string,
-  Endpoints extends HttpApiEndpoint.Any,
+  Endpoints extends HttpApiEndpoint.Constraint,
   TopLevel extends (true | false)
 >(options: {
   readonly identifier: Id

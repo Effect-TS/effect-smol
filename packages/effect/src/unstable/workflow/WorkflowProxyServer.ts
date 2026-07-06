@@ -29,7 +29,7 @@ import type { WorkflowEngine } from "./WorkflowEngine.ts"
  */
 export const layerHttpApi = <
   ApiId extends string,
-  Groups extends HttpApiGroup.Any,
+  Groups extends HttpApiGroup.Constraint,
   Name extends HttpApiGroup.Name<Groups>,
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>
 >(
