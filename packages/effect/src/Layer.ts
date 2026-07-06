@@ -569,6 +569,10 @@ export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("
     this,
     makeMemoMapUnsafe
   )
+  static forkOrCreate<Services>(self: Context.Context<Services>): MemoMap {
+    const current = Context.getOrUndefined(self, CurrentMemoMap)
+    return current ? forkMemoMapUnsafe(current) : makeMemoMapUnsafe()
+  }
 }
 
 /**
@@ -677,7 +681,7 @@ export const build = <RIn, E, ROut>(
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      CurrentMemoMap.getOrCreate(fiber.context),
+      CurrentMemoMap.forkOrCreate(fiber.context),
       Context.getUnsafe(fiber.context, Scope.Scope)
     )
   )
@@ -739,7 +743,7 @@ export const buildWithScope: {
   core.withFiber((fiber) =>
     buildWithMemoMap(
       self,
-      CurrentMemoMap.getOrCreate(fiber.context),
+      CurrentMemoMap.forkOrCreate(fiber.context),
       scope
     )
   ))
