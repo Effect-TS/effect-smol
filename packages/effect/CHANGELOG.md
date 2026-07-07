@@ -1,5 +1,25 @@
 # effect
 
+## 4.0.0-beta.94
+
+### Patch Changes
+
+- [#2538](https://github.com/Effect-TS/effect-smol/pull/2538) [`95a0e9b`](https://github.com/Effect-TS/effect-smol/commit/95a0e9bb62797af0e81c9998773405f248f218c5) Thanks @tim-smart! - fork memo map on nested builds
+
+- [#2545](https://github.com/Effect-TS/effect-smol/pull/2545) [`a0a3490`](https://github.com/Effect-TS/effect-smol/commit/a0a3490bbce765f199d8e077aceac504f0462e63) Thanks @marbemac! - Use registration context for cluster entities
+
+- [#2524](https://github.com/Effect-TS/effect-smol/pull/2524) [`f11ce73`](https://github.com/Effect-TS/effect-smol/commit/f11ce73af60823754dc24194f4ffc561b9ea1c2d) Thanks @gcanti! - Fix `HttpApi.make` so it stores the API identifier and starts with an empty `groups` object instead of a `Map`. This makes empty APIs match the shape they have after groups are added.
+
+- [#2546](https://github.com/Effect-TS/effect-smol/pull/2546) [`ff30b6e`](https://github.com/Effect-TS/effect-smol/commit/ff30b6e7c2c63ffc56a4c5818d6d86b01b5ad528) Thanks @tim-smart! - Fix ClusterWorkflowEngine partial workflow clients colliding with full workflow clients.
+
+- [#2523](https://github.com/Effect-TS/effect-smol/pull/2523) [`1caab3c`](https://github.com/Effect-TS/effect-smol/commit/1caab3cc30f626efbf15e59d74f539a487e5c85c) Thanks @rajzik! - Add glob to filesystem
+
+- [#2541](https://github.com/Effect-TS/effect-smol/pull/2541) [`aa80c47`](https://github.com/Effect-TS/effect-smol/commit/aa80c4775a04db87553e5568764cab7e32a72814) Thanks @tim-smart! - add LayerRef module
+
+- [#2539](https://github.com/Effect-TS/effect-smol/pull/2539) [`c2ae4fc`](https://github.com/Effect-TS/effect-smol/commit/c2ae4fce2f03a4cd1861c2b1179da7df656e662d) Thanks @gcanti! - Schema: add `Schema.Decoder` and `Schema.Encoder`, and accept simpler schema types in APIs that only decode, only encode, or only need the basic schema shape, closes [#2536](https://github.com/Effect-TS/effect-smol/issues/2536)
+
+- [#2545](https://github.com/Effect-TS/effect-smol/pull/2545) [`a0a3490`](https://github.com/Effect-TS/effect-smol/commit/a0a3490bbce765f199d8e077aceac504f0462e63) Thanks @marbemac! - add Effect.setContext for fully replacing the fiber context
+
 ## 4.0.0-beta.93
 
 ### Patch Changes
