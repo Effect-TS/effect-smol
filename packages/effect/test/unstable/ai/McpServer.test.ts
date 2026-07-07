@@ -79,4 +79,31 @@ describe("McpServer", () => {
 
       strictEqual(response.status, 404)
     }))
+
+  it.effect("accepts string JSON-RPC request ids", () =>
+    Effect.gen(function*() {
+      const { httpClient } = yield* makeTestClient
+
+      const response = yield* HttpClientRequest.post("http://localhost/mcp").pipe(
+        HttpClientRequest.bodyJsonUnsafe({
+          jsonrpc: "2.0",
+          method: "initialize",
+          params: {
+            protocolVersion: "2025-06-18",
+            capabilities: {},
+            clientInfo: {
+              name: "TestClient",
+              version: "1.0.0"
+            }
+          },
+          id: "14f40ee1b859ee70"
+        }),
+        httpClient.execute
+      )
+      const body = yield* response.json
+
+      strictEqual(response.status, 200)
+      strictEqual((body as any).id, "14f40ee1b859ee70")
+      strictEqual((body as any).result.protocolVersion, "2025-06-18")
+    }))
 })

@@ -49,7 +49,13 @@ export type RequestId = Branded<bigint, "~effect/rpc/RpcMessage/RequestId">
  * @since 4.0.0
  */
 export const RequestId = (id: bigint | string): RequestId =>
-  typeof id === "bigint" ? id as RequestId : BigInt(id) as RequestId
+  typeof id === "bigint"
+    ? id as RequestId
+    : isNumericRequestId(id)
+    ? BigInt(id) as RequestId
+    : id as unknown as RequestId
+
+const isNumericRequestId = (id: string) => id === "0" || /^-?[1-9]\d*$/.test(id)
 
 /**
  * The transport-encoded RPC request envelope, including the string request id,
