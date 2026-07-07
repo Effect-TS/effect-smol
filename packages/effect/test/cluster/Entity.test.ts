@@ -21,20 +21,12 @@ describe.concurrent("Entity", () => {
         assert.deepEqual(user, new User({ id: 1, name: "User 1" }))
       }).pipe(Effect.provide(TestShardingConfig)))
 
-    // The entity's handler server is built once, on whichever fiber first wakes
-    // it. If that fiber's ambient context is merged into the build, a caller's
-    // request-scoped service is frozen into the server and observed by every
-    // later, unrelated request. The build must be a pure function of the
-    // registration context, not of the acquiring fiber.
     it.effect("does not freeze the acquiring fiber's context into the entity server", () =>
       Effect.gen(function*() {
         const makeClient = yield* Entity.makeTestClient(ContextBleedEntity, ContextBleedLayer)
 
-        // Acquiring the client builds the entity; do so from a fiber that
-        // provides CallerId = "A".
         const client = yield* makeClient("1").pipe(Effect.provideService(CallerId, "A"))
 
-        // A later request that provides no CallerId must not observe "A".
         const observed = yield* client.ReadCaller()
         assert.strictEqual(observed, "none")
       }).pipe(Effect.provide(TestShardingConfig)))

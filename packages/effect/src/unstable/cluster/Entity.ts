@@ -644,11 +644,6 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       entityId: entityId as EntityId,
       shardId: makeShardId(entityId)
     })
-    // Build the handlers + RpcServer under the registration context (plus
-    // per-entity additions), not the ambient context of the acquiring fiber, so
-    // a caller-scoped service is not frozen into the entity server.
-    // `updateContext` sets rather than merges onto the ambient (as
-    // `entityManager` does).
     const scope = yield* Effect.scope
     const handlerContext = Context.mutate(entityEntry.context, (context) =>
       context.pipe(
@@ -657,7 +652,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
         Context.add(Scope, scope)
       ))
     const handlers = yield* entityEntry.build.pipe(
-      Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>)
+      Effect.setContext(handlerContext as Context.Context<any>)
     )
 
     // oxlint-disable-next-line prefer-const
@@ -668,8 +663,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
         return client.write(response)
       }
     }).pipe(
-      Effect.provide(handlers),
-      Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>)
+      Effect.setContext(Context.merge(handlerContext, handlers))
     )
 
     client = yield* RpcClient.makeNoSerialization(entity.protocol, {

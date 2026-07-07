@@ -37,20 +37,12 @@ describe.concurrent("Sharding", () => {
       const makeClient = yield* ContextBleedEntity.client
       const client = makeClient("1")
 
-      // The first (volatile) request wakes and builds the entity inline on this
-      // fiber, which provides CallerId = "A".
       const first = yield* client.ReadCaller().pipe(Effect.provideService(CallerId, "A"))
       expect(first).toEqual("A")
 
-      // A later volatile request that provides no CallerId must not observe the
-      // "A" frozen into the server by the first request.
       const second = yield* client.ReadCaller()
       expect(second).toEqual("none")
 
-      // Neither must a later durable request. This is the scenario the bug
-      // actually harms: a persisted request (delivered on the storage-loop
-      // fiber) running against the scoped context of whoever first woke the
-      // entity.
       const durable = yield* client.ReadCallerPersisted()
       expect(durable).toEqual("none")
     }).pipe(Effect.provide(ContextBleedSharding)))
