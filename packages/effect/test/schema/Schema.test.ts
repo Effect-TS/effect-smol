@@ -1954,6 +1954,28 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       await encoding.succeed(new Date("2021-01-01T00:00:00.000Z"), "2021-01-01T00:00:00.000Z")
     })
 
+    it("DateFromMillis", async () => {
+      const schema = Schema.DateFromMillis
+      const asserts = new TestSchema.Asserts(schema)
+      if (verifyGeneration) {
+        asserts.arbitrary().verifyGeneration()
+      }
+
+      const decoding = asserts.decoding()
+      await decoding.succeed(0, new Date(0))
+      assertTrue(Schema.decodeSync(schema)(NaN) instanceof Date)
+      assertTrue(Schema.decodeSync(schema)(Infinity) instanceof Date)
+      assertTrue(Schema.decodeSync(schema)(-Infinity) instanceof Date)
+      await decoding.fail(null, `Expected number, got null`)
+
+      const encoding = asserts.encoding()
+      await encoding.succeed(new Date(0), 0)
+      strictEqual(Schema.encodeSync(schema)(new Date("invalid")), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(NaN)), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(Infinity)), NaN)
+      strictEqual(Schema.encodeSync(schema)(new Date(-Infinity)), NaN)
+    })
+
     it("FiniteFromString", async () => {
       const schema = Schema.FiniteFromString
       const asserts = new TestSchema.Asserts(schema)

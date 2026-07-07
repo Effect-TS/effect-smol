@@ -10451,6 +10451,8 @@ const DateString = String.annotate({ expected: "a string in ISO 8601 format that
  * ```
  *
  * @see {@link DateValid} for accepting only valid Date instances
+ * @see {@link DateFromString} for decoding strings into Date instances
+ * @see {@link DateFromMillis} for decoding epoch milliseconds into Date instances
  *
  * @category Date
  * @since 4.0.0
@@ -10510,6 +10512,8 @@ export interface DateFromString extends decodeTo<Date, String> {
  *
  * Invalid date strings can decode to invalid `Date` instances.
  *
+ * @see {@link DateFromMillis} for decoding epoch milliseconds into Date instances
+ * @see {@link DateTimeUtcFromString} for decoding date-time strings into UTC values
  * @see {@link Date} for accepting Date instances directly
  * @see {@link DateValid} for rejecting invalid Date instances
  *
@@ -10517,6 +10521,47 @@ export interface DateFromString extends decodeTo<Date, String> {
  * @since 3.10.0
  */
 export const DateFromString: DateFromString = DateString.pipe(decodeTo(Date, SchemaTransformation.dateFromString))
+
+/**
+ * Type-level representation of {@link DateFromMillis}.
+ *
+ * @category Date
+ * @since 4.0.0
+ */
+export interface DateFromMillis extends decodeTo<Date, Number> {
+  readonly "Rebuild": DateFromMillis
+}
+
+/**
+ * Schema that decodes epoch milliseconds into a JavaScript `Date`.
+ *
+ * **When to use**
+ *
+ * Use to model numeric millisecond timestamps that decode to JavaScript `Date`
+ * objects and encode back to numbers.
+ *
+ * **Details**
+ *
+ * Decoding:
+ * A number of milliseconds since the Unix epoch is decoded as a `Date`.
+ *
+ * Encoding:
+ * A `Date` is encoded as its millisecond timestamp.
+ *
+ * **Gotchas**
+ *
+ * This schema accepts any number, including `NaN`, `Infinity`, and `-Infinity`.
+ * Those values decode to invalid `Date` instances.
+ *
+ * @see {@link DateFromString} for decoding string-encoded dates
+ * @see {@link DateTimeUtcFromMillis} for decoding epoch milliseconds into UTC values
+ *
+ * @category Date
+ * @since 4.0.0
+ */
+export const DateFromMillis: DateFromMillis = Number.pipe(
+  decodeTo(Date, SchemaTransformation.dateFromMillis)
+)
 
 /**
  * Type-level representation of {@link DateValid}.
@@ -12064,6 +12109,10 @@ export interface DateTimeUtcFromString extends decodeTo<DateTimeUtc, String> {
  *
  * - A `DateTime.Utc` is encoded as a UTC ISO 8601 string.
  *
+ * @see {@link DateTimeUtcFromDate} for decoding JavaScript Date values into UTC values
+ * @see {@link DateTimeUtcFromMillis} for decoding epoch milliseconds into UTC values
+ * @see {@link DateFromString} for decoding strings into JavaScript Date instances
+ *
  * @category DateTime
  * @since 4.0.0
  */
@@ -12096,6 +12145,10 @@ export interface DateTimeUtcFromMillis extends decodeTo<instanceOf<DateTime.Utc>
  *
  * Encoding:
  * - A `DateTime.Utc` is encoded as a number of milliseconds since the Unix epoch.
+ *
+ * @see {@link DateTimeUtcFromDate} for decoding JavaScript Date values into UTC values
+ * @see {@link DateTimeUtcFromString} for decoding date-time strings into UTC values
+ * @see {@link DateFromMillis} for decoding epoch milliseconds into JavaScript Date instances
  *
  * @category DateTime
  * @since 4.0.0
