@@ -10,10 +10,8 @@ import * as Context from "../../Context.ts"
 import * as DateTime from "../../DateTime.ts"
 import * as Duration from "../../Duration.ts"
 import * as Effect from "../../Effect.ts"
-import * as Equal from "../../Equal.ts"
 import * as Exit from "../../Exit.ts"
 import * as Fiber from "../../Fiber.ts"
-import * as Hash from "../../Hash.ts"
 import * as Latch from "../../Latch.ts"
 import * as Layer from "../../Layer.ts"
 import * as Option from "../../Option.ts"
@@ -347,10 +345,9 @@ export const make = Effect.gen(function*() {
 
   const engine = WorkflowEngine.makeUnsafe({
     register: (workflow, execute) =>
-      Effect.suspend(() => {
-        const entity = ensureEntity(workflow)
-        const registerEntity = sharding.registerEntity(
-          entity,
+      Effect.suspend(() =>
+        sharding.registerEntity(
+          ensureEntity(workflow),
           Effect.gen(function*() {
             const address = yield* Entity.CurrentAddress
             const executionId = address.entityId
@@ -439,11 +436,8 @@ export const make = Effect.gen(function*() {
               resume: () => ensureSuccess(resume(workflow, executionId))
             }
           })
-        )
-        return RcMap.invalidate(clientsPartial, workflow._tag).pipe(
-          Effect.andThen(registerEntity)
         ) as Effect.Effect<void, never, Scope.Scope>
-      }),
+      ),
 
     execute: (workflow, { discard, executionId, parent, payload }) => {
       ensureEntity(workflow)
@@ -714,20 +708,12 @@ const makeWorkflowEntity = (workflow: Workflow.Any) =>
     ActivityRpc
   ]).annotateMerge(workflow.annotations)
 
-const makePartialWorkflowEntity = (workflowName: string) => {
-  const entity = Entity.make(`Workflow/${workflowName}`, [
+const makePartialWorkflowEntity = (workflowName: string) =>
+  Entity.make(`Workflow/${workflowName}`, [
     DeferredRpc,
     ResumeRpc,
     ActivityRpc
   ])
-  const hash = Hash.combine(Hash.string("partial"))(Hash.string(entity.type))
-  // Partial and full entities share the persisted address but need distinct client proxies.
-  Object.defineProperties(entity, {
-    [Equal.symbol]: { value: (that: Equal.Equal) => that === entity },
-    [Hash.symbol]: { value: () => hash }
-  })
-  return entity
-}
 
 const activityPrimaryKey = (activity: string, attempt: number) => `${activity}/${attempt}`
 

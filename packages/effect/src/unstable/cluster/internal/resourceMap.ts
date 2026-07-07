@@ -1,6 +1,7 @@
 import * as Context from "../../../Context.ts"
 import * as Deferred from "../../../Deferred.ts"
 import * as Effect from "../../../Effect.ts"
+import * as Equal from "../../../Equal.ts"
 import * as Exit from "../../../Exit.ts"
 import * as MutableHashMap from "../../../MutableHashMap.ts"
 import * as MutableRef from "../../../MutableRef.ts"
@@ -15,20 +16,25 @@ export class ResourceMap<K, A, E> {
     readonly deferred: Deferred.Deferred<A, E>
   }>
   readonly isClosed: MutableRef.MutableRef<boolean>
+  readonly referential: boolean
   constructor(
     lookup: (key: K, scope: Scope.Scope) => Effect.Effect<A, E>,
     entries: MutableHashMap.MutableHashMap<K, {
       readonly scope: Scope.Closeable
       readonly deferred: Deferred.Deferred<A, E>
     }>,
-    isClosed: MutableRef.MutableRef<boolean>
+    isClosed: MutableRef.MutableRef<boolean>,
+    referential: boolean
   ) {
     this.lookup = lookup
     this.entries = entries
     this.isClosed = isClosed
+    this.referential = referential
   }
 
-  static make = Effect.fnUntraced(function*<K, A, E, R>(lookup: (key: K) => Effect.Effect<A, E, R>) {
+  static make = Effect.fnUntraced(function*<K, A, E, R>(lookup: (key: K) => Effect.Effect<A, E, R>, options?: {
+    readonly referential?: boolean | undefined
+  }) {
     const scope = yield* Effect.scope
     const services = yield* Effect.context<R>()
     const isClosed = MutableRef.make(false)
@@ -52,11 +58,15 @@ export class ResourceMap<K, A, E> {
     return new ResourceMap(
       (key, scope) => Effect.provide(lookup(key), Context.add(services, Scope.Scope, scope)),
       entries,
-      isClosed
+      isClosed,
+      options?.referential ?? false
     )
   })
 
   get(key: K): Effect.Effect<A, E> {
+    if (this.referential) {
+      Equal.byReferenceUnsafe(key as object)
+    }
     return Effect.suspend(() => {
       if (MutableRef.get(this.isClosed)) {
         return Effect.interrupt
@@ -79,6 +89,9 @@ export class ResourceMap<K, A, E> {
   }
 
   remove(key: K): Effect.Effect<void> {
+    if (this.referential) {
+      Equal.byReferenceUnsafe(key as object)
+    }
     return Effect.suspend(() => {
       const entry = MutableHashMap.get(this.entries, key)
       if (Option.isNone(entry)) {
@@ -90,6 +103,9 @@ export class ResourceMap<K, A, E> {
   }
 
   removeIgnore(key: K): Effect.Effect<void> {
+    if (this.referential) {
+      Equal.byReferenceUnsafe(key as object)
+    }
     return Effect.catchCause(this.remove(key), (cause) =>
       Effect.annotateLogs(Effect.logDebug(cause), {
         module: "ResourceMap",
