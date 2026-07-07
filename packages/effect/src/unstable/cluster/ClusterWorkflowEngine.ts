@@ -133,6 +133,7 @@ export const make = Effect.gen(function*() {
       if (!entity) {
         return yield* Effect.die(`Workflow ${workflowName} not registered`)
       }
+      yield* RcMap.invalidate(clientsPartial, workflowName)
       return yield* entity.client
     }),
     idleTimeToLive: "5 minutes"
