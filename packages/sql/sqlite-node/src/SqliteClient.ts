@@ -4,7 +4,7 @@
  * This module opens a SQLite database and exposes it as both `SqliteClient` and
  * the generic Effect SQL client. It serializes access through one connection,
  * caches prepared statements, enables WAL mode unless disabled, and supports
- * database export, backup, and extension loading. Streaming queries and
+ * database backup, and extension loading. Streaming queries and
  * `updateValues` are not supported by this driver.
  *
  * @since 4.0.0
@@ -25,51 +25,10 @@ import * as Client from "effect/unstable/sql/SqlClient"
 import type { Connection } from "effect/unstable/sql/SqlConnection"
 import { classifySqliteError, SqlError } from "effect/unstable/sql/SqlError"
 import * as Statement from "effect/unstable/sql/Statement"
-import { mkdtempSync, readFileSync, rmSync } from "node:fs"
-import { tmpdir } from "node:os"
-import { join } from "node:path"
 import { backup as backupDatabase, DatabaseSync } from "node:sqlite"
 import type { StatementSync } from "node:sqlite"
 
 const ATTR_DB_SYSTEM_NAME = "db.system.name"
-
-const sqliteCauseWithErrno = (cause: unknown): unknown => {
-  if (typeof cause !== "object" || cause === null || !("errcode" in cause) || "errno" in cause) {
-    return cause
-  }
-  const errcode = (cause as { readonly errcode: unknown }).errcode
-  if (typeof errcode !== "number") {
-    return cause
-  }
-  return {
-    cause,
-    code: "code" in cause ? (cause as { readonly code: unknown }).code : undefined,
-    errno: errcode,
-    message: "message" in cause ? (cause as { readonly message: unknown }).message : undefined
-  }
-}
-
-const classifyError = (cause: unknown, message: string, operation: string) =>
-  classifySqliteError(sqliteCauseWithErrno(cause), { message, operation })
-
-const normalizeRows = (rows: ReadonlyArray<Record<string, unknown>>): ReadonlyArray<Record<string, unknown>> =>
-  rows.map((row) => ({ ...row }))
-
-const hasResultColumns = (statement: StatementSync): boolean => statement.columns().length > 0
-
-const exportDatabase = (db: DatabaseSync): Promise<Uint8Array> => {
-  const serialize = (db as { readonly serialize?: () => Uint8Array }).serialize
-  if (serialize !== undefined) {
-    return Promise.resolve(serialize.call(db))
-  }
-  return Promise.resolve().then(() => {
-    const directory = mkdtempSync(join(tmpdir(), "effect-sqlite-node-"))
-    const destination = join(directory, "export.db")
-    return backupDatabase(db, destination).then((): Uint8Array => readFileSync(destination)).finally(() => {
-      rmSync(directory, { recursive: true, force: true })
-    })
-  })
-}
 
 /**
  * Runtime type identifier used to mark Node `SqliteClient` values.
@@ -96,7 +55,6 @@ export type TypeId = "~@effect/sql-sqlite-node/SqliteClient"
 export interface SqliteClient extends Client.SqlClient {
   readonly [TypeId]: TypeId
   readonly config: SqliteClientConfig
-  readonly export: Effect.Effect<Uint8Array, SqlError>
   readonly backup: (destination: string) => Effect.Effect<BackupMetadata, SqlError>
   readonly loadExtension: (path: string) => Effect.Effect<void, SqlError>
 
@@ -142,7 +100,6 @@ export interface SqliteClientConfig {
 }
 
 interface SqliteConnection extends Connection {
-  readonly export: Effect.Effect<Uint8Array, SqlError>
   readonly backup: (destination: string) => Effect.Effect<BackupMetadata, SqlError>
   readonly loadExtension: (path: string) => Effect.Effect<void, SqlError>
 }
@@ -197,8 +154,8 @@ export const make = (
           return Effect.try({
             try: () => {
               statement.setReadBigInts(useSafeIntegers)
-              if (hasResultColumns(statement)) {
-                return normalizeRows(statement.all(...(params as Array<any>))) as ReadonlyArray<any>
+              if (statement.columns().length > 0) {
+                return statement.all(...(params as Array<any>)) as ReadonlyArray<any>
               }
               const result = statement.run(...(params as Array<any>))
               return raw ? { changes: result.changes, lastInsertRowid: result.lastInsertRowid } as any : []
@@ -216,7 +173,7 @@ export const make = (
           return Effect.try({
             try: () => {
               statement.setReadBigInts(useSafeIntegers)
-              if (hasResultColumns(statement)) {
+              if (statement.columns().length > 0) {
                 return statement.all(...(params as Array<any>)) as unknown as ReadonlyArray<ReadonlyArray<unknown>>
               }
               statement.run(...(params as Array<any>))
@@ -236,7 +193,7 @@ export const make = (
             try: () => {
               statement.setReadBigInts(useSafeIntegers)
               statement.setReturnArrays(true)
-              if (hasResultColumns(statement)) {
+              if (statement.columns().length > 0) {
                 return statement.all(...(params as Array<any>)) as unknown as ReadonlyArray<ReadonlyArray<unknown>>
               }
               statement.run(...(params as Array<any>))
@@ -262,11 +219,10 @@ export const make = (
       ) =>
         Effect.acquireUseRelease(
           Cache.get(prepareCache, sql),
-          (statement) =>
-            Effect.andThen(
-              Effect.sync(() => statement.setReturnArrays(true)),
-              runStatementValues(statement, params)
-            ),
+          (statement) => {
+            statement.setReturnArrays(true)
+            return runStatementValues(statement, params)
+          },
           (statement) => Effect.sync(() => statement.setReturnArrays(false))
         )
 
@@ -297,20 +253,18 @@ export const make = (
         executeStream(_sql, _params) {
           return Stream.die("executeStream not implemented")
         },
-        export: Effect.tryPromise({
-          try: () => exportDatabase(db),
-          catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to export database", "export") })
-        }),
         backup(destination) {
-          let totalPages = 0
-          return Effect.tryPromise({
-            try: () =>
-              backupDatabase(db, destination, {
-                progress: (progress) => {
-                  totalPages = progress.totalPages
-                }
-              }).then((pages): BackupMetadata => ({ totalPages: totalPages || pages, remainingPages: 0 })),
-            catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to backup database", "backup") })
+          return Effect.suspend(() => {
+            let totalPages = 0
+            return Effect.tryPromise({
+              try: () =>
+                backupDatabase(db, destination, {
+                  progress: (progress) => {
+                    totalPages = progress.totalPages
+                  }
+                }).then((pages): BackupMetadata => ({ totalPages: totalPages || pages, remainingPages: 0 })),
+              catch: (cause) => new SqlError({ reason: classifyError(cause, "Failed to backup database", "backup") })
+            })
           })
         },
         loadExtension(path) {
@@ -358,7 +312,6 @@ export const make = (
       {
         [TypeId]: TypeId as TypeId,
         config: options,
-        export: Effect.flatMap(acquirer, (_) => _.export),
         backup: (destination: string) => Effect.flatMap(acquirer, (_) => _.backup(destination)),
         loadExtension: (path: string) => Effect.flatMap(acquirer, (_) => _.loadExtension(path))
       }
@@ -400,3 +353,19 @@ export const layer = (
         Context.add(Client.SqlClient, client)
       ))
   ).pipe(Layer.provide(Reactivity.layer))
+
+// internal
+
+const classifyError = (cause: unknown, message: string, operation: string) =>
+  classifySqliteError(sqliteCauseWithErrno(cause), { message, operation })
+
+const sqliteCauseWithErrno = (cause: unknown): unknown => {
+  if (typeof cause !== "object" || cause === null || !("errcode" in cause) || "errno" in cause) {
+    return cause
+  }
+  const errcode = (cause as { readonly errcode: unknown }).errcode
+  if (typeof errcode !== "number") {
+    return cause
+  }
+  return Object.assign(cause, { errno: errcode })
+}
