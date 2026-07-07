@@ -177,9 +177,9 @@ interface HandlerOptions {
 }
 
 /** @internal */
-export interface HandlerItem {
+export interface HandlerRuntime {
   readonly endpoint: HttpApiEndpoint.Top
-  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>
+  readonly handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, unknown, unknown>
   readonly isRaw: boolean
   readonly uninterruptible: boolean
 }
@@ -265,7 +265,7 @@ export interface Handlers<
   /** @internal */
   readonly group: HttpApiGroup.Top
   /** @internal */
-  readonly handlers: Map<string, HandlerItem>
+  readonly handlers: Map<string, HandlerRuntime>
 
   /**
    * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
@@ -615,7 +615,7 @@ const makeHandlers = <R, Group extends HttpApiGroup.Constraint>(
 ): Handlers<R, EndpointMap<HttpApiGroup.Endpoints<Group>>> => {
   const self = Object.create(HandlersProto)
   self.group = group
-  self.handlers = new Map<string, HandlerItem>()
+  self.handlers = new Map<string, HandlerRuntime>()
   return self
 }
 
@@ -784,7 +784,7 @@ function handlerToHttpEffect(
 /** @internal */
 export function handlerToRoute(
   group: HttpApiGroup.Top,
-  handler: HandlerItem,
+  handler: HandlerRuntime,
   context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
   const endpoint = handler.endpoint

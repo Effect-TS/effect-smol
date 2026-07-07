@@ -72,7 +72,7 @@ group, and endpoint types.
 ### Builder Handler Types
 
 - `HttpApiBuilder.Handlers` now tracks endpoints through a name-keyed endpoint map and a set of handled names, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByName, HandledNames>`, and its phantom fields changed from `_Endpoints` to `~EndpointsByName` / `~HandledNames`.
-- The unused `HttpApiBuilder.Handlers.Any` helper type has been removed. The internal handler item shape moved from `HttpApiBuilder.Handlers.Item` to the `@internal` `HttpApiBuilder.HandlerItem` export.
+- The unused `HttpApiBuilder.Handlers.Any` helper type has been removed.
 - The exported `HttpApiBuilder.HandlersTypeId` symbol has been removed; `Handlers`
   now uses a private string type id.
 - Duplicate `handle` / `handleRaw` registrations for the same endpoint are no longer rejected at the call site. Missing endpoint handlers are still rejected by the final `HttpApiBuilder.group` return validation.
@@ -87,5 +87,6 @@ group, and endpoint types.
 
 - `HttpApiEndpoint.HttpApiEndpoint` now stores lightweight phantom metadata for middleware and request shapes: `~Middleware`, `~MiddlewareServices`, `~Request`, and `~RequestRaw`. Its type identifier field is now `readonly [TypeId]: typeof TypeId`.
 - `HttpApiEndpoint.Constraint` is now a lightweight structural endpoint constraint and does not extend `Pipeable`; values typed only as `HttpApiEndpoint.Constraint` do not expose `.pipe`.
+- `HttpApiEndpoint.AddError` has been removed; it was not used internally by the `HttpApi` implementation.
 - Endpoint helper types now read metadata fields directly instead of re-inferring all type parameters from the full `HttpApiEndpoint` interface. This affects helpers such as `Name`, `Success`, `Error`, `Params`, `Query`, `Payload`, `Headers`, `Middleware`, `MiddlewareServices`, `Errors`, `ErrorServicesEncode`, `ErrorServicesDecode`, `Request`, `RequestRaw`, `ServerServices`, and `ClientServices`.
 - `HttpApiClient.Client.Method` and related generated-client helpers now require endpoint types that satisfy `HttpApiEndpoint.ConstraintRequest`. Endpoint-like structural types must include the lightweight request metadata fields to be accepted.
