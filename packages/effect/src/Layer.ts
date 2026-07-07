@@ -565,10 +565,6 @@ export const forkMemoMap = (parent: MemoMap): Effect<MemoMap> => internalEffect.
  * @since 3.13.0
  */
 export class CurrentMemoMap extends Context.Service<CurrentMemoMap, MemoMap>()("effect/Layer/CurrentMemoMap") {
-  static getOrCreate: <Services>(self: Context.Context<Services>) => MemoMap = Context.getOrElse(
-    this,
-    makeMemoMapUnsafe
-  )
   static forkOrCreate<Services>(self: Context.Context<Services>): MemoMap {
     const current = Context.getOrUndefined(self, CurrentMemoMap)
     return current ? forkMemoMapUnsafe(current) : makeMemoMapUnsafe()

@@ -62,6 +62,12 @@ export interface LayerRef<in out I, in out E = never> {
    * Invalidates the cached context so the next use rebuilds the layer.
    */
   readonly invalidate: Effect.Effect<void>
+
+  /**
+   * Invalidates the cached context so the next use rebuilds the layer, and
+   * reacquires it.
+   */
+  readonly refresh: Effect.Effect<void, E>
 }
 
 /**
@@ -147,7 +153,7 @@ export const make = Effect.fnUntraced(
     Scope.Scope | R | SR
   > {
     const context = yield* Effect.context<never>()
-    const memoMap = Layer.CurrentMemoMap.getOrCreate(context)
+    const memoMap = Layer.CurrentMemoMap.forkOrCreate(context)
 
     const rcRef = yield* RcRef.make({
       acquire: Effect.contextWith((_: Context.Context<Scope.Scope>) =>
@@ -156,15 +162,18 @@ export const make = Effect.fnUntraced(
       idleTimeToLive: options?.idleTimeToLive
     })
 
+    const refresh = RcRef.invalidate(rcRef).pipe(
+      Effect.andThen(Effect.scoped(RcRef.get(rcRef))),
+      Effect.asVoid
+    )
+
     if (options?.preload) {
-      yield* Effect.scoped(RcRef.get(rcRef as RcRef.RcRef<Context.Context<I>>))
+      yield* refresh as Effect.Effect<void>
     }
 
     if (options?.invalidationSchedule) {
-      const refresh = options.preload
-        ? Effect.andThen(RcRef.invalidate(rcRef), Effect.scoped(RcRef.get(rcRef)))
-        : RcRef.invalidate(rcRef)
-      yield* refresh.pipe(
+      const onRefresh = options.preload ? refresh : RcRef.invalidate(rcRef)
+      yield* onRefresh.pipe(
         Effect.ignoreCause,
         Effect.schedule(options.invalidationSchedule),
         Effect.forkScoped
@@ -176,7 +185,8 @@ export const make = Effect.fnUntraced(
       rcRef,
       get: Layer.effectContext(RcRef.get(rcRef)),
       contextEffect: RcRef.get(rcRef),
-      invalidate: RcRef.invalidate(rcRef)
+      invalidate: RcRef.invalidate(rcRef),
+      refresh
     })
   }
 )
@@ -238,6 +248,11 @@ export interface TagClass<
    * Invalidates the cached context through this service.
    */
   readonly invalidate: Effect.Effect<void, never, Self>
+
+  /**
+   * Invalidates the cached context through this service, and reacquires it.
+   */
+  readonly refresh: Effect.Effect<void, E, Self>
 }
 
 /**
@@ -358,6 +373,7 @@ export const Service = <Self>() =>
   TagClass_.get = Layer.unwrap(TagClass_.useSync((ref) => ref.get))
   TagClass_.contextEffect = TagClass_.use((ref) => ref.contextEffect)
   TagClass_.invalidate = TagClass_.use((ref) => ref.invalidate)
+  TagClass_.refresh = TagClass_.use((ref) => ref.refresh)
 
   return TagClass as any
 }
