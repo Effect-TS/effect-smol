@@ -73,6 +73,8 @@ group, and endpoint types.
 
 - `HttpApiBuilder.Handlers` now tracks endpoints through a name-keyed endpoint map and a set of handled names, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByName, HandledNames>`, and its phantom fields changed from `_Endpoints` to `~EndpointsByName` / `~HandledNames`.
 - The unused `HttpApiBuilder.Handlers.Any` helper type has been removed. The internal handler item shape moved from `HttpApiBuilder.Handlers.Item` to the `@internal` `HttpApiBuilder.HandlerItem` export.
+- The exported `HttpApiBuilder.HandlersTypeId` symbol has been removed; `Handlers`
+  now uses a private string type id.
 - Duplicate `handle` / `handleRaw` registrations for the same endpoint are no longer rejected at the call site. Missing endpoint handlers are still rejected by the final `HttpApiBuilder.group` return validation.
 
 ### Client Types

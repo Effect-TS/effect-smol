@@ -154,21 +154,7 @@ export const group = <
     )
   })) as any
 
-/**
- * Type identifier symbol used to brand `Handlers` values.
- *
- * @category type IDs
- * @since 4.0.0
- */
-export const HandlersTypeId: unique symbol = Symbol.for("@effect/platform/HttpApiBuilder/Handlers")
-
-/**
- * Type of the `Handlers` type identifier symbol.
- *
- * @category type IDs
- * @since 4.0.0
- */
-export type HandlersTypeId = typeof HandlersTypeId
+const HandlersTypeId = "~effect/httpapi/HttpApiBuilder/Handlers"
 
 type EndpointMap<Endpoints extends HttpApiEndpoint.Constraint> = {
   readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
