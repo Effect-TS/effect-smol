@@ -44,16 +44,16 @@ group, and endpoint types.
 
 - Broad structural constraint exports have been renamed to align with
   `Schema.Constraint` terminology: `HttpApi.Any` to `HttpApi.Constraint`,
-  `HttpApi.AnyWithProps` to `HttpApi.ConstraintWithProps`, `HttpApiGroup.Any` to
-  `HttpApiGroup.Constraint`, `HttpApiGroup.AnyWithProps` to
-  `HttpApiGroup.ConstraintWithProps`, and `HttpApiEndpoint.Any` to
-  `HttpApiEndpoint.Constraint`.
+  `HttpApi.AnyWithProps` to `HttpApi.Top`, `HttpApiGroup.Any` to
+  `HttpApiGroup.Constraint`, `HttpApiGroup.AnyWithProps` to `HttpApiGroup.Top`,
+  and `HttpApiEndpoint.Any` to `HttpApiEndpoint.Constraint`.
 - `HttpApiEndpoint.AnyWithProps` has been replaced by `HttpApiEndpoint.Top`, whose
   schema parameters are constrained to `Schema.Top`, including success and error
   schemas.
-- Type guards now expose the renamed constraints: `HttpApi.isHttpApi` returns
-  `HttpApi.Constraint`, and `HttpApiGroup.isHttpApiGroup` returns
-  `HttpApiGroup.Constraint`.
+- Type guards now expose the widened runtime-prop shapes: `HttpApi.isHttpApi`
+  returns `HttpApi.Top`, `HttpApiGroup.isHttpApiGroup` returns
+  `HttpApiGroup.Top`, and `HttpApiEndpoint.isHttpApiEndpoint` returns
+  `HttpApiEndpoint.Top`.
 
 ### API And Group Maps
 

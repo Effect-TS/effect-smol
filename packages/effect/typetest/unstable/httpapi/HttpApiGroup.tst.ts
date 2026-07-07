@@ -3,6 +3,16 @@ import { HttpApiEndpoint, HttpApiGroup, HttpApiMiddleware } from "effect/unstabl
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiGroup", () => {
+  describe("isHttpApiGroup", () => {
+    it("narrows to Top", () => {
+      const value: unknown = HttpApiGroup.make("users")
+
+      if (HttpApiGroup.isHttpApiGroup(value)) {
+        expect(value).type.toBe<HttpApiGroup.Top>()
+      }
+    })
+  })
+
   describe("endpoints", () => {
     it("preserves endpoint types by name", () => {
       const User = Schema.Struct({

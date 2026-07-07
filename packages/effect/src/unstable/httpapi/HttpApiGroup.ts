@@ -28,7 +28,7 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
  * @category guards
  * @since 4.0.0
  */
-export const isHttpApiGroup = (u: unknown): u is Constraint => Predicate.hasProperty(u, TypeId)
+export const isHttpApiGroup = (u: unknown): u is Top => Predicate.hasProperty(u, TypeId)
 
 /**
  * Endpoints indexed by their name.
@@ -153,7 +153,7 @@ export interface Constraint {
  * @category models
  * @since 4.0.0
  */
-export interface ConstraintWithProps extends HttpApiGroup<string, HttpApiEndpoint.Top, boolean> {}
+export interface Top extends HttpApiGroup<string, HttpApiEndpoint.Top, boolean> {}
 
 /**
  * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
@@ -283,7 +283,7 @@ export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group ext
 
 const Proto = {
   [TypeId]: TypeId,
-  add(this: ConstraintWithProps, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.Top>) {
+  add(this: Top, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.Top>) {
     const endpoints = { ...this.endpoints }
     for (const endpoint of toAdd) {
       endpoints[endpoint.name] = endpoint
@@ -295,7 +295,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  prefix(this: ConstraintWithProps, prefix: PathInput) {
+  prefix(this: Top, prefix: PathInput) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -303,7 +303,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  middleware(this: ConstraintWithProps, middleware: HttpApiMiddleware.AnyService) {
+  middleware(this: Top, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -311,7 +311,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotateMerge<I>(this: ConstraintWithProps, annotations: Context.Context<I>) {
+  annotateMerge<I>(this: Top, annotations: Context.Context<I>) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -319,7 +319,7 @@ const Proto = {
       annotations: Context.merge(this.annotations, annotations)
     })
   },
-  annotate<I, S>(this: ConstraintWithProps, annotation: Context.Key<I, S>, value: S) {
+  annotate<I, S>(this: Top, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -327,7 +327,7 @@ const Proto = {
       annotations: Context.add(this.annotations, annotation, value)
     })
   },
-  annotateEndpointsMerge<I>(this: ConstraintWithProps, annotations: Context.Context<I>) {
+  annotateEndpointsMerge<I>(this: Top, annotations: Context.Context<I>) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,
@@ -335,7 +335,7 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  annotateEndpoints<I, S>(this: ConstraintWithProps, annotation: Context.Key<I, S>, value: S) {
+  annotateEndpoints<I, S>(this: Top, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
       identifier: this.identifier,
       topLevel: this.topLevel,

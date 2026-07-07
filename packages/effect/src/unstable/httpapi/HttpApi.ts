@@ -30,7 +30,7 @@ const TypeId = "~effect/httpapi/HttpApi"
  * @category guards
  * @since 4.0.0
  */
-export const isHttpApi = (u: unknown): u is Constraint => Predicate.hasProperty(u, TypeId)
+export const isHttpApi = (u: unknown): u is Top => Predicate.hasProperty(u, TypeId)
 
 /**
  * Groups indexed by their identifier.
@@ -66,7 +66,7 @@ export interface HttpApi<
   readonly annotations: Context.Context<never>
 
   /** @internal */
-  groupsRecord(): Record.ReadonlyRecord<string, HttpApiGroup.ConstraintWithProps>
+  groupsRecord(): Record.ReadonlyRecord<string, HttpApiGroup.Top>
 
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
@@ -124,19 +124,19 @@ export interface Constraint {
  * @category models
  * @since 4.0.0
  */
-export interface ConstraintWithProps extends HttpApi<string, HttpApiGroup.ConstraintWithProps> {}
+export interface Top extends HttpApi<string, HttpApiGroup.Top> {}
 
 const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
   },
-  groupsRecord(this: ConstraintWithProps) {
+  groupsRecord(this: Top) {
     return this.groups
   },
   add(
-    this: ConstraintWithProps,
-    ...toAdd: NonEmptyReadonlyArray<HttpApiGroup.ConstraintWithProps>
+    this: Top,
+    ...toAdd: NonEmptyReadonlyArray<HttpApiGroup.Top>
   ) {
     const groups = { ...this.groups }
     for (const group of toAdd) {
@@ -149,12 +149,12 @@ const Proto = {
     })
   },
   addHttpApi(
-    this: ConstraintWithProps,
-    api: ConstraintWithProps
+    this: Top,
+    api: Top
   ) {
     const newGroups = { ...this.groups }
     for (const key in api.groups) {
-      const newGroup: Mutable<HttpApiGroup.ConstraintWithProps> = api.groups[key]
+      const newGroup: Mutable<HttpApiGroup.Top> = api.groups[key]
       newGroup.annotations = Context.merge(api.annotations, newGroup.annotations)
       newGroups[key] = newGroup as any
     }
@@ -164,28 +164,28 @@ const Proto = {
       annotations: this.annotations
     })
   },
-  prefix(this: ConstraintWithProps, prefix: PathInput) {
+  prefix(this: Top, prefix: PathInput) {
     return makeProto({
       identifier: this.identifier,
       groups: Record.map(this.groups, (group) => group.prefix(prefix)),
       annotations: this.annotations
     })
   },
-  middleware(this: ConstraintWithProps, tag: HttpApiMiddleware.AnyService) {
+  middleware(this: Top, tag: HttpApiMiddleware.AnyService) {
     return makeProto({
       identifier: this.identifier,
       groups: Record.map(this.groups, (group) => group.middleware(tag as any)),
       annotations: this.annotations
     })
   },
-  annotate(this: ConstraintWithProps, key: Context.Key<any, any>, value: any) {
+  annotate(this: Top, key: Context.Key<any, any>, value: any) {
     return makeProto({
       identifier: this.identifier,
       groups: this.groups,
       annotations: Context.add(this.annotations, key, value)
     })
   },
-  annotateMerge(this: ConstraintWithProps, annotations: Context.Context<never>) {
+  annotateMerge(this: Top, annotations: Context.Context<never>) {
     return makeProto({
       identifier: this.identifier,
       groups: this.groups,
@@ -242,15 +242,15 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Constrain
     readonly predicate?:
       | Predicate.Predicate<{
         readonly endpoint: HttpApiEndpoint.Top
-        readonly group: HttpApiGroup.ConstraintWithProps
+        readonly group: HttpApiGroup.Top
       }>
       | undefined
     readonly onGroup: (options: {
-      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly group: HttpApiGroup.Top
       readonly mergedAnnotations: Context.Context<never>
     }) => void
     readonly onEndpoint: (options: {
-      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly group: HttpApiGroup.Top
       readonly endpoint: HttpApiEndpoint.Top
       readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
@@ -259,7 +259,7 @@ export const reflect = <Id extends string, Groups extends HttpApiGroup.Constrain
     }) => void
   }
 ) => {
-  const groups = Object.values(self.groups) as any as Array<HttpApiGroup.ConstraintWithProps>
+  const groups = Object.values(self.groups) as any as Array<HttpApiGroup.Top>
   for (const group of groups) {
     const groupAnnotations = Context.merge(self.annotations, group.annotations)
     options.onGroup({

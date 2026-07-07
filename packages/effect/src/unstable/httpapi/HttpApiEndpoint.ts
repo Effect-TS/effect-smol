@@ -40,7 +40,7 @@ const TypeId = "~effect/httpapi/HttpApiEndpoint"
  * @category guards
  * @since 4.0.0
  */
-export const isHttpApiEndpoint = (u: unknown): u is HttpApiEndpoint<any, any, any> => Predicate.hasProperty(u, TypeId)
+export const isHttpApiEndpoint = (u: unknown): u is Top => Predicate.hasProperty(u, TypeId)
 
 /**
  * Maps content types to the payload encoding strategy and one or more schemas that
@@ -107,7 +107,7 @@ type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType>
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.ConstraintWithProps
+    readonly group: HttpApiGroup.Top
   }
 
 type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
@@ -117,7 +117,7 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
-    readonly group: HttpApiGroup.ConstraintWithProps
+    readonly group: HttpApiGroup.Top
   }
 
 /**

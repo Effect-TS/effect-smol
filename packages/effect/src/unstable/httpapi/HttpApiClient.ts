@@ -257,14 +257,14 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly predicate?: Predicate.Predicate<{
       readonly endpoint: HttpApiEndpoint.Top
-      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly group: HttpApiGroup.Top
     }>
     readonly onGroup?: (options: {
-      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly group: HttpApiGroup.Top
       readonly mergedAnnotations: Context.Context<never>
     }) => void
     readonly onEndpoint: (options: {
-      readonly group: HttpApiGroup.ConstraintWithProps
+      readonly group: HttpApiGroup.Top
       readonly endpoint: HttpApiEndpoint.Top
       readonly mergedAnnotations: Context.Context<never>
       readonly middleware: ReadonlySet<HttpApiMiddleware.AnyService>
@@ -290,7 +290,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
     )
 
     function executeMiddleware(
-      group: HttpApiGroup.ConstraintWithProps,
+      group: HttpApiGroup.Top,
       endpoint: HttpApiEndpoint.Top,
       request: HttpClientRequest.HttpClientRequest,
       middlewareKeys: ReadonlyArray<string>,
@@ -643,7 +643,7 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
 }): UrlBuilder<Api> => {
   const builder: Record<string, any> = {}
 
-  HttpApi.reflect(api as unknown as HttpApi.ConstraintWithProps, {
+  HttpApi.reflect(api as unknown as HttpApi.Top, {
     onGroup({ group }) {
       if (group.topLevel) return
       builder[group.identifier] = {}

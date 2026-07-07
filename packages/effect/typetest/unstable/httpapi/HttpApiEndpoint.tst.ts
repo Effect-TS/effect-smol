@@ -4,6 +4,16 @@ import { HttpApiEndpoint, HttpApiError, HttpApiMiddleware, HttpApiSchema } from 
 import { describe, expect, it } from "tstyche"
 
 describe("HttpApiEndpoint", () => {
+  describe("isHttpApiEndpoint", () => {
+    it("narrows to Top", () => {
+      const value: unknown = HttpApiEndpoint.get("a", "/a")
+
+      if (HttpApiEndpoint.isHttpApiEndpoint(value)) {
+        expect(value).type.toBe<HttpApiEndpoint.Top>()
+      }
+    })
+  })
+
   describe("Name", () => {
     it("should extract endpoint names", () => {
       const a = HttpApiEndpoint.get("a", "/a")

@@ -277,7 +277,7 @@ export interface Handlers<
   readonly "~EndpointsByName": EndpointsByName
   readonly "~HandledNames": HandledNames
   /** @internal */
-  readonly group: HttpApiGroup.ConstraintWithProps
+  readonly group: HttpApiGroup.Top
   /** @internal */
   readonly handlers: Map<string, HandlerItem>
 
@@ -726,7 +726,7 @@ function decodePayload(
 }
 
 function handlerToHttpEffect(
-  group: HttpApiGroup.ConstraintWithProps,
+  group: HttpApiGroup.Top,
   endpoint: HttpApiEndpoint.Top,
   context: Context.Context<any>,
   handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
@@ -797,7 +797,7 @@ function handlerToHttpEffect(
 
 /** @internal */
 export function handlerToRoute(
-  group: HttpApiGroup.ConstraintWithProps,
+  group: HttpApiGroup.Top,
   handler: HandlerItem,
   context: Context.Context<any>
 ): HttpRouter.Route<any, any> {
@@ -822,7 +822,7 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
 }
 
 const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
-  group: HttpApiGroup.ConstraintWithProps,
+  group: HttpApiGroup.Top,
   endpoint: HttpApiEndpoint.Top,
   context: Context.Context<any>,
   handler: A
@@ -862,7 +862,7 @@ const makeSecurityMiddleware = (
   }
 
   const middleware = Effect.fnUntraced(function*(handler: Effect.Effect<any, any, any>, options: {
-    readonly group: HttpApiGroup.ConstraintWithProps
+    readonly group: HttpApiGroup.Top
     readonly endpoint: HttpApiEndpoint.Top
   }) {
     handler = Effect.mapError(handler, (error) => new HandlerError(error))
