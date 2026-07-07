@@ -94,7 +94,7 @@ type ExtractStreamSuccess<S extends SuccessConstraint> = ExtractSuccessOrArray<S
 
 type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ?
   ExtractStreamSuccess<S>
-  : Json<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
+  : CodecJson<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
 
 type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
   & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
@@ -697,20 +697,19 @@ export type ExcludeProvided<Endpoint extends Constraint, R> = Exclude<
  * @category models
  * @since 4.0.0
  */
-export type AddPrefix<Endpoint extends Constraint, Prefix extends HttpRouter.PathInput> = Endpoint extends
-  HttpApiEndpoint<
-    infer _Name,
-    infer _Method,
-    infer _Path,
-    infer _Params,
-    infer _Query,
-    infer _Payload,
-    infer _Headers,
-    infer _Success,
-    infer _Error,
-    infer _M,
-    infer _MR
-  > ? HttpApiEndpoint<
+export type AddPrefix<Endpoint, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? HttpApiEndpoint<
     _Name,
     _Method,
     `${Prefix}${_Path}`,
@@ -732,20 +731,19 @@ export type AddPrefix<Endpoint extends Constraint, Prefix extends HttpRouter.Pat
  * @category models
  * @since 4.0.0
  */
-export type AddMiddleware<Endpoint extends Constraint, M extends HttpApiMiddleware.AnyId> = Endpoint extends
-  HttpApiEndpoint<
-    infer _Name,
-    infer _Method,
-    infer _Path,
-    infer _Params,
-    infer _Query,
-    infer _Payload,
-    infer _Headers,
-    infer _Success,
-    infer _Error,
-    infer _M,
-    infer _MR
-  > ? HttpApiEndpoint<
+export type AddMiddleware<Endpoint, M extends HttpApiMiddleware.AnyId> = Endpoint extends HttpApiEndpoint<
+  infer _Name,
+  infer _Method,
+  infer _Path,
+  infer _Params,
+  infer _Query,
+  infer _Payload,
+  infer _Headers,
+  infer _Success,
+  infer _Error,
+  infer _M,
+  infer _MR
+> ? HttpApiEndpoint<
     _Name,
     _Method,
     _Path,
@@ -953,13 +951,13 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Name,
     Method,
     Path,
-    StringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
-    StringTree<Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query>,
-    Method extends HttpMethod.WithBody ? Json<ExtractSchemaOrArray<Payload>>
-      : StringTree<ExtractSchemaOrArray<Payload>>,
-    StringTree<Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers>,
+    CodecStringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
+    CodecStringTree<Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query>,
+    Method extends HttpMethod.WithBody ? CodecJson<ExtractSchemaOrArray<Payload>>
+      : CodecStringTree<ExtractSchemaOrArray<Payload>>,
+    CodecStringTree<Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers>,
     JsonSuccessOrArray<Success>,
-    Json<Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error>
+    CodecJson<Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error>
   >
   <
     const Name extends string,
@@ -1057,7 +1055,7 @@ type ExtractSchemaOrArray<S extends Schema.Struct.Fields | Schema.Constraint | R
  * @category Codecs
  * @since 4.0.0
  */
-export interface Json<S extends Schema.Constraint>
+export interface CodecJson<S extends Schema.Constraint>
   extends Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
 {}
 
@@ -1068,7 +1066,7 @@ export interface Json<S extends Schema.Constraint>
  * @category Codecs
  * @since 4.0.0
  */
-export interface StringTree<S extends Schema.Constraint> extends
+export interface CodecStringTree<S extends Schema.Constraint> extends
   Schema.Codec<
     S["Type"],
     Schema.StringTree,

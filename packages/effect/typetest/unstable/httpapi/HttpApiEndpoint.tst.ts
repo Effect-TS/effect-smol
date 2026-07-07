@@ -28,7 +28,7 @@ describe("HttpApiEndpoint", () => {
   describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Params"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Params"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -38,7 +38,7 @@ describe("HttpApiEndpoint", () => {
         }
       })
       expect(endpoint["~Params"]).type.toBe<
-        HttpApiEndpoint.StringTree<
+        HttpApiEndpoint.CodecStringTree<
           Schema.Struct<{ id: Schema.Finite }>
         >
       >()
@@ -49,7 +49,7 @@ describe("HttpApiEndpoint", () => {
         params: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
       expect(endpoint["~Params"]).type.toBe<
-        HttpApiEndpoint.StringTree<
+        HttpApiEndpoint.CodecStringTree<
           Schema.Struct<{ readonly a: Schema.Finite; readonly b: Schema.Finite }>
         >
       >()
@@ -59,7 +59,7 @@ describe("HttpApiEndpoint", () => {
   describe("query option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -68,7 +68,7 @@ describe("HttpApiEndpoint", () => {
           id: Schema.Finite
         }
       })
-      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.CodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
     })
 
     it("should accept a Struct.Record", () => {
@@ -76,7 +76,7 @@ describe("HttpApiEndpoint", () => {
         query: Struct.Record(["a", "b"], Schema.Finite)
       })
       expect(endpoint["~Query"]).type.toBe<
-        HttpApiEndpoint.StringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>
+        HttpApiEndpoint.CodecStringTree<Schema.Struct<{ a: Schema.Finite; b: Schema.Finite }>>
       >()
     })
 
@@ -85,7 +85,7 @@ describe("HttpApiEndpoint", () => {
         query: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
       expect(endpoint["~Query"]).type.toBe<
-        HttpApiEndpoint.StringTree<
+        HttpApiEndpoint.CodecStringTree<
           Schema.Struct<{ readonly a: Schema.Finite; readonly b: Schema.Finite }>
         >
       >()
@@ -95,7 +95,7 @@ describe("HttpApiEndpoint", () => {
   describe("headers option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Headers"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Headers"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
     })
 
     it("should accept a record of fields", () => {
@@ -105,7 +105,7 @@ describe("HttpApiEndpoint", () => {
         }
       })
       expect(endpoint["~Headers"]).type.toBe<
-        HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>
+        HttpApiEndpoint.CodecStringTree<Schema.Struct<{ id: Schema.FiniteFromString }>>
       >()
     })
 
@@ -114,7 +114,7 @@ describe("HttpApiEndpoint", () => {
         headers: Schema.Struct({ a: Schema.FiniteFromString, b: Schema.FiniteFromString })
       })
       expect(endpoint["~Headers"]).type.toBe<
-        HttpApiEndpoint.StringTree<
+        HttpApiEndpoint.CodecStringTree<
           Schema.Struct<{ readonly a: Schema.FiniteFromString; readonly b: Schema.FiniteFromString }>
         >
       >()
@@ -124,7 +124,7 @@ describe("HttpApiEndpoint", () => {
   describe("payload option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<never>>()
+      expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
     })
 
     describe("GET", () => {
@@ -134,7 +134,7 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.CodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
@@ -149,7 +149,9 @@ describe("HttpApiEndpoint", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: Schema.Struct({ a: Schema.String })
         })
-        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
+        expect(endpoint["~Payload"]).type.toBe<
+          HttpApiEndpoint.CodecJson<Schema.Struct<{ readonly a: Schema.String }>>
+        >()
       })
 
       it("should accept an array of schemas", () => {
@@ -161,7 +163,7 @@ describe("HttpApiEndpoint", () => {
           ]
         })
         expect(endpoint["~Payload"]).type.toBe<
-          HttpApiEndpoint.Json<
+          HttpApiEndpoint.CodecJson<
             Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array
           >
         >()
@@ -175,7 +177,7 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.CodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
@@ -192,7 +194,7 @@ describe("HttpApiEndpoint", () => {
             id: Schema.Finite
           }
         })
-        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.StringTree<Schema.Struct<{ id: Schema.Finite }>>>()
+        expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.CodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
       it("should not accept any other schema", () => {
@@ -296,14 +298,14 @@ describe("HttpApiEndpoint", () => {
   describe("success option", () => {
     it("should default to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.Json<typeof HttpApiSchema.NoContent>>()
+      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.CodecJson<typeof HttpApiSchema.NoContent>>()
     })
 
     it("should accept a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.Struct({ a: Schema.String })
       })
-      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.Json<Schema.Struct<{ readonly a: Schema.String }>>>()
+      expect(endpoint["~Success"]).type.toBe<HttpApiEndpoint.CodecJson<Schema.Struct<{ readonly a: Schema.String }>>>()
     })
 
     it("should accept an array of schemas", () => {
@@ -315,7 +317,7 @@ describe("HttpApiEndpoint", () => {
         ]
       })
       expect(endpoint["~Success"]).type.toBe<
-        HttpApiEndpoint.Json<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
+        HttpApiEndpoint.CodecJson<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
       >()
     })
 
@@ -476,7 +478,7 @@ describe("HttpApiEndpoint", () => {
         error: Schema.Struct({ a: Schema.String })
       })
       expect(endpoint["~Error"]).type.toBe<
-        HttpApiEndpoint.Json<
+        HttpApiEndpoint.CodecJson<
           Schema.Struct<{ readonly a: Schema.String }>
         >
       >()
@@ -491,7 +493,7 @@ describe("HttpApiEndpoint", () => {
         ]
       })
       expect(endpoint["~Error"]).type.toBe<
-        HttpApiEndpoint.Json<
+        HttpApiEndpoint.CodecJson<
           | Schema.String
           | Schema.Struct<{ readonly a: Schema.String }>
           | Schema.Uint8Array
