@@ -21,6 +21,7 @@ import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
 import * as AST from "../../SchemaAST.ts"
 import type * as Stream from "../../Stream.ts"
+import type { Simplify } from "../../Struct.ts"
 import type * as Types from "../../Types.ts"
 import type { HttpMethod } from "../http/HttpMethod.ts"
 import * as HttpRouter from "../http/HttpRouter.ts"
@@ -97,13 +98,13 @@ type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S
   : CodecJson<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
 
 type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
-  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
-  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
+  & ([ParamsType] extends [never] ? {} : { readonly params: Simplify<ParamsType> })
+  & ([QueryType] extends [never] ? {} : { readonly query: Simplify<QueryType> })
   & ([PayloadType] extends [never] ? {}
     : PayloadType extends Brand<HttpApiSchema.MultipartStreamTypeId> ?
       { readonly payload: Stream.Stream<Multipart.Part, Multipart.MultipartError> }
-    : { readonly payload: PayloadType })
-  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+    : { readonly payload: Simplify<PayloadType> })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: Simplify<HeadersType> })
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
@@ -111,9 +112,9 @@ type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType>
   }
 
 type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
-  & ([ParamsType] extends [never] ? {} : { readonly params: ParamsType })
-  & ([QueryType] extends [never] ? {} : { readonly query: QueryType })
-  & ([HeadersType] extends [never] ? {} : { readonly headers: HeadersType })
+  & ([ParamsType] extends [never] ? {} : { readonly params: Simplify<ParamsType> })
+  & ([QueryType] extends [never] ? {} : { readonly query: Simplify<QueryType> })
+  & ([HeadersType] extends [never] ? {} : { readonly headers: Simplify<HeadersType> })
   & {
     readonly request: HttpServerRequest
     readonly endpoint: Endpoint
@@ -558,7 +559,7 @@ export type ErrorServicesDecode<Endpoint> = Endpoint extends ConstraintRequest ?
  * @since 4.0.0
  */
 export type Handler<Endpoint extends Constraint, E, R> = (
-  request: Types.Simplify<Endpoint["~Request"]>
+  request: Simplify<Endpoint["~Request"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
@@ -569,7 +570,7 @@ export type Handler<Endpoint extends Constraint, E, R> = (
  * @since 4.0.0
  */
 export type HandlerRaw<Endpoint extends Constraint, E, R> = (
-  request: Types.Simplify<Endpoint["~RequestRaw"]>
+  request: Simplify<Endpoint["~RequestRaw"]>
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**

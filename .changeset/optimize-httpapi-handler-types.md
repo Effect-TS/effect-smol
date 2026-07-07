@@ -19,21 +19,21 @@ follows:
 
 | endpoints |        before |     after |
 | --------: | ------------: | --------: |
-|        10 |        32,523 |     9,054 |
-|        50 |       560,763 |    63,254 |
-|       100 |     2,139,063 |   185,004 |
-|       500 | OOM / SIGKILL | 3,319,004 |
+|        10 |        32,523 |     8,473 |
+|        50 |       560,763 |    60,313 |
+|       100 |     2,139,063 |   179,113 |
+|       500 | OOM / SIGKILL | 3,289,513 |
 
 For complete handler registration, the new `handleAll` API is measured against
 the equivalent fluent `handle` chain on the same endpoint set:
 
 | fixture                      | fluent chain | `handleAll` |
 | ---------------------------- | -----------: | ----------: |
-| handlers, 10 eps             |        9,054 |       6,675 |
-| handlers, 50 eps             |       63,254 |      25,395 |
-| handlers, 100 eps            |      185,004 |      48,795 |
-| handlers, 500 eps            |    3,319,004 |     235,995 |
-| two handler batches, 500 eps |    3,319,004 |     253,657 |
+| handlers, 10 eps             |        8,473 |       6,154 |
+| handlers, 50 eps             |       60,313 |      22,754 |
+| handlers, 100 eps            |      179,113 |      43,504 |
+| handlers, 500 eps            |    3,289,513 |     209,504 |
+| two handler batches, 500 eps |    3,289,513 |     227,166 |
 
 ## Breaking Changes
 
@@ -89,5 +89,7 @@ group, and endpoint types.
 - `HttpApiEndpoint.Constraint` is now a lightweight structural endpoint constraint and does not extend `Pipeable`; values typed only as `HttpApiEndpoint.Constraint` do not expose `.pipe`.
 - `HttpApiEndpoint.AddError` has been removed; it was not used internally by the `HttpApi` implementation.
 - `HttpApiEndpoint.Json` and `HttpApiEndpoint.StringTree` have been renamed to `HttpApiEndpoint.CodecJson` and `HttpApiEndpoint.CodecStringTree`.
+- Handler request parts are now flattened with `Struct.Simplify`, improving
+  displayed request types while reducing handler instantiations.
 - Endpoint helper types now read metadata fields directly instead of re-inferring all type parameters from the full `HttpApiEndpoint` interface. This affects helpers such as `Name`, `Success`, `Error`, `Params`, `Query`, `Payload`, `Headers`, `Middleware`, `MiddlewareServices`, `Errors`, `ErrorServicesEncode`, `ErrorServicesDecode`, `Request`, `RequestRaw`, `ServerServices`, and `ClientServices`.
 - `HttpApiClient.Client.Method` and related generated-client helpers now require endpoint types that satisfy `HttpApiEndpoint.ConstraintRequest`. Endpoint-like structural types must include the lightweight request metadata fields to be accepted.
