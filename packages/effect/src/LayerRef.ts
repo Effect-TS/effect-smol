@@ -161,7 +161,7 @@ export const make = Effect.fnUntraced(
     }
 
     if (options?.invalidationSchedule) {
-      const refresh = options.invalidationSchedule
+      const refresh = options.preload
         ? Effect.andThen(RcRef.invalidate(rcRef), Effect.scoped(RcRef.get(rcRef)))
         : RcRef.invalidate(rcRef)
       yield* refresh.pipe(
