@@ -314,7 +314,9 @@ export interface Top extends
     Schema.Top,
     Schema.Top,
     Schema.Top,
-    Schema.Top
+    Schema.Top,
+    any,
+    unknown
   >
 {}
 
