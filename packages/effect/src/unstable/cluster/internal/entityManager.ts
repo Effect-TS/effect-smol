@@ -155,16 +155,23 @@ export const make = Effect.fnUntraced(function*<
       Effect.fnUntraced(function*(scope) {
         let isShuttingDown = false
 
+        // Build the handlers + RpcServer under the registration `context` (plus
+        // per-entity additions), not the ambient context of whichever fiber
+        // first wakes the entity (or triggers a defect rebuild), so a
+        // caller-scoped service is not frozen into this long-lived server.
+        // `updateContext` sets rather than merges onto the ambient.
+        const handlerContext = Context.mutate(context, (context) =>
+          context.pipe(
+            Context.add(CurrentAddress, address),
+            Context.add(CurrentRunnerAddress, options.runnerAddress),
+            Context.add(KeepAliveLatch, keepAliveLatch),
+            Context.add(Scope.Scope, scope)
+          ))
+
         // Initiate the behavior for the entity
         const handlers = yield* (entity.protocol.toHandlers(buildHandlers as any).pipe(
           Effect.provideService(CurrentLogAnnotations, {}),
-          Effect.provideContext(Context.mutate(context, (context) =>
-            context.pipe(
-              Context.add(CurrentAddress, address),
-              Context.add(CurrentRunnerAddress, options.runnerAddress),
-              Context.add(KeepAliveLatch, keepAliveLatch),
-              Context.add(Scope.Scope, scope)
-            ))),
+          Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>),
           Effect.sandbox,
           Effect.tapError((cause) => Effect.logError("Defect building entity handlers", cause)),
           Effect.retry(defectRetryPolicy)
@@ -280,7 +287,8 @@ export const make = Effect.fnUntraced(function*<
           }
         }).pipe(
           Scope.provide(scope),
-          Effect.provideContext(handlers)
+          Effect.provideContext(handlers),
+          Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>)
         )
 
         yield* Scope.addFinalizer(

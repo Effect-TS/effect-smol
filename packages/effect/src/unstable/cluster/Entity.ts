@@ -618,11 +618,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       Rpc.ServicesClient<Rpcs> | Rpc.ServicesServer<Rpcs> | Rpc.Middleware<Rpcs> | LR
     >
     readonly concurrency: number | "unbounded"
-    readonly build: Effect.Effect<
-      Context.Context<Rpc.ToHandler<Rpcs>>,
-      never,
-      Scope | CurrentAddress
-    >
+    readonly build: Effect.Effect<Context.Context<Rpc.ToHandler<Rpcs>>>
   }>()
   const sharding = shardingTag.of({
     ...({} as Sharding["Service"]),
@@ -631,13 +627,7 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
         entityMap.set(entity.type, {
           context: context as any,
           concurrency: options?.concurrency ?? 1,
-          build: entity.protocol.toHandlers(handlers as any).pipe(
-            Effect.provideContext(Context.mutate(context, (context) =>
-              context.pipe(
-                Context.add(CurrentRunnerAddress, runnerAddress),
-                Context.omit(Scope)
-              )))
-          ) as any
+          build: entity.protocol.toHandlers(handlers as any) as any
         })
         return Effect.void
       })
@@ -654,8 +644,20 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       entityId: entityId as EntityId,
       shardId: makeShardId(entityId)
     })
+    // Build the handlers + RpcServer under the registration context (plus
+    // per-entity additions), not the ambient context of the acquiring fiber, so
+    // a caller-scoped service is not frozen into the entity server.
+    // `updateContext` sets rather than merges onto the ambient (as
+    // `entityManager` does).
+    const scope = yield* Effect.scope
+    const handlerContext = Context.mutate(entityEntry.context, (context) =>
+      context.pipe(
+        Context.add(CurrentRunnerAddress, runnerAddress),
+        Context.add(CurrentAddress, address),
+        Context.add(Scope, scope)
+      ))
     const handlers = yield* entityEntry.build.pipe(
-      Effect.provideService(CurrentAddress, address)
+      Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>)
     )
 
     // oxlint-disable-next-line prefer-const
@@ -665,7 +667,10 @@ export const makeTestClient: <Type extends string, Rpcs extends Rpc.Any, LA, LE,
       onFromServer(response) {
         return client.write(response)
       }
-    }).pipe(Effect.provide(handlers))
+    }).pipe(
+      Effect.provide(handlers),
+      Effect.updateContext((_: Context.Context<never>) => handlerContext as Context.Context<any>)
+    )
 
     client = yield* RpcClient.makeNoSerialization(entity.protocol, {
       supportsAck: true,

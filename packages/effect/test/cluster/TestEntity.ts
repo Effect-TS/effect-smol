@@ -130,3 +130,27 @@ export const TestEntityNoState = TestEntity.toLayer(
 )
 
 export const TestEntityLayer = TestEntityNoState.pipe(Layer.provideMerge(TestEntityState.layer))
+
+// A marker service used to prove that a caller's request-scoped context does
+// not bleed into an entity's long-lived server. It is deliberately NOT provided
+// by the entity layer; the handler reads it best-effort via `serviceOption`, so
+// it stands in for a scoped service (e.g. a SQL transaction context) that only
+// happens to be present on whichever fiber first wakes the entity.
+export const CallerId = Context.Service<never, string>(
+  "effect/test/cluster/CallerId"
+)
+
+export const ContextBleedEntity = Entity.make("ContextBleedEntity", [
+  // Volatile: the first message builds the entity inline on the caller's fiber.
+  Rpc.make("ReadCaller", { success: Schema.String }).annotate(ClusterSchema.Persisted, false),
+  // Durable: delivered on the detached storage-loop fiber, so it can only see a
+  // caller's context if an earlier message froze it into the server.
+  Rpc.make("ReadCallerPersisted", { success: Schema.String }).annotate(ClusterSchema.Persisted, true)
+])
+
+const readCaller = () => Effect.map(Effect.serviceOption(CallerId), Option.getOrElse(() => "none"))
+
+export const ContextBleedLayer = ContextBleedEntity.toLayer({
+  ReadCaller: readCaller,
+  ReadCallerPersisted: readCaller
+})
