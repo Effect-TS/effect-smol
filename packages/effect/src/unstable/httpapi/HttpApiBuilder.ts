@@ -188,13 +188,13 @@ type HandleAllEntry<Endpoint extends HttpApiEndpoint.Constraint> =
   | HttpApiEndpoint.Handler<
     Endpoint,
     HttpApiEndpoint.MiddlewareError<Endpoint>,
-    any
+    unknown
   >
   | {
     readonly handler: HttpApiEndpoint.Handler<
       Endpoint,
       HttpApiEndpoint.MiddlewareError<Endpoint>,
-      any
+      unknown
     >
     readonly options?: HandlerOptions | undefined
   }
