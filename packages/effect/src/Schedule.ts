@@ -8,6 +8,7 @@
  *
  * @since 2.0.0
  */
+import type { NonEmptyReadonlyArray } from "./Array.ts"
 import * as Cause from "./Cause.ts"
 import * as Context from "./Context.ts"
 import * as Cron from "./Cron.ts"
@@ -773,35 +774,6 @@ export const andThenResult: {
     }
   })))
 
-type NonEmptySchedules = readonly [
-  Schedule<any, any, any, any>,
-  ...ReadonlyArray<Schedule<any, any, any, any>>
-]
-
-type SchedulesInput<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = UnionToIntersection<
-  Input<Schedules[number]>
->
-
-type SchedulesError<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = Error<Schedules[number]>
-
-type SchedulesEnv<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = Env<Schedules[number]>
-
-type MaxStepResult = {
-  readonly _tag: "Continue"
-  readonly duration: Duration.Duration
-} | {
-  readonly _tag: "Done"
-  readonly duration: Duration.Duration
-}
-
-const maxDuration = (durations: ReadonlyArray<Duration.Duration>): Duration.Duration => {
-  let max = durations[0]!
-  for (let i = 1; i < durations.length; i++) {
-    max = Duration.max(max, durations[i]!)
-  }
-  return max
-}
-
 /**
  * Combines schedules by recurring while all schedules want to recur, using the
  * maximum delay between recurrences and outputting that maximum delay.
@@ -848,36 +820,48 @@ const maxDuration = (durations: ReadonlyArray<Duration.Duration>): Duration.Dura
  * @category combining
  * @since 4.0.0
  */
-export const max = <const Schedules extends NonEmptySchedules>(
+export const max = <
+  const Schedules extends NonEmptyReadonlyArray<
+    Schedule<any, any, any, any>
+  >
+>(
   schedules: Schedules
-): Schedule<Duration.Duration, SchedulesInput<Schedules>, SchedulesError<Schedules>, SchedulesEnv<Schedules>> => {
-  return fromStep(effect.map(
-    effect.all(schedules.map((schedule) => toStep(delays(schedule)))),
+): Schedule<
+  Duration.Duration,
+  UnionToIntersection<
+    Input<Schedules[number]>
+  >,
+  Error<Schedules[number]>,
+  Env<Schedules[number]>
+> =>
+  fromStep(effect.map(
+    effect.all(schedules.map(toStep)),
     (steps) => (now, input) =>
       effect.flatMap(
-        effect.all(steps.map((step) =>
+        effect.forEach(steps, (step) =>
           Pull.matchEffect(step(now, input as never), {
-            onSuccess: (result) =>
-              effect.succeed<MaxStepResult>({
-                _tag: "Continue",
-                duration: result[0]
-              }),
-            onDone: (duration) =>
-              effect.succeed<MaxStepResult>({
-                _tag: "Done",
-                duration
-              }),
+            onSuccess: (result) => effect.succeed(result[1]),
+            onDone: () => effect.undefined,
             onFailure: effect.failCause
-          })
-        )),
+          })),
         (results) => {
-          const duration = maxDuration(results.map((result) => result.duration))
-          return results.some((result) => result._tag === "Done") ?
-            Cause.done(duration) :
-            effect.succeed([duration, duration] as [Duration.Duration, Duration.Duration])
+          const duration = maxDuration(results)
+          if (duration === undefined) {
+            return Cause.done(Duration.zero)
+          }
+          return effect.succeed([duration, duration] as [Duration.Duration, Duration.Duration])
         }
       )
   ))
+
+const maxDuration = (results: ReadonlyArray<Duration.Duration | undefined>): Duration.Duration | undefined => {
+  let max = results[0]
+  for (let i = 1; i < results.length; i++) {
+    max = results[i] && max && Duration.max(max, results[i]!)
+    if (max === undefined) break
+  }
+
+  return max
 }
 
 /**

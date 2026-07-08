@@ -31,7 +31,7 @@ describe("Schedule", () => {
         const outputs = yield* runDelays(schedule, inputs)
         assert.deepStrictEqual(outputs, [
           Duration.seconds(5),
-          Duration.seconds(5)
+          Duration.zero
         ])
       }))
   })
