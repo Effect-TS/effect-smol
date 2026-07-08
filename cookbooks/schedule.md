@@ -17,8 +17,8 @@ This cookbook intentionally defines schedules only. It does not apply them with
 - Schedule output is policy output. Use `Schedule.passthrough`,
   `Schedule.delays`, `Schedule.map`, or `Schedule.reduce` when the output shape
   matters.
-- `Schedule.both` continues only while both schedules continue.
-- `Schedule.either` continues while either schedule can continue.
+- `Schedule.max` continues only while all schedules continue and outputs the slowest delay.
+- `Schedule.min` continues while any schedule can continue and outputs the fastest delay.
 - `Schedule.jittered` spreads callers out. It does not add a recurrence limit.
 - `Schedule.addDelay` adds extra delay based on schedule output.
 - `Schedule.modifyDelay` replaces or adjusts the selected delay.
@@ -35,8 +35,8 @@ This cookbook intentionally defines schedules only. It does not apply them with
 | Replace or cap selected delay             | `Schedule.modifyDelay`                                                                                            |
 | Run phases in sequence                    | `Schedule.andThen`                                                                                                |
 | Preserve phase in output                  | `Schedule.andThenResult`                                                                                          |
-| Continue while both policies continue     | `Schedule.both`                                                                                                   |
-| Continue while either policy continues    | `Schedule.either`                                                                                                 |
+| Continue while all policies continue      | `Schedule.max`                                                                                                    |
+| Continue while any policy continues       | `Schedule.min`                                                                                                    |
 | Keep input or output history              | `Schedule.collectInputs`, `Schedule.collectOutputs`, or `Schedule.collectWhile`                                   |
 | Maintain a running aggregate              | `Schedule.reduce`                                                                                                 |
 | Observe decisions without changing output | `Schedule.tap`, `Schedule.tapInput`, or `Schedule.tapOutput`                                                      |
@@ -131,7 +131,7 @@ backoff and taking the first 4 outputs.
 import { Schedule } from "effect"
 
 const searchReplicaWarmup = Schedule.fibonacci("100 millis").pipe(
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -178,7 +178,7 @@ import { Schedule } from "effect"
 type FeatureFlagSnapshot = { readonly enabled: boolean }
 
 const featureFlagSamples = Schedule.identity<FeatureFlagSnapshot>().pipe(
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -206,7 +206,7 @@ import { Duration, Schedule } from "effect"
 const pollDelayReport = Schedule.fixed("2 seconds").pipe(
   Schedule.delays,
   Schedule.map((delay) => ({ millis: Duration.toMillis(delay) })),
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -224,7 +224,7 @@ import { Duration, Schedule } from "effect"
 
 const elapsedRuntimeReport = Schedule.elapsed.pipe(
   Schedule.map((elapsed) => ({ millis: Duration.toMillis(elapsed) })),
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -241,7 +241,7 @@ import { Schedule } from "effect"
 const jitteredWebhookBackoff = Schedule.exponential("200 millis").pipe(
   Schedule.jittered,
   Schedule.delays,
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -253,32 +253,34 @@ backoff, allows at most 5 recurrences, and also stops after about 20 seconds.
 ```ts
 import { Schedule } from "effect"
 
-const deploymentHookRetryBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("20 seconds"))
-)
+const deploymentHookRetryBudget = Schedule.max([
+  Schedule.exponential("200 millis").pipe(Schedule.jittered),
+  Schedule.recurs(5),
+  Schedule.during("20 seconds")
+])
 ```
 
-Explanation: the resulting output is nested because `Schedule.both` preserves
-both schedule outputs. Use `Schedule.map` when a smaller output is needed.
+Explanation: `Schedule.max` stops when any schedule stops and outputs the
+slowest selected delay for each recurrence.
 
-### Continue While Either Probe Is Active
+### Continue While Any Probe Is Active
 
 Goal: Create a service readiness policy that continues while either 2 immediate
-warmup probes or a slower 500 millisecond probe schedule still wants to recur.
+warmup probes or a slower 500 millisecond probe schedule still wants to recur,
+using the fastest selected delay.
 
 ```ts
 import { Schedule } from "effect"
 
-const readinessWarmupOrSlowProbe = Schedule.recurs(2).pipe(
-  Schedule.either(Schedule.spaced("500 millis").pipe(Schedule.take(5)))
-)
+const readinessWarmupOrSlowProbe = Schedule.min([
+  Schedule.recurs(2),
+  Schedule.spaced("500 millis").pipe(Schedule.upTo({ times: 5 }))
+])
 ```
 
-Explanation: `Schedule.either` keeps recurring while at least one side can
-continue. Its output preserves both sides, so map the result if callers should
-see a smaller shape.
+Explanation: `Schedule.min` keeps recurring while at least one schedule can
+continue and outputs the fastest selected delay among schedules that are still
+recurring.
 
 ### Warm Up Fast, Then Settle Into Maintenance
 
@@ -289,8 +291,8 @@ milliseconds apart, then 3 slower recurrences 30 seconds apart, then stops.
 import { Schedule } from "effect"
 
 const cacheInvalidationSequence = Schedule.spaced("100 millis").pipe(
-  Schedule.take(2),
-  Schedule.andThen(Schedule.spaced("30 seconds").pipe(Schedule.take(3)))
+  Schedule.upTo({ times: 2 }),
+  Schedule.andThen(Schedule.spaced("30 seconds").pipe(Schedule.upTo({ times: 3 })))
 )
 ```
 
@@ -303,8 +305,8 @@ Fibonacci phase, preserving the phase in the output.
 import { Result, Schedule } from "effect"
 
 const phasedRetryClassifier = Schedule.exponential("100 millis").pipe(
-  Schedule.take(2),
-  Schedule.andThenResult(Schedule.fibonacci("500 millis").pipe(Schedule.take(3))),
+  Schedule.upTo({ times: 2 }),
+  Schedule.andThenResult(Schedule.fibonacci("500 millis").pipe(Schedule.upTo({ times: 3 }))),
   Schedule.map((result) =>
     Result.match(result, {
       onFailure: (delay) => ({ phase: "steady", delay }),
@@ -390,12 +392,12 @@ so far, and takes only the first 3 collected outputs.
 import { Schedule } from "effect"
 
 const heartbeatCountHistory = Schedule.collectOutputs(Schedule.forever).pipe(
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
 Explanation: `Schedule.collectOutputs` collects the schedule output, not the
-input. Add `Schedule.take` or another bound when collecting from an unbounded
+input. Add `Schedule.upTo` or another bound when collecting from an unbounded
 schedule.
 
 ## Accumulate State
@@ -409,7 +411,7 @@ outputs running `min`, `max`, `total`, and `count` fields.
 import { Schedule } from "effect"
 
 const requestLatencyStats = Schedule.identity<number>().pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.reduce(
     () => ({ min: Number.POSITIVE_INFINITY, max: 0, total: 0, count: 0 }),
     (state, latency) => ({
@@ -434,7 +436,7 @@ inputs and outputs the running count of failed samples.
 import { Schedule } from "effect"
 
 const recentWorkerFailureCount = Schedule.identity<boolean>().pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.reduce(() => 0, (count, failed) => failed ? count + 1 : count)
 )
 ```
@@ -455,7 +457,7 @@ type QueueSnapshot = { readonly depth: number; readonly paused: boolean }
 const queueBackpressureSchedule = Schedule.identity<QueueSnapshot>().pipe(
   Schedule.while(({ input }) => !input.paused),
   Schedule.addDelay((snapshot) => Effect.succeed(snapshot.depth > 1000 ? "5 seconds" : "500 millis")),
-  Schedule.take(10)
+  Schedule.upTo({ times: 10 })
 )
 ```
 
@@ -472,12 +474,13 @@ selected delay.
 ```ts
 import { Duration, Effect, Schedule } from "effect"
 
-const websocketReconnectDelays = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5)))),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.delays
-)
+const websocketReconnectDelays = Schedule.max([
+  Schedule.exponential("100 millis").pipe(
+    Schedule.jittered,
+    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5))))
+  ),
+  Schedule.recurs(8)
+])
 ```
 
 Explanation: `Schedule.modifyDelay` receives the selected delay and returns the
@@ -500,7 +503,7 @@ const heartbeatInputLogs = Schedule.fixed("10 seconds").pipe(
   Schedule.setInputType<HeartbeatStatus>(),
   Schedule.tapInput((input) => Console.log(`heartbeat:${input.id}`)),
   Schedule.passthrough,
-  Schedule.take(2)
+  Schedule.upTo({ times: 2 })
 )
 ```
 
@@ -513,7 +516,7 @@ logs each selected delay without changing the schedule output.
 import { Console, Schedule } from "effect"
 
 const loggedBackoffDelays = Schedule.fibonacci("200 millis").pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.tapOutput((delay) => Console.log(delay))
 )
 ```
@@ -527,7 +530,7 @@ delay in milliseconds without changing the schedule output.
 import { Console, Duration, Schedule } from "effect"
 
 const telemetryBackoffPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.tap(({ attempt, output }) => Console.log(`attempt-${attempt}: ${Duration.toMillis(output)}ms`))
 )
 ```
@@ -548,7 +551,7 @@ import { Effect, Schedule } from "effect"
 
 const schedulerTickState = Schedule.unfold(1, (n) => Effect.succeed(n + 1)).pipe(
   Schedule.map((tick) => ({ tick })),
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -579,7 +582,7 @@ const maintenancePhaseMachine = Schedule.unfold<MaintenancePhase>(
     }
   }
 ).pipe(
-  Schedule.take(6)
+  Schedule.upTo({ times: 6 })
 )
 ```
 
@@ -610,13 +613,15 @@ const isRetryableGraphqlGatewayError = (
       error.status === 502 ||
       error.status === 503))
 
-const graphqlGatewayRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.setInputType<GraphqlGatewayError>(),
-  Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(2)))),
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.while(({ input }) => isRetryableGraphqlGatewayError(input)),
-  Schedule.delays
+const graphqlGatewayRetry = Schedule.max([
+  Schedule.exponential("100 millis").pipe(
+    Schedule.jittered,
+    Schedule.setInputType<GraphqlGatewayError>(),
+    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(2))))
+  ),
+  Schedule.recurs(6)
+]).pipe(
+  Schedule.while(({ input }) => isRetryableGraphqlGatewayError(input))
 )
 ```
 
@@ -627,7 +632,7 @@ jitters the selected delay, outputs the latest status, continues only while the
 rollout is running, and stops after about 2 minutes.
 
 ```ts
-import { Schedule } from "effect"
+import { Duration, Schedule } from "effect"
 
 type RolloutStatus = {
   readonly state: "running" | "succeeded" | "failed"
@@ -637,9 +642,10 @@ const rolloutStatusWatcher = Schedule.fixed("1 second").pipe(
   Schedule.setInputType<RolloutStatus>(),
   Schedule.passthrough,
   Schedule.jittered,
-  Schedule.both(Schedule.during("2 minutes")),
-  Schedule.while(({ input }) => input.state === "running"),
-  Schedule.map(([status]) => status)
+  Schedule.while(({ input, elapsed }) =>
+    input.state === "running" &&
+    Duration.isLessThanOrEqualTo(Duration.millis(elapsed), Duration.minutes(2))
+  )
 )
 ```
 
@@ -658,22 +664,24 @@ type PushProviderResponse = {
   readonly retryAfter: Duration.Duration | undefined
 }
 
-const pushNotificationProviderRetry = Schedule.exponential("1 second").pipe(
-  Schedule.setInputType<PushProviderResponse>(),
-  Schedule.passthrough,
-  Schedule.modifyDelay((response, delay) =>
-    Effect.succeed(
-      Duration.min(
-        response.retryAfter === undefined
-          ? delay
-          : Duration.max(delay, response.retryAfter),
-        Duration.minutes(1)
+const pushNotificationProviderRetry = Schedule.max([
+  Schedule.exponential("1 second").pipe(
+    Schedule.setInputType<PushProviderResponse>(),
+    Schedule.passthrough,
+    Schedule.modifyDelay((response, delay) =>
+      Effect.succeed(
+        Duration.min(
+          response.retryAfter === undefined
+            ? delay
+            : Duration.max(delay, response.retryAfter),
+          Duration.minutes(1)
+        )
       )
     )
   ),
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.while(({ input }) => input.status === 429 || input.status === 500 || input.status === 503),
-  Schedule.delays
+  Schedule.recurs(6)
+]).pipe(
+  Schedule.while(({ input }) => input.status === 429 || input.status === 500 || input.status === 503)
 )
 ```
 
@@ -684,7 +692,7 @@ another 5 seconds for `slow_down`, output the latest input, continue only for
 `authorization_pending` and `slow_down`, and stop after about 15 minutes.
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Duration, Effect, Schedule } from "effect"
 
 type OAuthDeviceCodeStatus = {
   readonly error:
@@ -698,9 +706,10 @@ const oauthDeviceCodePolling = Schedule.spaced("5 seconds").pipe(
   Schedule.setInputType<OAuthDeviceCodeStatus>(),
   Schedule.passthrough,
   Schedule.addDelay((status) => Effect.succeed(status.error === "slow_down" ? "5 seconds" : "0 millis")),
-  Schedule.both(Schedule.during("15 minutes")),
-  Schedule.while(({ input }) => input.error === "authorization_pending" || input.error === "slow_down"),
-  Schedule.map(([status]) => status)
+  Schedule.while(({ input, elapsed }) =>
+    (input.error === "authorization_pending" || input.error === "slow_down") &&
+    Duration.isLessThanOrEqualTo(Duration.millis(elapsed), Duration.minutes(15))
+  )
 )
 ```
 
@@ -714,8 +723,8 @@ aligned 15-minute cadence.
 import { Schedule } from "effect"
 
 const incidentEscalationCadence = Schedule.spaced("1 minute").pipe(
-  Schedule.take(3),
-  Schedule.andThen(Schedule.spaced("5 minutes").pipe(Schedule.take(3))),
+  Schedule.upTo({ times: 3 }),
+  Schedule.andThen(Schedule.spaced("5 minutes").pipe(Schedule.upTo({ times: 3 }))),
   Schedule.andThen(Schedule.fixed("15 minutes"))
 )
 ```

@@ -2082,6 +2082,25 @@ export const contextWith = <R, A, E, R2>(
 ): Effect.Effect<A, E, R | R2> => withFiber((fiber) => f(fiber.context as Context.Context<R>))
 
 /** @internal */
+export const setContext: {
+  <R>(
+    context: Context.Context<R>
+  ): <A, E>(
+    self: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E>
+  <A, E, R>(
+    self: Effect.Effect<A, E, R>,
+    context: Context.Context<R>
+  ): Effect.Effect<A, E>
+} = dual(
+  2,
+  <A, E, R>(
+    self: Effect.Effect<A, E, R>,
+    context: Context.Context<R>
+  ): Effect.Effect<A, E> => updateContext(self, constant(context))
+)
+
+/** @internal */
 export const provideContext: {
   <XR>(
     context: Context.Context<XR>
