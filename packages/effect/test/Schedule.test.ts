@@ -146,7 +146,7 @@ describe("Schedule", () => {
 
     it.effect("andThenResult - wraps self outputs as Failure and other outputs as Success", () =>
       Effect.gen(function*() {
-        const left = Schedule.identity<string>().pipe(Schedule.take(2))
+        const left = Schedule.identity<string>().pipe(Schedule.upTo({ times: 2 }))
         const right = Schedule.identity<string>()
         const step = yield* Schedule.toStep(Schedule.andThenResult(left, right))
 
@@ -242,6 +242,77 @@ describe("Schedule", () => {
         const inputs = Array.makeBy(5, constUndefined)
         const output = yield* runDelays(schedule, inputs)
         expect(output).toEqual([Duration.seconds(1), Duration.zero])
+      }))
+  })
+
+  describe("upTo", () => {
+    it.effect("limits by times", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.identity<string>().pipe(Schedule.upTo({ times: 2 }))
+        const step = yield* Schedule.toStep(schedule)
+
+        const first = yield* step(0, "a")
+        const second = yield* step(0, "b")
+        const third = yield* Pull.matchEffect(step(0, "c"), {
+          onSuccess: () => Effect.succeed("unexpected success"),
+          onFailure: () => Effect.succeed("unexpected failure"),
+          onDone: (value) => Effect.succeed(value)
+        })
+
+        assert.deepStrictEqual([first, second, third], [
+          ["a", Duration.zero],
+          ["b", Duration.zero],
+          "c"
+        ])
+      }))
+
+    it.effect("limits by duration", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.identity<string>().pipe(Schedule.upTo({ duration: "1 second" }))
+        const step = yield* Schedule.toStep(schedule)
+
+        const first = yield* step(0, "a")
+        const second = yield* step(1_000, "b")
+        const third = yield* Pull.matchEffect(step(1_001, "c"), {
+          onSuccess: () => Effect.succeed("unexpected success"),
+          onFailure: () => Effect.succeed("unexpected failure"),
+          onDone: (value) => Effect.succeed(value)
+        })
+
+        assert.deepStrictEqual([first, second, third], [
+          ["a", Duration.zero],
+          ["b", Duration.zero],
+          "c"
+        ])
+      }))
+
+    it.effect("limits by the first exhausted option", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.identity<string>().pipe(Schedule.upTo({ duration: "1 hour", times: 1 }))
+        const step = yield* Schedule.toStep(schedule)
+
+        const first = yield* step(0, "a")
+        const second = yield* Pull.matchEffect(step(0, "b"), {
+          onSuccess: () => Effect.succeed("unexpected success"),
+          onFailure: () => Effect.succeed("unexpected failure"),
+          onDone: (value) => Effect.succeed(value)
+        })
+
+        assert.deepStrictEqual([first, second], [["a", Duration.zero], "b"])
+      }))
+
+    it.effect("leaves the schedule unchanged when no options are specified", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.identity<string>().pipe(Schedule.upTo({}))
+        const step = yield* Schedule.toStep(schedule)
+
+        const first = yield* step(0, "a")
+        const second = yield* step(0, "b")
+
+        assert.deepStrictEqual([first, second], [
+          ["a", Duration.zero],
+          ["b", Duration.zero]
+        ])
       }))
   })
 

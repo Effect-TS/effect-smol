@@ -41,4 +41,14 @@ describe("Schedule", () => {
       >
     >()
   })
+
+  it("upTo", () => {
+    const self = hole<Schedule.Schedule<number, string, "error", "service">>()
+
+    expect(Schedule.upTo(self, { times: 3 })).type.toBe<Schedule.Schedule<number, string, "error", "service">>()
+    expect(Schedule.upTo({ duration: "1 second" })(self)).type.toBe<
+      Schedule.Schedule<number, string, "error", "service">
+    >()
+    expect(Schedule.upTo({})(self)).type.toBe<Schedule.Schedule<number, string, "error", "service">>()
+  })
 })
