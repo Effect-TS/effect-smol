@@ -7,9 +7,11 @@ import { Duration, Effect, Random, Schedule, Schema } from "effect"
 
 // Production pattern: capped exponential backoff with jitter and max attempts.
 // Delays start at 250ms, grow exponentially with jitter, and are capped at 10s.
-export const productionRetrySchedule = Schedule.exponential("250 millis").pipe(
+export const productionRetrySchedule = Schedule.min([
+  Schedule.exponential("250 millis"),
   // Cap the delay at 10 seconds to avoid excessively long waits.
-  Schedule.either(Schedule.spaced("10 seconds")),
+  Schedule.spaced("10 seconds")
+]).pipe(
   Schedule.jittered,
   Schedule.setInputType<HttpError>(),
   Schedule.while(({ input }) => input.retryable)
@@ -78,12 +80,13 @@ export const retryBackoffWithLimit = Schedule.max([
   Schedule.recurs(6)
 ])
 
-// `Schedule.either` continues while either schedule continues.
-// It is useful for fallback behavior (e.g. stop only when both are exhausted).
-export const keepTryingUntilBothStop = Schedule.either(
+// `Schedule.min` continues while any schedule continues and outputs
+// the fastest delay. It is useful for fallback behavior (e.g. stop only when
+// all schedules are exhausted).
+export const keepTryingUntilAllStop = Schedule.min([
   Schedule.spaced("2 seconds"),
   Schedule.recurs(3)
-)
+])
 
 // Use `Schedule.while` to continue only for retryable failures.
 // This lets non-retryable errors fail fast, even if attempts remain.

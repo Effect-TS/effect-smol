@@ -34,6 +34,37 @@ describe("Schedule", () => {
           Duration.zero
         ])
       }))
+
+    it.effect("min - outputs the fastest schedule duration", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.min([
+          Schedule.fixed("5 seconds"),
+          Schedule.exponential("5 seconds"),
+          Schedule.spaced("10 seconds")
+        ])
+        const inputs = Array.makeBy(3, constUndefined)
+        const outputs = yield* runDelays(schedule, inputs)
+        assert.deepStrictEqual(outputs, [
+          Duration.seconds(5),
+          Duration.seconds(5),
+          Duration.seconds(5)
+        ])
+      }))
+
+    it.effect("min - continues after a schedule completes", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.min([
+          Schedule.duration("1 second"),
+          Schedule.spaced("5 seconds")
+        ])
+        const inputs = Array.makeBy(3, constUndefined)
+        const outputs = yield* runDelays(schedule, inputs)
+        assert.deepStrictEqual(outputs, [
+          Duration.seconds(1),
+          Duration.seconds(5),
+          Duration.seconds(5)
+        ])
+      }))
   })
 
   describe("sequencing", () => {

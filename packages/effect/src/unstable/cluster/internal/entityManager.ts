@@ -611,9 +611,10 @@ export const make = Effect.fnUntraced(function*<
   })
 })
 
-const defaultRetryPolicy = Schedule.exponential(500, 1.5).pipe(
-  Schedule.either(Schedule.spaced("10 seconds"))
-)
+const defaultRetryPolicy = Schedule.min([
+  Schedule.exponential(500, 1.5),
+  Schedule.spaced("10 seconds")
+])
 
 const makeMessageDecode = <Type extends string, Rpcs extends Rpc.Any>(
   entity: Entity<Type, Rpcs>,

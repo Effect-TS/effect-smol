@@ -178,9 +178,11 @@ export const make = <
   return self
 }
 
-const interruptRetryPolicy = Schedule.exponential(4.0, 1.5).pipe(
-  Schedule.either(Schedule.spaced("10 seconds")),
-  Schedule.either(Schedule.recurs(10)),
+const interruptRetryPolicy = Schedule.min([
+  Schedule.exponential(4.0, 1.5),
+  Schedule.spaced("10 seconds"),
+  Schedule.recurs(10)
+]).pipe(
   Schedule.setInputType<Cause.Cause<unknown>>(),
   Schedule.while((meta) => Effect.succeed(Cause.hasInterrupts(meta.input)))
 )

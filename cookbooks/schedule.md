@@ -18,7 +18,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
   `Schedule.delays`, `Schedule.map`, or `Schedule.reduce` when the output shape
   matters.
 - `Schedule.max` continues only while all schedules continue and outputs the slowest delay.
-- `Schedule.either` continues while either schedule can continue.
+- `Schedule.min` continues while any schedule can continue and outputs the fastest delay.
 - `Schedule.jittered` spreads callers out. It does not add a recurrence limit.
 - `Schedule.addDelay` adds extra delay based on schedule output.
 - `Schedule.modifyDelay` replaces or adjusts the selected delay.
@@ -36,7 +36,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
 | Run phases in sequence                    | `Schedule.andThen`                                                                                                |
 | Preserve phase in output                  | `Schedule.andThenResult`                                                                                          |
 | Continue while all policies continue      | `Schedule.max`                                                                                                    |
-| Continue while either policy continues    | `Schedule.either`                                                                                                 |
+| Continue while any policy continues       | `Schedule.min`                                                                                                    |
 | Keep input or output history              | `Schedule.collectInputs`, `Schedule.collectOutputs`, or `Schedule.collectWhile`                                   |
 | Maintain a running aggregate              | `Schedule.reduce`                                                                                                 |
 | Observe decisions without changing output | `Schedule.tap`, `Schedule.tapInput`, or `Schedule.tapOutput`                                                      |
@@ -263,22 +263,24 @@ const deploymentHookRetryBudget = Schedule.max([
 Explanation: `Schedule.max` stops when any schedule stops and outputs the
 slowest selected delay for each recurrence.
 
-### Continue While Either Probe Is Active
+### Continue While Any Probe Is Active
 
 Goal: Create a service readiness policy that continues while either 2 immediate
-warmup probes or a slower 500 millisecond probe schedule still wants to recur.
+warmup probes or a slower 500 millisecond probe schedule still wants to recur,
+using the fastest selected delay.
 
 ```ts
 import { Schedule } from "effect"
 
-const readinessWarmupOrSlowProbe = Schedule.recurs(2).pipe(
-  Schedule.either(Schedule.spaced("500 millis").pipe(Schedule.take(5)))
-)
+const readinessWarmupOrSlowProbe = Schedule.min([
+  Schedule.recurs(2),
+  Schedule.spaced("500 millis").pipe(Schedule.take(5))
+])
 ```
 
-Explanation: `Schedule.either` keeps recurring while at least one side can
-continue. Its output preserves both sides, so map the result if callers should
-see a smaller shape.
+Explanation: `Schedule.min` keeps recurring while at least one schedule can
+continue and outputs the fastest selected delay among schedules that are still
+recurring.
 
 ### Warm Up Fast, Then Settle Into Maintenance
 
