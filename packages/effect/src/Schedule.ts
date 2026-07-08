@@ -134,34 +134,6 @@ export const CurrentMetadata = Context.Reference<Metadata>("effect/Schedule/Curr
 /**
  * The Schedule namespace contains types and utilities for working with schedules.
  *
- * **Example** (Creating custom schedules with the namespace)
- *
- * ```ts
- * import { Effect, Schedule } from "effect"
- *
- * // Usage of the Schedule namespace for creating schedules
- *
- * // Create custom retry schedule
- * const customSchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.take(5)
- * )
- *
- * const program = Effect.gen(function*() {
- *   let attempt = 0
- *
- *   yield* Effect.retry(
- *     Effect.gen(function*() {
- *       attempt++
- *       if (attempt < 3) {
- *         return yield* Effect.fail(`Attempt ${attempt} failed`)
- *       }
- *       return `Success on attempt ${attempt}`
- *     }),
- *     customSchedule.pipe(Schedule.upTo({ times: 5 }))
- *   )
- * })
- * ```
- *
  * @since 2.0.0
  */
 export declare namespace Schedule {
