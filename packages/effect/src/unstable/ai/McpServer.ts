@@ -42,6 +42,7 @@ import * as RpcServer from "../rpc/RpcServer.ts"
 import {
   CallToolResult,
   ClientNotificationRpcs,
+  ClientRequestRpcs,
   ClientRpcs,
   CompleteResult,
   Elicit,
@@ -63,22 +64,90 @@ import {
   ServerNotificationRpcs,
   ServerRequestRpcs,
   TextContent,
+  type CallTool,
+  type ClientCapabilities,
+  type Complete,
+  type GetPrompt,
+  type Initialize,
+  type Param,
+  type PromptArgument,
+  type PromptMessage,
+  type ReadResourceResult,
+  type ServerCapabilities,
   Tool as McpTool
-} from "./McpSchema.ts"
-import type {
-  CallTool,
-  ClientCapabilities,
-  Complete,
-  GetPrompt,
-  Initialize,
-  Param,
-  PromptArgument,
-  PromptMessage,
-  ReadResourceResult,
-  ServerCapabilities
 } from "./McpSchema.ts"
 import * as Tool from "./Tool.ts"
 import type * as Toolkit from "./Toolkit.ts"
+
+type ClientRequestRpc = RpcGroup.Rpcs<typeof ClientRequestRpcs>
+type ClientRequestRpcByMethod<Method extends MiddlewareMethod> = Extract<ClientRequestRpc, { readonly _tag: Method }>
+
+/**
+ * MCP request methods that can be observed or transformed by server middleware.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export type MiddlewareMethod = Rpc.Tag<ClientRequestRpc>
+
+/**
+ * Decoded payload type for an MCP middleware method.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export type MiddlewarePayload<Method extends MiddlewareMethod> = Rpc.Payload<ClientRequestRpcByMethod<Method>>
+
+/**
+ * Decoded success type for an MCP middleware method.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export type MiddlewareSuccess<Method extends MiddlewareMethod> = Rpc.SuccessExit<ClientRequestRpcByMethod<Method>>
+
+/**
+ * Decoded error type for an MCP middleware method.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export type MiddlewareError<Method extends MiddlewareMethod> = Rpc.ErrorExit<ClientRequestRpcByMethod<Method>>
+
+/**
+ * Request context passed to MCP server middleware.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export interface MiddlewareRequest<Method extends MiddlewareMethod = MiddlewareMethod> {
+  readonly method: Method
+  readonly payload: MiddlewarePayload<Method>
+  readonly requestId: RpcMessage.RequestId
+  readonly clientId: number
+  readonly headers: Headers.Headers
+  readonly serverInfo: {
+    readonly name: string
+    readonly version: string
+  }
+  readonly initializedClient: Option.Option<typeof Initialize.payloadSchema.Type>
+  readonly mcpSessionId: Option.Option<string>
+  readonly next: (
+    payload?: MiddlewarePayload<Method>
+  ) => Effect.Effect<MiddlewareSuccess<Method>, MiddlewareError<Method>, McpServerClient>
+}
+
+/**
+ * Middleware that can observe, transform, or short-circuit MCP server requests.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export interface Middleware<R = never> {
+  <Method extends MiddlewareMethod>(
+    request: MiddlewareRequest<Method>
+  ): Effect.Effect<MiddlewareSuccess<Method>, MiddlewareError<Method>, R | McpServerClient>
+}
 
 /**
  * Service that stores and serves an MCP server's registered tools, resources,
@@ -96,6 +165,8 @@ export class McpServer extends Context.Service<McpServer, {
   readonly notifications: RpcClient.RpcClient<RpcGroup.Rpcs<typeof ServerNotificationRpcs>>
   readonly notificationsQueue: Queue.Dequeue<RpcMessage.Request<any>>
   readonly initializedClients: Set<number>
+  readonly middlewares: ReadonlyArray<Middleware>
+  readonly addMiddleware: (middleware: Middleware) => Effect.Effect<void>
 
   readonly tools: ReadonlyArray<{
     readonly tool: McpTool
@@ -199,6 +270,7 @@ export class McpServer extends Context.Service<McpServer, {
       readonly prompt: Prompt
       readonly annotations: Context.Context<never>
     }> = []
+    const middlewares = Arr.empty<Middleware>()
     const promptMap = new Map<
       string,
       (params: Record<string, string>) => Effect.Effect<GetPromptResult, InternalError | InvalidParams, McpServerClient>
@@ -243,6 +315,13 @@ export class McpServer extends Context.Service<McpServer, {
       notifications: notifications.client,
       notificationsQueue,
       initializedClients: new Set(),
+      get middlewares() {
+        return middlewares
+      },
+      addMiddleware: (middleware) =>
+        Effect.sync(() => {
+          middlewares.push(middleware)
+        }),
       get tools() {
         return tools
       },
@@ -662,6 +741,37 @@ export const layerHttp = (options: {
   layer(options).pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options)),
     Layer.provide(RpcSerialization.layerJsonRpc())
+  )
+
+/**
+ * Registers MCP server middleware.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export const registerMiddleware: <R>(
+  middleware: Middleware<R>
+) => Effect.Effect<void, never, McpServer | R> = Effect.fnUntraced(function*<R>(middleware: Middleware<R>) {
+  const server = yield* McpServer
+  const services = yield* Effect.context<R>()
+  yield* server.addMiddleware(((request) =>
+    Effect.updateContext(
+      middleware(request),
+      (context) => Context.merge(services as Context.Context<never>, context)
+    )) as Middleware)
+})
+
+/**
+ * Creates a layer that registers MCP server middleware.
+ *
+ * @category middleware
+ * @since 4.0.0
+ */
+export const middleware = <R>(
+  middleware: Middleware<R>
+): Layer.Layer<never, never, R> =>
+  Layer.effectDiscard(registerMiddleware(middleware)).pipe(
+    Layer.provide(McpServer.layer)
   )
 
 /**
@@ -1280,64 +1390,111 @@ const layerHandlers = (serverInfo: {
     Effect.gen(function*() {
       const server = yield* McpServer
       let currentLogLevel = yield* CurrentLogLevel
+      const runMiddlewares = <Method extends MiddlewareMethod>(
+        method: Method,
+        payload: MiddlewarePayload<Method>,
+        handlerOptions: {
+          readonly client: Rpc.ServerClient
+          readonly requestId: RpcMessage.RequestId
+          readonly headers: Headers.Headers
+        },
+        handler: (
+          payload: MiddlewarePayload<Method>
+        ) => Effect.Effect<MiddlewareSuccess<Method>, MiddlewareError<Method>, McpServerClient>
+      ): Effect.Effect<MiddlewareSuccess<Method>, MiddlewareError<Method>, McpServerClient> => {
+        const run = (
+          index: number,
+          payload: MiddlewarePayload<Method>
+        ): Effect.Effect<MiddlewareSuccess<Method>, MiddlewareError<Method>, McpServerClient> => {
+          const middleware = server.middlewares[index]
+          if (!middleware) {
+            return handler(payload)
+          }
+          return middleware({
+            method,
+            payload,
+            requestId: handlerOptions.requestId,
+            clientId: handlerOptions.client.id,
+            headers: handlerOptions.headers,
+            serverInfo: {
+              name: serverInfo.name,
+              version: serverInfo.version
+            },
+            initializedClient: Option.fromUndefinedOr(
+              getInitializedClient(options.clientSessions, handlerOptions.client.id, handlerOptions.headers)
+            ),
+            mcpSessionId: Option.fromUndefinedOr(handlerOptions.headers[mcpSessionIdHeader]),
+            next: (nextPayload) => run(index + 1, nextPayload === undefined ? payload : nextPayload)
+          } as MiddlewareRequest<Method>) as Effect.Effect<
+            MiddlewareSuccess<Method>,
+            MiddlewareError<Method>,
+            McpServerClient
+          >
+        }
+        return run(0, payload)
+      }
 
       return ClientRpcs.of({
         // Requests
-        ping: () => Effect.succeed({}),
-        initialize(params, { client }) {
-          const requestedVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion)
-            ? params.protocolVersion
-            : LATEST_PROTOCOL_VERSION
-          if (requestedVersion !== params.protocolVersion) {
-            params = {
-              ...params,
-              protocolVersion: requestedVersion
+        ping: (params, options) =>
+          runMiddlewares("ping", params, options, () => Effect.succeed({})),
+        initialize(params, handlerOptions) {
+          return runMiddlewares("initialize", params, handlerOptions, (params) => {
+            const requestedVersion = SUPPORTED_PROTOCOL_VERSIONS.includes(params.protocolVersion)
+              ? params.protocolVersion
+              : LATEST_PROTOCOL_VERSION
+            if (requestedVersion !== params.protocolVersion) {
+              params = {
+                ...params,
+                protocolVersion: requestedVersion
+              }
             }
-          }
-          const capabilities: Types.DeepMutable<typeof ServerCapabilities.Type> = {
-            completions: {}
-          }
-          if (server.tools.length > 0) {
-            capabilities.tools = { listChanged: true }
-          }
-          if (server.resources.length > 0 || server.resourceTemplates.length > 0) {
-            capabilities.resources = {
-              listChanged: true,
-              subscribe: false
+            const capabilities: Types.DeepMutable<typeof ServerCapabilities.Type> = {
+              completions: {}
             }
-          }
-          if (server.prompts.length > 0) {
-            capabilities.prompts = { listChanged: true }
-          }
-          if (serverInfo.extensions) {
-            capabilities.extensions = serverInfo.extensions as any
-          }
-          return Effect.withFiber((fiber) => {
-            const httpRequest = Context.getOrUndefined(fiber.context, HttpServerRequest.HttpServerRequest)
-            if (httpRequest) {
-              const sessionId = crypto.randomUUID()
-              options.clientSessions.set(sessionId, params)
-              appendPreResponseHandlerUnsafe(httpRequest, (_req, res) =>
-                Effect.succeed(HttpServerResponse.setHeaders(res, {
-                  [mcpSessionIdHeader]: sessionId,
-                  [mcpProtocolVersionHeader]: requestedVersion
-                })))
-            } else {
-              options.clientSessions.set(String(client.id), params)
+            if (server.tools.length > 0) {
+              capabilities.tools = { listChanged: true }
             }
-            return Effect.succeed({
-              capabilities,
-              serverInfo,
-              protocolVersion: requestedVersion
+            if (server.resources.length > 0 || server.resourceTemplates.length > 0) {
+              capabilities.resources = {
+                listChanged: true,
+                subscribe: false
+              }
+            }
+            if (server.prompts.length > 0) {
+              capabilities.prompts = { listChanged: true }
+            }
+            if (serverInfo.extensions) {
+              capabilities.extensions = serverInfo.extensions as any
+            }
+            return Effect.withFiber((fiber) => {
+              const httpRequest = Context.getOrUndefined(fiber.context, HttpServerRequest.HttpServerRequest)
+              if (httpRequest) {
+                const sessionId = crypto.randomUUID()
+                options.clientSessions.set(sessionId, params)
+                appendPreResponseHandlerUnsafe(httpRequest, (_req, res) =>
+                  Effect.succeed(HttpServerResponse.setHeaders(res, {
+                    [mcpSessionIdHeader]: sessionId,
+                    [mcpProtocolVersionHeader]: requestedVersion
+                  })))
+              } else {
+                options.clientSessions.set(String(handlerOptions.client.id), params)
+              }
+              return Effect.succeed({
+                capabilities,
+                serverInfo,
+                protocolVersion: requestedVersion
+              })
             })
           })
         },
-        "completion/complete": (r) =>
-          server.completion(r).pipe(
-            Effect.provideService(CurrentLogLevel, currentLogLevel)
-          ),
-        "logging/setLevel": ({ level }) =>
-          Effect.sync(() => {
+        "completion/complete": (r, options) =>
+          runMiddlewares("completion/complete", r, options, (r) =>
+            server.completion(r).pipe(
+              Effect.provideService(CurrentLogLevel, currentLogLevel)
+            )),
+        "logging/setLevel": (r, options) =>
+          runMiddlewares("logging/setLevel", r, options, ({ level }) => Effect.sync(() => {
             switch (level) {
               case "notice":
               case "info":
@@ -1358,47 +1515,50 @@ const layerHandlers = (serverInfo: {
                 currentLogLevel = "Fatal"
                 break
             }
-          }),
-        "prompts/get": (r) =>
-          server.getPromptResult(r).pipe(
-            Effect.provideService(CurrentLogLevel, currentLogLevel)
-          ),
-        "prompts/list": (_, { client, headers }) =>
-          Effect.sync(() => {
-            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+          })),
+        "prompts/get": (r, options) =>
+          runMiddlewares("prompts/get", r, options, (r) =>
+            server.getPromptResult(r).pipe(
+              Effect.provideService(CurrentLogLevel, currentLogLevel)
+            )),
+        "prompts/list": (r, handlerOptions) =>
+          runMiddlewares("prompts/list", r, handlerOptions, () => Effect.sync(() => {
+            const initialized = getInitializedClient(options.clientSessions, handlerOptions.client.id, handlerOptions.headers)
             return new ListPromptsResult({ prompts: filterByClient(initialized, server.prompts, "prompt") })
-          }),
-        "resources/list": (_, { client, headers }) =>
-          Effect.sync(() => {
-            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+          })),
+        "resources/list": (r, handlerOptions) =>
+          runMiddlewares("resources/list", r, handlerOptions, () => Effect.sync(() => {
+            const initialized = getInitializedClient(options.clientSessions, handlerOptions.client.id, handlerOptions.headers)
             return new ListResourcesResult({ resources: filterByClient(initialized, server.resources, "resource") })
-          }),
-        "resources/read": ({ uri }) =>
-          server.findResource(uri).pipe(
-            Effect.provideService(CurrentLogLevel, currentLogLevel)
-          ),
-        "resources/subscribe": () =>
-          InternalError.notImplemented,
-        "resources/unsubscribe": () =>
-          InternalError.notImplemented,
-        "resources/templates/list": (_, { client, headers }) =>
-          Effect.sync(() => {
-            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+          })),
+        "resources/read": (r, options) =>
+          runMiddlewares("resources/read", r, options, ({ uri }) =>
+            server.findResource(uri).pipe(
+              Effect.provideService(CurrentLogLevel, currentLogLevel)
+            )),
+        "resources/subscribe": (r, options) =>
+          runMiddlewares("resources/subscribe", r, options, () => InternalError.notImplemented),
+        "resources/unsubscribe": (r, options) =>
+          runMiddlewares("resources/unsubscribe", r, options, () => InternalError.notImplemented),
+        "resources/templates/list": (r, handlerOptions) =>
+          runMiddlewares("resources/templates/list", r, handlerOptions, () => Effect.sync(() => {
+            const initialized = getInitializedClient(options.clientSessions, handlerOptions.client.id, handlerOptions.headers)
             return new ListResourceTemplatesResult({
               resourceTemplates: filterByClient(initialized, server.resourceTemplates, "template")
             })
-          }),
-        "tools/call": (r) =>
-          server.callTool(r).pipe(
-            Effect.provideService(CurrentLogLevel, currentLogLevel)
-          ),
-        "tools/list": (_, { client, headers }) =>
-          Effect.sync(() => {
-            const initialized = getInitializedClient(options.clientSessions, client.id, headers)
+          })),
+        "tools/call": (r, options) =>
+          runMiddlewares("tools/call", r, options, (r) =>
+            server.callTool(r).pipe(
+              Effect.provideService(CurrentLogLevel, currentLogLevel)
+            )),
+        "tools/list": (r, handlerOptions) =>
+          runMiddlewares("tools/list", r, handlerOptions, () => Effect.sync(() => {
+            const initialized = getInitializedClient(options.clientSessions, handlerOptions.client.id, handlerOptions.headers)
             return new ListToolsResult({
               tools: filterByClient(initialized, server.tools, "tool")
             })
-          }),
+          })),
 
         // Notifications
         "notifications/cancelled": (_) => Effect.void,
