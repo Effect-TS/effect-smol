@@ -634,9 +634,12 @@ class NodeImpl<A> {
         const parents = this.previousParents
         this.previousParents = undefined
         for (let i = 0; i < parents.length; i++) {
-          parents[i].removeChild(this)
-          if (parents[i].canBeRemoved) {
-            this.registry.scheduleNodeRemoval(parents[i])
+          const parent = parents[i]
+          if (this.parents.indexOf(parent) === -1) {
+            parent.removeChild(this)
+            if (parent.canBeRemoved) {
+              this.registry.scheduleNodeRemoval(parent)
+            }
           }
         }
       }
@@ -706,14 +709,19 @@ class NodeImpl<A> {
   }
 
   addParent(parent: NodeImpl<any>): void {
-    this.parents.push(parent)
+    if (this.parents.indexOf(parent) === -1) {
+      this.parents.push(parent)
+    }
     if (this.previousParents !== undefined) {
-      const index = this.previousParents.indexOf(parent)
-      if (index !== -1) {
+      let index = this.previousParents.indexOf(parent)
+      while (index !== -1) {
         this.previousParents[index] = this.previousParents[this.previousParents.length - 1]
-        if (this.previousParents.pop() === undefined) {
+        this.previousParents.pop()
+        if (this.previousParents.length === 0) {
           this.previousParents = undefined
+          break
         }
+        index = this.previousParents.indexOf(parent)
       }
     }
 
