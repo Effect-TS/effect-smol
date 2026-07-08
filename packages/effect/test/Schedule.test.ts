@@ -216,6 +216,40 @@ describe("Schedule", () => {
       }))
   })
 
+  describe("combining", () => {
+    it.effect("min - uses the fastest delay as output and delay", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.min([
+          Schedule.fixed("5 seconds"),
+          Schedule.exponential("5 seconds"),
+          Schedule.spaced("10 seconds")
+        ])
+        const step = yield* Schedule.toStep(schedule)
+
+        const first = yield* step(0, undefined)
+        const second = yield* step(5_000, undefined)
+
+        expect(first).toEqual([Duration.seconds(5), Duration.seconds(5)])
+        expect(second).toEqual([Duration.seconds(5), Duration.seconds(5)])
+      }))
+
+    it.effect("min - continues while any schedule recurs", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.min([
+          Schedule.duration("1 second"),
+          Schedule.spaced("2 seconds").pipe(Schedule.take(2))
+        ])
+        const inputs = Array.makeBy(4, constUndefined)
+        const output = yield* runDelays(schedule, inputs)
+
+        expect(output).toEqual([
+          Duration.seconds(1),
+          Duration.seconds(2),
+          Duration.zero
+        ])
+      }))
+  })
+
   describe("reduce", () => {
     it.effect("accumulates state with synchronous combine", () =>
       Effect.gen(function*() {

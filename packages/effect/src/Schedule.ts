@@ -23,7 +23,7 @@ import { type Pipeable, pipeArguments } from "./Pipeable.ts"
 import { hasProperty } from "./Predicate.ts"
 import * as Pull from "./Pull.ts"
 import * as Result from "./Result.ts"
-import type { Contravariant, Covariant, Mutable } from "./Types.ts"
+import type { Contravariant, Covariant, Mutable, UnionToIntersection } from "./Types.ts"
 
 const TypeId = "~effect/Schedule"
 
@@ -857,10 +857,10 @@ export const andThenResult: {
  * })
  *
  * // Both provides intersection semantics (AND logic)
- * // Compare with either which provides union semantics (OR logic)
+ * // Compare with Schedule.min, which provides union semantics (OR logic)
  * ```
  *
- * @see {@link either} for continuing while either schedule still recurs
+ * @see {@link min} for continuing while any schedule still recurs
  *
  * @category combining
  * @since 2.0.0
@@ -1629,304 +1629,75 @@ export const during = (duration: Duration.Input): Schedule<Duration.Duration> =>
     ({ output }) => effect.succeed(Duration.isLessThanOrEqualTo(output, Duration.fromInputUnsafe(duration)))
   )
 
+type ScheduleInput<T> = T extends Schedule<any, infer Input, any, any> ? Input : never
+
+type ScheduleError<T> = T extends Schedule<any, any, infer Error, any> ? Error : never
+
+type ScheduleEnv<T> = T extends Schedule<any, any, any, infer Env> ? Env : never
+
+const minimumDuration = (durations: ReadonlyArray<Duration.Duration | undefined>): Duration.Duration | undefined => {
+  let min: Duration.Duration | undefined
+  for (const duration of durations) {
+    if (duration !== undefined) {
+      min = min === undefined ? duration : Duration.min(min, duration)
+    }
+  }
+  return min
+}
+
 /**
- * Combines two `Schedule`s by recurring if either of the two schedules wants
- * to recur, using the minimum of the two durations between recurrences and
- * outputting a tuple of the outputs of both schedules.
+ * Combines multiple schedules by recurring while any schedule wants to recur,
+ * using the minimum delay between recurrences.
  *
  * **When to use**
  *
- * Use when the combined schedule should continue while at least one schedule still recurs.
+ * Use when several timing policies are available and recurrence should follow
+ * the fastest active schedule. The output of the combined schedule is the
+ * fastest computed delay.
  *
- * **Example** (Combining schedules with either semantics)
+ * **Example** (Combining schedules by the fastest delay)
  *
  * ```ts
- * import { Console, Data, Effect, Schedule } from "effect"
+ * import { Schedule } from "effect"
  *
- * class RetryAttemptError extends Data.TaggedError("RetryAttemptError")<{ readonly message: string }> {}
- *
- * // Either continues as long as at least one schedule wants to continue
- * const timeBasedSchedule = Schedule.spaced("2 seconds").pipe(Schedule.take(3))
- * const countBasedSchedule = Schedule.recurs(5)
- *
- * // Continues until both schedules are exhausted (either still wants to recur)
- * const eitherSchedule = Schedule.either(timeBasedSchedule, countBasedSchedule)
- * // Outputs: [time_result, count_result] tuple
- *
- * const program = Effect.gen(function*() {
- *   const results = yield* Effect.repeat(
- *     Effect.gen(function*() {
- *       yield* Console.log("Task executed")
- *       return "task completed"
- *     }),
- *     eitherSchedule.pipe(
- *       Schedule.tapOutput(([timeResult, countResult]) =>
- *         Console.log(`Time: ${timeResult}, Count: ${countResult}`)
- *       )
- *     )
- *   )
- *
- *   yield* Console.log(`Total executions: ${results.length}`)
- * })
- *
- * // Either with different delay strategies
- * const aggressiveRetry = Schedule.exponential("100 millis").pipe(
- *   Schedule.take(3)
- * )
- * const fallbackRetry = Schedule.fixed("5 seconds").pipe(Schedule.take(2))
- *
- * // Will use the more aggressive retry until it's exhausted, then fallback
- * const combinedRetry = Schedule.either(aggressiveRetry, fallbackRetry)
- *
- * const retryProgram = Effect.gen(function*() {
- *   let attempt = 0
- *
- *   const result = yield* Effect.retry(
- *     Effect.gen(function*() {
- *       attempt++
- *       yield* Console.log(`Retry attempt ${attempt}`)
- *
- *       if (attempt < 6) {
- *         return yield* Effect.fail(new RetryAttemptError({ message: `Attempt ${attempt} failed` }))
- *       }
- *
- *       return `Success on attempt ${attempt}`
- *     }),
- *     combinedRetry
- *   )
- *
- *   yield* Console.log(`Final result: ${result}`)
- * })
- *
- * // Either provides union semantics (OR logic)
- * // Compare with both, which provides intersection semantics (AND logic)
+ * const schedule = Schedule.min([
+ *   Schedule.fixed("5 seconds"),
+ *   Schedule.exponential("5 seconds"),
+ *   Schedule.spaced("10 seconds")
+ * ])
  * ```
  *
  * @see {@link both} for continuing only while both schedules still recur
  *
  * @category combining
- * @since 2.0.0
- */
-export const either: {
-  <Output2, Input2, Error2, Env2>(
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<[Output, Output2], Input & Input2, Error | Error2, Env | Env2> =>
-  eitherWith(self, other, (left, right) => [left, right]))
-
-/**
- * Combines two `Schedule`s by recurring if either of the two schedules wants
- * to recur, using the minimum of the two durations between recurrences and
- * outputting the result of the left schedule (i.e. `self`).
- *
- * **When to use**
- *
- * Use when either schedule may keep recurrence going and only the left
- * schedule's output is needed.
- *
- * **Example** (Combining either schedules and keeping the left output)
- *
- * ```ts
- * import { Console, Effect, Schedule } from "effect"
- *
- * // Combine two schedules with either semantics, keeping left output
- * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => Effect.succeed("primary-result")),
- *   Schedule.take(2)
- * )
- * const backupSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => Effect.succeed("backup-result"))
- * )
- *
- * const combined = Schedule.eitherLeft(primarySchedule, backupSchedule)
- *
- * const program = Effect.gen(function*() {
- *   yield* Effect.repeat(
- *     Effect.gen(function*() {
- *       yield* Console.log("Task executed")
- *       return "task-done"
- *     }),
- *     combined.pipe(Schedule.take(5))
- *   )
- * })
- * ```
- *
- * @category combining
  * @since 4.0.0
  */
-export const eitherLeft: {
-  <Output2, Input2, Error2, Env2>(
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<Output, Input & Input2, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Output, Input & Input2, Error | Error2, Env | Env2> => eitherWith(self, other, (output) => output))
-
-/**
- * Combines two `Schedule`s by recurring if either of the two schedules wants
- * to recur, using the minimum of the two durations between recurrences and
- * outputting the result of the right schedule (i.e. `other`).
- *
- * **When to use**
- *
- * Use when either schedule may keep recurrence going and only the right
- * schedule's output is needed.
- *
- * **Example** (Combining either schedules and keeping the right output)
- *
- * ```ts
- * import { Console, Effect, Schedule } from "effect"
- *
- * // Combine two schedules with either semantics, keeping right output
- * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => Effect.succeed("primary-result")),
- *   Schedule.take(2)
- * )
- * const backupSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => Effect.succeed("backup-result"))
- * )
- *
- * const combined = Schedule.eitherRight(primarySchedule, backupSchedule)
- *
- * const program = Effect.gen(function*() {
- *   yield* Effect.repeat(
- *     Effect.gen(function*() {
- *       yield* Console.log("Task executed")
- *       return "task-done"
- *     }),
- *     combined.pipe(Schedule.take(5))
- *   )
- * })
- * ```
- *
- * @category combining
- * @since 4.0.0
- */
-export const eitherRight: {
-  <Output2, Input2, Error2, Env2>(
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output2, Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>
-  ): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2>
-} = dual(2, <Output, Input, Error, Env, Output2, Input2, Error2, Env2>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>
-): Schedule<Output2, Input & Input2, Error | Error2, Env | Env2> => eitherWith(self, other, (_, output) => output))
-
-/**
- * Combines two `Schedule`s by recurring if either of the two schedules wants
- * to recur, using the minimum of the two durations between recurrences and
- * outputting the result of the combination of both schedule outputs using the
- * specified `combine` function.
- *
- * **When to use**
- *
- * Use when either schedule may keep recurrence going and their outputs should be
- * combined into a custom value.
- *
- * **Example** (Combining either schedule outputs)
- *
- * ```ts
- * import { Console, Effect, Schedule } from "effect"
- *
- * // Combine schedules with either semantics and custom combination
- * const primarySchedule = Schedule.exponential("100 millis").pipe(
- *   Schedule.map(() => Effect.succeed("primary")),
- *   Schedule.take(2)
- * )
- * const fallbackSchedule = Schedule.spaced("500 millis").pipe(
- *   Schedule.map(() => Effect.succeed("fallback"))
- * )
- *
- * const combined = Schedule.eitherWith(
- *   primarySchedule,
- *   fallbackSchedule,
- *   (primary, fallback) => `${primary}+${fallback}`
- * )
- *
- * const program = Effect.gen(function*() {
- *   yield* Effect.repeat(
- *     Effect.gen(function*() {
- *       yield* Console.log("Task executed")
- *       return "task-result"
- *     }),
- *     combined.pipe(Schedule.take(5))
- *   )
- * })
- * ```
- *
- * @category combining
- * @since 2.0.0
- */
-export const eitherWith: {
-  <Output2, Input2, Error2, Env2, Output, Output3>(
-    other: Schedule<Output2, Input2, Error2, Env2>,
-    combine: (selfOutput: Output, otherOutput: Output2) => Output3
-  ): <Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
-  <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
-    self: Schedule<Output, Input, Error, Env>,
-    other: Schedule<Output2, Input2, Error2, Env2>,
-    combine: (selfOutput: Output, otherOutput: Output2) => Output3
-  ): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2>
-} = dual(3, <Output, Input, Error, Env, Output2, Input2, Error2, Env2, Output3>(
-  self: Schedule<Output, Input, Error, Env>,
-  other: Schedule<Output2, Input2, Error2, Env2>,
-  combine: (selfOutput: Output, otherOutput: Output2) => Output3
-): Schedule<Output3, Input & Input2, Error | Error2, Env | Env2> =>
+export const min = <const Schedules extends ReadonlyArray<Schedule<any, any, any, any>>>(
+  schedules: Schedules
+): Schedule<
+  Duration.Duration,
+  UnionToIntersection<ScheduleInput<Schedules[number]>>,
+  ScheduleError<Schedules[number]>,
+  ScheduleEnv<Schedules[number]>
+> =>
   fromStep(effect.map(
-    effect.zip(toStep(self), toStep(other)),
-    ([stepLeft, stepRight]) => (now, input) =>
-      Pull.matchEffect(stepLeft(now, input as Input), {
-        onSuccess: (leftResult) =>
-          stepRight(now, input as Input2).pipe(
-            effect.map((rightResult) =>
-              [combine(leftResult[0], rightResult[0]), Duration.min(leftResult[1], rightResult[1])] as [
-                Output3,
-                Duration.Duration
-              ]
-            ),
-            Pull.catchDone((rightDone) =>
-              effect.succeed<[Output3, Duration.Duration]>([
-                combine(leftResult[0], rightDone as Output2),
-                leftResult[1]
-              ])
-            )
-          ),
-        onFailure: effect.failCause,
-        onDone: (leftDone) =>
-          stepRight(now, input as Input2).pipe(
-            effect.map((rightResult) =>
-              [combine(leftDone, rightResult[0]), rightResult[1]] as [
-                Output3,
-                Duration.Duration
-              ]
-            ),
-            Pull.catchDone((rightDone) => Cause.done(combine(leftDone, rightDone as Output2)))
-          )
-      })
-  )))
+    effect.forEach(schedules, toStep),
+    (steps) => (now: number, input: unknown) =>
+      effect.flatMap(
+        effect.forEach(steps, (step) =>
+          Pull.matchEffect(step(now, input as any), {
+            onSuccess: ([, duration]) => effect.succeed(duration),
+            onFailure: effect.failCause,
+            onDone: () => effect.succeed(undefined)
+          })),
+        (durations) => {
+          const duration = minimumDuration(durations)
+          return duration === undefined
+            ? Cause.done(Duration.zero)
+            : effect.succeed([duration, duration] as [Duration.Duration, Duration.Duration])
+        }
+      )
+  ) as any) as any
 
 /**
  * Schedule that always recurs and returns the total elapsed duration since the

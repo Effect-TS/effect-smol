@@ -18,7 +18,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
   `Schedule.delays`, `Schedule.map`, or `Schedule.reduce` when the output shape
   matters.
 - `Schedule.both` continues only while both schedules continue.
-- `Schedule.either` continues while either schedule can continue.
+- `Schedule.min` continues while any schedule can continue, using the fastest active delay.
 - `Schedule.jittered` spreads callers out. It does not add a recurrence limit.
 - `Schedule.addDelay` adds extra delay based on schedule output.
 - `Schedule.modifyDelay` replaces or adjusts the selected delay.
@@ -36,7 +36,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
 | Run phases in sequence                    | `Schedule.andThen`                                                                                                |
 | Preserve phase in output                  | `Schedule.andThenResult`                                                                                          |
 | Continue while both policies continue     | `Schedule.both`                                                                                                   |
-| Continue while either policy continues    | `Schedule.either`                                                                                                 |
+| Continue while any policy continues       | `Schedule.min`                                                                                                    |
 | Keep input or output history              | `Schedule.collectInputs`, `Schedule.collectOutputs`, or `Schedule.collectWhile`                                   |
 | Maintain a running aggregate              | `Schedule.reduce`                                                                                                 |
 | Observe decisions without changing output | `Schedule.tap`, `Schedule.tapInput`, or `Schedule.tapOutput`                                                      |
@@ -263,7 +263,7 @@ const deploymentHookRetryBudget = Schedule.exponential("200 millis").pipe(
 Explanation: the resulting output is nested because `Schedule.both` preserves
 both schedule outputs. Use `Schedule.map` when a smaller output is needed.
 
-### Continue While Either Probe Is Active
+### Continue While Any Probe Is Active
 
 Goal: Create a service readiness policy that continues while either 2 immediate
 warmup probes or a slower 500 millisecond probe schedule still wants to recur.
@@ -271,14 +271,16 @@ warmup probes or a slower 500 millisecond probe schedule still wants to recur.
 ```ts
 import { Schedule } from "effect"
 
-const readinessWarmupOrSlowProbe = Schedule.recurs(2).pipe(
-  Schedule.either(Schedule.spaced("500 millis").pipe(Schedule.take(5)))
-)
+const readinessWarmupOrSlowProbe = Schedule.min([
+  Schedule.recurs(2),
+  Schedule.spaced("500 millis").pipe(Schedule.take(5))
+])
 ```
 
-Explanation: `Schedule.either` keeps recurring while at least one side can
-continue. Its output preserves both sides, so map the result if callers should
-see a smaller shape.
+Explanation: `Schedule.min` keeps recurring while at least one schedule can
+continue. Its output is the fastest active delay, which is `Duration.zero`
+while the immediate warmup probes are active and then 500 milliseconds while
+only the slower probe schedule remains.
 
 ### Warm Up Fast, Then Settle Into Maintenance
 
