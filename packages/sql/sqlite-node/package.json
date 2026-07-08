@@ -52,7 +52,6 @@
   "scripts": {
     "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
@@ -60,7 +59,7 @@
   },
   "devDependencies": {
     "@effect/platform-node": "workspace:^",
-    "@types/node": "^25.7.0",
+    "@types/node": "^26.1.1",
     "effect": "workspace:^"
   },
   "peerDependencies": {

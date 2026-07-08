@@ -57,7 +57,6 @@
   "scripts": {
     "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
@@ -66,17 +65,17 @@
   "dependencies": {
     "@effect/platform-node-shared": "workspace:^",
     "mime": "^4.1.0",
-    "undici": "^8.2.0"
+    "undici": "^8.7.0"
   },
   "peerDependencies": {
     "effect": "workspace:^",
     "ioredis": "^5.7.0"
   },
   "devDependencies": {
-    "@testcontainers/mysql": "^11.14.0",
-    "@testcontainers/postgresql": "^11.14.0",
-    "@testcontainers/redis": "^11.14.0",
-    "@types/node": "^25.7.0",
+    "@testcontainers/mysql": "^12.0.4",
+    "@testcontainers/postgresql": "^12.0.4",
+    "@testcontainers/redis": "^12.0.4",
+    "@types/node": "^26.1.1",
     "effect": "workspace:^"
   }
 }

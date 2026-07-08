@@ -54,7 +54,6 @@
   "scripts": {
     "codegen": "effect-utils codegen",
     "build": "tsc -b tsconfig.json && pnpm babel",
-    "build:tsgo": "tsgo -b tsconfig.json && pnpm babel",
     "babel": "babel dist --plugins annotate-pure-calls --out-dir dist --source-maps",
     "check": "tsc -b tsconfig.json",
     "test": "vitest",
@@ -62,12 +61,12 @@
   },
   "devDependencies": {
     "effect": "workspace:^",
-    "testcontainers": "^11.14.0"
+    "testcontainers": "^12.0.4"
   },
   "peerDependencies": {
     "effect": "workspace:^"
   },
   "dependencies": {
-    "@libsql/client": "^0.17.3"
+    "@libsql/client": "^0.17.4"
   }
 }
