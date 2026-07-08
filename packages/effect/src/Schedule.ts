@@ -1391,12 +1391,16 @@ export const cron: {
   (expression: string, tz?: string | DateTime.TimeZone): Schedule<Duration.Duration, unknown, Cron.CronParseError>
 } = (expression: string | Cron.Cron, tz?: string | DateTime.TimeZone) => {
   const parsed = Cron.isCron(expression) ? Result.succeed(expression) : Cron.parse(expression, tz)
-  return fromStep(effect.map(effect.fromResult(parsed), (cron) => (now, _) =>
-    effect.sync(() => {
+  return fromStep(effect.map(effect.fromResult(parsed), (cron) => (now, _) => {
+    if (now === Number.POSITIVE_INFINITY) {
+      return Cause.done(Duration.zero)
+    }
+    return effect.sync(() => {
       const next = Cron.next(cron, now).getTime()
       const duration = Duration.millis(next - now)
       return [duration, duration]
-    })))
+    })
+  }))
 }
 
 /**

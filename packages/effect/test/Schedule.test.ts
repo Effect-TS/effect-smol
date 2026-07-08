@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "@effect/vitest"
-import { Array, Duration, Effect, Fiber, Pull, Random, Result, Schedule } from "effect"
+import { Array, Deferred, Duration, Effect, Fiber, Pull, Random, Result, Schedule } from "effect"
 import { constant, constUndefined } from "effect/Function"
 import { TestClock } from "effect/testing"
 
@@ -203,6 +203,19 @@ describe("Schedule", () => {
           "Wed Jan 17 2024 04:30:00",
           "Wed Jan 24 2024 04:30:00"
         ])
+      }))
+
+    it.effect("does not fail when the test clock is adjusted to infinity", () =>
+      Effect.gen(function*() {
+        const latch = yield* Deferred.make<void>()
+        const fiber = yield* Deferred.await(latch).pipe(
+          Effect.repeat(Schedule.cron("0 0 4 8-14 * *", "UTC")),
+          Effect.forkChild
+        )
+
+        yield* TestClock.adjust(Infinity)
+        yield* Deferred.succeed(latch, void 0)
+        yield* Fiber.join(fiber)
       }))
   })
 
