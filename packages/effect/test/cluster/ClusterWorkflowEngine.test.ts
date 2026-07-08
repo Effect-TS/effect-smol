@@ -254,10 +254,13 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         executionId: executionIdBeforeRegister
       })
 
-      yield* DurableDeferred.done(ShardedDeferred, {
+      // Prime the partial client cache without waiting for the unregistered workflow entity.
+      const beforeRegisterDoneFiber = yield* DurableDeferred.done(ShardedDeferred, {
         token: tokenBeforeRegister,
         exit: Exit.void
-      })
+      }).pipe(Effect.forkChild({ startImmediately: true }))
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(beforeRegisterDoneFiber)
 
       yield* engine.register(ShardedDeferredWorkflow, () => Effect.void)
 
@@ -289,11 +292,13 @@ describe.concurrent("ClusterWorkflowEngine", () => {
         workflow: ShardedDeferredWorkflow,
         executionId
       })
-
-      yield* DurableDeferred.done(ShardedDeferred, {
+      // Prime the partial client cache without waiting for the unregistered workflow entity.
+      const doneFiber = yield* DurableDeferred.done(ShardedDeferred, {
         token,
         exit: Exit.void
-      })
+      }).pipe(Effect.forkChild({ startImmediately: true }))
+      yield* Effect.yieldNow
+      yield* Fiber.interrupt(doneFiber)
 
       yield* engine.register(ShardedDeferredWorkflow, () =>
         Activity.make({

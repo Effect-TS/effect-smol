@@ -179,12 +179,11 @@ export const make = <
 }
 
 const interruptRetryPolicy = Schedule.min([
-  Schedule.exponential(4.0, 1.5),
-  Schedule.spaced("10 seconds"),
-  Schedule.recurs(10)
+  Schedule.exponential(400, 1.5),
+  Schedule.spaced("10 seconds")
 ]).pipe(
   Schedule.setInputType<Cause.Cause<unknown>>(),
-  Schedule.while((meta) => Effect.succeed(Cause.hasInterrupts(meta.input)))
+  Schedule.while((meta) => meta.attempt <= 10 && Cause.hasInterrupts(meta.input))
 )
 
 const retryOnInterrupt = (
