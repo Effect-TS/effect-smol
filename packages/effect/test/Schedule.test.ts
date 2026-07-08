@@ -4,40 +4,6 @@ import { constant, constUndefined } from "effect/Function"
 import { TestClock } from "effect/testing"
 
 describe("Schedule", () => {
-  describe("collecting", () => {
-    it.effect("collectInputs - should collect all schedule inputs", () =>
-      Effect.gen(function*() {
-        const schedule = Schedule.collectInputs(Schedule.forever)
-        const inputs = Array.range(1, 5)
-        const outputs = yield* runLast(schedule, inputs)
-        expect(outputs).toEqual(inputs)
-      }))
-
-    it.effect("collectOutputs - should collect all schedule outputs", () =>
-      Effect.gen(function*() {
-        const schedule = Schedule.collectOutputs(Schedule.forever)
-        const inputs = Array.makeBy(5, constUndefined)
-        const outputs = yield* runLast(schedule, inputs)
-        expect(outputs).toEqual([0, 1, 2, 3, 4])
-      }))
-
-    it.effect("collectWhile - should collect while the predicate holds", () =>
-      Effect.gen(function*() {
-        const schedule = Schedule.collectWhile(Schedule.forever, ({ output }) => Effect.succeed(output < 3))
-        const inputs = Array.makeBy(5, constUndefined)
-        const outputs = yield* runLast(schedule, inputs)
-        expect(outputs).toEqual([0, 1, 2, 3])
-      }))
-
-    it.effect("collectWhile - should collect while the effectful predicate holds", () =>
-      Effect.gen(function*() {
-        const schedule = Schedule.collectWhile(Schedule.forever, ({ output }) => Effect.succeed(output < 3))
-        const inputs = Array.makeBy(5, constUndefined)
-        const outputs = yield* runLast(schedule, inputs)
-        expect(outputs).toEqual([0, 1, 2, 3])
-      }))
-  })
-
   describe("sequencing", () => {
     it.effect("tap - provides full metadata", () =>
       Effect.gen(function*() {
@@ -216,18 +182,6 @@ describe("Schedule", () => {
       }))
   })
 
-  describe("reduce", () => {
-    it.effect("accumulates state with synchronous combine", () =>
-      Effect.gen(function*() {
-        const schedule = Schedule.forever.pipe(
-          Schedule.reduce(() => 0, (state, output) => state + output)
-        )
-        const inputs = Array.makeBy(5, constUndefined)
-        const output = yield* runCollect(schedule, inputs)
-        expect(output).toEqual([0, 1, 3, 6, 10])
-      }))
-  })
-
   describe("jittered", () => {
     it.effect("keeps delays within 80%-120% of the original", () =>
       Effect.gen(function*() {
@@ -276,16 +230,15 @@ describe("Schedule", () => {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.fixed("1 seconds").pipe(
           Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
-          Schedule.delays,
-          Schedule.map((delay) =>
+          Schedule.tap((metadata) =>
             Effect.sync(() => {
-              delays.push(delay)
-              return delays
+              delays.push(metadata.duration)
             })
           )
         )
         yield* Effect.sleep("500 millis").pipe(
           Effect.schedule(schedule),
+          Effect.andThen(Effect.sync(() => delays.push(Duration.zero))),
           Effect.forkChild
         )
         yield* TestClock.setTime(Number.POSITIVE_INFINITY)
@@ -304,16 +257,15 @@ describe("Schedule", () => {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.fixed("1 seconds").pipe(
           Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
-          Schedule.delays,
-          Schedule.map((delay) =>
+          Schedule.tap((metadata) =>
             Effect.sync(() => {
-              delays.push(delay)
-              return delays
+              delays.push(metadata.duration)
             })
           )
         )
         yield* Effect.sleep("1.5 seconds").pipe(
           Effect.schedule(schedule),
+          Effect.andThen(Effect.sync(() => delays.push(Duration.zero))),
           Effect.forkChild
         )
         yield* TestClock.setTime(Number.POSITIVE_INFINITY)
@@ -342,16 +294,15 @@ describe("Schedule", () => {
         const delays: Array<Duration.Duration> = []
         const schedule = Schedule.windowed("1 seconds").pipe(
           Schedule.while(({ attempt }) => Effect.succeed(attempt <= 5)),
-          Schedule.delays,
-          Schedule.map((delay) =>
+          Schedule.tap((metadata) =>
             Effect.sync(() => {
-              delays.push(delay)
-              return delays
+              delays.push(metadata.duration)
             })
           )
         )
         yield* Effect.sleep("1.5 seconds").pipe(
           Effect.schedule(schedule),
+          Effect.andThen(Effect.sync(() => delays.push(Duration.zero))),
           Effect.forkChild
         )
         yield* TestClock.setTime(Number.POSITIVE_INFINITY)
@@ -373,35 +324,23 @@ const run = Effect.fnUntraced(function*<A, E, R>(effect: Effect.Effect<A, E, R>)
   return yield* Fiber.join(fiber)
 })
 
-const runCollect = Effect.fnUntraced(function*<Output, Input, Error, Env>(
-  schedule: Schedule.Schedule<Output, Input, Error, Env>,
-  input: Iterable<Input>
-) {
-  const step = yield* Schedule.toStepWithSleep(schedule)
-  const out: Array<Output> = []
-  yield* Effect.gen(function*() {
-    for (const value of input) {
-      out.push(yield* step(value))
-    }
-  }).pipe(Pull.catchDone((value) => {
-    out.push(value as Output)
-    return Effect.void
-  }))
-  return out
-}, run)
-
 const runDelays = <Output, Input, Error, Env>(
   schedule: Schedule.Schedule<Output, Input, Error, Env>,
   input: Iterable<Input>
-) => runCollect(Schedule.delays(schedule), input)
-
-const runLast = <Output, Input, Error, Env>(
-  schedule: Schedule.Schedule<Output, Input, Error, Env>,
-  input: Iterable<Input>
 ) =>
-  runCollect(schedule, input).pipe(
-    Effect.map((outputs) => outputs[outputs.length - 1])
-  )
+  Effect.gen(function*() {
+    const step = yield* Schedule.toStepWithMetadata(schedule)
+    const out: Array<Duration.Duration> = []
+    yield* Effect.gen(function*() {
+      for (const value of input) {
+        out.push((yield* step(value)).duration)
+      }
+    }).pipe(Pull.catchDone(() => {
+      out.push(Duration.zero)
+      return Effect.void
+    }))
+    return out
+  }).pipe(run)
 
 const format = (timestamp: number | string | Date): string => {
   const date = new Date(timestamp)
