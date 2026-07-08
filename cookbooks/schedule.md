@@ -14,13 +14,12 @@ This cookbook intentionally defines schedules only. It does not apply them with
   aligned cadence; `Schedule.windowed` recurs on window boundaries.
 - `Schedule.duration` performs exactly one recurrence after the duration.
 - `Schedule.during` is an elapsed-time budget, not a delay by itself.
-- Schedule output is policy output. Use `Schedule.passthrough`,
-  `Schedule.delays`, `Schedule.map`, or `Schedule.reduce` when the output shape
-  matters.
+- Schedule output is policy output. Use `Schedule.passthrough` to preserve the
+  latest input, or `Schedule.map` to derive a new output from schedule metadata.
 - `Schedule.max` continues only while all schedules continue and outputs the slowest delay.
 - `Schedule.min` continues while any schedule can continue and outputs the fastest delay.
 - `Schedule.jittered` spreads callers out. It does not add a recurrence limit.
-- `Schedule.addDelay` adds extra delay based on schedule output.
+- `Schedule.addDelay` adds extra delay based on schedule metadata.
 - `Schedule.modifyDelay` replaces or adjusts the selected delay.
 - Leave unbounded schedules to explicitly owned background work.
 
@@ -30,17 +29,14 @@ This cookbook intentionally defines schedules only. It does not apply them with
 | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | Bounded retry                             | `Schedule.exponential` or `Schedule.fibonacci`, then `Schedule.recurs` and optionally `Schedule.during`           |
 | Poll latest status                        | `Schedule.spaced` or `Schedule.fixed`, then `Schedule.setInputType`, `Schedule.passthrough`, and `Schedule.while` |
-| Inspect selected delays                   | `Schedule.delays`, then `Schedule.map`                                                                            |
-| Adapt delay from output                   | `Schedule.addDelay`                                                                                               |
+| Adapt delay from metadata                 | `Schedule.addDelay`                                                                                               |
 | Replace or cap selected delay             | `Schedule.modifyDelay`                                                                                            |
 | Run phases in sequence                    | `Schedule.andThen`                                                                                                |
 | Preserve phase in output                  | `Schedule.andThenResult`                                                                                          |
 | Continue while all policies continue      | `Schedule.max`                                                                                                    |
 | Continue while any policy continues       | `Schedule.min`                                                                                                    |
-| Keep input or output history              | `Schedule.collectInputs`, `Schedule.collectOutputs`, or `Schedule.collectWhile`                                   |
-| Maintain a running aggregate              | `Schedule.reduce`                                                                                                 |
-| Observe decisions without changing output | `Schedule.tap`, `Schedule.tapInput`, or `Schedule.tapOutput`                                                      |
-| Build a local state machine               | `Schedule.unfold`                                                                                                 |
+| Shape output from metadata                | `Schedule.map`                                                                                                    |
+| Observe decisions without changing output | `Schedule.tap`                                                                                                    |
 
 ## Table Of Contents
 
@@ -48,11 +44,9 @@ This cookbook intentionally defines schedules only. It does not apply them with
 2. [Shape Schedule Outputs](#shape-schedule-outputs)
 3. [Combine Policies](#combine-policies)
 4. [Work With Inputs](#work-with-inputs)
-5. [Accumulate State](#accumulate-state)
-6. [Adapt Delays](#adapt-delays)
-7. [Observe Schedule Decisions](#observe-schedule-decisions)
-8. [Build Local State Machines](#build-local-state-machines)
-9. [Realistic Policies](#realistic-policies)
+5. [Adapt Delays](#adapt-delays)
+6. [Observe Schedule Decisions](#observe-schedule-decisions)
+7. [Realistic Policies](#realistic-policies)
 
 ## Single-Policy Schedules
 
@@ -184,63 +178,33 @@ const featureFlagSamples = Schedule.identity<FeatureFlagSnapshot>().pipe(
 
 ### Label Retry Attempts
 
-Goal: Create a retry-attempt schedule that turns recurrence counts into labels
-such as `attempt-1`, `attempt-2`, and `attempt-3`.
+Goal: Create a retry-attempt schedule that turns recurrence count metadata into
+labels such as `attempt-1`, `attempt-2`, and `attempt-3`.
 
 ```ts
 import { Schedule } from "effect"
 
 const retryAttemptLabels = Schedule.recurs(3).pipe(
-  Schedule.map((count) => `attempt-${count + 1}`)
+  Schedule.map(({ output: count }) => `attempt-${count + 1}`)
 )
 ```
 
-### Report Selected Poll Delays
-
-Goal: Create a telemetry schedule that runs on an aligned 2-second cadence,
-outputs selected delays, maps each delay to milliseconds, and takes 3 outputs.
-
-```ts
-import { Duration, Schedule } from "effect"
-
-const pollDelayReport = Schedule.fixed("2 seconds").pipe(
-  Schedule.delays,
-  Schedule.map((delay) => ({ millis: Duration.toMillis(delay) })),
-  Schedule.upTo({ times: 3 })
-)
-```
-
-Explanation: `Schedule.delays` changes the schedule output to the selected
-delay. Use it when observability or downstream policy needs the actual delay
-rather than the cadence counter.
-
-### Report Elapsed Runtime
-
-Goal: Create a runtime sampler that outputs elapsed time in milliseconds and
-takes 4 samples.
-
-```ts
-import { Duration, Schedule } from "effect"
-
-const elapsedRuntimeReport = Schedule.elapsed.pipe(
-  Schedule.map((elapsed) => ({ millis: Duration.toMillis(elapsed) })),
-  Schedule.upTo({ times: 4 })
-)
-```
+Explanation: `Schedule.map` receives the full step metadata. Destructure
+`output` when you only need the schedule output, or use fields such as `input`,
+`attempt`, `duration`, and `elapsed` when the new output needs more context.
 
 ## Combine Policies
 
 ### Add Jitter To Webhook Backoff
 
 Goal: Create a webhook retry backoff that starts at 200 milliseconds, adds
-jitter, outputs selected delays, and takes 3 outputs.
+jitter, and takes 3 outputs.
 
 ```ts
 import { Schedule } from "effect"
 
 const jitteredWebhookBackoff = Schedule.exponential("200 millis").pipe(
   Schedule.jittered,
-  Schedule.delays,
   Schedule.upTo({ times: 3 })
 )
 ```
@@ -307,18 +271,18 @@ import { Result, Schedule } from "effect"
 const phasedRetryClassifier = Schedule.exponential("100 millis").pipe(
   Schedule.upTo({ times: 2 }),
   Schedule.andThenResult(Schedule.fibonacci("500 millis").pipe(Schedule.upTo({ times: 3 }))),
-  Schedule.map((result) =>
+  Schedule.map(({ output: result }) =>
     Result.match(result, {
-      onFailure: (delay) => ({ phase: "steady", delay }),
-      onSuccess: (delay) => ({ phase: "fast", delay })
+      onFailure: (delay) => ({ phase: "fast", delay }),
+      onSuccess: (delay) => ({ phase: "steady", delay })
     })
   )
 )
 ```
 
 Explanation: `Schedule.andThenResult` keeps phase information in the output.
-The first schedule is represented by the success side, and the second schedule
-is represented by the failure side.
+The first schedule is represented by the failure side, and the second schedule
+is represented by the success side.
 
 ## Work With Inputs
 
@@ -344,103 +308,6 @@ Explanation: `Schedule.setInputType` tells TypeScript which input each step
 receives. `Schedule.passthrough` makes the output the latest input, so a polling
 schedule can return the final status instead of a counter.
 
-### Keep A History Of Retry Error Codes
-
-Goal: Create a schedule for string error-code inputs that checks about once per
-second and outputs all input codes seen so far.
-
-```ts
-import { Schedule } from "effect"
-
-const retryErrorCodeHistory = Schedule.collectInputs(
-  Schedule.spaced("1 second").pipe(
-    Schedule.setInputType<string>()
-  )
-)
-```
-
-Explanation: `Schedule.collectInputs` is useful when the input stream is the
-thing to audit, such as retry errors or status samples.
-
-### Collect Deployment Phases Until Failure
-
-Goal: Create a schedule that outputs the collected deployment phases while the
-input phase is not `failed`.
-
-```ts
-import { Schedule } from "effect"
-
-type DeploymentPhase = {
-  readonly phase: "created" | "deploying" | "verifying" | "failed"
-}
-
-const deploymentPhaseHistory = Schedule.identity<DeploymentPhase>().pipe(
-  Schedule.collectWhile(({ input }) => input.phase !== "failed")
-)
-```
-
-Explanation: `Schedule.collectWhile` accumulates accepted outputs and stops
-collecting when the predicate is false. This is cheaper to read than manually
-combining `identity`, `while`, and `reduce` for simple histories.
-
-### Collect Heartbeat Counts
-
-Goal: Create a schedule that recurs forever, collects recurrence counts produced
-so far, and takes only the first 3 collected outputs.
-
-```ts
-import { Schedule } from "effect"
-
-const heartbeatCountHistory = Schedule.collectOutputs(Schedule.forever).pipe(
-  Schedule.upTo({ times: 3 })
-)
-```
-
-Explanation: `Schedule.collectOutputs` collects the schedule output, not the
-input. Add `Schedule.upTo` or another bound when collecting from an unbounded
-schedule.
-
-## Accumulate State
-
-### Accumulate Request Latency Stats
-
-Goal: Create a schedule for latency samples that inspects the first 5 inputs and
-outputs running `min`, `max`, `total`, and `count` fields.
-
-```ts
-import { Schedule } from "effect"
-
-const requestLatencyStats = Schedule.identity<number>().pipe(
-  Schedule.upTo({ times: 5 }),
-  Schedule.reduce(
-    () => ({ min: Number.POSITIVE_INFINITY, max: 0, total: 0, count: 0 }),
-    (state, latency) => ({
-      min: Math.min(state.min, latency),
-      max: Math.max(state.max, latency),
-      total: state.total + latency,
-      count: state.count + 1
-    })
-  )
-)
-```
-
-Explanation: `Schedule.reduce` is for a running aggregate. Prefer it over
-collecting every value when callers only need a summary.
-
-### Count Recent Worker Failures
-
-Goal: Create a schedule for boolean failure samples that inspects the first 5
-inputs and outputs the running count of failed samples.
-
-```ts
-import { Schedule } from "effect"
-
-const recentWorkerFailureCount = Schedule.identity<boolean>().pipe(
-  Schedule.upTo({ times: 5 }),
-  Schedule.reduce(() => 0, (count, failed) => failed ? count + 1 : count)
-)
-```
-
 ## Adapt Delays
 
 ### Slow A Queue Consumer Under Backpressure
@@ -456,14 +323,14 @@ type QueueSnapshot = { readonly depth: number; readonly paused: boolean }
 
 const queueBackpressureSchedule = Schedule.identity<QueueSnapshot>().pipe(
   Schedule.while(({ input }) => !input.paused),
-  Schedule.addDelay((snapshot) => Effect.succeed(snapshot.depth > 1000 ? "5 seconds" : "500 millis")),
+  Schedule.addDelay(({ output: snapshot }) => Effect.succeed(snapshot.depth > 1000 ? "5 seconds" : "500 millis")),
   Schedule.upTo({ times: 10 })
 )
 ```
 
-Explanation: `Schedule.addDelay` adds delay based on the current schedule
-output. It is a good fit for input-driven pacing when the output is already the
-latest input.
+Explanation: `Schedule.addDelay` receives the full step metadata and adds the
+returned delay to the selected delay. It is a good fit for input-driven pacing
+when the output is already the latest input.
 
 ### Cap WebSocket Reconnect Delays
 
@@ -477,15 +344,15 @@ import { Duration, Effect, Schedule } from "effect"
 const websocketReconnectDelays = Schedule.max([
   Schedule.exponential("100 millis").pipe(
     Schedule.jittered,
-    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5))))
+    Schedule.modifyDelay(({ duration }) => Effect.succeed(Duration.min(duration, Duration.seconds(5))))
   ),
   Schedule.recurs(8)
 ])
 ```
 
-Explanation: `Schedule.modifyDelay` receives the selected delay and returns the
-replacement delay. Use it for caps, floors, clamps, or provider-provided delay
-hints.
+Explanation: `Schedule.modifyDelay` receives the full step metadata, including
+the selected delay as `duration`, and returns the replacement delay. Use it for
+caps, floors, clamps, or provider-provided delay hints.
 
 ## Observe Schedule Decisions
 
@@ -501,7 +368,7 @@ type HeartbeatStatus = { readonly id: string }
 
 const heartbeatInputLogs = Schedule.fixed("10 seconds").pipe(
   Schedule.setInputType<HeartbeatStatus>(),
-  Schedule.tapInput((input) => Console.log(`heartbeat:${input.id}`)),
+  Schedule.tap(({ input }) => Console.log(`heartbeat:${input.id}`)),
   Schedule.passthrough,
   Schedule.upTo({ times: 2 })
 )
@@ -517,7 +384,7 @@ import { Console, Schedule } from "effect"
 
 const loggedBackoffDelays = Schedule.fibonacci("200 millis").pipe(
   Schedule.upTo({ times: 5 }),
-  Schedule.tapOutput((delay) => Console.log(delay))
+  Schedule.tap(({ output: delay }) => Console.log(delay))
 )
 ```
 
@@ -535,56 +402,8 @@ const telemetryBackoffPolicy = Schedule.exponential("250 millis").pipe(
 )
 ```
 
-Explanation: use `tapInput` when the input matters, `tapOutput` when only the
-output matters, and `tap` when metadata such as attempt number or selected
-duration matters. None of these operators changes the schedule output.
-
-## Build Local State Machines
-
-### Track Scheduler Ticks
-
-Goal: Create a local scheduler tick state that starts at 1, increments after
-each output, maps each output to a `tick` object, and takes 4 outputs.
-
-```ts
-import { Effect, Schedule } from "effect"
-
-const schedulerTickState = Schedule.unfold(1, (n) => Effect.succeed(n + 1)).pipe(
-  Schedule.map((tick) => ({ tick })),
-  Schedule.upTo({ times: 4 })
-)
-```
-
-Explanation: `Schedule.unfold` builds a schedule from local state. Use it when
-the next output depends on private scheduler state rather than on the latest
-input.
-
-### Cycle A Maintenance Phase Machine
-
-Goal: Create a local phase machine for maintenance work. Start at `warming`,
-move to `active`, then `cooling`, then back to `active`, and take 6 outputs.
-
-```ts
-import { Effect, Schedule } from "effect"
-
-type MaintenancePhase = "warming" | "active" | "cooling"
-
-const maintenancePhaseMachine = Schedule.unfold<MaintenancePhase>(
-  "warming",
-  (phase) => {
-    switch (phase) {
-      case "warming":
-        return Effect.succeed("active")
-      case "active":
-        return Effect.succeed("cooling")
-      case "cooling":
-        return Effect.succeed("active")
-    }
-  }
-).pipe(
-  Schedule.upTo({ times: 6 })
-)
-```
+Explanation: use `Schedule.tap` to observe inputs, outputs, and metadata such as
+attempt number or selected duration without changing the schedule output.
 
 ## Realistic Policies
 
@@ -617,7 +436,7 @@ const graphqlGatewayRetry = Schedule.max([
   Schedule.exponential("100 millis").pipe(
     Schedule.jittered,
     Schedule.setInputType<GraphqlGatewayError>(),
-    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(2))))
+    Schedule.modifyDelay(({ duration }) => Effect.succeed(Duration.min(duration, Duration.seconds(2))))
   ),
   Schedule.recurs(6)
 ]).pipe(
@@ -668,12 +487,12 @@ const pushNotificationProviderRetry = Schedule.max([
   Schedule.exponential("1 second").pipe(
     Schedule.setInputType<PushProviderResponse>(),
     Schedule.passthrough,
-    Schedule.modifyDelay((response, delay) =>
+    Schedule.modifyDelay(({ output: response, duration }) =>
       Effect.succeed(
         Duration.min(
           response.retryAfter === undefined
-            ? delay
-            : Duration.max(delay, response.retryAfter),
+            ? duration
+            : Duration.max(duration, response.retryAfter),
           Duration.minutes(1)
         )
       )
@@ -705,7 +524,7 @@ type OAuthDeviceCodeStatus = {
 const oauthDeviceCodePolling = Schedule.spaced("5 seconds").pipe(
   Schedule.setInputType<OAuthDeviceCodeStatus>(),
   Schedule.passthrough,
-  Schedule.addDelay((status) => Effect.succeed(status.error === "slow_down" ? "5 seconds" : "0 millis")),
+  Schedule.addDelay(({ output: status }) => Effect.succeed(status.error === "slow_down" ? "5 seconds" : "0 millis")),
   Schedule.while(({ input, elapsed }) =>
     (input.error === "authorization_pending" || input.error === "slow_down") &&
     Duration.isLessThanOrEqualTo(Duration.millis(elapsed), Duration.minutes(15))

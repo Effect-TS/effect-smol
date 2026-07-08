@@ -108,6 +108,88 @@ describe("Schedule", () => {
         ])
       }))
 
+    it.effect("modifyDelay - provides full metadata", () =>
+      Effect.gen(function*() {
+        const observed: Array<Schedule.Metadata<number, string>> = []
+        const schedule = Schedule.spaced(Duration.millis(250)).pipe(
+          Schedule.modifyDelay((metadata: Schedule.Metadata<number, string>) =>
+            Effect.sync(() => {
+              observed.push(metadata)
+              return Duration.sum(metadata.duration, Duration.millis(metadata.elapsedSincePrevious))
+            })
+          )
+        )
+        const step = yield* Schedule.toStep(schedule)
+        const first = yield* step(1_000, "a")
+        const second = yield* step(1_250, "b")
+
+        assert.deepStrictEqual(first, [0, Duration.millis(250)])
+        assert.deepStrictEqual(second, [1, Duration.millis(500)])
+        assert.deepStrictEqual(observed, [
+          {
+            input: "a",
+            output: 0,
+            duration: Duration.millis(250),
+            attempt: 1,
+            start: 1_000,
+            now: 1_000,
+            elapsed: 0,
+            elapsedSincePrevious: 0
+          },
+          {
+            input: "b",
+            output: 1,
+            duration: Duration.millis(250),
+            attempt: 2,
+            start: 1_000,
+            now: 1_250,
+            elapsed: 250,
+            elapsedSincePrevious: 250
+          }
+        ])
+      }))
+
+    it.effect("addDelay - provides full metadata", () =>
+      Effect.gen(function*() {
+        const observed: Array<Schedule.Metadata<number, string>> = []
+        const schedule = Schedule.spaced(Duration.millis(250)).pipe(
+          Schedule.addDelay((metadata: Schedule.Metadata<number, string>) =>
+            Effect.sync(() => {
+              observed.push(metadata)
+              return Duration.millis(metadata.elapsedSincePrevious)
+            })
+          )
+        )
+        const step = yield* Schedule.toStep(schedule)
+        const first = yield* step(1_000, "a")
+        const second = yield* step(1_250, "b")
+
+        assert.deepStrictEqual(first, [0, Duration.millis(250)])
+        assert.deepStrictEqual(second, [1, Duration.millis(500)])
+        assert.deepStrictEqual(observed, [
+          {
+            input: "a",
+            output: 0,
+            duration: Duration.millis(250),
+            attempt: 1,
+            start: 1_000,
+            now: 1_000,
+            elapsed: 0,
+            elapsedSincePrevious: 0
+          },
+          {
+            input: "b",
+            output: 1,
+            duration: Duration.millis(250),
+            attempt: 2,
+            start: 1_000,
+            now: 1_250,
+            elapsed: 250,
+            elapsedSincePrevious: 250
+          }
+        ])
+      }))
+
     it.effect("andThenResult - sequences self then other when collecting delays", () =>
       Effect.gen(function*() {
         const left = Schedule.fixed("500 millis").pipe(

@@ -20,6 +20,28 @@ describe("Schedule", () => {
     expect(schedule).type.toBe<Schedule.Schedule<number, string, "error" | "tapError", "service" | "tapService">>()
   })
 
+  it("modifyDelay", () => {
+    const self = hole<Schedule.Schedule<number, string, "error", "service">>()
+    const schedule = Schedule.modifyDelay(self, (metadata) => {
+      expect(metadata).type.toBe<Schedule.Metadata<number, string>>()
+      return hole<Effect.Effect<Duration.Input, "modifyDelayError", "modifyDelayService">>()
+    })
+    expect(schedule).type.toBe<
+      Schedule.Schedule<number, string, "error" | "modifyDelayError", "service" | "modifyDelayService">
+    >()
+  })
+
+  it("addDelay", () => {
+    const self = hole<Schedule.Schedule<number, string, "error", "service">>()
+    const schedule = Schedule.addDelay(self, (metadata) => {
+      expect(metadata).type.toBe<Schedule.Metadata<number, string>>()
+      return hole<Effect.Effect<Duration.Input, "addDelayError", "addDelayService">>()
+    })
+    expect(schedule).type.toBe<
+      Schedule.Schedule<number, string, "error" | "addDelayError", "service" | "addDelayService">
+    >()
+  })
+
   it("type extractors", () => {
     type TestSchedule = Schedule.Schedule<number, string, "error", "service">
     expect<Schedule.Output<TestSchedule>>().type.toBe<number>()

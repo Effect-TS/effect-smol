@@ -81,11 +81,13 @@ export const retryBackoffWithLimit = Schedule.max([
 ])
 
 // `Schedule.min` continues while any schedule continues and outputs
-// the fastest delay. It is useful for fallback behavior (e.g. stop only when
-// all schedules are exhausted).
-export const keepTryingUntilAllStop = Schedule.min([
-  Schedule.spaced("2 seconds"),
-  Schedule.recurs(3)
+// the fastest delay. It is useful for fallback behavior.
+//
+// This schedule will start at 500ms, exponentially increase, and will be capped
+// at 2 seconds.
+export const keepTryingUpToTwoSeconds = Schedule.min([
+  Schedule.exponential("500 millis"),
+  Schedule.spaced("2 seconds")
 ])
 
 // Use `Schedule.while` to continue only for retryable failures.
@@ -97,10 +99,12 @@ export const retryableOnly = Schedule.exponential("200 millis").pipe(
   Schedule.while(({ input }) => input.retryable)
 )
 
-// `tapInput` and `tapOutput` are useful for performing side effects like
-// logging or metrics.
+// `tap` is useful for performing side effects like logging or metrics.
 export const instrumentedRetrySchedule = retryableOnly.pipe(
   Schedule.setInputType<HttpError>(),
-  Schedule.tapInput((error) => Effect.logDebug(`Retrying after ${error.status}: ${error.message}`)),
-  Schedule.tapOutput((delay) => Effect.logDebug(`Next retry in ${Duration.toMillis(delay)}ms`))
+  Schedule.tap((meta) =>
+    Effect.logDebug(
+      `Retrying after ${meta.input.status}: ${meta.input.message}. Next retry in ${Duration.toMillis(meta.duration)}ms`
+    )
+  )
 )
