@@ -1,5 +1,33 @@
 # effect
 
+## 4.0.0-beta.95
+
+### Patch Changes
+
+- [#2542](https://github.com/Effect-TS/effect-smol/pull/2542) [`a482442`](https://github.com/Effect-TS/effect-smol/commit/a482442abdeb490e9652b854ec3495e4aa7273e7) Thanks @IGassmann! - Add `Schema.DateFromMillis` and `SchemaTransformation.dateFromMillis` for decoding millisecond timestamps into `Date` values.
+
+- [#2559](https://github.com/Effect-TS/effect-smol/pull/2559) [`fbefa85`](https://github.com/Effect-TS/effect-smol/commit/fbefa850fab2f0a302c20614496aeaaa2a8b5590) Thanks @tim-smart! - fix activity retry policy
+
+- [#2547](https://github.com/Effect-TS/effect-smol/pull/2547) [`0b4a32f`](https://github.com/Effect-TS/effect-smol/commit/0b4a32f4260f0d8500942a133001b0d349328102) Thanks @fubhy! - Allow cron fields like `5/15` to expand from the starting value through the field maximum.
+
+- [#2557](https://github.com/Effect-TS/effect-smol/pull/2557) [`18a49e1`](https://github.com/Effect-TS/effect-smol/commit/18a49e1786679456258002ff9397faf02f678c2d) Thanks @fubhy! - Fix `Schedule.cron` when the test clock is adjusted to infinity.
+
+- [#2560](https://github.com/Effect-TS/effect-smol/pull/2560) [`266cb90`](https://github.com/Effect-TS/effect-smol/commit/266cb90bb2c17aabc40563c32db334f09ba3d74b) Thanks @gcanti! - Treat empty strings as missing values in built-in `ConfigProvider`s by default.
+
+  `ConfigProvider.fromEnv`, `ConfigProvider.fromDotEnvContents`, `ConfigProvider.fromDotEnv`, `ConfigProvider.fromUnknown`, and `ConfigProvider.fromDir` now treat literal empty strings as absent values when loaded as values, allowing `Config.withDefault` and `Config.option` to recover. Container discovery still reflects the source structure. Pass `preserveEmptyStrings: true` to restore the previous behavior.
+
+  `ConfigProvider.fromDotEnv({ expandVariables: true })` now expands variables consistently with `ConfigProvider.fromDotEnvContents`.
+
+- [#2554](https://github.com/Effect-TS/effect-smol/pull/2554) [`912f095`](https://github.com/Effect-TS/effect-smol/commit/912f095a34572bbd3cedf6edb27878443e3e4a95) Thanks @tim-smart! - Add Schedule.upTo options for limiting schedules by duration and/or recurrence count.
+
+- [#2556](https://github.com/Effect-TS/effect-smol/pull/2556) [`a6718f9`](https://github.com/Effect-TS/effect-smol/commit/a6718f9e00a15ca903b0732da46116cbf3d6aca7) Thanks @fubhy! - Fix cron parsing and scheduling edge cases for whitespace, Sunday `7`, strict numeric tokens, explicit full day ranges, and month-constrained day-of-month / weekday matching.
+
+- [#2551](https://github.com/Effect-TS/effect-smol/pull/2551) [`bef5154`](https://github.com/Effect-TS/effect-smol/commit/bef51540a243aa2f872a00c01d0cd58b7a769baa) Thanks @tim-smart! - Remove the `Schedule.both` APIs and add `Schedule.max` for combining schedules by their slowest delay.
+
+- [#2553](https://github.com/Effect-TS/effect-smol/pull/2553) [`18e0564`](https://github.com/Effect-TS/effect-smol/commit/18e0564bd0f8ebbdfcaf1e2c21529948e9e4a81d) Thanks @tim-smart! - Remove some Schedule APIs: `collectInputs`, `collectOutputs`, `collectWhile`, `delays`, `reduce`, `satisfiesErrorType`, `satisfiesInputType`, `satisfiesOutputType`, `satisfiesServicesType`, and `unfold`.
+
+- [#2558](https://github.com/Effect-TS/effect-smol/pull/2558) [`fb50f14`](https://github.com/Effect-TS/effect-smol/commit/fb50f14fc3657c1973785aa5b72ecf0b0d28e0b2) Thanks @tim-smart! - Remove the Schedule.either APIs and add Schedule.min for fastest-duration schedule composition.
+
 ## 4.0.0-beta.94
 
 ### Patch Changes
