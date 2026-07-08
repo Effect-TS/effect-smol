@@ -201,18 +201,6 @@ export declare namespace Schedule {
   }
 
   /**
-   * Options for limiting a schedule by elapsed duration, number of recurrences,
-   * or both.
-   *
-   * @category models
-   * @since 4.0.0
-   */
-  export interface UpToOptions {
-    readonly duration?: Duration.Input | undefined
-    readonly times?: number | undefined
-  }
-
-  /**
    * Type-level marker used by `Schedule.Variance` to record the variance of
    * `Schedule` type parameters.
    *
@@ -2386,16 +2374,25 @@ export const tapOutput: {
  * @since 4.0.0
  */
 export const upTo: {
-  (options: Schedule.UpToOptions): <Output, Input, Error, Env>(
+  (options: {
+    readonly duration?: Duration.Input | undefined
+    readonly times?: number | undefined
+  }): <Output, Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>
   ) => Schedule<Output, Input, Error, Env>
   <Output, Input, Error, Env>(
     self: Schedule<Output, Input, Error, Env>,
-    options: Schedule.UpToOptions
+    options: {
+      readonly duration?: Duration.Input | undefined
+      readonly times?: number | undefined
+    }
   ): Schedule<Output, Input, Error, Env>
 } = dual(2, <Output, Input, Error, Env>(
   self: Schedule<Output, Input, Error, Env>,
-  options: Schedule.UpToOptions
+  options: {
+    readonly duration?: Duration.Input | undefined
+    readonly times?: number | undefined
+  }
 ): Schedule<Output, Input, Error, Env> => {
   const duration = options.duration === undefined ? undefined : Duration.fromInputUnsafe(options.duration)
   return while_(self, ({ attempt, elapsed }) =>
@@ -2406,28 +2403,117 @@ export const upTo: {
 })
 
 /**
- * Returns a new `Schedule` that takes at most the specified number of outputs
- * from the schedule. Once the specified number of outputs is reached, the
- * schedule will stop.
+ * Creates a schedule that unfolds a state by repeatedly applying a function,
+ * outputting the current state and computing the next state.
  *
- * @deprecated Use {@link upTo} with the `times` option instead.
+ * **Example** (Unfolding schedule state)
  *
- * @category filtering
- * @since 4.0.0
+ * ```ts
+ * import { Console, Effect, Schedule } from "effect"
+ *
+ * // Counter schedule that increments by 1 each time
+ * const counterSchedule = Schedule.unfold(0, (n) => Effect.succeed(n + 1))
+ * // Outputs: 0, 1, 2, 3, 4, 5, ...
+ *
+ * const countingProgram = Effect.gen(function*() {
+ *   yield* Effect.repeat(
+ *     Effect.gen(function*() {
+ *       yield* Console.log("Task executed")
+ *       return "done"
+ *     }),
+ *     counterSchedule.pipe(
+ *       Schedule.upTo({ times: 5 }),
+ *       Schedule.tapOutput((count) => Console.log(`Count: ${count}`))
+ *     )
+ *   )
+ * })
+ *
+ * // Fibonacci sequence schedule
+ * const fibonacciSchedule = Schedule.unfold(
+ *   [0, 1] as [number, number],
+ *   ([a, b]) => Effect.succeed([b, a + b] as [number, number])
+ * )
+ * // Outputs: [0,1], [1,1], [1,2], [2,3], [3,5], [5,8], ...
+ *
+ * const fibProgram = Effect.gen(function*() {
+ *   yield* Effect.repeat(
+ *     Console.log("Fibonacci step"),
+ *     fibonacciSchedule.pipe(
+ *       Schedule.upTo({ times: 8 }),
+ *       Schedule.tapOutput(([a, b]) => Console.log(`Fib: ${a}, next: ${b}`))
+ *     )
+ *   )
+ * })
+ *
+ * // Effectful unfold - exponential backoff with state
+ * const exponentialState = Schedule.unfold(
+ *   100,
+ *   (delayMs) =>
+ *     Effect.gen(function*() {
+ *       yield* Console.log(`Current delay: ${delayMs}ms`)
+ *       return Math.min(delayMs * 2, 5000) // Cap at 5 seconds
+ *     })
+ * )
+ *
+ * // Deterministic delay adjustment schedule
+ * const adjustedDelaySchedule = Schedule.unfold(
+ *   { delay: 1000, adjustment: 100 },
+ *   ({ delay, adjustment }) =>
+ *     Effect.gen(function*() {
+ *       const nextDelay = Math.max(100, delay + adjustment)
+ *       yield* Console.log(`Adjusted delay: ${nextDelay}ms`)
+ *       return { delay: nextDelay, adjustment: adjustment * -1 }
+ *     })
+ * )
+ *
+ * // State machine schedule
+ * type State = "init" | "warming" | "active" | "cooling"
+ * const stateMachineSchedule = Schedule.unfold("init" as State, (state) => {
+ *   switch (state) {
+ *     case "init":
+ *       return Effect.succeed("warming" as State)
+ *     case "warming":
+ *       return Effect.succeed("active" as State)
+ *     case "active":
+ *       return Effect.succeed("cooling" as State)
+ *     case "cooling":
+ *       return Effect.succeed("active" as State)
+ *   }
+ * })
+ *
+ * const stateMachineProgram = Effect.gen(function*() {
+ *   yield* Effect.repeat(
+ *     Effect.gen(function*() {
+ *       yield* Console.log("State machine step")
+ *       return "step"
+ *     }),
+ *     stateMachineSchedule.pipe(
+ *       Schedule.upTo({ times: 10 }),
+ *       Schedule.tapOutput((state) => Console.log(`State: ${state}`))
+ *     )
+ *   )
+ * })
+ * ```
+ *
+ * @category constructors
+ * @since 2.0.0
  */
-export const take: {
-  (n: number): <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>
-  ) => Schedule<Output, Input, Error, Env>
-  <Output, Input, Error, Env>(
-    self: Schedule<Output, Input, Error, Env>,
-    n: number
-  ): Schedule<Output, Input, Error, Env>
-} = dual(2, <Output, Input, Error, Env>(
-  self: Schedule<Output, Input, Error, Env>,
-  n: number
-): Schedule<Output, Input, Error, Env> => upTo(self, { times: n }))
-
+export const unfold = <State, Error = never, Env = never>(
+  initial: State,
+  next: (state: State) => Effect<State, Error, Env>
+): Schedule<State, unknown, Error, Env> =>
+  fromStep(effect.sync(() => {
+    let state = initial
+    return constant(effect.map(
+      effect.suspend(() => next(state)),
+      (nextState) => {
+        const prev = state
+        state = nextState
+        return [prev, Duration.zero] as const
+      }
+    ))
+  }))
+// 6c30acd2c (Address EFF-910 schedule limiter feedback)
 const while_: {
   <Input, Output, Error2 = never, Env2 = never>(
     predicate: (

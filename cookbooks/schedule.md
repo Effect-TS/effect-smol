@@ -131,7 +131,7 @@ backoff and taking the first 4 outputs.
 import { Schedule } from "effect"
 
 const searchReplicaWarmup = Schedule.fibonacci("100 millis").pipe(
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -178,7 +178,7 @@ import { Schedule } from "effect"
 type FeatureFlagSnapshot = { readonly enabled: boolean }
 
 const featureFlagSamples = Schedule.identity<FeatureFlagSnapshot>().pipe(
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -206,7 +206,7 @@ import { Duration, Schedule } from "effect"
 const pollDelayReport = Schedule.fixed("2 seconds").pipe(
   Schedule.delays,
   Schedule.map((delay) => ({ millis: Duration.toMillis(delay) })),
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -224,7 +224,7 @@ import { Duration, Schedule } from "effect"
 
 const elapsedRuntimeReport = Schedule.elapsed.pipe(
   Schedule.map((elapsed) => ({ millis: Duration.toMillis(elapsed) })),
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -241,7 +241,7 @@ import { Schedule } from "effect"
 const jitteredWebhookBackoff = Schedule.exponential("200 millis").pipe(
   Schedule.jittered,
   Schedule.delays,
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
@@ -274,7 +274,7 @@ import { Schedule } from "effect"
 
 const readinessWarmupOrSlowProbe = Schedule.min([
   Schedule.recurs(2),
-  Schedule.spaced("500 millis").pipe(Schedule.take(5))
+  Schedule.spaced("500 millis").pipe(Schedule.upTo({ times: 5 }))
 ])
 ```
 
@@ -291,8 +291,8 @@ milliseconds apart, then 3 slower recurrences 30 seconds apart, then stops.
 import { Schedule } from "effect"
 
 const cacheInvalidationSequence = Schedule.spaced("100 millis").pipe(
-  Schedule.take(2),
-  Schedule.andThen(Schedule.spaced("30 seconds").pipe(Schedule.take(3)))
+  Schedule.upTo({ times: 2 }),
+  Schedule.andThen(Schedule.spaced("30 seconds").pipe(Schedule.upTo({ times: 3 })))
 )
 ```
 
@@ -305,8 +305,8 @@ Fibonacci phase, preserving the phase in the output.
 import { Result, Schedule } from "effect"
 
 const phasedRetryClassifier = Schedule.exponential("100 millis").pipe(
-  Schedule.take(2),
-  Schedule.andThenResult(Schedule.fibonacci("500 millis").pipe(Schedule.take(3))),
+  Schedule.upTo({ times: 2 }),
+  Schedule.andThenResult(Schedule.fibonacci("500 millis").pipe(Schedule.upTo({ times: 3 }))),
   Schedule.map((result) =>
     Result.match(result, {
       onFailure: (delay) => ({ phase: "steady", delay }),
@@ -392,12 +392,12 @@ so far, and takes only the first 3 collected outputs.
 import { Schedule } from "effect"
 
 const heartbeatCountHistory = Schedule.collectOutputs(Schedule.forever).pipe(
-  Schedule.take(3)
+  Schedule.upTo({ times: 3 })
 )
 ```
 
 Explanation: `Schedule.collectOutputs` collects the schedule output, not the
-input. Add `Schedule.take` or another bound when collecting from an unbounded
+input. Add `Schedule.upTo` or another bound when collecting from an unbounded
 schedule.
 
 ## Accumulate State
@@ -411,7 +411,7 @@ outputs running `min`, `max`, `total`, and `count` fields.
 import { Schedule } from "effect"
 
 const requestLatencyStats = Schedule.identity<number>().pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.reduce(
     () => ({ min: Number.POSITIVE_INFINITY, max: 0, total: 0, count: 0 }),
     (state, latency) => ({
@@ -436,7 +436,7 @@ inputs and outputs the running count of failed samples.
 import { Schedule } from "effect"
 
 const recentWorkerFailureCount = Schedule.identity<boolean>().pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.reduce(() => 0, (count, failed) => failed ? count + 1 : count)
 )
 ```
@@ -457,7 +457,7 @@ type QueueSnapshot = { readonly depth: number; readonly paused: boolean }
 const queueBackpressureSchedule = Schedule.identity<QueueSnapshot>().pipe(
   Schedule.while(({ input }) => !input.paused),
   Schedule.addDelay((snapshot) => Effect.succeed(snapshot.depth > 1000 ? "5 seconds" : "500 millis")),
-  Schedule.take(10)
+  Schedule.upTo({ times: 10 })
 )
 ```
 
@@ -503,7 +503,7 @@ const heartbeatInputLogs = Schedule.fixed("10 seconds").pipe(
   Schedule.setInputType<HeartbeatStatus>(),
   Schedule.tapInput((input) => Console.log(`heartbeat:${input.id}`)),
   Schedule.passthrough,
-  Schedule.take(2)
+  Schedule.upTo({ times: 2 })
 )
 ```
 
@@ -516,7 +516,7 @@ logs each selected delay without changing the schedule output.
 import { Console, Schedule } from "effect"
 
 const loggedBackoffDelays = Schedule.fibonacci("200 millis").pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.tapOutput((delay) => Console.log(delay))
 )
 ```
@@ -530,7 +530,7 @@ delay in milliseconds without changing the schedule output.
 import { Console, Duration, Schedule } from "effect"
 
 const telemetryBackoffPolicy = Schedule.exponential("250 millis").pipe(
-  Schedule.take(5),
+  Schedule.upTo({ times: 5 }),
   Schedule.tap(({ attempt, output }) => Console.log(`attempt-${attempt}: ${Duration.toMillis(output)}ms`))
 )
 ```
@@ -551,7 +551,7 @@ import { Effect, Schedule } from "effect"
 
 const schedulerTickState = Schedule.unfold(1, (n) => Effect.succeed(n + 1)).pipe(
   Schedule.map((tick) => ({ tick })),
-  Schedule.take(4)
+  Schedule.upTo({ times: 4 })
 )
 ```
 
@@ -582,7 +582,7 @@ const maintenancePhaseMachine = Schedule.unfold<MaintenancePhase>(
     }
   }
 ).pipe(
-  Schedule.take(6)
+  Schedule.upTo({ times: 6 })
 )
 ```
 
@@ -723,8 +723,8 @@ aligned 15-minute cadence.
 import { Schedule } from "effect"
 
 const incidentEscalationCadence = Schedule.spaced("1 minute").pipe(
-  Schedule.take(3),
-  Schedule.andThen(Schedule.spaced("5 minutes").pipe(Schedule.take(3))),
+  Schedule.upTo({ times: 3 }),
+  Schedule.andThen(Schedule.spaced("5 minutes").pipe(Schedule.upTo({ times: 3 }))),
   Schedule.andThen(Schedule.fixed("15 minutes"))
 )
 ```
