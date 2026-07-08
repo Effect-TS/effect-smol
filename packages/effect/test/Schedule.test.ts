@@ -4,6 +4,38 @@ import { constant, constUndefined } from "effect/Function"
 import { TestClock } from "effect/testing"
 
 describe("Schedule", () => {
+  describe("combining", () => {
+    it.effect("max - outputs the slowest schedule duration", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.max([
+          Schedule.fixed("5 seconds"),
+          Schedule.exponential("5 seconds"),
+          Schedule.spaced("10 seconds")
+        ])
+        const inputs = Array.makeBy(3, constUndefined)
+        const outputs = yield* runDelays(schedule, inputs)
+        assert.deepStrictEqual(outputs, [
+          Duration.seconds(10),
+          Duration.seconds(10),
+          Duration.seconds(20)
+        ])
+      }))
+
+    it.effect("max - stops when any schedule completes", () =>
+      Effect.gen(function*() {
+        const schedule = Schedule.max([
+          Schedule.duration("1 second"),
+          Schedule.spaced("5 seconds")
+        ])
+        const inputs = Array.makeBy(3, constUndefined)
+        const outputs = yield* runDelays(schedule, inputs)
+        assert.deepStrictEqual(outputs, [
+          Duration.seconds(5),
+          Duration.seconds(5)
+        ])
+      }))
+  })
+
   describe("sequencing", () => {
     it.effect("tap - provides full metadata", () =>
       Effect.gen(function*() {

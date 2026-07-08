@@ -219,6 +219,38 @@ export declare namespace Schedule {
   }
 }
 
+/**
+ * Extracts the output type from a `Schedule`.
+ *
+ * @category type extractors
+ * @since 4.0.0
+ */
+export type Output<S> = S extends Schedule<infer Output, any, any, any> ? Output : never
+
+/**
+ * Extracts the input type from a `Schedule`.
+ *
+ * @category type extractors
+ * @since 4.0.0
+ */
+export type Input<S> = S extends Schedule<any, infer Input, any, any> ? Input : never
+
+/**
+ * Extracts the error type from a `Schedule`.
+ *
+ * @category type extractors
+ * @since 4.0.0
+ */
+export type Error<S> = S extends Schedule<any, any, infer Error, any> ? Error : never
+
+/**
+ * Extracts the service requirements from a `Schedule`.
+ *
+ * @category type extractors
+ * @since 4.0.0
+ */
+export type Env<S> = S extends Schedule<any, any, any, infer Env> ? Env : never
+
 const ScheduleProto = {
   [TypeId]: {
     _Out: identity,
@@ -741,51 +773,34 @@ export const andThenResult: {
     }
   })))
 
-type ScheduleInput<S> = S extends Schedule<any, infer Input, any, any> ? Input : never
-
-type ScheduleError<S> = S extends Schedule<any, any, infer Error, any> ? Error : never
-
-type ScheduleEnv<S> = S extends Schedule<any, any, any, infer Env> ? Env : never
-
 type NonEmptySchedules = readonly [
   Schedule<any, any, any, any>,
   ...ReadonlyArray<Schedule<any, any, any, any>>
 ]
 
 type SchedulesInput<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = UnionToIntersection<
-  ScheduleInput<Schedules[number]>
+  Input<Schedules[number]>
 >
 
-type SchedulesError<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = ScheduleError<Schedules[number]>
+type SchedulesError<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = Error<Schedules[number]>
 
-type SchedulesEnv<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = ScheduleEnv<Schedules[number]>
+type SchedulesEnv<Schedules extends ReadonlyArray<Schedule<any, any, any, any>>> = Env<Schedules[number]>
 
-const maxDuration = <Input, Error, Env, Input2, Error2, Env2>(
-  self: Schedule<Duration.Duration, Input, Error, Env>,
-  other: Schedule<Duration.Duration, Input2, Error2, Env2>
-): Schedule<Duration.Duration, Input & Input2, Error | Error2, Env | Env2> =>
-  fromStep(effect.map(
-    effect.zip(toStep(self), toStep(other)),
-    ([stepLeft, stepRight]) => (now, input) =>
-      Pull.matchEffect(stepLeft(now, input as Input), {
-        onSuccess: (leftResult) =>
-          stepRight(now, input as Input2).pipe(
-            effect.map((rightResult) => {
-              const duration = Duration.max(leftResult[0], rightResult[0])
-              return [duration, duration] as [Duration.Duration, Duration.Duration]
-            }),
-            Pull.catchDone((rightDone) => Cause.done(Duration.max(leftResult[0], rightDone as Duration.Duration)))
-          ),
-        onDone: (leftDone) =>
-          stepRight(now, input as Input2).pipe(
-            effect.flatMap((rightResult) => Cause.done(Duration.max(leftDone as Duration.Duration, rightResult[0]))),
-            Pull.catchDone((rightDone) =>
-              Cause.done(Duration.max(leftDone as Duration.Duration, rightDone as Duration.Duration))
-            )
-          ),
-        onFailure: effect.failCause
-      })
-  ))
+type MaxStepResult = {
+  readonly _tag: "Continue"
+  readonly duration: Duration.Duration
+} | {
+  readonly _tag: "Done"
+  readonly duration: Duration.Duration
+}
+
+const maxDuration = (durations: ReadonlyArray<Duration.Duration>): Duration.Duration => {
+  let max = durations[0]!
+  for (let i = 1; i < durations.length; i++) {
+    max = Duration.max(max, durations[i]!)
+  }
+  return max
+}
 
 /**
  * Combines schedules by recurring while all schedules want to recur, using the
@@ -836,12 +851,33 @@ const maxDuration = <Input, Error, Env, Input2, Error2, Env2>(
 export const max = <const Schedules extends NonEmptySchedules>(
   schedules: Schedules
 ): Schedule<Duration.Duration, SchedulesInput<Schedules>, SchedulesError<Schedules>, SchedulesEnv<Schedules>> => {
-  const [head, ...tail] = schedules
-  let schedule: Schedule<Duration.Duration, any, any, any> = delays(head)
-  for (const current of tail) {
-    schedule = maxDuration(schedule, delays(current))
-  }
-  return schedule
+  return fromStep(effect.map(
+    effect.all(schedules.map((schedule) => toStep(delays(schedule)))),
+    (steps) => (now, input) =>
+      effect.flatMap(
+        effect.all(steps.map((step) =>
+          Pull.matchEffect(step(now, input as never), {
+            onSuccess: (result) =>
+              effect.succeed<MaxStepResult>({
+                _tag: "Continue",
+                duration: result[0]
+              }),
+            onDone: (duration) =>
+              effect.succeed<MaxStepResult>({
+                _tag: "Done",
+                duration
+              }),
+            onFailure: effect.failCause
+          })
+        )),
+        (results) => {
+          const duration = maxDuration(results.map((result) => result.duration))
+          return results.some((result) => result._tag === "Done") ?
+            Cause.done(duration) :
+            effect.succeed([duration, duration] as [Duration.Duration, Duration.Duration])
+        }
+      )
+  ))
 }
 
 /**

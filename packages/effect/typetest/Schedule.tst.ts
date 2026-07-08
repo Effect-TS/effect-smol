@@ -20,6 +20,14 @@ describe("Schedule", () => {
     expect(schedule).type.toBe<Schedule.Schedule<number, string, "error" | "tapError", "service" | "tapService">>()
   })
 
+  it("type extractors", () => {
+    type TestSchedule = Schedule.Schedule<number, string, "error", "service">
+    expect<Schedule.Output<TestSchedule>>().type.toBe<number>()
+    expect<Schedule.Input<TestSchedule>>().type.toBe<string>()
+    expect<Schedule.Error<TestSchedule>>().type.toBe<"error">()
+    expect<Schedule.Env<TestSchedule>>().type.toBe<"service">()
+  })
+
   it("max", () => {
     const first = hole<Schedule.Schedule<number, { readonly first: string }, "firstError", "firstService">>()
     const second = hole<Schedule.Schedule<boolean, { readonly second: number }, "secondError", "secondService">>()
