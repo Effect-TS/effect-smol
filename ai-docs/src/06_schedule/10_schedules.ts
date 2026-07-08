@@ -70,12 +70,13 @@ export const maxRetries = Schedule.recurs(5)
 export const spacedPolling = Schedule.spaced("30 seconds")
 export const exponentialBackoff = Schedule.exponential("200 millis")
 
-// `Schedule.both` continues only while both schedules continue.
-// It is useful for combining a delay pattern with a hard attempt cap.
-export const retryBackoffWithLimit = Schedule.both(
+// `Schedule.max` continues only while all schedules continue and outputs
+// the slowest delay. It is useful for combining a delay pattern with a hard
+// attempt cap.
+export const retryBackoffWithLimit = Schedule.max([
   Schedule.exponential("250 millis"),
   Schedule.recurs(6)
-)
+])
 
 // `Schedule.either` continues while either schedule continues.
 // It is useful for fallback behavior (e.g. stop only when both are exhausted).

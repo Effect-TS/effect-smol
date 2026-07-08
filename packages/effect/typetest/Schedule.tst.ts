@@ -1,4 +1,5 @@
 import { type Effect, hole } from "effect"
+import type * as Duration from "effect/Duration"
 import * as Schedule from "effect/Schedule"
 import { describe, expect, it } from "tstyche"
 
@@ -17,5 +18,19 @@ describe("Schedule", () => {
       return hole<Effect.Effect<void, "tapError", "tapService">>()
     })
     expect(schedule).type.toBe<Schedule.Schedule<number, string, "error" | "tapError", "service" | "tapService">>()
+  })
+
+  it("max", () => {
+    const first = hole<Schedule.Schedule<number, { readonly first: string }, "firstError", "firstService">>()
+    const second = hole<Schedule.Schedule<boolean, { readonly second: number }, "secondError", "secondService">>()
+    const schedule = Schedule.max([first, second])
+    expect(schedule).type.toBe<
+      Schedule.Schedule<
+        Duration.Duration,
+        { readonly first: string } & { readonly second: number },
+        "firstError" | "secondError",
+        "firstService" | "secondService"
+      >
+    >()
   })
 })

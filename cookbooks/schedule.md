@@ -17,7 +17,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
 - Schedule output is policy output. Use `Schedule.passthrough`,
   `Schedule.delays`, `Schedule.map`, or `Schedule.reduce` when the output shape
   matters.
-- `Schedule.both` continues only while both schedules continue.
+- `Schedule.max` continues only while all schedules continue and outputs the slowest delay.
 - `Schedule.either` continues while either schedule can continue.
 - `Schedule.jittered` spreads callers out. It does not add a recurrence limit.
 - `Schedule.addDelay` adds extra delay based on schedule output.
@@ -35,7 +35,7 @@ This cookbook intentionally defines schedules only. It does not apply them with
 | Replace or cap selected delay             | `Schedule.modifyDelay`                                                                                            |
 | Run phases in sequence                    | `Schedule.andThen`                                                                                                |
 | Preserve phase in output                  | `Schedule.andThenResult`                                                                                          |
-| Continue while both policies continue     | `Schedule.both`                                                                                                   |
+| Continue while all policies continue      | `Schedule.max`                                                                                                    |
 | Continue while either policy continues    | `Schedule.either`                                                                                                 |
 | Keep input or output history              | `Schedule.collectInputs`, `Schedule.collectOutputs`, or `Schedule.collectWhile`                                   |
 | Maintain a running aggregate              | `Schedule.reduce`                                                                                                 |
@@ -253,15 +253,15 @@ backoff, allows at most 5 recurrences, and also stops after about 20 seconds.
 ```ts
 import { Schedule } from "effect"
 
-const deploymentHookRetryBudget = Schedule.exponential("200 millis").pipe(
-  Schedule.jittered,
-  Schedule.both(Schedule.recurs(5)),
-  Schedule.both(Schedule.during("20 seconds"))
-)
+const deploymentHookRetryBudget = Schedule.max([
+  Schedule.exponential("200 millis").pipe(Schedule.jittered),
+  Schedule.recurs(5),
+  Schedule.during("20 seconds")
+])
 ```
 
-Explanation: the resulting output is nested because `Schedule.both` preserves
-both schedule outputs. Use `Schedule.map` when a smaller output is needed.
+Explanation: `Schedule.max` stops when any schedule stops and outputs the
+slowest selected delay for each recurrence.
 
 ### Continue While Either Probe Is Active
 
@@ -472,12 +472,13 @@ selected delay.
 ```ts
 import { Duration, Effect, Schedule } from "effect"
 
-const websocketReconnectDelays = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5)))),
-  Schedule.both(Schedule.recurs(8)),
-  Schedule.delays
-)
+const websocketReconnectDelays = Schedule.max([
+  Schedule.exponential("100 millis").pipe(
+    Schedule.jittered,
+    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(5))))
+  ),
+  Schedule.recurs(8)
+])
 ```
 
 Explanation: `Schedule.modifyDelay` receives the selected delay and returns the
@@ -610,13 +611,15 @@ const isRetryableGraphqlGatewayError = (
       error.status === 502 ||
       error.status === 503))
 
-const graphqlGatewayRetry = Schedule.exponential("100 millis").pipe(
-  Schedule.jittered,
-  Schedule.setInputType<GraphqlGatewayError>(),
-  Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(2)))),
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.while(({ input }) => isRetryableGraphqlGatewayError(input)),
-  Schedule.delays
+const graphqlGatewayRetry = Schedule.max([
+  Schedule.exponential("100 millis").pipe(
+    Schedule.jittered,
+    Schedule.setInputType<GraphqlGatewayError>(),
+    Schedule.modifyDelay((_, delay) => Effect.succeed(Duration.min(delay, Duration.seconds(2))))
+  ),
+  Schedule.recurs(6)
+]).pipe(
+  Schedule.while(({ input }) => isRetryableGraphqlGatewayError(input))
 )
 ```
 
@@ -627,7 +630,7 @@ jitters the selected delay, outputs the latest status, continues only while the
 rollout is running, and stops after about 2 minutes.
 
 ```ts
-import { Schedule } from "effect"
+import { Duration, Schedule } from "effect"
 
 type RolloutStatus = {
   readonly state: "running" | "succeeded" | "failed"
@@ -637,9 +640,10 @@ const rolloutStatusWatcher = Schedule.fixed("1 second").pipe(
   Schedule.setInputType<RolloutStatus>(),
   Schedule.passthrough,
   Schedule.jittered,
-  Schedule.both(Schedule.during("2 minutes")),
-  Schedule.while(({ input }) => input.state === "running"),
-  Schedule.map(([status]) => status)
+  Schedule.while(({ input, elapsed }) =>
+    input.state === "running" &&
+    Duration.isLessThanOrEqualTo(Duration.millis(elapsed), Duration.minutes(2))
+  )
 )
 ```
 
@@ -658,22 +662,24 @@ type PushProviderResponse = {
   readonly retryAfter: Duration.Duration | undefined
 }
 
-const pushNotificationProviderRetry = Schedule.exponential("1 second").pipe(
-  Schedule.setInputType<PushProviderResponse>(),
-  Schedule.passthrough,
-  Schedule.modifyDelay((response, delay) =>
-    Effect.succeed(
-      Duration.min(
-        response.retryAfter === undefined
-          ? delay
-          : Duration.max(delay, response.retryAfter),
-        Duration.minutes(1)
+const pushNotificationProviderRetry = Schedule.max([
+  Schedule.exponential("1 second").pipe(
+    Schedule.setInputType<PushProviderResponse>(),
+    Schedule.passthrough,
+    Schedule.modifyDelay((response, delay) =>
+      Effect.succeed(
+        Duration.min(
+          response.retryAfter === undefined
+            ? delay
+            : Duration.max(delay, response.retryAfter),
+          Duration.minutes(1)
+        )
       )
     )
   ),
-  Schedule.both(Schedule.recurs(6)),
-  Schedule.while(({ input }) => input.status === 429 || input.status === 500 || input.status === 503),
-  Schedule.delays
+  Schedule.recurs(6)
+]).pipe(
+  Schedule.while(({ input }) => input.status === 429 || input.status === 500 || input.status === 503)
 )
 ```
 
@@ -684,7 +690,7 @@ another 5 seconds for `slow_down`, output the latest input, continue only for
 `authorization_pending` and `slow_down`, and stop after about 15 minutes.
 
 ```ts
-import { Effect, Schedule } from "effect"
+import { Duration, Effect, Schedule } from "effect"
 
 type OAuthDeviceCodeStatus = {
   readonly error:
@@ -698,9 +704,10 @@ const oauthDeviceCodePolling = Schedule.spaced("5 seconds").pipe(
   Schedule.setInputType<OAuthDeviceCodeStatus>(),
   Schedule.passthrough,
   Schedule.addDelay((status) => Effect.succeed(status.error === "slow_down" ? "5 seconds" : "0 millis")),
-  Schedule.both(Schedule.during("15 minutes")),
-  Schedule.while(({ input }) => input.error === "authorization_pending" || input.error === "slow_down"),
-  Schedule.map(([status]) => status)
+  Schedule.while(({ input, elapsed }) =>
+    (input.error === "authorization_pending" || input.error === "slow_down") &&
+    Duration.isLessThanOrEqualTo(Duration.millis(elapsed), Duration.minutes(15))
+  )
 )
 ```
 
