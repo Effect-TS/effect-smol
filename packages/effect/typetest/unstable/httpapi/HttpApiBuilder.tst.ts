@@ -194,6 +194,29 @@ describe("HttpApiBuilder", () => {
         "users",
         completeInTwoSteps
       )
+
+      const rejectsDuplicateAcrossBatches = (
+        handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>
+      ) => {
+        const afterGetUser = handlers.handleAll({
+          getUser: ({ params }) => Effect.succeed({ id: params.id })
+        })
+
+        expect(afterGetUser.handleAll).type.not.toBeCallableWith({
+          getUser: () => Effect.succeed({ id: "id" }),
+          listUsers: () => Effect.succeed([])
+        })
+
+        return afterGetUser.handleAll({
+          listUsers: () => Effect.succeed([])
+        })
+      }
+
+      expect(HttpApiBuilder.group).type.toBeCallableWith(
+        Api,
+        "users",
+        rejectsDuplicateAcrossBatches
+      )
     })
 
     it("rejects incomplete handler collections", () => {
@@ -226,7 +249,7 @@ describe("HttpApiBuilder", () => {
       )
     })
 
-    it("does not count duplicate handlers as handling missing endpoints", () => {
+    it("rejects duplicate handlers", () => {
       const User = Schema.Struct({
         id: Schema.String
       })
@@ -246,12 +269,22 @@ describe("HttpApiBuilder", () => {
             })
           )
       )
-      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        handlers
-          .handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
-          .handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
+      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) => {
+        const afterGetUser = handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
 
-      expect(HttpApiBuilder.group).type.not.toBeCallableWith(
+        expect(afterGetUser.handle).type.not.toBeCallableWith(
+          "getUser",
+          () => Effect.succeed({ id: "id" })
+        )
+        expect(afterGetUser.handleRaw).type.not.toBeCallableWith(
+          "getUser",
+          () => Effect.succeed({ id: "id" })
+        )
+
+        return afterGetUser.handle("listUsers", () => Effect.succeed([]))
+      }
+
+      expect(HttpApiBuilder.group).type.toBeCallableWith(
         Api,
         "users",
         build
@@ -322,7 +355,7 @@ describe("HttpApiBuilder", () => {
       )
     })
 
-    it("rejects unknown endpoint names and allows duplicate handlers", () => {
+    it("rejects unknown endpoint names and duplicate handlers", () => {
       const User = Schema.Struct({
         id: Schema.String
       })
@@ -357,14 +390,12 @@ describe("HttpApiBuilder", () => {
             ({ params }) => Effect.succeed({ id: params.id })
           )
 
-          expect(remaining.handle).type.toBeCallableWith(
+          expect(remaining.handle).type.not.toBeCallableWith(
             "getUser",
             () => Effect.succeed({ id: "id" })
           )
 
-          return remaining
-            .handle("getUser", () => Effect.succeed({ id: "id" }))
-            .handle("listUsers", () => Effect.succeed([]))
+          return remaining.handle("listUsers", () => Effect.succeed([]))
         }
       )
     })

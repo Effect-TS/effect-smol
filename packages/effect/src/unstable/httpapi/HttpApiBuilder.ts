@@ -210,6 +210,9 @@ type HandleAllExtraKeys<
   readonly [Name in Exclude<keyof HandlersByName, keyof EndpointsByName>]: never
 }
 
+type NotHandledName<Name extends PropertyKey, HandledNames extends PropertyKey> = Name extends HandledNames ? never :
+  unknown
+
 type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
 
 type HandleAllRequirements<
@@ -247,9 +250,8 @@ type ValidateHandlersReturn<
  * **Details**
  *
  * Each call to `handle` or `handleRaw` registers an endpoint implementation and
- * adds that endpoint name to the type-level set of implemented endpoints. If an
- * endpoint is registered more than once, the latest handler replaces the
- * previous one.
+ * adds that endpoint name to the type-level set of implemented endpoints.
+ * Endpoint names that were already handled are rejected at the type level.
  *
  * @category handlers
  * @since 4.0.0
@@ -268,13 +270,13 @@ export interface Handlers<
   readonly handlers: Map<string, HandlerRuntime>
 
   /**
-   * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
+   * Add the implementation for an unhandled `HttpApiEndpoint` to a `Handlers` group.
    */
   handle<
     Name extends keyof EndpointsByName,
     R1
   >(
-    name: Name,
+    name: Name & NotHandledName<Name, HandledNames>,
     handler: HttpApiEndpoint.Handler<
       EndpointsByName[Name],
       HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
@@ -288,10 +290,12 @@ export interface Handlers<
   >
 
   /**
-   * Add implementations for every `HttpApiEndpoint` in a `Handlers` group.
+   * Add implementations for unhandled `HttpApiEndpoint`s in a `Handlers` group.
    */
-  handleAll<const HandlersByName extends HandleAllHandlers<EndpointsByName>>(
-    handlers: HandlersByName & HandleAllExtraKeys<EndpointsByName, HandlersByName>
+  handleAll<const HandlersByName extends HandleAllHandlers<Omit<EndpointsByName, HandledNames>>>(
+    handlers:
+      & HandlersByName
+      & HandleAllExtraKeys<Omit<EndpointsByName, HandledNames>, HandlersByName>
   ): Handlers<
     R | HandleAllRequirements<EndpointsByName, HandlersByName>,
     EndpointsByName,
@@ -299,14 +303,14 @@ export interface Handlers<
   >
 
   /**
-   * Add the implementation for an `HttpApiEndpoint` to a `Handlers` group.
+   * Add the implementation for an unhandled `HttpApiEndpoint` to a `Handlers` group.
    * This version opts out of automatic payload decoding and provides the raw request.
    */
   handleRaw<
     Name extends keyof EndpointsByName,
     R1
   >(
-    name: Name,
+    name: Name & NotHandledName<Name, HandledNames>,
     handler: HttpApiEndpoint.HandlerRaw<
       EndpointsByName[Name],
       HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,

@@ -8,7 +8,7 @@ lighter structural constraints in several hot type-level paths.
 
 ## New Features
 
-- Add `HttpApiBuilder.Handlers.handleAll`, which registers a name-keyed batch of endpoint handlers for a group. Each entry can be either a handler function or `{ handler, options }`, and the object can be supplied in multiple partial batches.
+- Add `HttpApiBuilder.Handlers.handleAll`, which registers a name-keyed batch of endpoint handlers for a group. Each entry can be either a handler function or `{ handler, options }`, and the object can be supplied in multiple partial batches. Endpoint names that were already handled are rejected across batches.
 - `HttpApi.groups` now preserves the concrete group type for each group name. For example, `Api.groups.users` is typed as the `users` group instead of the full group union.
 - `HttpApiGroup.endpoints` now preserves the concrete endpoint type for each endpoint name. For example, `Group.endpoints.getUser` is typed as the `getUser` endpoint instead of the full endpoint union.
 
@@ -30,12 +30,13 @@ Endpoint declaration costs now grow with a lower slope:
 For complete handler registration, `handleAll` is measured against the
 equivalent fluent `handle` chain on the same endpoint set:
 
-| endpoints | before fluent | after fluent | `handleAll` |
-| --------: | ------------: | -----------: | ----------: |
-|        10 |        32,523 |        8,473 |       6,154 |
-|        50 |       560,763 |       60,313 |      22,754 |
-|       100 |     2,139,063 |      179,113 |      43,504 |
-|       500 | OOM / SIGKILL |    3,289,513 |     209,504 |
+| fixture              | before fluent | after fluent | `handleAll` |
+| -------------------- | ------------: | -----------: | ----------: |
+| 10 endpoints         |        32,523 |        8,643 |       6,107 |
+| 50 endpoints         |       560,763 |       61,163 |      22,467 |
+| 100 endpoints        |     2,139,063 |      180,813 |      42,917 |
+| 500 endpoints        | OOM / SIGKILL |    3,298,013 |     206,517 |
+| 500 eps, two batches | OOM / SIGKILL |    3,298,013 |     225,474 |
 
 Generated-client type production also improves for the hot method-building
 paths:
@@ -95,7 +96,10 @@ group, and endpoint types.
 - The unused `HttpApiBuilder.Handlers.Any` helper type has been removed.
 - The exported `HttpApiBuilder.HandlersTypeId` symbol has been removed; `Handlers`
   now uses a private string type id.
-- Duplicate `handle` / `handleRaw` registrations for the same endpoint are no longer rejected at the call site. Missing endpoint handlers are still rejected by the final `HttpApiBuilder.group` return validation.
+- Duplicate `handle` / `handleRaw` registrations for the same endpoint are rejected
+  at the call site, and `handleAll` rejects endpoint names that were already
+  handled by an earlier batch. Missing endpoint handlers are still rejected by
+  the final `HttpApiBuilder.group` return validation.
 
 ### Client Types
 
