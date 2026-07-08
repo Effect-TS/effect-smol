@@ -12,28 +12,48 @@ lighter structural constraints in several hot type-level paths.
 - `HttpApi.groups` now preserves the concrete group type for each group name. For example, `Api.groups.users` is typed as the `users` group instead of the full group union.
 - `HttpApiGroup.endpoints` now preserves the concrete endpoint type for each endpoint name. For example, `Group.endpoints.getUser` is typed as the `getUser` endpoint instead of the full endpoint union.
 
-## Type-Level Performance
+## Measured Type-Level Performance
 
-Type instantiations for the fluent handler-chain stress test improved as
-follows:
+All numbers are fixture deltas, measured as type instantiations over the shared
+`httpapi` suite baseline.
 
-| endpoints |        before |     after |
-| --------: | ------------: | --------: |
-|        10 |        32,523 |     8,473 |
-|        50 |       560,763 |    60,313 |
-|       100 |     2,139,063 |   179,113 |
-|       500 | OOM / SIGKILL | 3,289,513 |
+Endpoint declaration costs now grow with a lower slope:
 
-For complete handler registration, the new `handleAll` API is measured against
-the equivalent fluent `handle` chain on the same endpoint set:
+| endpoints |  before |  after |
+| --------: | ------: | -----: |
+|        10 |   4,815 |  2,970 |
+|        50 |  16,975 |  9,570 |
+|       100 |  32,175 | 17,820 |
+|       500 | 153,775 | 83,820 |
 
-| fixture                      | fluent chain | `handleAll` |
-| ---------------------------- | -----------: | ----------: |
-| handlers, 10 eps             |        8,473 |       6,154 |
-| handlers, 50 eps             |       60,313 |      22,754 |
-| handlers, 100 eps            |      179,113 |      43,504 |
-| handlers, 500 eps            |    3,289,513 |     209,504 |
-| two handler batches, 500 eps |    3,289,513 |     227,166 |
+`HttpApiBuilder` handler registration avoids the previous non-linear blow-up.
+For complete handler registration, `handleAll` is measured against the
+equivalent fluent `handle` chain on the same endpoint set:
+
+| endpoints | before fluent | after fluent | `handleAll` |
+| --------: | ------------: | -----------: | ----------: |
+|        10 |        32,523 |        8,473 |       6,154 |
+|        50 |       560,763 |       60,313 |      22,754 |
+|       100 |     2,139,063 |      179,113 |      43,504 |
+|       500 | OOM / SIGKILL |    3,289,513 |     209,504 |
+
+Generated-client type production also improves for the hot method-building
+paths:
+
+| fixture                                 |  before |   after |
+| --------------------------------------- | ------: | ------: |
+| client methods, 500 endpoints           | 248,788 | 181,843 |
+| top-level client methods, 500 endpoints | 243,047 | 185,754 |
+| client endpoint method, 500 endpoints   |  67,890 |  61,001 |
+| client groups, 100 groups x 5 endpoints |  70,725 |  71,844 |
+
+URL builder types now avoid repeatedly expanding the full API/group shape:
+
+| fixture                              |  before |  after |
+| ------------------------------------ | ------: | -----: |
+| URL builder, 500 endpoints           | 213,329 | 95,070 |
+| top-level URL builder, 500 endpoints | 209,118 | 97,039 |
+| builder endpoint, 500 endpoints      |  66,894 | 57,845 |
 
 ## Breaking Changes
 
