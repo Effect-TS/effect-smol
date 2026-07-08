@@ -64,6 +64,18 @@ describe("Cron", () => {
       }))
     )
 
+    // Starting at minute 5 and then every 15 minutes.
+    deepStrictEqual(
+      Cron.parse("5/15 * * * *"),
+      Result.succeed(Cron.make({
+        minutes: [5, 20, 35, 50],
+        hours: [],
+        days: [],
+        months: [],
+        weekdays: []
+      }))
+    )
+
     const withNamedTimeZone = Cron.parseUnsafe("23 0-20/2 * * *", "Europe/Berlin")
     assertTrue(Option.isSome(withNamedTimeZone.tz))
     deepStrictEqual(DateTime.zoneToString(withNamedTimeZone.tz.value), "Europe/Berlin")

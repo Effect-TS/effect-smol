@@ -1165,7 +1165,9 @@ const parseSegment = (
       }
 
       if (right === undefined) {
-        values.add(left)
+        for (let i = left; i <= (step === undefined ? left : options.max); i += step ?? 1) {
+          values.add(i)
+        }
       } else {
         if (!Number.isInteger(right)) {
           return Result.fail(new CronParseError({ message: `Expected a positive integer`, input }))
