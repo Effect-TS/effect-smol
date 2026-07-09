@@ -45,7 +45,7 @@
     "maxDelta": 138462
   },
   "client-endpoint-method-count-500": {
-    "maxDelta": 114281
+    "maxDelta": 114285
   },
   "url-builder-count-500": {
     "maxDelta": 152958
@@ -54,7 +54,7 @@
     "maxDelta": 158563
   },
   "builder-endpoint-count-500": {
-    "maxDelta": 113086
+    "maxDelta": 113090
   },
   "builder-handle-all-two-batches-count-500": {
     "maxDelta": 225456

@@ -328,7 +328,7 @@ export interface Top extends
  * @category models
  * @since 4.0.0
  */
-export type Identifier<Endpoint extends Constraint> = Endpoint["identifier"]
+export type Identifier<Endpoint> = Endpoint extends Constraint ? Endpoint["identifier"] : never
 
 /**
  * Extracts the success schema associated with an endpoint.
@@ -397,7 +397,7 @@ export type Middleware<Endpoint> = Endpoint extends { readonly "~Middleware": in
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareProvides<Endpoint extends Constraint> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
+export type MiddlewareProvides<Endpoint> = HttpApiMiddleware.Provides<Middleware<Endpoint>>
 
 /**
  * Computes the client-side middleware services required by an endpoint.
@@ -405,7 +405,7 @@ export type MiddlewareProvides<Endpoint extends Constraint> = HttpApiMiddleware.
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareClient<Endpoint extends Constraint> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
+export type MiddlewareClient<Endpoint> = HttpApiMiddleware.MiddlewareClient<Middleware<Endpoint>>
 
 /**
  * Computes the error types that can be produced by the middleware attached to an
@@ -414,7 +414,7 @@ export type MiddlewareClient<Endpoint extends Constraint> = HttpApiMiddleware.Mi
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareError<Endpoint extends Constraint> = HttpApiMiddleware.Error<Middleware<Endpoint>>
+export type MiddlewareError<Endpoint> = HttpApiMiddleware.Error<Middleware<Endpoint>>
 
 /**
  * Computes the full error value union for an endpoint, including the endpoint
@@ -447,7 +447,7 @@ export type ErrorServicesEncode<Endpoint> = Endpoint extends ConstraintRequest ?
  * @category models
  * @since 4.0.0
  */
-export type Request<Endpoint extends Constraint> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
+export type Request<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~Request"]
   : {}
 
 /**
@@ -458,7 +458,7 @@ export type Request<Endpoint extends Constraint> = Endpoint extends ConstraintRe
  * @category models
  * @since 4.0.0
  */
-export type RequestRaw<Endpoint extends Constraint> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
+export type RequestRaw<Endpoint> = Endpoint extends ConstraintRequest ? Endpoint["~RequestRaw"]
   : {}
 
 /**
@@ -580,7 +580,7 @@ export type HandlerRaw<Endpoint extends Constraint, E, R> = (
  * @category models
  * @since 4.0.0
  */
-export type WithIdentifier<Endpoints extends Constraint, Identifier extends string> = Extract<
+export type WithIdentifier<Endpoints, Identifier extends string> = Extract<
   Endpoints,
   { readonly identifier: Identifier }
 >
@@ -591,7 +591,7 @@ export type WithIdentifier<Endpoints extends Constraint, Identifier extends stri
  * @category models
  * @since 4.0.0
  */
-export type ExcludeIdentifier<Endpoints extends Constraint, Identifier extends string> = Exclude<
+export type ExcludeIdentifier<Endpoints, Identifier extends string> = Exclude<
   Endpoints,
   { readonly identifier: Identifier }
 >
@@ -674,9 +674,7 @@ export type MiddlewareWithIdentifier<Endpoints extends Constraint, Identifier ex
  * @since 4.0.0
  */
 export type MiddlewareServicesWithIdentifier<Endpoints extends Constraint, Identifier extends string> =
-  MiddlewareServices<
-    WithIdentifier<Endpoints, Identifier>
-  >
+  MiddlewareServices<WithIdentifier<Endpoints, Identifier>>
 
 /**
  * Removes services provided by the HTTP router and the selected endpoint's
