@@ -43,18 +43,6 @@ const TypeId = "~effect/httpapi/HttpApiEndpoint"
  */
 export const isHttpApiEndpoint = (u: unknown): u is Top => Predicate.hasProperty(u, TypeId)
 
-/**
- * Maps content types to the payload encoding strategy and one or more schemas that
- * can decode or encode payloads for that content type.
- *
- * @category models
- * @since 4.0.0
- */
-export type PayloadMap = ReadonlyMap<string, {
-  readonly encoding: HttpApiSchema.PayloadEncoding
-  readonly schemas: [Schema.Top, ...Array<Schema.Top>]
-}>
-
 type SuccessType<S> = S extends HttpApiSchema.StreamSse<
   infer _Events,
   infer _Error,
@@ -120,6 +108,18 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
     readonly endpoint: Endpoint
     readonly group: HttpApiGroup.Top
   }
+
+/**
+ * Maps content types to the payload encoding strategy and one or more schemas that
+ * can decode or encode payloads for that content type.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type PayloadMap = ReadonlyMap<string, {
+  readonly encoding: HttpApiSchema.PayloadEncoding
+  readonly schemas: readonly [Schema.Top, ...Array<Schema.Top>]
+}>
 
 /**
  * Represents an API endpoint. An API endpoint is mapped to a single route on
