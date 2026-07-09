@@ -123,6 +123,12 @@ group, and endpoint types.
 - `HttpApiEndpoint.Constraint` is now a lightweight structural endpoint constraint and does not extend `Pipeable`; values typed only as `HttpApiEndpoint.Constraint` do not expose `.pipe`.
 - `HttpApiEndpoint.AddError` has been removed; it was not used internally by the `HttpApi` implementation.
 - `HttpApiEndpoint.Json` and `HttpApiEndpoint.StringTree` have been renamed to `HttpApiEndpoint.CodecJson` and `HttpApiEndpoint.CodecStringTree`.
+- Omitted request-part metadata now remains `never` instead of being wrapped as
+  `HttpApiEndpoint.CodecStringTree<never>`; codec metadata is applied only when
+  a params, query, payload, or headers schema is present.
+- Success metadata now applies `HttpApiEndpoint.CodecJson` only to buffered
+  success schemas and preserves stream success schemas unchanged, including
+  mixed buffered and streaming success arrays.
 - Handler request parts are now flattened with `Struct.Simplify`, improving
   displayed request types while reducing handler instantiations.
 - Endpoint helper types now read metadata fields directly instead of re-inferring all type parameters from the full `HttpApiEndpoint` interface. This affects helpers such as `Identifier`, `Success`, `Error`, `Params`, `Query`, `Payload`, `Headers`, `Middleware`, `MiddlewareServices`, `Errors`, `ErrorServicesEncode`, `ErrorServicesDecode`, `Request`, `RequestRaw`, `ServerServices`, and `ClientServices`.

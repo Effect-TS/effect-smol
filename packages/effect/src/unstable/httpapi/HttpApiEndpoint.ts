@@ -70,20 +70,28 @@ type SuccessDecodingServices<S> = S extends HttpApiSchema.StreamSse<
   : S extends Schema.Constraint ? S["DecodingServices"]
   : never
 
-type ExtractSuccessOrArray<S extends SuccessConstraint> = S extends ReadonlyArray<Schema.Constraint> ? S[number] : S
+type UnwrapReadonlyArray<S> = S extends ReadonlyArray<infer A> ? A : S
 
 type ExtractBufferedSuccess<S extends SuccessConstraint> = Exclude<
-  Extract<ExtractSuccessOrArray<S>, Schema.Top>,
+  Extract<UnwrapReadonlyArray<S>, Schema.Top>,
   HttpApiSchema.StreamSchema
 >
 
-type ExtractStreamSuccess<S extends SuccessConstraint> = ExtractSuccessOrArray<S> extends infer Success ?
+type ExtractStreamSuccess<S extends SuccessConstraint> = UnwrapReadonlyArray<S> extends infer Success ?
   Success extends HttpApiSchema.StreamSchema ? Success : never
   : never
 
-type JsonSuccessOrArray<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ?
-  ExtractStreamSuccess<S>
+type ToSuccessCodec<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ? ExtractStreamSuccess<S>
   : CodecJson<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
+
+type ToJsonCodec<S> = [S] extends [never] ? never
+  : [S] extends [Schema.Constraint] ? CodecJson<S>
+  : never
+
+type ToStringTreeCodec<S> = [S] extends [never] ? never
+  : [S] extends [Schema.Struct.Fields] ? CodecStringTree<Schema.Struct<S>>
+  : [S] extends [Schema.Constraint] ? CodecStringTree<S>
+  : never
 
 type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
   & ([ParamsType] extends [never] ? {} : { readonly params: Simplify<ParamsType> })
@@ -978,13 +986,13 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Identifier,
     Method,
     Path,
-    CodecStringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
-    CodecStringTree<Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query>,
-    Method extends HttpMethod.WithBody ? CodecJson<ExtractSchemaOrArray<Payload>>
-      : CodecStringTree<ExtractSchemaOrArray<Payload>>,
-    CodecStringTree<Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers>,
-    JsonSuccessOrArray<Success>,
-    CodecJson<Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error>
+    ToStringTreeCodec<Params>,
+    ToStringTreeCodec<Query>,
+    Method extends HttpMethod.WithBody ? ToJsonCodec<ToSchema<Payload>>
+      : ToStringTreeCodec<ToSchema<Payload>>,
+    ToStringTreeCodec<Headers>,
+    ToSuccessCodec<Success>,
+    ToJsonCodec<Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error>
   >
   <
     const Identifier extends string,
@@ -1013,9 +1021,9 @@ export const make = <Method extends HttpMethod>(method: Method): {
     Path,
     Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
     Query extends Schema.Struct.Fields ? Schema.Struct<Query> : Query,
-    ExtractSchemaOrArray<Payload>,
-    ExtractSchemaOrArray<Headers>,
-    ExtractSuccessOrArray<Success>,
+    ToSchema<Payload>,
+    ToSchema<Headers>,
+    UnwrapReadonlyArray<Success>,
     Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error
   >
 } =>
@@ -1050,7 +1058,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     : Payload extends ReadonlyArray<Schema.Constraint> ? Payload[number]
     : Payload,
   Headers extends Schema.Struct.Fields ? Schema.Struct<Headers> : Headers,
-  ExtractSuccessOrArray<Success>,
+  UnwrapReadonlyArray<Success>,
   Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error
 > => {
   const disableCodecs = options?.disableCodecs ?? false
@@ -1070,10 +1078,10 @@ export const make = <Method extends HttpMethod>(method: Method): {
   })
 }
 
-type ExtractSchemaOrArray<S extends Schema.Struct.Fields | Schema.Constraint | ReadonlyArray<Schema.Constraint>> =
-  S extends Schema.Struct.Fields ? Schema.Struct<S>
-    : S extends ReadonlyArray<Schema.Constraint> ? S[number]
-    : S
+type ToSchema<S extends Schema.Struct.Fields | Schema.Constraint | ReadonlyArray<Schema.Constraint>> = S extends
+  Schema.Struct.Fields ? Schema.Struct<S>
+  : S extends ReadonlyArray<Schema.Constraint> ? S[number]
+  : S
 
 /**
  * A schema codec that decodes and encodes the schema's value type through JSON

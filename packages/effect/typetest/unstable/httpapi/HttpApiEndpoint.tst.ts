@@ -44,7 +44,7 @@ describe("HttpApiEndpoint", () => {
   describe("params option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Params"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
+      expect(endpoint["~Params"]).type.toBe<never>()
     })
 
     it("should accept a record of fields", () => {
@@ -75,7 +75,7 @@ describe("HttpApiEndpoint", () => {
   describe("query option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Query"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
+      expect(endpoint["~Query"]).type.toBe<never>()
     })
 
     it("should accept a record of fields", () => {
@@ -111,7 +111,7 @@ describe("HttpApiEndpoint", () => {
   describe("headers option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Headers"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
+      expect(endpoint["~Headers"]).type.toBe<never>()
     })
 
     it("should accept a record of fields", () => {
@@ -140,7 +140,7 @@ describe("HttpApiEndpoint", () => {
   describe("payload option", () => {
     it("should default to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
-      expect(endpoint["~Payload"]).type.toBe<HttpApiEndpoint.CodecStringTree<never>>()
+      expect(endpoint["~Payload"]).type.toBe<never>()
     })
 
     describe("GET", () => {
@@ -218,6 +218,40 @@ describe("HttpApiEndpoint", () => {
           payload: Schema.Struct({ id: Schema.String })
         })
       })
+    })
+  })
+
+  describe("disableCodecs option", () => {
+    it("should default request parts to never", () => {
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        disableCodecs: true
+      })
+
+      expect(endpoint["~Params"]).type.toBe<never>()
+      expect(endpoint["~Query"]).type.toBe<never>()
+      expect(endpoint["~Headers"]).type.toBe<never>()
+      expect(endpoint["~Payload"]).type.toBe<never>()
+    })
+
+    it("should preserve schemas without codec wrappers", () => {
+      const endpoint = HttpApiEndpoint.post("a", "/a", {
+        disableCodecs: true,
+        params: {
+          id: Schema.FiniteFromString
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        headers: {
+          authorization: Schema.String
+        },
+        payload: Schema.Struct({ body: Schema.String })
+      })
+
+      expect(endpoint["~Params"]).type.toBe<Schema.Struct<{ id: Schema.FiniteFromString }>>()
+      expect(endpoint["~Query"]).type.toBe<Schema.Struct<{ page: Schema.FiniteFromString }>>()
+      expect(endpoint["~Headers"]).type.toBe<Schema.Struct<{ authorization: Schema.String }>>()
+      expect(endpoint["~Payload"]).type.toBe<Schema.Struct<{ readonly body: Schema.String }>>()
     })
   })
 
@@ -334,6 +368,24 @@ describe("HttpApiEndpoint", () => {
       })
       expect(endpoint["~Success"]).type.toBe<
         HttpApiEndpoint.CodecJson<Schema.String | Schema.Struct<{ readonly a: Schema.String }> | Schema.Uint8Array>
+      >()
+    })
+
+    it("should accept mixed buffered and stream schemas", () => {
+      const stream = HttpApiSchema.StreamSse({
+        data: Schema.Struct({ token: Schema.String }),
+        error: Schema.Struct({ reason: Schema.String })
+      })
+      const endpoint = HttpApiEndpoint.get("a", "/a", {
+        success: [
+          Schema.Struct({ message: Schema.String }),
+          stream
+        ]
+      })
+
+      expect(endpoint["~Success"]).type.toBe<
+        | HttpApiEndpoint.CodecJson<Schema.Struct<{ readonly message: Schema.String }>>
+        | typeof stream
       >()
     })
 
