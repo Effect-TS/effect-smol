@@ -68,6 +68,7 @@ import { withRun } from "./Utils.ts"
  */
 export interface RpcServer<A extends Rpc.Any> {
   readonly write: (clientId: number, message: FromClient<A>) => Effect.Effect<void>
+  readonly writeAndAwaitCompletion: (clientId: number, message: FromClient<A>) => Effect.Effect<void>
   readonly disconnect: (clientId: number) => Effect.Effect<void>
 }
 
@@ -164,57 +165,69 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return Effect.void
     })
 
+  const writeInternal = (
+    clientId: number,
+    message: FromClient<Rpcs>,
+    awaitCompletion: boolean
+  ): Effect.Effect<void> =>
+    Effect.withFiber((requestFiber) => {
+      if (isShutdown) return Effect.interrupt
+      let client = clients.get(clientId)
+      if (!client) {
+        client = {
+          id: clientId,
+          latches: new Map(),
+          fibers: new Map(),
+          ended: false,
+          serverClient: new Rpc.ServerClient(clientId)
+        }
+        clients.set(clientId, client)
+      } else if (client.ended) {
+        return Effect.interrupt
+      }
+
+      switch (message._tag) {
+        case "Request": {
+          return handleRequest(requestFiber, client, message, awaitCompletion)
+        }
+        case "Ack": {
+          const latch = client.latches.get(message.requestId)
+          return latch ? latch.open : Effect.void
+        }
+        case "Interrupt": {
+          const fiber = client.fibers.get(message.requestId)
+          if (fiber) {
+            fiber.interruptUnsafe(requestFiber.id, RpcSchema.ClientAbort.annotation)
+            return Effect.void
+          }
+          return options.onFromServer({
+            _tag: "Exit",
+            clientId,
+            requestId: message.requestId,
+            exit: Exit.interrupt()
+          })
+        }
+        case "Eof": {
+          client.ended = true
+          if (client.fibers.size > 0) return Effect.void
+          return endClient(client)
+        }
+        default: {
+          return sendDefect(client, `Unknown request tag: ${(message as any)._tag}`)
+        }
+      }
+    })
+
   const write = (clientId: number, message: FromClient<Rpcs>): Effect.Effect<void> =>
     Effect.catchDefect(
-      Effect.withFiber((requestFiber) => {
-        if (isShutdown) return Effect.interrupt
-        let client = clients.get(clientId)
-        if (!client) {
-          client = {
-            id: clientId,
-            latches: new Map(),
-            fibers: new Map(),
-            ended: false,
-            serverClient: new Rpc.ServerClient(clientId)
-          }
-          clients.set(clientId, client)
-        } else if (client.ended) {
-          return Effect.interrupt
-        }
-
-        switch (message._tag) {
-          case "Request": {
-            return handleRequest(requestFiber, client, message)
-          }
-          case "Ack": {
-            const latch = client.latches.get(message.requestId)
-            return latch ? latch.open : Effect.void
-          }
-          case "Interrupt": {
-            const fiber = client.fibers.get(message.requestId)
-            if (fiber) {
-              fiber.interruptUnsafe(requestFiber.id, RpcSchema.ClientAbort.annotation)
-              return Effect.void
-            }
-            return options.onFromServer({
-              _tag: "Exit",
-              clientId,
-              requestId: message.requestId,
-              exit: Exit.interrupt()
-            })
-          }
-          case "Eof": {
-            client.ended = true
-            if (client.fibers.size > 0) return Effect.void
-            return endClient(client)
-          }
-          default: {
-            return sendDefect(client, `Unknown request tag: ${(message as any)._tag}`)
-          }
-        }
-      }),
+      writeInternal(clientId, message, false),
       (defect) => sendDefect(clients.get(clientId)!, defect)
     )
+
+  const writeAndAwaitCompletion = (
+    clientId: number,
+    message: FromClient<Rpcs>
+  ): Effect.Effect<void> => writeInternal(clientId, message, true)
 
   const endClient = (client: Client) => {
     clients.delete(client.id)
@@ -231,7 +244,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const handleRequest = (
     requestFiber: Fiber.Fiber<any, any>,
     client: Client,
-    request: Request<Rpcs>
+    request: Request<Rpcs>,
+    awaitCompletion: boolean
   ): Effect.Effect<void> => {
     if (client.fibers.has(request.id)) {
       return Effect.interrupt
@@ -276,10 +290,29 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       : handler
     let responded = false
     const scope = Scope.makeUnsafe()
+    const completion = awaitCompletion ? Latch.makeUnsafe(false) : undefined
+    let completionFailure: Cause.Cause<never> | undefined
+    let terminalFailure: unknown | undefined
+    let terminalInterrupted = false
+    let interruptRequested = false
     let deferred: Deferred.Deferred<unknown, unknown> | undefined = undefined
+    const trackResponse = (write: Effect.Effect<void>): Effect.Effect<void> => {
+      if (!completion) return write
+      return Effect.onExit(
+        write,
+        (exit) =>
+          Effect.sync(() => {
+            if (exit._tag === "Failure") completionFailure = exit.cause
+          })
+      )
+    }
     let effect = Effect.onExit(withMiddleware, (exit) => {
       responded = true
       let write: Effect.Effect<void>
+      if (exit._tag === "Failure") {
+        terminalFailure = Cause.squash(exit.cause)
+        terminalInterrupted = Cause.hasInterrupts(exit.cause)
+      }
       if (exit._tag === "Success") {
         if (Deferred.isDeferred(exit.value)) {
           deferred = exit.value
@@ -297,7 +330,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
         Cause.hasDies(exit.cause) &&
         !Cause.hasInterrupts(exit.cause)
       ) {
-        write = sendDefect(client, Cause.squash(exit.cause))
+        write = sendDefect(client, terminalFailure)
       } else {
         write = options.onFromServer({
           _tag: "Exit",
@@ -310,7 +343,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       if (exit._tag === "Failure") {
         reportCauseUnsafe(Fiber.getCurrent()!, exit.cause)
       }
-      return close ? Effect.ensuring(write, close) : write
+      return trackResponse(close ? Effect.ensuring(write, close) : write)
     })
     if (enableTracing) {
       const parentSpan = requestFiber.context.mapUnsafe.get(
@@ -352,37 +385,78 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
     client.fibers.set(request.id, fiber)
     fiber.addObserver(function onExit(exit: Exit.Exit<any, any>): void {
       if (deferred) {
-        const fiber = trackFiber(runFork(Effect.onExit(Deferred.await(deferred), (exit) =>
-          options.onFromServer({
+        const fiber = trackFiber(runFork(Effect.onExit(Deferred.await(deferred), (exit) => {
+          if (exit._tag === "Failure") {
+            terminalFailure = Cause.squash(exit.cause)
+            terminalInterrupted = Cause.hasInterrupts(exit.cause)
+          }
+          return trackResponse(options.onFromServer({
             _tag: "Exit",
             clientId: client.id,
             requestId: request.id,
             exit: exit as any
-          }))))
+          }))
+        })))
         client.fibers.set(request.id, fiber)
         deferred = undefined
         fiber.addObserver(onExit)
+        if (interruptRequested) {
+          fiber.interruptUnsafe(requestFiber.id)
+        }
         return
       }
       if (!responded && exit._tag === "Failure") {
-        trackFiber(
+        const responseFiber = trackFiber(
           runFork(
-            options.onFromServer({
+            trackResponse(options.onFromServer({
               _tag: "Exit",
               clientId: client.id,
               requestId: request.id,
               exit: Exit.interrupt()
-            })
+            }))
           )
         )
+        if (completion) {
+          client.fibers.set(request.id, responseFiber)
+          responseFiber.addObserver(() => finishRequest())
+          if (interruptRequested) {
+            responseFiber.interruptUnsafe(requestFiber.id)
+          }
+          return
+        }
       }
+      finishRequest()
+    })
+
+    function finishRequest(): void {
       client.fibers.delete(request.id)
       client.latches.delete(request.id)
       if (client.ended && client.fibers.size === 0) {
         trackFiber(runFork(endClient(client)))
       }
-    })
-    return Effect.void
+      completion?.openUnsafe()
+    }
+
+    if (!completion) return Effect.void
+
+    const awaitResult = Effect.andThen(
+      completion.await,
+      Effect.suspend(() => {
+        if (completionFailure) return Effect.failCause(completionFailure)
+        if (terminalInterrupted) return Effect.interrupt
+        if (terminalFailure !== undefined) return Effect.die(terminalFailure)
+        return Effect.void
+      })
+    )
+    return Effect.onInterrupt(
+      awaitResult,
+      () =>
+        Effect.suspend(() => {
+          interruptRequested = true
+          client.fibers.get(request.id)?.interruptUnsafe(requestFiber.id)
+          return completion.await
+        })
+    )
   }
 
   const streamEffect = (
@@ -449,6 +523,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 
   return identity<RpcServer<Rpcs>>({
     write,
+    writeAndAwaitCompletion,
     disconnect
   })
 })

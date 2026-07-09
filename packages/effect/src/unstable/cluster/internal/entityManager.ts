@@ -75,6 +75,9 @@ export type EntityState = {
   }>
   lastActiveCheck: number
   write: RpcServer.RpcServer<any>["write"]
+  writeAndAwaitCompletion: RpcServer.RpcServer<any>["writeAndAwaitCompletion"]
+  readonly completeRequest: (requestId: Snowflake.Snowflake) => void
+  readonly restart: (cause: Cause.Cause<never>) => Effect.Effect<void>
   readonly keepAliveLatch: Latch.Latch
   keepAliveEnabled: boolean
 }
@@ -186,7 +189,8 @@ export const make = Effect.fnUntraced(function*<
                 const request = activeRequests.get(Snowflake.Snowflake(response.requestId))
                 if (!request) return Effect.void
 
-                request.sentReply = true
+                const transactional = Context.get(request.message.annotations, WithTransaction)
+                if (!transactional) request.sentReply = true
 
                 if (
                   isShuttingDown &&
@@ -235,15 +239,7 @@ export const make = Effect.fnUntraced(function*<
                   )
                 ).pipe(
                   Effect.flatMap(() => {
-                    processedRequestIds.add(request.message.envelope.requestId)
-                    activeRequests.delete(Snowflake.Snowflake(response.requestId))
-
-                    // ensure that the reaper does not remove the entity as we haven't
-                    // been "idle" yet
-                    if (activeRequests.size === 0) {
-                      state.lastActiveCheck = clock.currentTimeMillisUnsafe()
-                    }
-
+                    if (!transactional) completeRequest(request.message.envelope.requestId)
                     return Effect.void
                   }),
                   Effect.orDie
@@ -296,7 +292,7 @@ export const make = Effect.fnUntraced(function*<
             const request = activeRequests.get(id)
             if (!request) continue
             const { lastSentChunk, message } = request
-            yield* server.write(0, {
+            const rpcRequest = {
               ...message.envelope,
               id: message.envelope.requestId as any,
               tag: message.envelope.tag as any,
@@ -304,12 +300,20 @@ export const make = Effect.fnUntraced(function*<
                 ...message.envelope,
                 lastSentChunk
               } as any) as any
-            })
+            }
+            if (Context.get(message.annotations, WithTransaction)) {
+              yield* options.storage.withTransactionAndDeferredReplies(
+                server.writeAndAwaitCompletion(0, rpcRequest)
+              )
+              completeRequest(message.envelope.requestId)
+            } else {
+              yield* server.write(0, rpcRequest)
+            }
           }
           defectRequestIds.clear()
         }
 
-        return server.write
+        return server
       })
     )
 
@@ -338,15 +342,34 @@ export const make = Effect.fnUntraced(function*<
       )
     }
 
+    function completeRequest(requestId: Snowflake.Snowflake): void {
+      processedRequestIds.add(requestId)
+      activeRequests.delete(requestId)
+      if (activeRequests.size === 0) {
+        state.lastActiveCheck = clock.currentTimeMillisUnsafe()
+      }
+    }
+
     const state: EntityState = {
       scope,
       address,
       write(clientId, message) {
         if (writeRef.state.current._tag !== "Acquired") {
-          return Effect.flatMap(writeRef.await, (write) => write(clientId, message))
+          return Effect.flatMap(writeRef.await, (server) => server.write(clientId, message))
         }
-        return writeRef.state.current.value(clientId, message)
+        return writeRef.state.current.value.write(clientId, message)
       },
+      writeAndAwaitCompletion(clientId, message) {
+        if (writeRef.state.current._tag !== "Acquired") {
+          return Effect.flatMap(
+            writeRef.await,
+            (server) => server.writeAndAwaitCompletion(clientId, message)
+          )
+        }
+        return writeRef.state.current.value.writeAndAwaitCompletion(clientId, message)
+      },
+      completeRequest,
+      restart: onDefect,
       activeRequests,
       lastActiveCheck: clock.currentTimeMillisUnsafe(),
       keepAliveLatch,
@@ -472,7 +495,7 @@ export const make = Effect.fnUntraced(function*<
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
-              let write = server.write(0, {
+              const request = {
                 ...message.envelope,
                 id: message.envelope.requestId as any,
                 payload: new Request({
@@ -482,11 +505,37 @@ export const make = Effect.fnUntraced(function*<
                     (reply): reply is Reply.Chunk<R> => reply._tag === "Chunk"
                   )
                 })
-              })
-              if (Context.get(message.annotations, WithTransaction)) {
-                write = options.storage.withTransaction(write)
               }
-              return write
+              if (Context.get(message.annotations, WithTransaction)) {
+                return Effect.matchCauseEffect(
+                  options.storage.withTransactionAndDeferredReplies(
+                    server.writeAndAwaitCompletion(0, request)
+                  ),
+                  {
+                    onSuccess: () => Effect.sync(() => server.completeRequest(message.envelope.requestId)),
+                    onFailure: (cause) => {
+                      if (!Cause.hasInterrupts(cause)) return server.restart(cause)
+                      return Effect.andThen(
+                        Effect.uninterruptible(
+                          Effect.catchCause(
+                            options.storage.releaseRequest(message.envelope.requestId),
+                            (releaseCause) =>
+                              Effect.andThen(
+                                Effect.logError("Could not release transactional entity request", releaseCause),
+                                Effect.interrupt
+                              )
+                          )
+                        ),
+                        Effect.sync(() => {
+                          processedRequestIds.delete(message.envelope.requestId)
+                          server.activeRequests.delete(message.envelope.requestId)
+                        })
+                      ).pipe(Effect.andThen(Effect.interrupt))
+                    }
+                  }
+                )
+              }
+              return server.write(0, request)
             }
             case "IncomingEnvelope": {
               const entry = server.activeRequests.get(message.envelope.requestId)

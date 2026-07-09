@@ -547,6 +547,7 @@ describe.concurrent("Sharding", () => {
   it.effect("WithTransaction is propagated to the entity handler", () =>
     Effect.gen(function*() {
       let isTransaction = false
+      let transactionOpen = false
       yield* Effect.gen(function*() {
         const makeClient = yield* TestEntity.client
         yield* TestClock.adjust(1)
@@ -558,9 +559,21 @@ describe.concurrent("Sharding", () => {
       }).pipe(Effect.provide(TestShardingWithoutStorage.pipe(
         Layer.updateService(MessageStorage.MessageStorage, (storage) => ({
           ...storage,
+          withTransactionAndDeferredReplies: (effect) =>
+            Effect.acquireUseRelease(
+              Effect.sync(() => {
+                transactionOpen = true
+              }),
+              () => storage.withTransactionAndDeferredReplies(effect),
+              () =>
+                Effect.sync(() => {
+                  transactionOpen = false
+                })
+            ),
           saveReply(reply) {
             return MessageStorage.MemoryTransaction.use((isTransaction_) => {
               isTransaction = isTransaction_
+              assert.isTrue(transactionOpen)
               return storage.saveReply(reply)
             })
           }

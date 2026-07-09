@@ -487,6 +487,23 @@ export const make: (options?: {
       withTracerDisabled
     ),
 
+    releaseRequest: (requestId) =>
+      sql`
+        UPDATE ${messagesTableSql}
+        SET last_read = NULL
+        WHERE request_id = ${String(requestId)}
+          AND processed = ${sqlFalse}
+          AND NOT EXISTS (
+            SELECT 1 FROM ${repliesTableSql}
+            WHERE request_id = ${String(requestId)}
+              AND kind = ${replyKind.WithExit}
+          )
+      `.pipe(
+        Effect.asVoid,
+        PersistenceError.refail,
+        withTracerDisabled
+      ),
+
     requestIdForPrimaryKey: (primaryKey) =>
       sql<{ id: string | bigint }>`SELECT id FROM ${messagesTableSql} WHERE message_id = ${primaryKey}`.pipe(
         Effect.map((rows) => Option.map(Option.fromNullishOr(rows[0]?.id), Snowflake.Snowflake)),

@@ -73,6 +73,11 @@ export class MessageStorage extends Context.Service<MessageStorage, {
   readonly clearReplies: (requestId: Snowflake.Snowflake) => Effect.Effect<void, PersistenceError>
 
   /**
+   * Release a claimed request so it can be read again after handling rolls back.
+   */
+  readonly releaseRequest: (requestId: Snowflake.Snowflake) => Effect.Effect<void, PersistenceError>
+
+  /**
    * Retrieves the replies for the specified requests.
    *
    * **Details**
@@ -168,6 +173,11 @@ export class MessageStorage extends Context.Service<MessageStorage, {
    * Used to wrap requests with transactions.
    */
   readonly withTransaction: <A, E, R>(
+    effect: Effect.Effect<A, E, R>
+  ) => Effect.Effect<A, E, R>
+
+  /** @internal */
+  readonly withTransactionAndDeferredReplies: <A, E, R>(
     effect: Effect.Effect<A, E, R>
   ) => Effect.Effect<A, E, R>
 }>()("effect/cluster/MessageStorage") {}
@@ -308,6 +318,11 @@ export type Encoded = {
    * Remove the replies for the specified request.
    */
   readonly clearReplies: (requestId: Snowflake.Snowflake) => Effect.Effect<void, PersistenceError>
+
+  /**
+   * Release a claimed request without changing its replies or envelopes.
+   */
+  readonly releaseRequest: (requestId: Snowflake.Snowflake) => Effect.Effect<void, PersistenceError>
 
   /**
    * Retrieves the request id for the specified primary key.
@@ -452,7 +467,10 @@ export type EncodedRepliesOptions<A> = {
 export const make = (
   storage: Omit<
     MessageStorage["Service"],
-    "registerReplyHandler" | "unregisterReplyHandler" | "unregisterShardReplyHandlers"
+    | "registerReplyHandler"
+    | "unregisterReplyHandler"
+    | "unregisterShardReplyHandlers"
+    | "withTransactionAndDeferredReplies"
   >
 ): Effect.Effect<MessageStorage["Service"]> =>
   Effect.sync(() => {
@@ -464,8 +482,54 @@ export const make = (
     }
     const replyHandlers = new Map<Snowflake.Snowflake, Array<ReplyHandler>>()
     const replyHandlersShard = new Map<string, Set<ReplyHandler>>()
+    const TransactionReplies = Context.Reference<
+      Array<Effect.Effect<void, PersistenceError | MalformedMessage>> | undefined
+    >(
+      "effect/cluster/MessageStorage/TransactionReplies",
+      { defaultValue: () => undefined }
+    )
+    const deliverReply = (reply: Reply.ReplyWithContext<any>) =>
+      Effect.suspend(() => {
+        const requestId = reply.reply.requestId
+        const handlers = replyHandlers.get(requestId)
+        if (!handlers) {
+          return Effect.void
+        } else if (reply.reply._tag === "WithExit") {
+          replyHandlers.delete(requestId)
+          for (let i = 0; i < handlers.length; i++) {
+            const handler = handlers[i]
+            handler.shardSet.delete(handler)
+            handler.resume(Effect.void)
+          }
+        }
+        return handlers.length === 1
+          ? handlers[0].respond(reply)
+          : Effect.forEach(handlers, (handler) => handler.respond(reply))
+      })
     return MessageStorage.of({
       ...storage,
+      withTransactionAndDeferredReplies: (effect) =>
+        Effect.suspend(() => {
+          const replies: Array<Effect.Effect<void, PersistenceError | MalformedMessage>> = []
+          return storage.withTransaction(
+            Effect.provideService(effect, TransactionReplies, replies)
+          ).pipe(
+            Effect.flatMap((value) =>
+              Effect.as(
+                Effect.forEach(
+                  replies,
+                  (delivery) =>
+                    Effect.catchCause(
+                      delivery,
+                      (cause) => Effect.logWarning("Could not deliver committed transactional reply", cause)
+                    ),
+                  { discard: true }
+                ),
+                value
+              )
+            )
+          )
+        }),
       registerReplyHandler: (message) => {
         const requestId = message.envelope.requestId
         return Effect.callback<void, EntityNotAssignedToRunner>((resume) => {
@@ -526,23 +590,13 @@ export const make = (
           })
         }),
       saveReply(reply) {
-        const requestId = reply.reply.requestId
-        return Effect.flatMap(storage.saveReply(reply), () => {
-          const handlers = replyHandlers.get(requestId)
-          if (!handlers) {
+        return Effect.flatMap(storage.saveReply(reply), () =>
+          Effect.flatMap(TransactionReplies, (replies) => {
+            const delivery = deliverReply(reply)
+            if (replies === undefined) return delivery
+            replies.push(delivery)
             return Effect.void
-          } else if (reply.reply._tag === "WithExit") {
-            replyHandlers.delete(requestId)
-            for (let i = 0; i < handlers.length; i++) {
-              const handler = handlers[i]
-              handler.shardSet.delete(handler)
-              handler.resume(Effect.void)
-            }
-          }
-          return handlers.length === 1
-            ? handlers[0].respond(reply)
-            : Effect.forEach(handlers, (handler) => handler.respond(reply))
-        })
+          }))
       }
     })
   })
@@ -612,6 +666,7 @@ export const makeEncoded: (encoded: Encoded) => Effect.Effect<
         encoded.saveReply
       ),
     clearReplies: encoded.clearReplies,
+    releaseRequest: encoded.releaseRequest,
     repliesFor: Effect.fnUntraced(function*(messages) {
       const requestIds = Arr.empty<string>()
       const map = new Map<string, Message.OutgoingRequest<any>>()
@@ -774,6 +829,7 @@ export const noop: MessageStorage["Service"] = Effect.runSync(make({
   saveEnvelope: () => Effect.void,
   saveReply: () => Effect.void,
   clearReplies: () => Effect.void,
+  releaseRequest: () => Effect.void,
   repliesFor: () => Effect.succeed([]),
   repliesForUnfiltered: () => Effect.succeed([]),
   requestIdForPrimaryKey: () => Effect.succeedNone,
@@ -1008,6 +1064,13 @@ export class MemoryDriver extends Context.Service<MemoryDriver>()("effect/cluste
           }
         }),
       resetShards: () => Effect.void,
+      releaseRequest: (id) =>
+        Effect.sync(() => {
+          const entry = requests.get(String(id))
+          if (entry && !entry.replies.some((reply) => reply._tag === "WithExit")) {
+            unprocessed.add(entry.envelope)
+          }
+        }),
       withTransaction: Effect.provideService(MemoryTransaction, true)
     }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "@effect/vitest"
+import { assert, describe, expect, it } from "@effect/vitest"
 import { Context, Effect, Exit, Fiber, Latch, Layer, Option, Schema } from "effect"
 import { TestClock } from "effect/testing"
 import {
@@ -90,6 +90,45 @@ describe("MessageStorage", () => {
         yield* storage.saveReply(yield* makeReply(request))
         yield* latch.await
         yield* Fiber.await(fiber)
+      }).pipe(Effect.provide(MemoryLive)))
+
+    it.effect("delays transactional reply delivery until commit", () =>
+      Effect.gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const latch = yield* Latch.make()
+        const request = yield* makeRequest()
+        yield* storage.saveRequest(request)
+        const fiber = yield* storage.registerReplyHandler(
+          new Message.OutgoingRequest({
+            ...request,
+            respond: () => latch.open
+          })
+        ).pipe(Effect.forkChild)
+        yield* TestClock.adjust(1)
+
+        yield* storage.withTransactionAndDeferredReplies(
+          Effect.gen(function*() {
+            yield* storage.saveReply(yield* makeReply(request))
+            assert.isFalse(latch.isOpen())
+          })
+        )
+
+        assert.isTrue(latch.isOpen())
+        yield* Fiber.await(fiber)
+      }).pipe(Effect.provide(MemoryLive)))
+
+    it.effect("releases an incomplete request", () =>
+      Effect.gen(function*() {
+        const storage = yield* MessageStorage.MessageStorage
+        const driver = yield* MessageStorage.MemoryDriver
+        const request = yield* makeRequest()
+        yield* storage.saveRequest(request)
+        const entry = driver.requests.get(String(request.envelope.requestId))!
+        driver.unprocessed.delete(entry.envelope)
+
+        yield* storage.releaseRequest(request.envelope.requestId)
+
+        assert.isTrue(driver.unprocessed.has(entry.envelope))
       }).pipe(Effect.provide(MemoryLive)))
   })
 })

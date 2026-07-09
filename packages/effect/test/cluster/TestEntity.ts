@@ -123,7 +123,7 @@ export const TestEntityNoState = TestEntity.toLayer(
           Stream.rechunk(1)
         )
       },
-      WithTransaction: () => MemoryTransaction
+      WithTransaction: () => Effect.andThen(Effect.yieldNow, MemoryTransaction)
     })
   }),
   { defectRetryPolicy: Schedule.forever }
