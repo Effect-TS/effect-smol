@@ -5,8 +5,10 @@ spec:
 output: src/Generated.ts
 name: AnthropicClient
 patches:
-  # Remove string from Model schema - only keep literal model IDs
-  - '[{"op":"remove","path":"/components/schemas/Model/anyOf/0"}]'
+  # NOTE: `Model` is an open enum - `anyOf: [{ type: string }, ...consts]` with
+  # `x-stainless-nominal: false`. The string branch must be preserved: `Model` is $ref'd by response
+  # schemas (BetaMessage, Message, ResponseFallbackHopInfo, ...), so narrowing it to the known literals
+  # makes every response fail to decode as soon as Anthropic ships a model id newer than this spec.
   # Make iterations and speed optional in BetaUsage, iterations optional in BetaMessageDeltaUsage (API may omit these fields)
   - '[{"op":"remove","path":"/components/schemas/BetaUsage/required/9"},{"op":"remove","path":"/components/schemas/BetaUsage/required/5"},{"op":"remove","path":"/components/schemas/BetaMessageDeltaUsage/required/3"}]'
 header: |

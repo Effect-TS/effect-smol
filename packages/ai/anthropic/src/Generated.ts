@@ -2872,55 +2872,67 @@ export const BetaStopReason = Schema.Literals([
   "model_context_window_exceeded"
 ])
 export type Model =
+  | string
+  | "claude-sonnet-5"
+  | "claude-fable-5"
+  | "claude-mythos-5"
+  | "claude-opus-4-8"
+  | "claude-opus-4-7"
+  | "claude-mythos-preview"
   | "claude-opus-4-6"
   | "claude-sonnet-4-6"
-  | "claude-opus-4-5-20251101"
-  | "claude-opus-4-5"
-  | "claude-3-7-sonnet-latest"
-  | "claude-3-7-sonnet-20250219"
-  | "claude-3-5-haiku-latest"
-  | "claude-3-5-haiku-20241022"
   | "claude-haiku-4-5"
   | "claude-haiku-4-5-20251001"
-  | "claude-sonnet-4-20250514"
-  | "claude-sonnet-4-0"
-  | "claude-4-sonnet-20250514"
+  | "claude-opus-4-5"
+  | "claude-opus-4-5-20251101"
   | "claude-sonnet-4-5"
   | "claude-sonnet-4-5-20250929"
-  | "claude-opus-4-0"
-  | "claude-opus-4-20250514"
-  | "claude-4-opus-20250514"
+  | "claude-opus-4-1"
   | "claude-opus-4-1-20250805"
-  | "claude-3-opus-latest"
-  | "claude-3-opus-20240229"
-  | "claude-3-haiku-20240307"
-export const Model = Schema.Literals([
-  "claude-opus-4-6",
-  "claude-sonnet-4-6",
-  "claude-opus-4-5-20251101",
-  "claude-opus-4-5",
-  "claude-3-7-sonnet-latest",
-  "claude-3-7-sonnet-20250219",
-  "claude-3-5-haiku-latest",
-  "claude-3-5-haiku-20241022",
-  "claude-haiku-4-5",
-  "claude-haiku-4-5-20251001",
-  "claude-sonnet-4-20250514",
-  "claude-sonnet-4-0",
-  "claude-4-sonnet-20250514",
-  "claude-sonnet-4-5",
-  "claude-sonnet-4-5-20250929",
-  "claude-opus-4-0",
-  "claude-opus-4-20250514",
-  "claude-4-opus-20250514",
-  "claude-opus-4-1-20250805",
-  "claude-3-opus-latest",
-  "claude-3-opus-20240229",
-  "claude-3-haiku-20240307"
+export const Model = Schema.Union([
+  Schema.String,
+  Schema.Literal("claude-sonnet-5").annotate({ "description": "High-performance model for coding and agents" }),
+  Schema.Literal("claude-fable-5").annotate({
+    "description": "Next generation of intelligence for the hardest knowledge work and coding problems"
+  }),
+  Schema.Literal("claude-mythos-5").annotate({
+    "description": "Most capable model for cybersecurity and biology research"
+  }),
+  Schema.Literal("claude-opus-4-8").annotate({
+    "description": "Frontier intelligence for long-running agents and coding"
+  }),
+  Schema.Literal("claude-opus-4-7").annotate({
+    "description": "Frontier intelligence for long-running agents and coding"
+  }),
+  Schema.Literal("claude-mythos-preview").annotate({
+    "description": "New class of intelligence, strongest in coding and cybersecurity"
+  }),
+  Schema.Literal("claude-opus-4-6").annotate({
+    "description": "Frontier intelligence for long-running agents and coding"
+  }),
+  Schema.Literal("claude-sonnet-4-6").annotate({ "description": "Best combination of speed and intelligence" }),
+  Schema.Literal("claude-haiku-4-5").annotate({ "description": "Fastest model with near-frontier intelligence" }),
+  Schema.Literal("claude-haiku-4-5-20251001").annotate({
+    "description": "Fastest model with near-frontier intelligence"
+  }),
+  Schema.Literal("claude-opus-4-5").annotate({
+    "description": "Premium model combining maximum intelligence with practical performance"
+  }),
+  Schema.Literal("claude-opus-4-5-20251101").annotate({
+    "description": "Premium model combining maximum intelligence with practical performance"
+  }),
+  Schema.Literal("claude-sonnet-4-5").annotate({ "description": "High-performance model for agents and coding" }),
+  Schema.Literal("claude-sonnet-4-5-20250929").annotate({
+    "description": "High-performance model for agents and coding"
+  }),
+  Schema.Literal("claude-opus-4-1").annotate({ "description": "Exceptional model for specialized complex tasks" }),
+  Schema.Literal("claude-opus-4-1-20250805").annotate({
+    "description": "Exceptional model for specialized complex tasks"
+  })
 ]).annotate({
   "title": "Model",
   "description":
-    "The model that will complete your prompt.\\n\\nSee [models](https://docs.anthropic.com/en/docs/models-overview) for additional details and options."
+    "The model that will complete your prompt.\n\nSee [models](https://docs.anthropic.com/en/docs/models-overview) for additional details and options."
 })
 export type BetaMemoryTool_20250818_ViewCommand = {
   readonly "command": "view"
