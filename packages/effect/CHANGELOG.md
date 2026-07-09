@@ -1,5 +1,21 @@
 # effect
 
+## 4.0.0-beta.96
+
+### Patch Changes
+
+- [#2563](https://github.com/Effect-TS/effect-smol/pull/2563) [`1503f45`](https://github.com/Effect-TS/effect-smol/commit/1503f45cb5bb2a74f4705252ec505a1f0ade7e62) Thanks @tim-smart! - update dependencies
+
+- [#2566](https://github.com/Effect-TS/effect-smol/pull/2566) [`57fe793`](https://github.com/Effect-TS/effect-smol/commit/57fe79316ffbc380b30626a168981fb26ae97459) Thanks @tim-smart! - change rpc ids to string | number
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Remove `Schedule.elapsed`.
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Remove `Schedule.tapInput` and `Schedule.tapOutput`. Use `Schedule.tap` instead.
+
+- [#2561](https://github.com/Effect-TS/effect-smol/pull/2561) [`0c2f78f`](https://github.com/Effect-TS/effect-smol/commit/0c2f78f695ec474e1ff5474da183577975e418f5) Thanks @tim-smart! - Update `Schedule.addDelay` and `Schedule.modifyDelay` to receive full schedule metadata instead of separate output and delay arguments.
+
+- [#2562](https://github.com/Effect-TS/effect-smol/pull/2562) [`97f29df`](https://github.com/Effect-TS/effect-smol/commit/97f29df457f7ffd07cfb4b379315c12c086af805) Thanks @tim-smart! - use Sets to track atom relationships
+
 ## 4.0.0-beta.95
 
 ### Patch Changes
