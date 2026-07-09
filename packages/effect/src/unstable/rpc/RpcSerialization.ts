@@ -128,9 +128,9 @@ export const jsonRpc = (options?: {
     includesFraming: false,
     makeUnsafe: () => {
       const decoder = new TextDecoder()
-      const batches = new Map<string, {
+      const batches = new Map<string | number, {
         readonly size: number
-        readonly responses: Map<string, RpcMessage.FromServerEncoded>
+        readonly responses: Map<string | number, RpcMessage.FromServerEncoded>
       }>()
       return {
         decode: (bytes) => {
@@ -187,9 +187,9 @@ export const ndJsonRpc = (options?: {
 
 function decodeJsonRpcRaw(
   decoded: JsonRpcMessage | Array<JsonRpcMessage>,
-  batches: Map<string, {
+  batches: Map<string | number, {
     readonly size: number
-    readonly responses: Map<string, RpcMessage.FromServerEncoded>
+    readonly responses: Map<string | number, RpcMessage.FromServerEncoded>
   }>
 ) {
   if (Array.isArray(decoded)) {
@@ -221,13 +221,13 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
       return requestId ?
         {
           _tag: tag,
-          requestId: String(requestId)
+          requestId
         } as any :
         { _tag: tag } as any
     }
     return {
       _tag: "Request",
-      id: Predicate.isNotNullish(decoded.id) ? String(decoded.id) : "",
+      id: decoded.id ?? "",
       tag: decoded.method,
       payload: decoded.params ?? null,
       headers: decoded.headers ?? [],
@@ -247,13 +247,13 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
   } else if (decoded.chunk === true) {
     return {
       _tag: "Chunk",
-      requestId: String(decoded.id),
+      requestId: decoded.id ?? "",
       values: decoded.result as any
     }
   }
   return {
     _tag: "Exit",
-    requestId: String(decoded.id),
+    requestId: decoded.id ?? "",
     exit: decoded.error != null ?
       {
         _tag: "Failure",
@@ -273,9 +273,9 @@ function decodeJsonRpcMessage(decoded: JsonRpcMessage): RpcMessage.FromClientEnc
 
 function encodeJsonRpcRaw(
   response: RpcMessage.FromServerEncoded | RpcMessage.FromClientEncoded,
-  batches: Map<string, {
+  batches: Map<string | number, {
     readonly size: number
-    readonly responses: Map<string, RpcMessage.FromServerEncoded>
+    readonly responses: Map<string | number, RpcMessage.FromServerEncoded>
   }>
 ) {
   if (!("requestId" in response)) {
@@ -298,9 +298,9 @@ function encodeJsonRpcResponse(
     | RpcMessage.FromServerEncoded
     | RpcMessage.FromClientEncoded
     | Array<RpcMessage.FromServerEncoded | RpcMessage.FromClientEncoded>,
-  batches: Map<string, {
+  batches: Map<string | number, {
     readonly size: number
-    readonly responses: Map<string, RpcMessage.FromServerEncoded>
+    readonly responses: Map<string | number, RpcMessage.FromServerEncoded>
   }>
 ) {
   if (Array.isArray(response) === false) {

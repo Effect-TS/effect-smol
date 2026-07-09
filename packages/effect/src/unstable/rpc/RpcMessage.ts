@@ -59,7 +59,7 @@ export const RequestId = (id: string | number): RequestId => id as RequestId
  */
 export interface RequestEncoded {
   readonly _tag: "Request"
-  readonly id: string
+  readonly id: string | number
   readonly tag: string
   readonly payload: unknown
   readonly headers: ReadonlyArray<[string, string]>
@@ -118,7 +118,7 @@ export interface Interrupt {
  */
 export interface AckEncoded {
   readonly _tag: "Ack"
-  readonly requestId: string
+  readonly requestId: string | number
 }
 
 /**
@@ -129,7 +129,7 @@ export interface AckEncoded {
  */
 export interface InterruptEncoded {
   readonly _tag: "Interrupt"
-  readonly requestId: string
+  readonly requestId: string | number
 }
 
 /**
@@ -228,7 +228,7 @@ export type ResponseId = Branded<number, ResponseIdTypeId>
  */
 export interface ResponseChunkEncoded {
   readonly _tag: "Chunk"
-  readonly requestId: string
+  readonly requestId: string | number
   readonly values: NonEmptyReadonlyArray<unknown>
 }
 
@@ -281,7 +281,7 @@ export type ExitEncoded<A, E> = {
  */
 export interface ResponseExitEncoded {
   readonly _tag: "Exit"
-  readonly requestId: string
+  readonly requestId: string | number
   readonly exit: ExitEncoded<unknown, unknown>
 }
 
@@ -337,7 +337,7 @@ export const ResponseExitDieEncoded = (options: {
   readonly defect: unknown
 }): ResponseExitEncoded => ({
   _tag: "Exit",
-  requestId: options.requestId.toString(),
+  requestId: options.requestId,
   exit: {
     _tag: "Failure",
     cause: [{

@@ -1,7 +1,7 @@
 import { assert, describe, it } from "@effect/vitest"
 import { RpcSerialization } from "effect/unstable/rpc"
 
-const responseExitSuccess = (requestId: string, value: unknown) => ({
+const responseExitSuccess = (requestId: string | number, value: unknown) => ({
   _tag: "Exit",
   requestId,
   exit: {
@@ -37,7 +37,7 @@ describe("RpcSerialization", () => {
     assert.strictEqual(Array.isArray(message), false)
     assert.deepStrictEqual(message, {
       jsonrpc: "2.0",
-      id: 1,
+      id: "1",
       result: {
         id: 1
       }
@@ -53,8 +53,9 @@ describe("RpcSerialization", () => {
 
     const encoded = parser.encode([
       responseExitSuccess("1", "one"),
-      responseExitSuccess("2", "two")
+      responseExitSuccess(2, "two")
     ])
+    console.log(encoded)
     assert(encoded !== undefined)
 
     const message = JSON.parse(encoded as string)
@@ -62,7 +63,7 @@ describe("RpcSerialization", () => {
     assert.deepStrictEqual(message, [
       {
         jsonrpc: "2.0",
-        id: 1,
+        id: "1",
         result: "one"
       },
       {
