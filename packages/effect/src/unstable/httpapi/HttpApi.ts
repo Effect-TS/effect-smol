@@ -197,7 +197,7 @@ const Proto = {
 const makeProto = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   options: {
     readonly identifier: Id
-    readonly groups: GroupsByName<Groups>
+    readonly groups: Record.ReadonlyRecord<string, HttpApiGroup.Constraint>
     readonly annotations: Context.Context<never>
   }
 ): HttpApi<Id, Groups> => {

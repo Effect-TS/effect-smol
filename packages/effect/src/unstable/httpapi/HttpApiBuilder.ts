@@ -339,7 +339,7 @@ export declare namespace Handlers {
    */
   export type FromGroup<Group extends HttpApiGroup.Constraint> = Handlers<
     never,
-    EndpointMap<HttpApiGroup.Endpoints<Group>>
+    Group["endpoints"]
   >
 
   /**

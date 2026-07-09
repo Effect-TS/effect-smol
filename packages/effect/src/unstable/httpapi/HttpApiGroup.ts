@@ -355,7 +355,7 @@ const makeProto = <
 >(options: {
   readonly identifier: Id
   readonly topLevel: TopLevel
-  readonly endpoints: EndpointMap<Endpoints>
+  readonly endpoints: Record.ReadonlyRecord<string, HttpApiEndpoint.Constraint>
   readonly annotations: Context.Context<never>
 }): HttpApiGroup<Id, Endpoints, TopLevel> => {
   function HttpApiGroup() {}
