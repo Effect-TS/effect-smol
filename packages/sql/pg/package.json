@@ -58,7 +58,7 @@
     "coverage": "vitest --coverage"
   },
   "devDependencies": {
-    "@testcontainers/postgresql": "^12.0.4",
+    "@testcontainers/postgresql": "^11.14.0",
     "@types/pg": "^8.20.0",
     "@types/pg-cursor": "^2.7.2",
     "effect": "workspace:^"
