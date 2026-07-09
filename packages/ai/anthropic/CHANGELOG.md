@@ -1,5 +1,14 @@
 # @effect/ai-anthropic
 
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- [#2568](https://github.com/Effect-TS/effect-smol/pull/2568) [`97a4138`](https://github.com/Effect-TS/effect-smol/commit/97a4138f9e9d31d38026f935b52d423f5ccadc4f) Thanks @K-Mistele! - Widen the Anthropic `Model` schema to accept both known model identifiers as well
+  as any string to allow for newer models
+- Updated dependencies []:
+  - effect@4.0.0-beta.97
+
 ## 4.0.0-beta.96
 
 ### Patch Changes
