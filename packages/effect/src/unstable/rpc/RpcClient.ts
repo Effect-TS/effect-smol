@@ -204,7 +204,7 @@ export declare namespace RpcClient {
  */
 export type FromGroup<Group, E = never> = RpcClient<RpcGroup.Rpcs<Group>, E>
 
-let requestIdCounter = BigInt(0)
+let requestIdCounter = 0
 
 /**
  * Creates an RPC client for an already-decoded message channel, returning the

@@ -341,7 +341,7 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
         jsonrpc: "2.0",
         method: response.tag,
         params: response.payload,
-        id: response.id !== "" ? Number(response.id) : "",
+        id: response.id,
         headers: response.headers,
         traceId: response.traceId,
         spanId: response.spanId,
@@ -361,21 +361,21 @@ function encodeJsonRpcMessage(response: RpcMessage.FromServerEncoded | RpcMessag
       return {
         jsonrpc: "2.0",
         chunk: true,
-        id: Number(response.requestId),
+        id: response.requestId,
         result: response.values
       }
     case "Exit": {
       if (response.exit._tag === "Success") {
         return {
           jsonrpc: "2.0",
-          id: response.requestId !== "" ? Number(response.requestId) : undefined,
+          id: response.requestId ?? undefined,
           result: response.exit.value
         } as any
       }
       const error = response.exit.cause.find((failure) => failure._tag === "Fail")
       return {
         jsonrpc: "2.0",
-        id: response.requestId !== "" ? Number(response.requestId) : undefined,
+        id: response.requestId ?? undefined,
         error: response.exit._tag === "Failure" ?
           {
             _tag: "Cause",

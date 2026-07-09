@@ -38,7 +38,7 @@ import * as Semaphore from "../../Semaphore.ts"
 import * as Stream from "../../Stream.ts"
 import type * as Rpc from "../rpc/Rpc.ts"
 import * as RpcClient from "../rpc/RpcClient.ts"
-import { type FromServer, RequestId } from "../rpc/RpcMessage.ts"
+import type { FromServer } from "../rpc/RpcMessage.ts"
 import type { MailboxFull, PersistenceError } from "./ClusterError.ts"
 import { AlreadyProcessingMessage, EntityNotAssignedToRunner } from "./ClusterError.ts"
 import * as ClusterMetrics from "./ClusterMetrics.ts"
@@ -1040,7 +1040,7 @@ const make = Effect.gen(function*() {
         spanPrefix: `${entity.type}.client`,
         disableTracing: !Context.get(entity.protocol.annotations, ClusterSchema.ClientTracingEnabled),
         supportsAck: true,
-        generateRequestId: () => RequestId(snowflakeGen.nextUnsafe()),
+        generateRequestId: () => snowflakeGen.nextUnsafe() as any,
         flatten: true,
         onFromClient(options): Effect.Effect<
           void,
@@ -1199,7 +1199,7 @@ const make = Effect.gen(function*() {
         return write({
           _tag: "Chunk",
           clientId: 0,
-          requestId: RequestId(reply.requestId),
+          requestId: reply.requestId as any,
           values: reply.values
         })
       }
@@ -1208,7 +1208,7 @@ const make = Effect.gen(function*() {
         return write({
           _tag: "Exit",
           clientId: 0,
-          requestId: RequestId(reply.requestId),
+          requestId: reply.requestId as any,
           exit: reply.exit
         })
       }

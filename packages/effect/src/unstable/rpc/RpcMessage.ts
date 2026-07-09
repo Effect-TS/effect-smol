@@ -40,7 +40,7 @@ export type FromClientEncoded = RequestEncoded | AckEncoded | InterruptEncoded |
  * @category request
  * @since 4.0.0
  */
-export type RequestId = Branded<bigint, "~effect/rpc/RpcMessage/RequestId">
+export type RequestId = Branded<string | number, "~effect/rpc/RpcMessage/RequestId">
 
 /**
  * Converts a bigint or string request id into the branded `RequestId` type.
@@ -48,8 +48,7 @@ export type RequestId = Branded<bigint, "~effect/rpc/RpcMessage/RequestId">
  * @category request
  * @since 4.0.0
  */
-export const RequestId = (id: bigint | string): RequestId =>
-  typeof id === "bigint" ? id as RequestId : BigInt(id) as RequestId
+export const RequestId = (id: string | number): RequestId => id as RequestId
 
 /**
  * The transport-encoded RPC request envelope, including the string request id,
