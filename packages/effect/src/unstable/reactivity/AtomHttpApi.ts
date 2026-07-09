@@ -215,7 +215,7 @@ export const Service =
     const catchErrors = Effect.catch((e: unknown) =>
       Schema.isSchemaError(e) || HttpClientError.isHttpClientError(e) ? Effect.die(e) : Effect.fail(e)
     )
-    const groups = options.api.groupsRecord()
+    const groups = options.api.groups as unknown as Record<string, HttpApiGroup.Top>
 
     const mutationFamily = Atom.family(({ endpoint, group, responseMode }: MutationKey) => {
       const atom = self.runtime.fn<{

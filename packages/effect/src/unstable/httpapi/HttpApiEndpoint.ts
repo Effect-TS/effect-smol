@@ -328,7 +328,7 @@ export interface Top extends
  * @category models
  * @since 4.0.0
  */
-export type Identifier<Endpoint> = Endpoint extends Constraint ? Endpoint["identifier"] : never
+export type Identifier<Endpoint extends Constraint> = Endpoint["identifier"]
 
 /**
  * Extracts the success schema associated with an endpoint.

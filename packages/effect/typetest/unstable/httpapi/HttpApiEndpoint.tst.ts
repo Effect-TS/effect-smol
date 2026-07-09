@@ -21,7 +21,6 @@ describe("HttpApiEndpoint", () => {
 
       expect<HttpApiEndpoint.Identifier<typeof a>>().type.toBe<"a">()
       expect<HttpApiEndpoint.Identifier<typeof a | typeof b>>().type.toBe<"a" | "b">()
-      expect<HttpApiEndpoint.Identifier<unknown>>().type.toBe<never>()
     })
 
     it("should expose the identifier literal", () => {

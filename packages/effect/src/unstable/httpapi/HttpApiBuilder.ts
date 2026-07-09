@@ -87,8 +87,8 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Constraint>
     const availableGroups = Array.from(services.mapUnsafe.keys()).filter((key) =>
       key.startsWith("effect/httpapi/HttpApiGroup/")
     )
-    const groups = api.groupsRecord()
-    for (const group of Object.values(groups)) {
+    const groups = Object.values(api.groups) as ReadonlyArray<HttpApiGroup.Top>
+    for (const group of groups) {
       const groupRoutes = services.mapUnsafe.get(group.key)?.routes as Array<HttpRouter.Route<any, any>>
       if (groupRoutes === undefined) {
         const available = availableGroups.length === 0 ? "none" : availableGroups.join(", ")
@@ -137,7 +137,7 @@ export const group = <
     const services = (yield* Effect.context<any>()).pipe(
       Context.omit(Scope.Scope)
     )
-    const group = api.groups[groupIdentifier]
+    const group = api.groups[groupIdentifier] as HttpApiGroup.Constraint
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any, any> = Effect.isEffect(result)
       ? (yield* result as Effect.Effect<any, any, any>)
@@ -454,7 +454,7 @@ export const endpoint = <
   >
 ): EndpointReturn<Groups, GroupIdentifier, EndpointIdentifier, R> =>
   Effect.contextWith((context: Context.Context<any>) => {
-    const group = api.groupsRecord()[groupIdentifier]!
+    const group = api.groups[groupIdentifier] as unknown as HttpApiGroup.Top
     const endpoint = group.endpoints[endpointIdentifier]
     return Effect.succeed(handlerToHttpEffect(
       group,
@@ -816,20 +816,20 @@ const getRequestMediaType = (request: HttpServerRequest): string => {
   return index === -1 ? contentType : contentType.slice(0, index).trim()
 }
 
-const applyMiddleware = <A extends Effect.Effect<any, any, any>>(
-  group: HttpApiGroup.Top,
+const applyMiddleware = <Group extends HttpApiGroup.Constraint, A extends Effect.Effect<any, any, any>>(
+  group: Group,
   endpoint: HttpApiEndpoint.Top,
   context: Context.Context<any>,
   handler: A
 ) => {
   const options = { group, endpoint }
   for (const key_ of endpoint.middlewares) {
-    const key = key_ as any as HttpApiMiddleware.AnyService
-    const service = Context.getUnsafe(context, key as any) as HttpApiMiddleware.HttpApiMiddleware<any, any, any>
+    const key = key_ as HttpApiMiddleware.AnyService
+    const service = Context.getUnsafe(context, key)
     const apply = HttpApiMiddleware.isSecurity(key)
-      ? makeSecurityMiddleware(key, service as any)
+      ? makeSecurityMiddleware(key, service)
       : service
-    handler = apply(handler, options) as A
+    handler = apply(handler, options)
   }
   return handler
 }

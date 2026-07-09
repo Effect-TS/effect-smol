@@ -35,12 +35,8 @@ export const isHttpApi = (u: unknown): u is Top => Predicate.hasProperty(u, Type
 /**
  * Groups indexed by their identifier.
  */
-type GroupByIdentifier<Groups extends HttpApiGroup.Constraint, Identifier extends string> = Groups extends
-  { readonly identifier: Identifier } ? Groups
-  : never
-
-type GroupsByIdentifier<Groups extends HttpApiGroup.Constraint> = {
-  readonly [Identifier in HttpApiGroup.Identifier<Groups>]: GroupByIdentifier<Groups, Identifier>
+type GroupMap<Groups> = {
+  readonly [Group in Groups as HttpApiGroup.Identifier<Group>]: Group
 }
 
 /**
@@ -62,11 +58,8 @@ export interface HttpApi<
   new(_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly identifier: Id
-  readonly groups: GroupsByIdentifier<Groups>
+  readonly groups: GroupMap<Groups>
   readonly annotations: Context.Context<never>
-
-  /** @internal */
-  groupsRecord(): Record.ReadonlyRecord<string, HttpApiGroup.Top>
 
   /**
    * Add a `HttpApiGroup` to the `HttpApi`.
@@ -130,9 +123,6 @@ const Proto = {
   [TypeId]: TypeId,
   pipe() {
     return pipeArguments(this, arguments)
-  },
-  groupsRecord(this: Top) {
-    return this.groups
   },
   add(
     this: Top,
