@@ -48,10 +48,14 @@ import * as InternalUtilities from "./internal/utilities.ts"
  * string model ids, so this type is best used for autocomplete and type checking
  * of known Claude ids.
  *
+ * `Model` is an open enum in the Anthropic specification, so the generated schema is
+ * `Schema.Union([Schema.String, Schema.Literals([...])])` and its `Type` widens to `string`. Read the
+ * literal branch back out of the union to preserve the known ids, as `@effect/ai-openai` does.
+ *
  * @category models
  * @since 4.0.0
  */
-export type Model = typeof Generated.Model.Type
+export type Model = (typeof Generated.Model)["members"][1]["Encoded"]
 
 // =============================================================================
 // Configuration

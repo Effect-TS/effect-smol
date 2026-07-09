@@ -2891,44 +2891,24 @@ export type Model =
   | "claude-opus-4-1-20250805"
 export const Model = Schema.Union([
   Schema.String,
-  Schema.Literal("claude-sonnet-5").annotate({ "description": "High-performance model for coding and agents" }),
-  Schema.Literal("claude-fable-5").annotate({
-    "description": "Next generation of intelligence for the hardest knowledge work and coding problems"
-  }),
-  Schema.Literal("claude-mythos-5").annotate({
-    "description": "Most capable model for cybersecurity and biology research"
-  }),
-  Schema.Literal("claude-opus-4-8").annotate({
-    "description": "Frontier intelligence for long-running agents and coding"
-  }),
-  Schema.Literal("claude-opus-4-7").annotate({
-    "description": "Frontier intelligence for long-running agents and coding"
-  }),
-  Schema.Literal("claude-mythos-preview").annotate({
-    "description": "New class of intelligence, strongest in coding and cybersecurity"
-  }),
-  Schema.Literal("claude-opus-4-6").annotate({
-    "description": "Frontier intelligence for long-running agents and coding"
-  }),
-  Schema.Literal("claude-sonnet-4-6").annotate({ "description": "Best combination of speed and intelligence" }),
-  Schema.Literal("claude-haiku-4-5").annotate({ "description": "Fastest model with near-frontier intelligence" }),
-  Schema.Literal("claude-haiku-4-5-20251001").annotate({
-    "description": "Fastest model with near-frontier intelligence"
-  }),
-  Schema.Literal("claude-opus-4-5").annotate({
-    "description": "Premium model combining maximum intelligence with practical performance"
-  }),
-  Schema.Literal("claude-opus-4-5-20251101").annotate({
-    "description": "Premium model combining maximum intelligence with practical performance"
-  }),
-  Schema.Literal("claude-sonnet-4-5").annotate({ "description": "High-performance model for agents and coding" }),
-  Schema.Literal("claude-sonnet-4-5-20250929").annotate({
-    "description": "High-performance model for agents and coding"
-  }),
-  Schema.Literal("claude-opus-4-1").annotate({ "description": "Exceptional model for specialized complex tasks" }),
-  Schema.Literal("claude-opus-4-1-20250805").annotate({
-    "description": "Exceptional model for specialized complex tasks"
-  })
+  Schema.Literals([
+    "claude-sonnet-5",
+    "claude-fable-5",
+    "claude-mythos-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-mythos-preview",
+    "claude-opus-4-6",
+    "claude-sonnet-4-6",
+    "claude-haiku-4-5",
+    "claude-haiku-4-5-20251001",
+    "claude-opus-4-5",
+    "claude-opus-4-5-20251101",
+    "claude-sonnet-4-5",
+    "claude-sonnet-4-5-20250929",
+    "claude-opus-4-1",
+    "claude-opus-4-1-20250805"
+  ])
 ]).annotate({
   "title": "Model",
   "description":
