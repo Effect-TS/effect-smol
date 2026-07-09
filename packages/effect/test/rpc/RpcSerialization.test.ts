@@ -47,7 +47,7 @@ describe("RpcSerialization", () => {
   it("jsonRpc encodes batched responses as an array", () => {
     const parser = RpcSerialization.jsonRpc().makeUnsafe()
     const decoded = parser.decode(
-      "[{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"users.get\"},{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"users.list\"}]"
+      "[{\"jsonrpc\":\"2.0\",\"id\":\"1\",\"method\":\"users.get\"},{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"users.list\"}]"
     )
     assert.strictEqual(decoded.length, 2)
 
@@ -79,7 +79,7 @@ describe("RpcSerialization", () => {
     const decoded = parser.decode("{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"users.get\"}")
     assert.deepStrictEqual(decoded, [{
       _tag: "Request",
-      id: "0",
+      id: 0,
       tag: "users.get",
       payload: null,
       headers: []
@@ -87,7 +87,7 @@ describe("RpcSerialization", () => {
 
     const encoded = parser.encode({
       _tag: "Request",
-      id: "0",
+      id: 0,
       tag: "users.get",
       payload: null,
       headers: []
