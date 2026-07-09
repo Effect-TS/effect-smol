@@ -35,17 +35,17 @@ import type { Sharding } from "./Sharding.ts"
 export const layerHttpApi = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  Name extends HttpApiGroup.Name<Groups>,
+  Identifier extends HttpApiGroup.Identifier<Groups>,
   Type extends string,
   Rpcs extends Rpc.Any
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  name: Name,
+  identifier: Identifier,
   entity: Entity.Entity<Type, Rpcs>
-): Layer.Layer<HttpApiGroup.Service<ApiId, Name>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
+): Layer.Layer<HttpApiGroup.Service<ApiId, Identifier>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
   HttpApiBuilder.group(
     api,
-    name,
+    identifier,
     Effect.fnUntraced(function*(handlers: any) {
       const client = yield* entity.client
       for (const parentRpc of entity.protocol.requests.values()) {

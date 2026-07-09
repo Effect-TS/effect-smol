@@ -13,8 +13,17 @@ describe("HttpApiGroup", () => {
     })
   })
 
+  describe("Service", () => {
+    it("tracks the group identifier", () => {
+      type Users = HttpApiGroup.Service<"api", "users">
+
+      expect<Users["identifier"]>().type.toBe<"users">()
+      expect<Users>().type.not.toHaveProperty("name")
+    })
+  })
+
   describe("endpoints", () => {
-    it("preserves endpoint types by name", () => {
+    it("preserves endpoint types by identifier", () => {
       const User = Schema.Struct({
         id: Schema.String
       })
@@ -35,7 +44,7 @@ describe("HttpApiGroup", () => {
       expect(Group.endpoints).type.not.toHaveProperty("deleteUser")
     })
 
-    it("preserves endpoint types by name after group transformations", () => {
+    it("preserves endpoint types by identifier after group transformations", () => {
       class M extends HttpApiMiddleware.Service<M>()("M") {}
 
       const GetUser = HttpApiEndpoint.get("getUser", "/users/:id", {

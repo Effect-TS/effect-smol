@@ -10,6 +10,28 @@ const StreamError = Schema.Struct({ reason: Schema.String })
 
 const sse = () => HttpApiSchema.StreamSse({ events: Events, error: StreamError })
 
+describe("HttpApiEndpoint", () => {
+  it("stores the supplied identifier", () => {
+    const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
+
+    assert.strictEqual(endpoint.identifier, "getUser")
+  })
+
+  it("can be extended as a class", () => {
+    const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
+    class GetUser extends endpoint {}
+
+    assert.strictEqual(typeof endpoint, "function")
+    assert.strictEqual(GetUser.name, "GetUser")
+    assert.strictEqual(GetUser.identifier, "getUser")
+    assert.isTrue(HttpApiEndpoint.isHttpApiEndpoint(GetUser))
+
+    const prefixed = GetUser.prefix("/v1")
+    assert.strictEqual(prefixed.identifier, "getUser")
+    assert.strictEqual(prefixed.path, "/v1/users/:id")
+  })
+})
+
 describe("HttpApiEndpoint streaming success schemas", () => {
   it("GET endpoint accepts StreamSse success", () => {
     const stream = sse()

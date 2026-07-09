@@ -14,14 +14,31 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("Name", () => {
-    it("should extract endpoint names", () => {
+  describe("Identifier", () => {
+    it("should extract endpoint identifiers", () => {
       const a = HttpApiEndpoint.get("a", "/a")
       const b = HttpApiEndpoint.get("b", "/b")
 
-      expect<HttpApiEndpoint.Name<typeof a>>().type.toBe<"a">()
-      expect<HttpApiEndpoint.Name<typeof a | typeof b>>().type.toBe<"a" | "b">()
-      expect<HttpApiEndpoint.Name<unknown>>().type.toBe<never>()
+      expect<HttpApiEndpoint.Identifier<typeof a>>().type.toBe<"a">()
+      expect<HttpApiEndpoint.Identifier<typeof a | typeof b>>().type.toBe<"a" | "b">()
+      expect<HttpApiEndpoint.Identifier<unknown>>().type.toBe<never>()
+    })
+
+    it("should expose the identifier literal", () => {
+      const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
+
+      expect(endpoint.identifier).type.toBe<"getUser">()
+    })
+  })
+
+  describe("class-like endpoint", () => {
+    it("can be extended as a class", () => {
+      const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
+      class GetUser extends endpoint {}
+
+      expect(GetUser.identifier).type.toBe<"getUser">()
+      expect<HttpApiEndpoint.Identifier<typeof GetUser>>().type.toBe<"getUser">()
+      expect(GetUser.prefix("/v1")).type.toBe<HttpApiEndpoint.AddPrefix<typeof endpoint, "/v1">>()
     })
   })
 
@@ -350,7 +367,7 @@ describe("HttpApiEndpoint", () => {
       type StreamError = { readonly reason: string }
       type Success = Stream.Stream<Event, StreamError>
 
-      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<HttpApiEndpoint.SuccessWithIdentifier<typeof endpoint, "a">>().type.toBe<Success>()
       expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
         Effect.Effect<Success | HttpServerResponse, never>
       >()
@@ -371,7 +388,7 @@ describe("HttpApiEndpoint", () => {
       type StreamError = { readonly reason: string }
       type Success = Stream.Stream<Data, StreamError>
 
-      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<HttpApiEndpoint.SuccessWithIdentifier<typeof endpoint, "a">>().type.toBe<Success>()
       expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
         Effect.Effect<Success | HttpServerResponse, never>
       >()
@@ -387,7 +404,7 @@ describe("HttpApiEndpoint", () => {
       type Data = { readonly id: string }
       type Success = Stream.Stream<Data, never>
 
-      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<HttpApiEndpoint.SuccessWithIdentifier<typeof endpoint, "a">>().type.toBe<Success>()
       expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
         Effect.Effect<Success | HttpServerResponse, never>
       >()
@@ -408,7 +425,7 @@ describe("HttpApiEndpoint", () => {
 
       type Success = Stream.Stream<Uint8Array, unknown>
 
-      expect<HttpApiEndpoint.SuccessWithName<typeof endpoint, "a">>().type.toBe<Success>()
+      expect<HttpApiEndpoint.SuccessWithIdentifier<typeof endpoint, "a">>().type.toBe<Success>()
       expect<ReturnType<HttpApiEndpoint.Handler<typeof endpoint, never, never>>>().type.toBe<
         Effect.Effect<Success | HttpServerResponse, never>
       >()

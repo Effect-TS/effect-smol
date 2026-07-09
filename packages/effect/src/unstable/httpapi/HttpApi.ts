@@ -35,12 +35,12 @@ export const isHttpApi = (u: unknown): u is Top => Predicate.hasProperty(u, Type
 /**
  * Groups indexed by their identifier.
  */
-type GroupByName<Groups extends HttpApiGroup.Constraint, Name extends string> = Groups extends
-  { readonly identifier: Name } ? Groups
+type GroupByIdentifier<Groups extends HttpApiGroup.Constraint, Identifier extends string> = Groups extends
+  { readonly identifier: Identifier } ? Groups
   : never
 
-type GroupsByName<Groups extends HttpApiGroup.Constraint> = {
-  readonly [Name in HttpApiGroup.Name<Groups>]: GroupByName<Groups, Name>
+type GroupsByIdentifier<Groups extends HttpApiGroup.Constraint> = {
+  readonly [Identifier in HttpApiGroup.Identifier<Groups>]: GroupByIdentifier<Groups, Identifier>
 }
 
 /**
@@ -62,7 +62,7 @@ export interface HttpApi<
   new(_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly identifier: Id
-  readonly groups: GroupsByName<Groups>
+  readonly groups: GroupsByIdentifier<Groups>
   readonly annotations: Context.Context<never>
 
   /** @internal */
@@ -143,9 +143,8 @@ const Proto = {
       groups[group.identifier] = group
     }
     return makeProto({
-      identifier: this.identifier,
-      groups,
-      annotations: this.annotations
+      ...optionsFromApi(this),
+      groups
     })
   },
   addHttpApi(
@@ -159,40 +158,41 @@ const Proto = {
       newGroups[key] = newGroup as any
     }
     return makeProto({
-      identifier: this.identifier,
-      groups: newGroups,
-      annotations: this.annotations
+      ...optionsFromApi(this),
+      groups: newGroups
     })
   },
   prefix(this: Top, prefix: PathInput) {
     return makeProto({
-      identifier: this.identifier,
-      groups: Record.map(this.groups, (group) => group.prefix(prefix)),
-      annotations: this.annotations
+      ...optionsFromApi(this),
+      groups: Record.map(this.groups, (group) => group.prefix(prefix))
     })
   },
   middleware(this: Top, tag: HttpApiMiddleware.AnyService) {
     return makeProto({
-      identifier: this.identifier,
-      groups: Record.map(this.groups, (group) => group.middleware(tag as any)),
-      annotations: this.annotations
+      ...optionsFromApi(this),
+      groups: Record.map(this.groups, (group) => group.middleware(tag as any))
     })
   },
   annotate(this: Top, key: Context.Key<any, any>, value: any) {
     return makeProto({
-      identifier: this.identifier,
-      groups: this.groups,
+      ...optionsFromApi(this),
       annotations: Context.add(this.annotations, key, value)
     })
   },
   annotateMerge(this: Top, annotations: Context.Context<never>) {
     return makeProto({
-      identifier: this.identifier,
-      groups: this.groups,
+      ...optionsFromApi(this),
       annotations: Context.merge(this.annotations, annotations)
     })
   }
 }
+
+const optionsFromApi = (api: Top) => ({
+  identifier: api.identifier,
+  groups: api.groups,
+  annotations: api.annotations
+})
 
 const makeProto = <Id extends string, Groups extends HttpApiGroup.Constraint>(
   options: {

@@ -331,7 +331,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Constrain
         operationId: Context.getOrElse(
           endpoint.annotations,
           Identifier,
-          () => group.topLevel ? endpoint.name : `${group.identifier}.${endpoint.name}`
+          () => group.topLevel ? endpoint.identifier : `${group.identifier}.${endpoint.identifier}`
         ),
         parameters: [],
         security: [],

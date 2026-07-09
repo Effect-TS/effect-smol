@@ -1,7 +1,7 @@
 /**
  * Defines endpoint declarations used inside an HTTP API group.
  *
- * An endpoint records a stable name, HTTP method, router path, request schemas,
+ * An endpoint records a stable identifier, HTTP method, router path, request schemas,
  * response schemas, declared errors, middleware, and annotations. Endpoint
  * values are declarations, not handlers: builders use them to decode requests,
  * type handler input, encode responses, generate OpenAPI metadata, and derive
@@ -129,7 +129,7 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
  * @since 4.0.0
  */
 export interface HttpApiEndpoint<
-  out Name extends string,
+  out Identifier extends string,
   out Method extends HttpMethod,
   out Path extends string,
   out Params extends Schema.Top = never,
@@ -141,6 +141,7 @@ export interface HttpApiEndpoint<
   in out Middleware = never,
   out MiddlewareServices = never
 > extends Pipeable {
+  new(_: never): {}
   readonly [TypeId]: typeof TypeId
   readonly "~Params": Params
   readonly "~Query": Query
@@ -153,7 +154,7 @@ export interface HttpApiEndpoint<
   readonly "~Request": RequestFromParts<this, Params["Type"], Query["Type"], Payload["Type"], Headers["Type"]>
   readonly "~RequestRaw": RequestRawFromParts<this, Params["Type"], Query["Type"], Headers["Type"]>
 
-  readonly name: Name
+  readonly identifier: Identifier
   readonly path: Path
   readonly method: Method
   readonly params: Schema.Top | undefined
@@ -171,7 +172,7 @@ export interface HttpApiEndpoint<
   prefix<const Prefix extends HttpRouter.PathInput>(
     prefix: Prefix
   ): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     `${Prefix}${Path}`,
     Params,
@@ -188,7 +189,7 @@ export interface HttpApiEndpoint<
    * Add an `HttpApiMiddleware` to the endpoint.
    */
   middleware<I extends HttpApiMiddleware.AnyId, S>(middleware: Context.Key<I, S>): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     Path,
     Params,
@@ -208,7 +209,7 @@ export interface HttpApiEndpoint<
     key: Context.Key<I, S>,
     value: Types.NoInfer<S>
   ): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     Path,
     Params,
@@ -227,7 +228,7 @@ export interface HttpApiEndpoint<
   annotateMerge<I>(
     annotations: Context.Context<I>
   ): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     Path,
     Params,
@@ -277,7 +278,7 @@ export function getErrorSchemas(endpoint: Top): Array<Schema.Top> {
  */
 export interface Constraint {
   readonly [TypeId]: typeof TypeId
-  readonly name: string
+  readonly identifier: string
   readonly ["~Success"]: Schema.Constraint
   readonly ["~Error"]: Schema.Constraint
   readonly ["~Request"]: unknown
@@ -322,12 +323,12 @@ export interface Top extends
 {}
 
 /**
- * Extracts the name literal from an `HttpApiEndpoint`.
+ * Extracts the endpoint identifier literal from an `HttpApiEndpoint`.
  *
  * @category models
  * @since 4.0.0
  */
-export type Name<Endpoint> = Endpoint extends Constraint ? Endpoint["name"] : never
+export type Identifier<Endpoint> = Endpoint extends Constraint ? Endpoint["identifier"] : never
 
 /**
  * Extracts the success schema associated with an endpoint.
@@ -574,109 +575,118 @@ export type HandlerRaw<Endpoint extends Constraint, E, R> = (
 ) => Effect<SuccessType<Endpoint["~Success"]> | HttpServerResponse, Endpoint["~Error"]["Type"] | E, R>
 
 /**
- * Selects the endpoint with the specified name from a union of endpoints.
+ * Selects the endpoint with the specified identifier from a union of endpoints.
  *
  * @category models
  * @since 4.0.0
  */
-export type WithName<Endpoints extends Constraint, Name extends string> = Extract<Endpoints, { readonly name: Name }>
-
-/**
- * Removes endpoints with the specified name from a union of endpoints.
- *
- * @category models
- * @since 4.0.0
- */
-export type ExcludeName<Endpoints extends Constraint, Name extends string> = Exclude<Endpoints, { readonly name: Name }>
-
-/**
- * Derives the normal handler type for the endpoint with the specified name in an
- * endpoint union.
- *
- * @category models
- * @since 4.0.0
- */
-export type HandlerWithName<Endpoints extends Constraint, Name extends string, E, R> = Handler<
-  WithName<Endpoints, Name>,
-  E,
-  R
+export type WithIdentifier<Endpoints extends Constraint, Identifier extends string> = Extract<
+  Endpoints,
+  { readonly identifier: Identifier }
 >
 
 /**
- * Derives the raw handler type for the endpoint with the specified name in an
- * endpoint union.
+ * Removes endpoints with the specified identifier from a union of endpoints.
  *
  * @category models
  * @since 4.0.0
  */
-export type HandlerRawWithName<Endpoints extends Constraint, Name extends string, E, R> = HandlerRaw<
-  WithName<Endpoints, Name>,
-  E,
-  R
+export type ExcludeIdentifier<Endpoints extends Constraint, Identifier extends string> = Exclude<
+  Endpoints,
+  { readonly identifier: Identifier }
 >
 
 /**
- * Extracts the decoded success value type for the endpoint with the specified name
+ * Derives the normal handler type for the endpoint with the specified identifier
  * in an endpoint union.
  *
  * @category models
  * @since 4.0.0
  */
-export type SuccessWithName<Endpoints extends Constraint, Name extends string> = Success<
-  WithName<Endpoints, Name>
+export type HandlerWithIdentifier<Endpoints extends Constraint, Identifier extends string, E, R> = Handler<
+  WithIdentifier<Endpoints, Identifier>,
+  E,
+  R
+>
+
+/**
+ * Derives the raw handler type for the endpoint with the specified identifier in
+ * an endpoint union.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type HandlerRawWithIdentifier<Endpoints extends Constraint, Identifier extends string, E, R> = HandlerRaw<
+  WithIdentifier<Endpoints, Identifier>,
+  E,
+  R
+>
+
+/**
+ * Extracts the decoded success value type for the endpoint with the specified
+ * identifier in an endpoint union.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type SuccessWithIdentifier<Endpoints extends Constraint, Identifier extends string> = Success<
+  WithIdentifier<Endpoints, Identifier>
 > extends infer S ? SuccessType<S> : never
 
 /**
- * Computes the full error value union for the endpoint with the specified name in
- * an endpoint union.
+ * Computes the full error value union for the endpoint with the specified
+ * identifier in an endpoint union.
  *
  * @category models
  * @since 4.0.0
  */
-export type ErrorsWithName<Endpoints extends Constraint, Name extends string> = Errors<WithName<Endpoints, Name>>
+export type ErrorsWithIdentifier<Endpoints extends Constraint, Identifier extends string> = Errors<
+  WithIdentifier<Endpoints, Identifier>
+>
 
 /**
  * Computes the server-side service requirements for the endpoint with the
- * specified name in an endpoint union.
+ * specified identifier in an endpoint union.
  *
  * @category models
  * @since 4.0.0
  */
-export type ServerServicesWithName<Endpoints extends Constraint, Name extends string> = ServerServices<
-  WithName<Endpoints, Name>
+export type ServerServicesWithIdentifier<Endpoints extends Constraint, Identifier extends string> = ServerServices<
+  WithIdentifier<Endpoints, Identifier>
 >
 
 /**
- * Extracts the middleware identifiers for the endpoint with the specified name in
- * an endpoint union.
+ * Extracts the middleware identifiers for the endpoint with the specified
+ * identifier in an endpoint union.
  *
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareWithName<Endpoints extends Constraint, Name extends string> = Middleware<
-  WithName<Endpoints, Name>
+export type MiddlewareWithIdentifier<Endpoints extends Constraint, Identifier extends string> = Middleware<
+  WithIdentifier<Endpoints, Identifier>
 >
 
 /**
- * Extracts the middleware service requirements for the endpoint with the specified
- * name in an endpoint union.
+ * Extracts the middleware service requirements for the endpoint with the
+ * specified identifier in an endpoint union.
  *
  * @category models
  * @since 4.0.0
  */
-export type MiddlewareServicesWithName<Endpoints extends Constraint, Name extends string> = MiddlewareServices<
-  WithName<Endpoints, Name>
->
+export type MiddlewareServicesWithIdentifier<Endpoints extends Constraint, Identifier extends string> =
+  MiddlewareServices<
+    WithIdentifier<Endpoints, Identifier>
+  >
 
 /**
- * Removes services provided by the HTTP router and the named endpoint's middleware
- * from a service requirement union.
+ * Removes services provided by the HTTP router and the selected endpoint's
+ * middleware from a service requirement union.
  *
  * @category models
  * @since 4.0.0
  */
-export type ExcludeProvidedWithName<Endpoints extends Constraint, Name extends string, R> = ExcludeProvided<
-  WithName<Endpoints, Name>,
+export type ExcludeProvidedWithIdentifier<Endpoints extends Constraint, Identifier extends string, R> = ExcludeProvided<
+  WithIdentifier<Endpoints, Identifier>,
   R
 >
 
@@ -701,7 +711,7 @@ export type ExcludeProvided<Endpoint extends Constraint, R> = Exclude<
  * @since 4.0.0
  */
 export type AddPrefix<Endpoint, Prefix extends HttpRouter.PathInput> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
+  infer _Identifier,
   infer _Method,
   infer _Path,
   infer _Params,
@@ -713,7 +723,7 @@ export type AddPrefix<Endpoint, Prefix extends HttpRouter.PathInput> = Endpoint 
   infer _M,
   infer _MR
 > ? HttpApiEndpoint<
-    _Name,
+    _Identifier,
     _Method,
     `${Prefix}${_Path}`,
     _Params,
@@ -735,7 +745,7 @@ export type AddPrefix<Endpoint, Prefix extends HttpRouter.PathInput> = Endpoint 
  * @since 4.0.0
  */
 export type AddMiddleware<Endpoint, M extends HttpApiMiddleware.AnyId> = Endpoint extends HttpApiEndpoint<
-  infer _Name,
+  infer _Identifier,
   infer _Method,
   infer _Path,
   infer _Params,
@@ -747,7 +757,7 @@ export type AddMiddleware<Endpoint, M extends HttpApiMiddleware.AnyId> = Endpoin
   infer _M,
   infer _MR
 > ? HttpApiEndpoint<
-    _Name,
+    _Identifier,
     _Method,
     _Path,
     _Params,
@@ -768,32 +778,46 @@ const Proto = {
   },
   prefix(this: Top, prefix: HttpRouter.PathInput) {
     return makeProto({
-      ...this,
+      ...optionsFromEndpoint(this),
       path: HttpRouter.prefixPath(this.path, prefix)
     })
   },
   middleware(this: Top, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
-      ...this,
+      ...optionsFromEndpoint(this),
       middlewares: new Set([...this.middlewares, middleware as any])
     })
   },
   annotate(this: Top, key: Context.Key<any, any>, value: any) {
     return makeProto({
-      ...this,
+      ...optionsFromEndpoint(this),
       annotations: Context.add(this.annotations, key, value)
     })
   },
   annotateMerge(this: Top, annotations: Context.Context<any>) {
     return makeProto({
-      ...this,
+      ...optionsFromEndpoint(this),
       annotations: Context.merge(this.annotations, annotations)
     })
   }
 }
 
+const optionsFromEndpoint = (endpoint: Top) => ({
+  identifier: endpoint.identifier,
+  path: endpoint.path,
+  method: endpoint.method,
+  params: endpoint.params,
+  query: endpoint.query,
+  headers: endpoint.headers,
+  payload: endpoint.payload,
+  success: endpoint.success,
+  error: endpoint.error,
+  annotations: endpoint.annotations,
+  middlewares: endpoint.middlewares
+})
+
 function makeProto<
-  Name extends string,
+  Identifier extends string,
   Method extends HttpMethod,
   const Path extends string,
   Params extends Schema.Top,
@@ -805,7 +829,7 @@ function makeProto<
   Middleware,
   MiddlewareR
 >(options: {
-  readonly name: Name
+  readonly identifier: Identifier
   readonly path: Path
   readonly method: Method
   readonly params: Schema.Top | undefined
@@ -817,7 +841,7 @@ function makeProto<
   readonly annotations: Context.Context<never>
   readonly middlewares: ReadonlySet<Context.Key<Middleware, any>>
 }): HttpApiEndpoint<
-  Name,
+  Identifier,
   Method,
   Path,
   Params,
@@ -829,7 +853,9 @@ function makeProto<
   Middleware,
   MiddlewareR
 > {
-  return Object.assign(Object.create(Proto), options)
+  function HttpApiEndpoint() {}
+  Object.setPrototypeOf(HttpApiEndpoint, Proto)
+  return Object.assign(HttpApiEndpoint, options) as any
 }
 
 /**
@@ -921,7 +947,7 @@ type ErrorNoStream<S extends ErrorConstraint> = [
 
 /**
  * Creates endpoint constructors for a specific HTTP method. The resulting
- * constructor builds an `HttpApiEndpoint` from a name, path, and optional request
+ * constructor builds an `HttpApiEndpoint` from an identifier, path, and optional request
  * and response schemas, applying automatic JSON or string-tree codecs unless
  * `disableCodecs` is enabled.
  *
@@ -930,7 +956,7 @@ type ErrorNoStream<S extends ErrorConstraint> = [
  */
 export const make = <Method extends HttpMethod>(method: Method): {
   <
-    const Name extends string,
+    const Identifier extends string,
     const Path extends HttpRouter.PathInput,
     Params extends Schema.Top | Schema.Struct.Fields = never,
     Query extends Schema.Top | Schema.Struct.Fields = never,
@@ -939,7 +965,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     const Success extends SuccessConstraint = HttpApiSchema.NoContent,
     const Error extends Schema.Top | ReadonlyArray<Schema.Top> = never
   >(
-    name: Name,
+    identifier: Identifier,
     path: Path,
     options?: {
       readonly disableCodecs?: false | undefined
@@ -951,7 +977,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     Path,
     CodecStringTree<Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params>,
@@ -963,7 +989,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     CodecJson<Error extends ReadonlyArray<Schema.Constraint> ? Error[number] : Error>
   >
   <
-    const Name extends string,
+    const Identifier extends string,
     const Path extends HttpRouter.PathInput,
     Params extends ParamsConstraint = never,
     Query extends QueryConstraint = never,
@@ -972,7 +998,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     const Success extends SuccessConstraint = HttpApiSchema.NoContent,
     const Error extends ErrorConstraint = never
   >(
-    name: Name,
+    identifier: Identifier,
     path: Path,
     options?: {
       readonly disableCodecs: true
@@ -984,7 +1010,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
       readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
     }
   ): HttpApiEndpoint<
-    Name,
+    Identifier,
     Method,
     Path,
     Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
@@ -996,7 +1022,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
   >
 } =>
 <
-  const Name extends string,
+  const Identifier extends string,
   const Path extends HttpRouter.PathInput,
   Params extends ParamsConstraint = never,
   Query extends QueryConstraint = never,
@@ -1005,7 +1031,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
   const Success extends SuccessConstraint = HttpApiSchema.NoContent,
   const Error extends ErrorConstraint = never
 >(
-  name: Name,
+  identifier: Identifier,
   path: Path,
   options?: {
     readonly disableCodecs?: boolean | undefined
@@ -1017,7 +1043,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
     readonly error?: (Error & ErrorNoStream<Types.NoInfer<Error>>) | undefined
   }
 ): HttpApiEndpoint<
-  Name,
+  Identifier,
   Method,
   Path,
   Params extends Schema.Struct.Fields ? Schema.Struct<Params> : Params,
@@ -1032,7 +1058,7 @@ export const make = <Method extends HttpMethod>(method: Method): {
   const disableCodecs = options?.disableCodecs ?? false
   const transformStringTree = disableCodecs ? identity : Schema.toCodecStringTree
   return makeProto({
-    name,
+    identifier,
     path,
     method,
     params: ensureStruct(options?.params, transformStringTree),

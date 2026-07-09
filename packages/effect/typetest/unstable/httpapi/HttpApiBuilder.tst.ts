@@ -131,7 +131,7 @@ describe("HttpApiBuilder", () => {
       expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
     })
 
-    it("handleAll supports partial handler objects and rejects unknown endpoint names", () => {
+    it("handleAll supports partial handler objects and rejects unknown endpoint identifiers", () => {
       const User = Schema.Struct({
         id: Schema.String
       })
@@ -355,7 +355,7 @@ describe("HttpApiBuilder", () => {
       )
     })
 
-    it("rejects unknown endpoint names and duplicate handlers", () => {
+    it("rejects unknown endpoint identifiers and duplicate handlers", () => {
       const User = Schema.Struct({
         id: Schema.String
       })

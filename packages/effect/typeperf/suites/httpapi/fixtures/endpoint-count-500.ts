@@ -2025,7 +2025,7 @@ type Groups = typeof api extends HttpApi.HttpApi<string, infer Groups> ? Groups 
 type Endpoints = HttpApiGroup.Endpoints<Groups>
 
 export type Api = typeof api
-export type EndpointNames = HttpApiEndpoint.Name<Endpoints>
+export type EndpointIdentifiers = HttpApiEndpoint.Identifier<Endpoints>
 export type EndpointRequests = HttpApiEndpoint.Request<Endpoints>
 export type ServerServices = HttpApiEndpoint.ServerServices<Endpoints>
 export type ClientServices = HttpApiEndpoint.ClientServices<Endpoints>

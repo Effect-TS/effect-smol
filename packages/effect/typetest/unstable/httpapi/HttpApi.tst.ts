@@ -4,7 +4,7 @@ import { describe, expect, it } from "tstyche"
 
 describe("HttpApi", () => {
   describe("groups", () => {
-    it("preserves group types by name", () => {
+    it("preserves group types by identifier", () => {
       const User = Schema.Struct({
         id: Schema.String
       })

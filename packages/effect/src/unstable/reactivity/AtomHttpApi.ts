@@ -48,23 +48,23 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
   readonly runtime: Atom.AtomRuntime<Self>
 
   readonly mutation: <
-    GroupName extends HttpApiGroup.Name<Groups>,
-    Name extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<Group>>,
-    Group extends HttpApiGroup.Constraint = HttpApiGroup.WithName<Groups, GroupName>,
-    Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithName<
+    GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+    EndpointIdentifier extends HttpApiEndpoint.Identifier<HttpApiGroup.Endpoints<Group>>,
+    Group extends HttpApiGroup.Constraint = HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>,
+    Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithIdentifier<
       HttpApiGroup.Endpoints<Group>,
-      Name
+      EndpointIdentifier
     >,
     const ResponseMode extends HttpApiEndpoint.ClientResponseMode = HttpApiEndpoint.ClientResponseMode
   >(
-    group: GroupName,
-    endpoint: Name,
+    group: GroupIdentifier,
+    endpoint: EndpointIdentifier,
     options?: {
       readonly responseMode?: ResponseMode | undefined
     }
   ) => [Endpoint] extends [
     HttpApiEndpoint.HttpApiEndpoint<
-      infer _Name,
+      infer _Identifier,
       infer _Method,
       infer _Path,
       infer _Params,
@@ -88,20 +88,20 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
     : never
 
   readonly query: <
-    GroupName extends HttpApiGroup.Name<Groups>,
-    Name extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<Group>>,
-    Group extends HttpApiGroup.Constraint = HttpApiGroup.WithName<Groups, GroupName>,
-    Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithName<
+    GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+    EndpointIdentifier extends HttpApiEndpoint.Identifier<HttpApiGroup.Endpoints<Group>>,
+    Group extends HttpApiGroup.Constraint = HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>,
+    Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithIdentifier<
       HttpApiGroup.Endpoints<Group>,
-      Name
+      EndpointIdentifier
     >,
     const ResponseMode extends HttpApiEndpoint.ClientResponseMode = "decoded-only"
   >(
-    group: GroupName,
-    endpoint: Name,
+    group: GroupIdentifier,
+    endpoint: EndpointIdentifier,
     request: [Endpoint] extends [
       HttpApiEndpoint.HttpApiEndpoint<
-        infer _Name,
+        infer _Identifier,
         infer _Method,
         infer _Path,
         infer _Params,
@@ -126,7 +126,7 @@ export interface AtomHttpApiClient<Self, Id extends string, Groups extends HttpA
       : never
   ) => [Endpoint] extends [
     HttpApiEndpoint.HttpApiEndpoint<
-      infer _Name,
+      infer _Identifier,
       infer _Method,
       infer _Path,
       infer _Params,

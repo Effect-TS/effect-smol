@@ -2018,5 +2018,5 @@ export const api = HttpApi.make("Api").add(
 
 export type Api = typeof api
 export type Groups = typeof api extends HttpApi.HttpApi<string, infer Groups> ? Groups : never
-export type UsersGroup = HttpApiGroup.WithName<Groups, "users">
+export type UsersGroup = HttpApiGroup.WithIdentifier<Groups, "users">
 export type Endpoint = Extract<HttpApiGroup.Endpoints<UsersGroup>, HttpApiEndpoint.ConstraintRequest>

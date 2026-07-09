@@ -31,10 +31,10 @@ const TypeId = "~effect/httpapi/HttpApiGroup"
 export const isHttpApiGroup = (u: unknown): u is Top => Predicate.hasProperty(u, TypeId)
 
 /**
- * Endpoints indexed by their name.
+ * Endpoints indexed by their identifier.
  */
 type EndpointMap<Endpoints extends HttpApiEndpoint.Constraint> = {
-  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Identifier<Endpoint>]: Endpoint
 }
 
 /**
@@ -55,6 +55,11 @@ export interface HttpApiGroup<
 > extends Pipeable {
   new(_: never): {}
   readonly [TypeId]: typeof TypeId
+  /**
+   * Stable group identifier. This field intentionally is not named `name`
+   * because `HttpApiGroup` values can be extended as classes, where `name`
+   * would collide with JavaScript's built-in `Function.name`.
+   */
   readonly identifier: Id
   readonly key: string
   readonly topLevel: TopLevel
@@ -127,16 +132,16 @@ export interface HttpApiGroup<
  *
  * `HttpApiBuilder.group` provides this service, and `HttpApiBuilder.layer`
  * requires one service for each group in the API. The type carries both the API
- * id and the group name so the relationship between an API and its implemented
- * groups is checked at compile time.
+ * id and the group identifier so the relationship between an API and its
+ * implemented groups is checked at compile time.
  *
  * @category models
  * @since 4.0.0
  */
-export interface Service<ApiId extends string, Name extends string> {
+export interface Service<ApiId extends string, Identifier extends string> {
   readonly _: unique symbol
   readonly apiId: ApiId
-  readonly name: Name
+  readonly identifier: Identifier
 }
 
 /**
@@ -156,8 +161,8 @@ export type ToService<ApiId extends string, Group extends Constraint> = Group ex
   : never
 
 /**
- * A widened `HttpApiGroup` type used when the concrete group name, endpoints, and
- * top-level flag are not needed.
+ * A widened `HttpApiGroup` type used when the concrete group identifier,
+ * endpoints, and top-level flag are not needed.
  *
  * @category models
  * @since 4.0.0
@@ -184,7 +189,7 @@ export interface Top extends HttpApiGroup<string, HttpApiEndpoint.Top, boolean> 
  * @category models
  * @since 4.0.0
  */
-export type WithName<Group, Name extends string> = Extract<Group, { readonly identifier: Name }>
+export type WithIdentifier<Group, Identifier extends string> = Extract<Group, { readonly identifier: Identifier }>
 
 /**
  * Extracts the identifier literal from an `HttpApiGroup`.
@@ -192,7 +197,7 @@ export type WithName<Group, Name extends string> = Extract<Group, { readonly ide
  * @category models
  * @since 4.0.0
  */
-export type Name<Group> = Group extends Constraint ? Group["identifier"] : never
+export type Identifier<Group> = Group extends Constraint ? Group["identifier"] : never
 
 /**
  * Extracts the endpoint union contained in an `HttpApiGroup`.
@@ -200,7 +205,8 @@ export type Name<Group> = Group extends Constraint ? Group["identifier"] : never
  * @category models
  * @since 4.0.0
  */
-export type Endpoints<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ? _Endpoints
+export type Endpoints<Group> = Group extends HttpApiGroup<infer _Identifier, infer _Endpoints, infer _TopLevel> ?
+  _Endpoints
   : never
 
 /**
@@ -255,12 +261,15 @@ export type MiddlewareClient<Group> = HttpApiEndpoint.MiddlewareClient<Endpoints
 export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
- * Selects the endpoints in a group whose `name` matches the provided endpoint name.
+ * Selects the endpoints in a group whose identifier matches the provided endpoint
+ * identifier.
  *
  * @category models
  * @since 4.0.0
  */
-export type EndpointsWithName<Group extends Constraint, Name extends string> = Endpoints<WithName<Group, Name>>
+export type EndpointsWithIdentifier<Group extends Constraint, Identifier extends string> = Endpoints<
+  WithIdentifier<Group, Identifier>
+>
 
 /**
  * Computes the schema encoding and decoding services required by clients for all endpoints in a group.
@@ -268,7 +277,7 @@ export type EndpointsWithName<Group extends Constraint, Name extends string> = E
  * @category models
  * @since 4.0.0
  */
-export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
+export type ClientServices<Group> = Group extends HttpApiGroup<infer _Identifier, infer _Endpoints, infer _TopLevel> ?
   HttpApiEndpoint.ClientServices<_Endpoints>
   : never
 
@@ -279,8 +288,8 @@ export type ClientServices<Group> = Group extends HttpApiGroup<infer _Name, infe
  * @since 4.0.0
  */
 export type AddPrefix<Group, Prefix extends PathInput> = Group extends
-  HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiGroup<_Name, HttpApiEndpoint.AddPrefix<_Endpoints, Prefix>, _TopLevel>
+  HttpApiGroup<infer _Identifier, infer _Endpoints, infer _TopLevel> ?
+  HttpApiGroup<_Identifier, HttpApiEndpoint.AddPrefix<_Endpoints, Prefix>, _TopLevel>
   : never
 
 /**
@@ -290,8 +299,8 @@ export type AddPrefix<Group, Prefix extends PathInput> = Group extends
  * @since 4.0.0
  */
 export type AddMiddleware<Group, Id extends HttpApiMiddleware.AnyId> = Group extends
-  HttpApiGroup<infer _Name, infer _Endpoints, infer _TopLevel> ?
-  HttpApiGroup<_Name, HttpApiEndpoint.AddMiddleware<_Endpoints, Id>, _TopLevel>
+  HttpApiGroup<infer _Identifier, infer _Endpoints, infer _TopLevel> ?
+  HttpApiGroup<_Identifier, HttpApiEndpoint.AddMiddleware<_Endpoints, Id>, _TopLevel>
   : never
 
 const Proto = {
@@ -299,67 +308,60 @@ const Proto = {
   add(this: Top, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.Top>) {
     const endpoints = { ...this.endpoints }
     for (const endpoint of toAdd) {
-      endpoints[endpoint.name] = endpoint
+      endpoints[endpoint.identifier] = endpoint
     }
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints,
-      annotations: this.annotations
+      ...optionsFromGroup(this),
+      endpoints
     })
   },
   prefix(this: Top, prefix: PathInput) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.prefix(prefix)),
-      annotations: this.annotations
+      ...optionsFromGroup(this),
+      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.prefix(prefix))
     })
   },
   middleware(this: Top, middleware: HttpApiMiddleware.AnyService) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.middleware(middleware as any)),
-      annotations: this.annotations
+      ...optionsFromGroup(this),
+      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.middleware(middleware as any))
     })
   },
   annotateMerge<I>(this: Top, annotations: Context.Context<I>) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: this.endpoints,
+      ...optionsFromGroup(this),
       annotations: Context.merge(this.annotations, annotations)
     })
   },
   annotate<I, S>(this: Top, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: this.endpoints,
+      ...optionsFromGroup(this),
       annotations: Context.add(this.annotations, annotation, value)
     })
   },
   annotateEndpointsMerge<I>(this: Top, annotations: Context.Context<I>) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.annotateMerge(annotations)),
-      annotations: this.annotations
+      ...optionsFromGroup(this),
+      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.annotateMerge(annotations))
     })
   },
   annotateEndpoints<I, S>(this: Top, annotation: Context.Key<I, S>, value: S) {
     return makeProto({
-      identifier: this.identifier,
-      topLevel: this.topLevel,
-      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.annotate(annotation, value)),
-      annotations: this.annotations
+      ...optionsFromGroup(this),
+      endpoints: Record.map(this.endpoints, (endpoint) => endpoint.annotate(annotation, value))
     })
   },
   pipe() {
     return pipeArguments(this, arguments)
   }
 }
+
+const optionsFromGroup = (group: Top) => ({
+  identifier: group.identifier,
+  topLevel: group.topLevel,
+  endpoints: group.endpoints,
+  annotations: group.annotations
+})
 
 const makeProto = <
   Id extends string,
@@ -384,7 +386,7 @@ const makeProto = <
  *
  * Add endpoints with `add`, provide implementations with `HttpApiBuilder.group`,
  * and set `topLevel` when the generated client should expose endpoint methods
- * directly instead of nesting them under the group name.
+ * directly instead of nesting them under the group identifier.
  *
  * @category constructors
  * @since 4.0.0

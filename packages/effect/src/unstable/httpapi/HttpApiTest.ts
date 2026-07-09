@@ -41,11 +41,11 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 export const groups = Effect.fnUntraced(function*<
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  const Names extends ReadonlyArray<HttpApiGroup.Name<Groups>>,
-  SelectedGroups extends HttpApiGroup.Constraint = HttpApiGroup.WithName<Groups, Names[number]>
+  const Identifiers extends ReadonlyArray<HttpApiGroup.Identifier<Groups>>,
+  SelectedGroups extends HttpApiGroup.Constraint = HttpApiGroup.WithIdentifier<Groups, Identifiers[number]>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupNames: Names,
+  groupIdentifiers: Identifiers,
   options?: {
     readonly baseUrl?: string | URL | undefined
   }
@@ -64,22 +64,22 @@ export const groups = Effect.fnUntraced(function*<
   let context = yield* Effect.context<HttpApiGroup.ToService<ApiId, SelectedGroups>>()
 
   const groups = api.groupsRecord()
-  for (const name in groups) {
-    const group = groups[name]
-    if (groupNames.includes(name as any)) {
+  for (const identifier in groups) {
+    const group = groups[identifier]
+    if (groupIdentifiers.includes(identifier as any)) {
       continue
     }
     const handlers = new Map<string, HandlerRuntime>()
     const routes: Array<HttpRouter.Route<any, any>> = []
-    for (const endpointName in group.endpoints) {
-      const endpoint = group.endpoints[endpointName]
+    for (const endpointIdentifier in group.endpoints) {
+      const endpoint = group.endpoints[endpointIdentifier]
       const handler: HandlerRuntime = {
         endpoint: endpoint as any,
-        handler: () => Effect.die(new Error(`Unhandled endpoint: ${endpointName}`)),
+        handler: () => Effect.die(new Error(`Unhandled endpoint: ${endpointIdentifier}`)),
         isRaw: false,
         uninterruptible: false
       }
-      handlers.set(endpointName, handler)
+      handlers.set(endpointIdentifier, handler)
       routes.push(HttpApiBuilder.handlerToRoute(group as any, handler, context))
     }
     context = Context.add(context, group as any, { handlers, routes })

@@ -47,7 +47,7 @@ import * as HttpApiSchema from "./HttpApiSchema.ts"
  */
 export type Client<Groups extends HttpApiGroup.Constraint, E = never, R = never> = Simplify<
   & {
-    readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: Client.Group<
+    readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Identifier<Group>]: Client.Group<
       Group,
       E,
       R
@@ -124,13 +124,13 @@ export declare namespace Client {
       Endpoint in Extract<
         HttpApiGroup.Endpoints<Group>,
         HttpApiEndpoint.ConstraintRequest
-      > as HttpApiEndpoint.Name<Endpoint>
+      > as HttpApiEndpoint.Identifier<Endpoint>
     ]: Method<Endpoint, E, R>
   }
 
   /**
-   * The client object for one API group, mapping each endpoint name in that group to
-   * its typed client method.
+   * The client object for one API group, mapping each endpoint identifier in that
+   * group to its typed client method.
    *
    * @category models
    * @since 4.0.0
@@ -196,7 +196,7 @@ export declare namespace Client {
       Endpoint in Extract<
         HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>>,
         HttpApiEndpoint.ConstraintRequest
-      > as HttpApiEndpoint.Name<Endpoint>
+      > as HttpApiEndpoint.Identifier<Endpoint>
     ]: Method<Endpoint, E, R>
   }
 }
@@ -231,13 +231,13 @@ export type UrlBuilder<Api extends HttpApi.Constraint> = Api extends HttpApi.Htt
   : never
 
 type UrlBuilderGroups<Groups extends HttpApiGroup.Constraint> = {
-  readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Name<Group>]: UrlBuilderGroup<
+  readonly [Group in Extract<Groups, { readonly topLevel: false }> as HttpApiGroup.Identifier<Group>]: UrlBuilderGroup<
     HttpApiGroup.Endpoints<Group>
   >
 }
 
 type UrlBuilderGroup<Endpoints extends HttpApiEndpoint.Constraint> = {
-  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: UrlBuilderMethod<Endpoint>
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Identifier<Endpoint>]: UrlBuilderMethod<Endpoint>
 }
 
 type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Constraint> = (
@@ -246,7 +246,9 @@ type UrlBuilderMethod<Endpoint extends HttpApiEndpoint.Constraint> = (
 
 type UrlBuilderTopLevelMethods<Groups extends HttpApiGroup.Constraint> = {
   readonly [
-    Endpoint in HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>> as HttpApiEndpoint.Name<Endpoint>
+    Endpoint in HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>> as HttpApiEndpoint.Identifier<
+      Endpoint
+    >
   ]: UrlBuilderMethod<Endpoint>
 }
 
@@ -516,7 +518,7 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Const
       client[group.identifier] = {}
     },
     onEndpoint({ endpoint, endpointFn, group }) {
-      ;(group.topLevel ? client : client[group.identifier])[endpoint.name] = endpointFn
+      ;(group.topLevel ? client : client[group.identifier])[endpoint.identifier] = endpointFn
     }
   }).pipe(Effect.as(client)) as any
 }
@@ -531,13 +533,13 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Const
 export const group = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  const GroupName extends HttpApiGroup.Name<Groups>,
+  const GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
   E,
   R
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
-    readonly group: GroupName
+    readonly group: GroupIdentifier
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformResponse?:
       | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
@@ -545,28 +547,28 @@ export const group = <
     readonly baseUrl?: URL | string | undefined
   }
 ): Effect.Effect<
-  Client.Group<HttpApiGroup.WithName<Groups, GroupName>, E, R>,
+  Client.Group<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>, E, R>,
   never,
-  HttpApiGroup.MiddlewareClient<HttpApiGroup.WithName<Groups, GroupName>>
+  HttpApiGroup.MiddlewareClient<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>
 > => {
   const client: Record<string, any> = {}
   return makeClient(api, {
     ...options,
     predicate: ({ group }) => group.identifier === options.group,
     onEndpoint({ endpoint, endpointFn }) {
-      client[endpoint.name] = endpointFn
+      client[endpoint.identifier] = endpointFn
     }
   }).pipe(Effect.map(() => client)) as any
 }
 
 type EndpointReturn<
   Groups extends HttpApiGroup.Constraint,
-  GroupName extends HttpApiGroup.Name<Groups>,
-  EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
+  GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+  EndpointIdentifier extends HttpApiEndpoint.Identifier<HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>>,
   E,
   R,
   Endpoint extends HttpApiEndpoint.ConstraintRequest = Extract<
-    HttpApiEndpoint.WithName<HttpApiGroup.EndpointsWithName<Groups, GroupName>, EndpointName>,
+    HttpApiEndpoint.WithIdentifier<HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>, EndpointIdentifier>,
     HttpApiEndpoint.ConstraintRequest
   >
 > = Effect.Effect<Client.Method<Endpoint, E, R>, never, HttpApiEndpoint.MiddlewareClient<Endpoint>>
@@ -581,15 +583,17 @@ type EndpointReturn<
 export const endpoint = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  const GroupName extends HttpApiGroup.Name<Groups>,
-  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.EndpointsWithName<Groups, GroupName>>,
+  const GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+  const EndpointIdentifier extends HttpApiEndpoint.Identifier<
+    HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>
+  >,
   E,
   R
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
   options: {
-    readonly group: GroupName
-    readonly endpoint: EndpointName
+    readonly group: GroupIdentifier
+    readonly endpoint: EndpointIdentifier
     readonly httpClient: HttpClient.HttpClient.With<E, R>
     readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
     readonly transformResponse?:
@@ -597,11 +601,11 @@ export const endpoint = <
       | undefined
     readonly baseUrl?: URL | string | undefined
   }
-): EndpointReturn<Groups, GroupName, EndpointName, E, R> => {
+): EndpointReturn<Groups, GroupIdentifier, EndpointIdentifier, E, R> => {
   let client: any = undefined
   return makeClient(api, {
     ...options,
-    predicate: ({ endpoint, group }) => group.identifier === options.group && endpoint.name === options.endpoint,
+    predicate: ({ endpoint, group }) => group.identifier === options.group && endpoint.identifier === options.endpoint,
     onEndpoint({ endpointFn }) {
       client = endpointFn
     }
@@ -672,7 +676,7 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
         const url = query === "" ? path : `${path}?${query}`
         return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
       }
-      ;(group.topLevel ? builder : builder[group.identifier])[endpoint.name] = endpointBuilder
+      ;(group.topLevel ? builder : builder[group.identifier])[endpoint.identifier] = endpointBuilder
     }
   })
 

@@ -120,16 +120,16 @@ export const layer = <Id extends string, Groups extends HttpApiGroup.Constraint>
 export const group = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  const Name extends HttpApiGroup.Name<Groups>,
+  const Identifier extends HttpApiGroup.Identifier<Groups>,
   Return
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupName: Name,
+  groupIdentifier: Identifier,
   build: (
-    handlers: Handlers.FromGroup<HttpApiGroup.WithName<Groups, Name>>
+    handlers: Handlers.FromGroup<HttpApiGroup.WithIdentifier<Groups, Identifier>>
   ) => Handlers.ValidateReturn<Return>
 ): Layer.Layer<
-  HttpApiGroup.Service<ApiId, Name>,
+  HttpApiGroup.Service<ApiId, Identifier>,
   Handlers.Error<Return>,
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
@@ -137,7 +137,7 @@ export const group = <
     const services = (yield* Effect.context<any>()).pipe(
       Context.omit(Scope.Scope)
     )
-    const group = api.groups[groupName]
+    const group = api.groups[groupIdentifier]
     const result = build(makeHandlers(group))
     const handlers: Handlers<any, any, any> = Effect.isEffect(result)
       ? (yield* result as Effect.Effect<any, any, any>)
@@ -157,7 +157,7 @@ export const group = <
 const HandlersTypeId = "~effect/httpapi/HttpApiBuilder/Handlers"
 
 type EndpointMap<Endpoints extends HttpApiEndpoint.Constraint> = {
-  readonly [Endpoint in Endpoints as HttpApiEndpoint.Name<Endpoint>]: Endpoint
+  readonly [Endpoint in Endpoints as HttpApiEndpoint.Identifier<Endpoint>]: Endpoint
 }
 
 type HandlerRequirements<
@@ -199,41 +199,42 @@ type HandleAllEntry<Endpoint extends HttpApiEndpoint.Constraint> =
     readonly options?: HandlerOptions | undefined
   }
 
-type HandleAllHandlers<EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>> = {
-  readonly [Name in keyof EndpointsByName]?: HandleAllEntry<EndpointsByName[Name]>
+type HandleAllHandlers<EndpointsByIdentifier extends Record<string, HttpApiEndpoint.Constraint>> = {
+  readonly [Identifier in keyof EndpointsByIdentifier]?: HandleAllEntry<EndpointsByIdentifier[Identifier]>
 }
 
 type HandleAllExtraKeys<
-  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>,
-  HandlersByName
+  EndpointsByIdentifier extends Record<string, HttpApiEndpoint.Constraint>,
+  HandlersByIdentifier
 > = {
-  readonly [Name in Exclude<keyof HandlersByName, keyof EndpointsByName>]: never
+  readonly [Identifier in Exclude<keyof HandlersByIdentifier, keyof EndpointsByIdentifier>]: never
 }
 
-type NotHandledName<Name extends PropertyKey, HandledNames extends PropertyKey> = Name extends HandledNames ? never :
+type NotHandledIdentifier<Identifier extends PropertyKey, HandledIdentifiers extends PropertyKey> = Identifier extends
+  HandledIdentifiers ? never :
   unknown
 
 type HandleAllEntryHandler<Entry> = Entry extends { readonly handler: infer Handler } ? Handler : Entry
 
 type HandleAllRequirements<
-  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint>,
-  HandlersByName extends HandleAllHandlers<EndpointsByName>
+  EndpointsByIdentifier extends Record<string, HttpApiEndpoint.Constraint>,
+  HandlersByIdentifier extends HandleAllHandlers<EndpointsByIdentifier>
 > = {
-  readonly [Name in keyof HandlersByName & keyof EndpointsByName]: HandleAllEntryHandler<
-    HandlersByName[Name]
+  readonly [Identifier in keyof HandlersByIdentifier & keyof EndpointsByIdentifier]: HandleAllEntryHandler<
+    HandlersByIdentifier[Identifier]
   > extends HttpApiEndpoint.Handler<
-    EndpointsByName[Name],
-    HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+    EndpointsByIdentifier[Identifier],
+    HttpApiEndpoint.MiddlewareError<EndpointsByIdentifier[Identifier]>,
     infer R1
-  > ? HandlerRequirements<EndpointsByName[Name], R1> :
+  > ? HandlerRequirements<EndpointsByIdentifier[Identifier], R1> :
     never
-}[keyof HandlersByName & keyof EndpointsByName]
+}[keyof HandlersByIdentifier & keyof EndpointsByIdentifier]
 
 type HandlersResult<A> = A extends Effect.Effect<infer H, any, any> ? H : A
 
 type MissingHandlerNames<H extends Handlers<any, any, any>> = Exclude<
-  keyof H["~EndpointsByName"],
-  H["~HandledNames"]
+  keyof H["~EndpointsByIdentifier"],
+  H["~HandledIdentifiers"]
 >
 
 type ValidateHandlersReturn<
@@ -250,20 +251,20 @@ type ValidateHandlersReturn<
  * **Details**
  *
  * Each call to `handle` or `handleRaw` registers an endpoint implementation and
- * adds that endpoint name to the type-level set of implemented endpoints.
- * Endpoint names that were already handled are rejected at the type level.
+ * adds that endpoint identifier to the type-level set of implemented endpoints.
+ * Endpoint identifiers that were already handled are rejected at the type level.
  *
  * @category handlers
  * @since 4.0.0
  */
 export interface Handlers<
   R,
-  EndpointsByName extends Record<string, HttpApiEndpoint.Constraint> = {},
-  HandledNames extends keyof EndpointsByName = never
+  EndpointsByIdentifier extends Record<string, HttpApiEndpoint.Constraint> = {},
+  HandledIdentifiers extends keyof EndpointsByIdentifier = never
 > extends Pipeable {
   readonly [HandlersTypeId]: typeof HandlersTypeId
-  readonly "~EndpointsByName": EndpointsByName
-  readonly "~HandledNames": HandledNames
+  readonly "~EndpointsByIdentifier": EndpointsByIdentifier
+  readonly "~HandledIdentifiers": HandledIdentifiers
   /** @internal */
   readonly group: HttpApiGroup.Top
   /** @internal */
@@ -273,33 +274,33 @@ export interface Handlers<
    * Add the implementation for an unhandled `HttpApiEndpoint` to a `Handlers` group.
    */
   handle<
-    Name extends keyof EndpointsByName,
+    Identifier extends keyof EndpointsByIdentifier,
     R1
   >(
-    name: Name & NotHandledName<Name, HandledNames>,
+    identifier: Identifier & NotHandledIdentifier<Identifier, HandledIdentifiers>,
     handler: HttpApiEndpoint.Handler<
-      EndpointsByName[Name],
-      HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+      EndpointsByIdentifier[Identifier],
+      HttpApiEndpoint.MiddlewareError<EndpointsByIdentifier[Identifier]>,
       R1
     >,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
-    R | HandlerRequirements<EndpointsByName[Name], R1>,
-    EndpointsByName,
-    HandledNames | Name
+    R | HandlerRequirements<EndpointsByIdentifier[Identifier], R1>,
+    EndpointsByIdentifier,
+    HandledIdentifiers | Identifier
   >
 
   /**
    * Add implementations for unhandled `HttpApiEndpoint`s in a `Handlers` group.
    */
-  handleAll<const HandlersByName extends HandleAllHandlers<Omit<EndpointsByName, HandledNames>>>(
+  handleAll<const HandlersByIdentifier extends HandleAllHandlers<Omit<EndpointsByIdentifier, HandledIdentifiers>>>(
     handlers:
-      & HandlersByName
-      & HandleAllExtraKeys<Omit<EndpointsByName, HandledNames>, HandlersByName>
+      & HandlersByIdentifier
+      & HandleAllExtraKeys<Omit<EndpointsByIdentifier, HandledIdentifiers>, HandlersByIdentifier>
   ): Handlers<
-    R | HandleAllRequirements<EndpointsByName, HandlersByName>,
-    EndpointsByName,
-    HandledNames | keyof HandlersByName & keyof EndpointsByName
+    R | HandleAllRequirements<EndpointsByIdentifier, HandlersByIdentifier>,
+    EndpointsByIdentifier,
+    HandledIdentifiers | keyof HandlersByIdentifier & keyof EndpointsByIdentifier
   >
 
   /**
@@ -307,20 +308,20 @@ export interface Handlers<
    * This version opts out of automatic payload decoding and provides the raw request.
    */
   handleRaw<
-    Name extends keyof EndpointsByName,
+    Identifier extends keyof EndpointsByIdentifier,
     R1
   >(
-    name: Name & NotHandledName<Name, HandledNames>,
+    identifier: Identifier & NotHandledIdentifier<Identifier, HandledIdentifiers>,
     handler: HttpApiEndpoint.HandlerRaw<
-      EndpointsByName[Name],
-      HttpApiEndpoint.MiddlewareError<EndpointsByName[Name]>,
+      EndpointsByIdentifier[Identifier],
+      HttpApiEndpoint.MiddlewareError<EndpointsByIdentifier[Identifier]>,
       R1
     >,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ): Handlers<
-    R | HandlerRequirements<EndpointsByName[Name], R1>,
-    EndpointsByName,
-    HandledNames | Name
+    R | HandlerRequirements<EndpointsByIdentifier[Identifier], R1>,
+    EndpointsByIdentifier,
+    HandledIdentifiers | Identifier
   >
 }
 
@@ -362,8 +363,8 @@ export declare namespace Handlers {
   export type Error<A> = A extends Effect.Effect<
     Handlers<
       infer _R,
-      infer _EndpointsByName,
-      infer _HandledNames
+      infer _EndpointsByIdentifier,
+      infer _HandledIdentifiers
     >,
     infer _EX,
     infer _RX
@@ -379,14 +380,14 @@ export declare namespace Handlers {
    */
   export type Context<A> = A extends Handlers<
     infer _R,
-    infer _EndpointsByName,
-    infer _HandledNames
+    infer _EndpointsByIdentifier,
+    infer _HandledIdentifiers
   > ? _R :
     A extends Effect.Effect<
       Handlers<
         infer _R,
-        infer _EndpointsByName,
-        infer _HandledNames
+        infer _EndpointsByIdentifier,
+        infer _HandledIdentifiers
       >,
       infer _EX,
       infer _RX
@@ -396,12 +397,14 @@ export declare namespace Handlers {
 
 type EndpointReturn<
   Groups extends HttpApiGroup.Constraint,
-  GroupName extends HttpApiGroup.Name<Groups>,
-  EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+  EndpointIdentifier extends HttpApiEndpoint.Identifier<
+    HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>
+  >,
   R,
-  Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithName<
-    HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
-    EndpointName
+  Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithIdentifier<
+    HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>,
+    EndpointIdentifier
   >
 > = Effect.Effect<
   Effect.Effect<
@@ -432,25 +435,27 @@ type EndpointReturn<
 export const endpoint = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  const GroupName extends HttpApiGroup.Name<Groups>,
-  const EndpointName extends HttpApiEndpoint.Name<HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>>,
+  const GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
+  const EndpointIdentifier extends HttpApiEndpoint.Identifier<
+    HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>
+  >,
   R
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  groupName: GroupName,
-  endpointName: EndpointName,
+  groupIdentifier: GroupIdentifier,
+  endpointIdentifier: EndpointIdentifier,
   handler: NoInfer<
-    HttpApiEndpoint.HandlerWithName<
-      HttpApiGroup.Endpoints<HttpApiGroup.WithName<Groups, GroupName>>,
-      EndpointName,
+    HttpApiEndpoint.HandlerWithIdentifier<
+      HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>,
+      EndpointIdentifier,
       never,
       R
     >
   >
-): EndpointReturn<Groups, GroupName, EndpointName, R> =>
+): EndpointReturn<Groups, GroupIdentifier, EndpointIdentifier, R> =>
   Effect.contextWith((context: Context.Context<any>) => {
-    const group = api.groupsRecord()[groupName]!
-    const endpoint = group.endpoints[endpointName]
+    const group = api.groupsRecord()[groupIdentifier]!
+    const endpoint = group.endpoints[endpointIdentifier]
     return Effect.succeed(handlerToHttpEffect(
       group,
       endpoint,
@@ -558,13 +563,13 @@ const basicLen = `Basic `.length
 
 const registerHandler = (
   self: Handlers<any, any, any>,
-  name: string,
+  identifier: string,
   handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
   isRaw: boolean,
   options?: HandlerOptions | undefined
 ) => {
-  const endpoint = self.group.endpoints[name]
-  self.handlers.set(name, {
+  const endpoint = self.group.endpoints[identifier]
+  self.handlers.set(identifier, {
     endpoint,
     handler,
     isRaw,
@@ -580,11 +585,11 @@ const HandlersProto = {
   },
   handle(
     this: Handlers<any, any, any>,
-    name: string,
+    identifier: string,
     handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    return registerHandler(this, name, handler, false, options)
+    return registerHandler(this, identifier, handler, false, options)
   },
   handleAll(
     this: Handlers<any, any, any>,
@@ -596,21 +601,21 @@ const HandlersProto = {
       }
     >
   ) {
-    for (const name in handlers) {
-      const entry = handlers[name]
+    for (const identifier in handlers) {
+      const entry = handlers[identifier]
       const handler = typeof entry === "function" ? entry : entry.handler
       const options = typeof entry === "function" ? undefined : entry.options
-      registerHandler(this, name, handler, false, options)
+      registerHandler(this, identifier, handler, false, options)
     }
     return this
   },
   handleRaw(
     this: Handlers<any, any, any>,
-    name: string,
+    identifier: string,
     handler: HttpApiEndpoint.Handler<HttpApiEndpoint.Constraint, any, any>,
     options?: { readonly uninterruptible?: boolean | undefined } | undefined
   ) {
-    return registerHandler(this, name, handler, true, options)
+    return registerHandler(this, identifier, handler, true, options)
   }
 }
 

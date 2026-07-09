@@ -30,20 +30,20 @@ import type { WorkflowEngine } from "./WorkflowEngine.ts"
 export const layerHttpApi = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
-  Name extends HttpApiGroup.Name<Groups>,
+  Identifier extends HttpApiGroup.Identifier<Groups>,
   const Workflows extends NonEmptyReadonlyArray<Workflow.Any>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
-  name: Name,
+  identifier: Identifier,
   workflows: Workflows
 ): Layer.Layer<
-  HttpApiGroup.Service<ApiId, Name>,
+  HttpApiGroup.Service<ApiId, Identifier>,
   never,
   WorkflowEngine | Workflow.RequirementsHandler<Workflows[number]>
 > =>
   HttpApiBuilder.group(
     api,
-    name,
+    identifier,
     Effect.fnUntraced(function*(handlers: any) {
       for (const workflow_ of workflows) {
         const workflow = workflow_ as Workflow.AnyWithProps
