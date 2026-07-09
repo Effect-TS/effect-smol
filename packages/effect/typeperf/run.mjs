@@ -54,6 +54,7 @@ const writeTempTsconfig = (suiteName, subjectName, sourcePath) => {
       declaration: false,
       declarationMap: false,
       sourceMap: false,
+      plugins: [],
       rootDir: effectDir,
       incremental: false,
       composite: false,
