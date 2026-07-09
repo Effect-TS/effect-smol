@@ -42,7 +42,7 @@ export const groups = Effect.fnUntraced(function*<
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
   const Names extends ReadonlyArray<HttpApiGroup.Name<Groups>>,
-  SelectedGroups = HttpApiGroup.WithName<Groups, Names[number]>
+  SelectedGroups extends HttpApiGroup.Constraint = HttpApiGroup.WithName<Groups, Names[number]>
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
   groupNames: Names,

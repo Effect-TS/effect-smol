@@ -75,6 +75,7 @@ group, and endpoint types.
   returns `HttpApi.Top`, `HttpApiGroup.isHttpApiGroup` returns
   `HttpApiGroup.Top`, and `HttpApiEndpoint.isHttpApiEndpoint` returns
   `HttpApiEndpoint.Top`.
+- `HttpApiGroup.ApiGroup` has been renamed to `HttpApiGroup.Service`.
 
 ### API And Group Maps
 

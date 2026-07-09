@@ -120,17 +120,40 @@ export interface HttpApiGroup<
 }
 
 /**
- * Type-level identity for a group within an HTTP API, pairing the API id with the
- * group name for service derivation.
+ * Type-level service produced by the layer that implements one group of an HTTP
+ * API.
+ *
+ * **Details**
+ *
+ * `HttpApiBuilder.group` provides this service, and `HttpApiBuilder.layer`
+ * requires one service for each group in the API. The type carries both the API
+ * id and the group name so the relationship between an API and its implemented
+ * groups is checked at compile time.
  *
  * @category models
  * @since 4.0.0
  */
-export interface ApiGroup<ApiId extends string, Name extends string> {
+export interface Service<ApiId extends string, Name extends string> {
   readonly _: unique symbol
   readonly apiId: ApiId
   readonly name: Name
 }
+
+/**
+ * Derives the group implementation service required for each group in an HTTP
+ * API.
+ *
+ * **Details**
+ *
+ * When given an API id and a group or union of groups, this type maps each group
+ * to the `Service` identity that must be provided by `HttpApiBuilder.group`.
+ *
+ * @category models
+ * @since 4.0.0
+ */
+export type ToService<ApiId extends string, Group extends Constraint> = Group extends Constraint ?
+  Service<ApiId, Group["identifier"]>
+  : never
 
 /**
  * A widened `HttpApiGroup` type used when the concrete group name, endpoints, and
@@ -154,16 +177,6 @@ export interface Constraint {
  * @since 4.0.0
  */
 export interface Top extends HttpApiGroup<string, HttpApiEndpoint.Top, boolean> {}
-
-/**
- * Derives the API-specific `ApiGroup` service identity for an HTTP API group.
- *
- * @category models
- * @since 4.0.0
- */
-export type ToService<ApiId extends string, A> = A extends HttpApiGroup<infer Name, infer _Endpoints, infer _TopLevel> ?
-  ApiGroup<ApiId, Name>
-  : never
 
 /**
  * Selects the group with the specified identifier from a union of groups.

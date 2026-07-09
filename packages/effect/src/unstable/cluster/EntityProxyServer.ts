@@ -42,7 +42,7 @@ export const layerHttpApi = <
   api: HttpApi.HttpApi<ApiId, Groups>,
   name: Name,
   entity: Entity.Entity<Type, Rpcs>
-): Layer.Layer<HttpApiGroup.ApiGroup<ApiId, Name>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
+): Layer.Layer<HttpApiGroup.Service<ApiId, Name>, never, Sharding | Rpc.ServicesServer<Rpcs>> =>
   HttpApiBuilder.group(
     api,
     name,

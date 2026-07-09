@@ -37,7 +37,7 @@ export const layerHttpApi = <
   name: Name,
   workflows: Workflows
 ): Layer.Layer<
-  HttpApiGroup.ApiGroup<ApiId, Name>,
+  HttpApiGroup.Service<ApiId, Name>,
   never,
   WorkflowEngine | Workflow.RequirementsHandler<Workflows[number]>
 > =>

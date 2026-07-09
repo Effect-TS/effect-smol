@@ -38,7 +38,7 @@ describe("HttpApiBuilder", () => {
         })
       )
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "group">>>()
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "group">>>()
     })
 
     it("tracks handled endpoints and preserves handler request inference", () => {
@@ -81,7 +81,7 @@ describe("HttpApiBuilder", () => {
             })
       )
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "users">>>()
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
     })
 
     it("handleAll tracks handled endpoints and preserves handler request inference", () => {
@@ -128,7 +128,7 @@ describe("HttpApiBuilder", () => {
           })
       )
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "users">>>()
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
     })
 
     it("handleAll supports partial handler objects and rejects unknown endpoint names", () => {
@@ -425,7 +425,7 @@ describe("HttpApiBuilder", () => {
           })
       )
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.ApiGroup<"api", "files">>>()
+      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "files">>>()
     })
   })
 

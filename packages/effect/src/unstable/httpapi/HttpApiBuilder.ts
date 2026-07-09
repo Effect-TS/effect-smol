@@ -129,7 +129,7 @@ export const group = <
     handlers: Handlers.FromGroup<HttpApiGroup.WithName<Groups, Name>>
   ) => Handlers.ValidateReturn<Return>
 ): Layer.Layer<
-  HttpApiGroup.ApiGroup<ApiId, Name>,
+  HttpApiGroup.Service<ApiId, Name>,
   Handlers.Error<Return>,
   Exclude<Handlers.Context<Return>, Scope.Scope>
 > =>
