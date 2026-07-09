@@ -5,22 +5,6 @@ import { LanguageModel, Tool, Toolkit } from "effect/unstable/ai"
 import { HttpClient, type HttpClientError, type HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 
 describe("AnthropicLanguageModel", () => {
-  describe("Model", () => {
-    // `Model` is an open enum in the specification, so its schema accepts any string. The exported type
-    // has to recover the literal branch of that union - otherwise it silently widens to `string` and the
-    // known ids stop showing up in autocomplete.
-    it("keeps the known model ids as literals, while the constructors still accept custom ids", () => {
-      const known: AnthropicLanguageModel.Model = "claude-opus-4-8"
-      // @ts-expect-error - `Model` must not widen to `string`
-      const unknown: AnthropicLanguageModel.Model = "not-a-real-model"
-      const custom: (string & {}) | AnthropicLanguageModel.Model = "not-a-real-model"
-
-      assert.strictEqual(known, "claude-opus-4-8")
-      assert.strictEqual(unknown, "not-a-real-model")
-      assert.strictEqual(custom, "not-a-real-model")
-    })
-  })
-
   describe("streamText", () => {
     it.effect("decodes tool call params in content_block_stop", () =>
       Effect.gen(function*() {

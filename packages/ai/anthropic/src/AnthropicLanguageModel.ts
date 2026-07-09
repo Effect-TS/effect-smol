@@ -42,16 +42,6 @@ import * as InternalUtilities from "./internal/utilities.ts"
 /**
  * Known Anthropic Claude model identifiers exposed by the generated Anthropic schema.
  *
- * **Details**
- *
- * The Anthropic language model constructors accept `Model` values and custom
- * string model ids, so this type is best used for autocomplete and type checking
- * of known Claude ids.
- *
- * `Model` is an open enum in the Anthropic specification, so the generated schema is
- * `Schema.Union([Schema.String, Schema.Literals([...])])` and its `Type` widens to `string`. Read the
- * literal branch back out of the union to preserve the known ids, as `@effect/ai-openai` does.
- *
  * @category models
  * @since 4.0.0
  */
