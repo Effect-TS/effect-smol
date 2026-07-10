@@ -1,4 +1,4 @@
-// Shared type-only endpoint groups for Client.Group derivation fixtures.
+// Shared type-only endpoint groups for focused HttpApiClient fixtures.
 import type { Schema } from "effect"
 import type { HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

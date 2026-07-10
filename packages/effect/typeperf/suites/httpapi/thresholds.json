@@ -47,9 +47,25 @@
     "maxInstantiationsDelta": 93636,
     "maxTypesDelta": 14892
   },
+  "client-endpoint-count-10": {
+    "maxInstantiationsDelta": 7588,
+    "maxTypesDelta": 5025
+  },
+  "client-endpoint-count-50": {
+    "maxInstantiationsDelta": 8629,
+    "maxTypesDelta": 5152
+  },
+  "client-endpoint-count-100": {
+    "maxInstantiationsDelta": 9930,
+    "maxTypesDelta": 5307
+  },
+  "client-endpoint-count-500": {
+    "maxInstantiationsDelta": 20330,
+    "maxTypesDelta": 6553
+  },
   "client-endpoint-method-count-500": {
-    "maxInstantiationsDelta": 112320,
-    "maxTypesDelta": 14408
+    "maxInstantiationsDelta": 112242,
+    "maxTypesDelta": 14405
   },
   "url-builder-count-500": {
     "maxInstantiationsDelta": 151129,

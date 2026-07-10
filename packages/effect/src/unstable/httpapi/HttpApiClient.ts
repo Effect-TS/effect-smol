@@ -561,7 +561,7 @@ export const group = <
 type EndpointReturn<
   Groups extends HttpApiGroup.Constraint,
   GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
-  EndpointIdentifier extends HttpApiEndpoint.Identifier<HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>>,
+  EndpointIdentifier extends HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>["identifier"],
   E,
   R,
   Endpoint extends HttpApiEndpoint.ConstraintRequest = Extract<
@@ -581,9 +581,7 @@ export const endpoint = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
   const GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
-  const EndpointIdentifier extends HttpApiEndpoint.Identifier<
-    HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>
-  >,
+  const EndpointIdentifier extends HttpApiGroup.EndpointsWithIdentifier<Groups, GroupIdentifier>["identifier"],
   E,
   R
 >(

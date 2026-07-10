@@ -56,7 +56,7 @@ paths:
 | --------------------------------------- | ------: | ------: |
 | client methods, 500 endpoints           | 248,788 | 243,104 |
 | top-level client methods, 500 endpoints | 243,047 | 250,290 |
-| client endpoint method, 500 endpoints   |  67,890 | 112,320 |
+| client endpoint method, 500 endpoints   |  67,890 | 112,242 |
 | client groups, 100 groups x 5 endpoints |  70,725 | 129,246 |
 
 The focused `Client.Group` curve shows the improvement from consuming the
@@ -68,6 +68,16 @@ identifier-keyed endpoint map directly:
 |        50 |          19,169 |       18,935 |
 |       100 |          27,570 |       27,236 |
 |       500 |          94,770 |       93,636 |
+
+The focused `HttpApiClient.endpoint` selection curve improves by reading
+endpoint identifiers directly from the selected endpoint union:
+
+| endpoints | before |  after |
+| --------: | -----: | -----: |
+|        10 |  7,666 |  7,588 |
+|        50 |  8,707 |  8,629 |
+|       100 | 10,008 |  9,930 |
+|       500 | 20,408 | 20,330 |
 
 URL builder types now avoid repeatedly expanding the full API/group shape:
 

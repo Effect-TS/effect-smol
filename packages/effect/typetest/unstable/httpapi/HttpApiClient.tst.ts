@@ -874,6 +874,31 @@ describe("HttpApiClient", () => {
       expect(searchUsers).type.not.toBeCallableWith({ params: { id: "1" }, query: { page: 1 } })
     })
 
+    it("selects class-like endpoints", () => {
+      class GetUser extends HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.FiniteFromString
+        },
+        success: Schema.Struct({ id: Schema.String })
+      }) {}
+
+      const Api = HttpApi.make("Api").add(HttpApiGroup.make("users").add(GetUser))
+      const httpClient = HttpClient.make(() => Effect.die("not used"))
+      const endpointClient = HttpApiClient.endpoint(Api, {
+        group: "users",
+        endpoint: "getUser",
+        httpClient
+      })
+      const getUser = hole<Effect.Success<typeof endpointClient>>()
+
+      expect<Parameters<typeof getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+    })
+
     it("selects within the requested group when endpoint identifiers overlap", () => {
       class UsersEndpointError extends Schema.TaggedErrorClass<UsersEndpointError>()("UsersEndpointError", {}) {}
       class AdminsEndpointError extends Schema.TaggedErrorClass<AdminsEndpointError>()("AdminsEndpointError", {}) {}
