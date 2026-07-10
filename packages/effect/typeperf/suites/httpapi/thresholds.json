@@ -15,6 +15,18 @@
     "maxInstantiationsDelta": 82207,
     "maxTypesDelta": 5869
   },
+  "endpoint-class-count-10": {
+    "maxInstantiationsDelta": 2270,
+    "maxTypesDelta": 351
+  },
+  "endpoint-class-count-50": {
+    "maxInstantiationsDelta": 7950,
+    "maxTypesDelta": 911
+  },
+  "endpoint-class-count-100": {
+    "maxInstantiationsDelta": 15050,
+    "maxTypesDelta": 1643
+  },
   "endpoint-class-count-500": {
     "maxInstantiationsDelta": 71850,
     "maxTypesDelta": 7628
