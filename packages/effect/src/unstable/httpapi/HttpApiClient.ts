@@ -330,9 +330,15 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
           (response: HttpClientResponse.HttpClientResponse) => Effect.Effect<unknown, unknown, unknown>
         > = { orElse: statusOrElse }
         const decodeResponse = HttpClientResponse.matchStatus(decodeMap)
-        errors.forEach((schemas, status) => {
-          // decoders
-          const decode = schemasToResponse(schemas)
+        const errorAlternatives = new Map<number, Array<ResponseAlternative>>()
+        for (const [status, schemas] of errors.entries()) {
+          const grouped = groupSchemasByContentType(schemas)
+          for (const [contentType, schemas] of grouped.entries()) {
+            addResponseAlternative(errorAlternatives, status, contentType, schemasToResponse(schemas))
+          }
+        }
+        for (const [status, alternatives] of errorAlternatives.entries()) {
+          const decode = makeResponseDecoder(alternatives)
           decodeMap[status] = (response) =>
             Effect.flatMap(
               Effect.catchCause(decode(response), (cause) =>
@@ -349,7 +355,7 @@ export const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Con
                 ))),
               Effect.fail
             )
-        })
+        }
 
         const successAlternatives = new Map<number, Array<ResponseAlternative>>()
         for (const [status, schemas] of successes.entries()) {
@@ -749,7 +755,9 @@ function groupSchemasByContentType(
 ): Map<string, Arr.NonEmptyReadonlyArray<Schema.Top>> {
   const grouped = new Map<string, [Schema.Top, ...Array<Schema.Top>]>()
   for (const schema of schemas) {
-    const contentType = HttpApiSchema.getResponseEncoding(schema.ast).contentType
+    const contentType = HttpApiSchema.isNoContent(schema.ast)
+      ? ""
+      : normalizeContentType(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
     const existing = grouped.get(contentType)
     if (existing === undefined) {
       grouped.set(contentType, [schema])
