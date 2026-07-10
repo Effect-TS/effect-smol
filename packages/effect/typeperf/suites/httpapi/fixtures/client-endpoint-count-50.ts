@@ -2,7 +2,7 @@
 import { Effect, Schema } from "effect"
 import { HttpClient } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import type { Api } from "./_client-endpoint-types.ts"
+import type { Api } from "./_endpoint-selection-types.ts"
 
 Schema.String
 HttpApi.make("Api")

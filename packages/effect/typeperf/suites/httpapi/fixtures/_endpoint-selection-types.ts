@@ -1,4 +1,4 @@
-// Shared type-only APIs for HttpApiClient.endpoint selection fixtures.
+// Shared type-only APIs for client and builder endpoint-selection fixtures.
 import type { HttpApi } from "effect/unstable/httpapi"
 import type { Group } from "./_grouped-api-types.ts"
 

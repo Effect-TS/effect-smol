@@ -75,9 +75,25 @@
     "maxInstantiationsDelta": 156734,
     "maxTypesDelta": 14777
   },
+  "builder-endpoint-count-10": {
+    "maxInstantiationsDelta": 12745,
+    "maxTypesDelta": 6387
+  },
+  "builder-endpoint-count-50": {
+    "maxInstantiationsDelta": 13786,
+    "maxTypesDelta": 6514
+  },
+  "builder-endpoint-count-100": {
+    "maxInstantiationsDelta": 15087,
+    "maxTypesDelta": 6669
+  },
   "builder-endpoint-count-500": {
-    "maxInstantiationsDelta": 111089,
-    "maxTypesDelta": 14322
+    "maxInstantiationsDelta": 25487,
+    "maxTypesDelta": 7915
+  },
+  "builder-endpoint-method-count-500": {
+    "maxInstantiationsDelta": 111006,
+    "maxTypesDelta": 14318
   },
   "builder-handlers-count-10": {
     "maxInstantiationsDelta": 11579,

@@ -177,8 +177,24 @@
           "file": "suites/httpapi/fixtures/url-builder-top-level-count-500.ts"
         },
         {
+          "name": "builder-endpoint-count-10",
+          "file": "suites/httpapi/fixtures/builder-endpoint-count-10.ts"
+        },
+        {
+          "name": "builder-endpoint-count-50",
+          "file": "suites/httpapi/fixtures/builder-endpoint-count-50.ts"
+        },
+        {
+          "name": "builder-endpoint-count-100",
+          "file": "suites/httpapi/fixtures/builder-endpoint-count-100.ts"
+        },
+        {
           "name": "builder-endpoint-count-500",
           "file": "suites/httpapi/fixtures/builder-endpoint-count-500.ts"
+        },
+        {
+          "name": "builder-endpoint-method-count-500",
+          "file": "suites/httpapi/fixtures/builder-endpoint-method-count-500.ts"
         },
         {
           "name": "builder-handlers-count-10",

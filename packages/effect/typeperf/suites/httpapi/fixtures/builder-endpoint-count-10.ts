@@ -1,4 +1,4 @@
-// Measures HttpApiBuilder.endpoint selection from one type-only group with 500 same-shaped endpoints.
+// Measures HttpApiBuilder.endpoint selection from one type-only group with 10 same-shaped endpoints.
 import { Effect, Schema } from "effect"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 import type { Api } from "./_endpoint-selection-types.ts"
@@ -8,12 +8,12 @@ HttpApi.make("Api")
 HttpApiGroup.make("users")
 HttpApiEndpoint.get("warmup", "/warmup")
 
-declare const api: Api<500>
+declare const api: Api<10>
 
 const endpointHandler = HttpApiBuilder.endpoint(
   api,
   "users",
-  "getUser0500",
+  "getUser0010",
   ({ params }) => Effect.succeed({ id: String(params.id), name: "Ada" })
 )
 

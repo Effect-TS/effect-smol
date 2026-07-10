@@ -79,13 +79,23 @@ endpoint identifiers directly from the selected endpoint union:
 |       100 | 10,008 |  9,930 |
 |       500 | 20,408 | 20,330 |
 
+The focused `HttpApiBuilder.endpoint` selection curve improves by reading
+endpoint identifiers directly from the selected endpoint union:
+
+| endpoints | before |  after |
+| --------: | -----: | -----: |
+|        10 | 12,828 | 12,745 |
+|        50 | 13,869 | 13,786 |
+|       100 | 15,170 | 15,087 |
+|       500 | 25,570 | 25,487 |
+
 URL builder types now avoid repeatedly expanding the full API/group shape:
 
 | fixture                              |  before |   after |
 | ------------------------------------ | ------: | ------: |
 | URL builder, 500 endpoints           | 213,329 | 151,129 |
 | top-level URL builder, 500 endpoints | 209,118 | 156,734 |
-| builder endpoint, 500 endpoints      |  66,894 | 111,089 |
+| builder endpoint, 500 endpoints      |  66,894 | 111,006 |
 
 ## Breaking Changes
 

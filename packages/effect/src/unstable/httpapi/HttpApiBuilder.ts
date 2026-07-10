@@ -398,9 +398,9 @@ export declare namespace Handlers {
 type EndpointReturn<
   Groups extends HttpApiGroup.Constraint,
   GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
-  EndpointIdentifier extends HttpApiEndpoint.Identifier<
-    HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>
-  >,
+  EndpointIdentifier extends HttpApiGroup.Endpoints<
+    HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>
+  >["identifier"],
   R,
   Endpoint extends HttpApiEndpoint.Constraint = HttpApiEndpoint.WithIdentifier<
     HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>,
@@ -436,9 +436,9 @@ export const endpoint = <
   ApiId extends string,
   Groups extends HttpApiGroup.Constraint,
   const GroupIdentifier extends HttpApiGroup.Identifier<Groups>,
-  const EndpointIdentifier extends HttpApiEndpoint.Identifier<
-    HttpApiGroup.Endpoints<HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>>
-  >,
+  const EndpointIdentifier extends HttpApiGroup.Endpoints<
+    HttpApiGroup.WithIdentifier<Groups, GroupIdentifier>
+  >["identifier"],
   R
 >(
   api: HttpApi.HttpApi<ApiId, Groups>,
