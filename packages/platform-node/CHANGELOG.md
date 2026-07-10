@@ -1,5 +1,13 @@
 # @effect/platform-node
 
+## 4.0.0-beta.97
+
+### Patch Changes
+
+- Updated dependencies []:
+  - effect@4.0.0-beta.97
+  - @effect/platform-node-shared@4.0.0-beta.97
+
 ## 4.0.0-beta.96
 
 ### Patch Changes

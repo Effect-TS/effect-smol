@@ -71,6 +71,7 @@
     "ai-openai-config-field-leak",
     "ai-openai-file-nullable-fields",
     "anthropic-4-6-structured-output",
+    "anthropic-open-model-enum",
     "asyncresult-exhaustive",
     "atom-stream-error-type",
     "beige-paths-sort",
