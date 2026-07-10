@@ -1,68 +1,90 @@
 {
   "struct-required": {
-    "maxDelta": 457
+    "maxInstantiationsDelta": 457,
+    "maxTypesDelta": 50
   },
   "struct-optional-only": {
-    "maxDelta": 742
+    "maxInstantiationsDelta": 742,
+    "maxTypesDelta": 110
   },
   "struct-mutable-only": {
-    "maxDelta": 725
+    "maxInstantiationsDelta": 725,
+    "maxTypesDelta": 101
   },
   "struct-mixed": {
-    "maxDelta": 1056
+    "maxInstantiationsDelta": 1056,
+    "maxTypesDelta": 169
   },
   "union": {
-    "maxDelta": 935
+    "maxInstantiationsDelta": 935,
+    "maxTypesDelta": 156
   },
   "tagged-union": {
-    "maxDelta": 967
+    "maxInstantiationsDelta": 967,
+    "maxTypesDelta": 223
   },
   "record": {
-    "maxDelta": 319
+    "maxInstantiationsDelta": 319,
+    "maxTypesDelta": 94
   },
   "struct-with-rest": {
-    "maxDelta": 762
+    "maxInstantiationsDelta": 762,
+    "maxTypesDelta": 152
   },
   "tuple": {
-    "maxDelta": 453
+    "maxInstantiationsDelta": 453,
+    "maxTypesDelta": 116
   },
   "tuple-with-rest": {
-    "maxDelta": 450
+    "maxInstantiationsDelta": 450,
+    "maxTypesDelta": 112
   },
   "array": {
-    "maxDelta": 227
+    "maxInstantiationsDelta": 227,
+    "maxTypesDelta": 44
   },
   "non-empty-array": {
-    "maxDelta": 227
+    "maxInstantiationsDelta": 227,
+    "maxTypesDelta": 44
   },
   "to-type": {
-    "maxDelta": 231
+    "maxInstantiationsDelta": 231,
+    "maxTypesDelta": 64
   },
   "to-encoded": {
-    "maxDelta": 59
+    "maxInstantiationsDelta": 59,
+    "maxTypesDelta": 13
   },
   "to-codec-json": {
-    "maxDelta": 145
+    "maxInstantiationsDelta": 145,
+    "maxTypesDelta": 30
   },
   "to-codec-string-tree": {
-    "maxDelta": 89
+    "maxInstantiationsDelta": 89,
+    "maxTypesDelta": 19
   },
   "to-codec-array-from-single": {
-    "maxDelta": 163
+    "maxInstantiationsDelta": 163,
+    "maxTypesDelta": 60
   },
   "brand": {
-    "maxDelta": 690
+    "maxInstantiationsDelta": 690,
+    "maxTypesDelta": 169
   },
   "decode-unknown-effect": {
-    "maxDelta": 30
+    "maxInstantiationsDelta": 30,
+    "maxTypesDelta": 16
   },
   "encode-unknown-effect": {
-    "maxDelta": 30
+    "maxInstantiationsDelta": 30,
+    "maxTypesDelta": 16
   },
   "to-standard-json-schema": {
-    "maxDelta": 156
+    "maxInstantiationsDelta": 156,
+    "maxTypesDelta": 41
   },
   "exit": {
-    "maxDelta": 411
+    "maxInstantiationsDelta": 411,
+    "maxTypesDelta": 77
   }
 }

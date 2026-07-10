@@ -1,68 +1,90 @@
 {
   "endpoint-count-10": {
-    "maxDelta": 2827
+    "maxInstantiationsDelta": 2827,
+    "maxTypesDelta": 1042
   },
   "endpoint-count-50": {
-    "maxDelta": 9307
+    "maxInstantiationsDelta": 9307,
+    "maxTypesDelta": 1402
   },
   "endpoint-count-100": {
-    "maxDelta": 17407
+    "maxInstantiationsDelta": 17407,
+    "maxTypesDelta": 1884
   },
   "endpoint-count-500": {
-    "maxDelta": 82207
+    "maxInstantiationsDelta": 82207,
+    "maxTypesDelta": 5869
   },
   "builder-handlers-count-10": {
-    "maxDelta": 11579
+    "maxInstantiationsDelta": 11579,
+    "maxTypesDelta": 2432
   },
   "builder-handlers-count-50": {
-    "maxDelta": 63699
+    "maxInstantiationsDelta": 63699,
+    "maxTypesDelta": 4912
   },
   "builder-handlers-count-100": {
-    "maxDelta": 182849
+    "maxInstantiationsDelta": 182849,
+    "maxTypesDelta": 8044
   },
   "builder-handlers-count-500": {
-    "maxDelta": 3296049
+    "maxInstantiationsDelta": 3296049,
+    "maxTypesDelta": 33229
   },
   "builder-handle-all-count-10": {
-    "maxDelta": 9146
+    "maxInstantiationsDelta": 9146,
+    "maxTypesDelta": 2209
   },
   "builder-handle-all-count-50": {
-    "maxDelta": 25106
+    "maxInstantiationsDelta": 25106,
+    "maxTypesDelta": 3169
   },
   "builder-handle-all-count-100": {
-    "maxDelta": 45056
+    "maxInstantiationsDelta": 45056,
+    "maxTypesDelta": 4401
   },
   "builder-handle-all-count-500": {
-    "maxDelta": 204656
+    "maxInstantiationsDelta": 204656,
+    "maxTypesDelta": 14386
   },
   "client-methods-count-500": {
-    "maxDelta": 243193
+    "maxInstantiationsDelta": 243193,
+    "maxTypesDelta": 23659
   },
   "client-top-level-methods-count-500": {
-    "maxDelta": 250371
+    "maxInstantiationsDelta": 250371,
+    "maxTypesDelta": 23609
   },
   "client-groups-100x5-count-500": {
-    "maxDelta": 136491
+    "maxInstantiationsDelta": 136491,
+    "maxTypesDelta": 16812
   },
   "client-endpoint-method-count-500": {
-    "maxDelta": 112320
+    "maxInstantiationsDelta": 112320,
+    "maxTypesDelta": 14408
   },
   "url-builder-count-500": {
-    "maxDelta": 151129
+    "maxInstantiationsDelta": 151129,
+    "maxTypesDelta": 14763
   },
   "url-builder-top-level-count-500": {
-    "maxDelta": 156734
+    "maxInstantiationsDelta": 156734,
+    "maxTypesDelta": 14777
   },
   "builder-endpoint-count-500": {
-    "maxDelta": 111089
+    "maxInstantiationsDelta": 111089,
+    "maxTypesDelta": 14322
   },
   "builder-handle-all-two-batches-count-500": {
-    "maxDelta": 223613
+    "maxInstantiationsDelta": 223613,
+    "maxTypesDelta": 14927
   },
   "builder-raw-handlers-count-500": {
-    "maxDelta": 3294547
+    "maxInstantiationsDelta": 3294547,
+    "maxTypesDelta": 33229
   },
   "endpoint-class-count-500": {
-    "maxDelta": 71850
+    "maxInstantiationsDelta": 71850,
+    "maxTypesDelta": 7628
   }
 }
