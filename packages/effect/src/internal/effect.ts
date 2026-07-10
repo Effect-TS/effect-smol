@@ -5838,8 +5838,8 @@ class ClockImpl implements Clock.Clock {
     const millis = Duration.toMillis(duration)
     if (millis <= 0) return yieldNow
     return callback((resume) => {
-      if (millis > MAX_TIMER_MILLIS) return
-      const handle = setTimeout(() => resume(void_), millis)
+      const continuation = millis > MAX_TIMER_MILLIS ? this.sleep(millis - MAX_TIMER_MILLIS) : void_
+      const handle = setTimeout(() => resume(continuation), Math.min(millis, MAX_TIMER_MILLIS))
       return sync(() => clearTimeout(handle))
     })
   }
