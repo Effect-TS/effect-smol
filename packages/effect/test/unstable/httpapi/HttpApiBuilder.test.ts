@@ -22,6 +22,73 @@ const TestServices = Layer.mergeAll(
   HttpPlatform.layer
 ).pipe(Layer.provideMerge(FileSystem.layerNoop({})))
 
+it.layer(TestServices)("HttpApiBuilder payload content types", (it) => {
+  it.effect("round trips mixed-case media types with declared and received parameters", () =>
+    Effect.gen(function*() {
+      const Payload = Schema.Struct({ name: Schema.String }).pipe(
+        HttpApiSchema.asJson({
+          contentType: "Application/Vnd.Effect+JSON; profile=declared"
+        })
+      )
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("test").add(
+          HttpApiEndpoint.post("create", "/create", {
+            headers: {
+              "content-type": Schema.optional(Schema.String)
+            },
+            payload: Payload,
+            success: Schema.Struct({ name: Schema.String })
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "test",
+        (handlers) => handlers.handle("create", ({ payload }) => Effect.succeed(payload))
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["test"]).pipe(Effect.provide(GroupLive))
+      const declared = yield* client.test.create({
+        headers: {},
+        payload: { name: "Ada" }
+      })
+      const received = yield* client.test.create({
+        headers: {
+          "content-type": "application/vnd.effect+json; profile=received"
+        },
+        payload: { name: "Grace" }
+      })
+
+      assert.deepStrictEqual(declared, { name: "Ada" })
+      assert.deepStrictEqual(received, { name: "Grace" })
+    }))
+
+  it.effect("round trips custom form-urlencoded media types", () =>
+    Effect.gen(function*() {
+      const Payload = Schema.Struct({ name: Schema.String }).pipe(
+        HttpApiSchema.asFormUrlEncoded({ contentType: "application/vnd.effect.form" })
+      )
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("test").add(
+          HttpApiEndpoint.post("create", "/create", {
+            payload: Payload,
+            success: Schema.Struct({ name: Schema.String })
+          })
+        )
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "test",
+        (handlers) => handlers.handle("create", ({ payload }) => Effect.succeed(payload))
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["test"]).pipe(Effect.provide(GroupLive))
+      const result = yield* client.test.create({ payload: { name: "Ada" } })
+
+      assert.deepStrictEqual(result, { name: "Ada" })
+    }))
+})
+
 it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
   it.effect("emits StreamUint8Array handler responses as streamed bytes with the declared content type", () =>
     Effect.gen(function*() {

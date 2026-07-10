@@ -32,6 +32,33 @@ describe("HttpApiEndpoint", () => {
   })
 })
 
+describe("HttpApiEndpoint payload schemas", () => {
+  it("normalizes payload map keys while preserving the declared content type", () => {
+    const contentType = "Application/Vnd.Effect+JSON; Charset=UTF-8"
+    const endpoint = HttpApiEndpoint.post("create", "/", {
+      payload: Schema.Struct({ name: Schema.String }).pipe(HttpApiSchema.asJson({ contentType }))
+    })
+
+    const entry = endpoint.payload.get("application/vnd.effect+json")
+    assert.isDefined(entry)
+    assert.strictEqual(entry.encoding.contentType, contentType)
+  })
+
+  it("rejects incompatible encodings for equivalent content types", () => {
+    const JsonPayload = Schema.Struct({ name: Schema.String }).pipe(
+      HttpApiSchema.asJson({ contentType: "Application/Vnd.Effect+Data; charset=utf-8" })
+    )
+    const TextPayload = Schema.String.pipe(
+      HttpApiSchema.asText({ contentType: "application/vnd.effect+data" })
+    )
+
+    assert.throws(
+      () => HttpApiEndpoint.post("create", "/", { payload: [JsonPayload, TextPayload] }),
+      /Multiple payload encodings/
+    )
+  })
+})
+
 describe("HttpApiEndpoint streaming success schemas", () => {
   it("GET endpoint accepts StreamSse success", () => {
     const stream = sse()

@@ -31,6 +31,7 @@ import type * as Multipart from "../http/Multipart.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
+import * as MediaType from "./internal/mediaType.ts"
 
 const TypeId = "~effect/httpapi/HttpApiEndpoint"
 
@@ -118,8 +119,8 @@ type RequestRawFromParts<Endpoint, ParamsType, QueryType, HeadersType> =
   }
 
 /**
- * Maps content types to the payload encoding strategy and one or more schemas that
- * can decode or encode payloads for that content type.
+ * Maps normalized media types to a payload encoding strategy and one or more
+ * schemas. Each schema retains its declared content type in its encoding annotation.
  *
  * @category models
  * @since 4.0.0
@@ -1111,7 +1112,8 @@ function getPayload(
 
   for (const schema of schemas) {
     const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, method)
-    const existing = result.get(encoding.contentType)
+    const contentType = MediaType.normalize(encoding.contentType)
+    const existing = result.get(contentType)
     if (existing) {
       if (existing.encoding._tag !== encoding._tag) {
         throw new Error(`Multiple payload encodings for content-type: ${encoding.contentType}`)
@@ -1121,7 +1123,7 @@ function getPayload(
       }
       existing.schemas.push(transform(schema, method))
     } else {
-      result.set(encoding.contentType, { encoding, schemas: [transform(schema, method)] })
+      result.set(contentType, { encoding, schemas: [transform(schema, method)] })
     }
   }
   return result
@@ -1176,7 +1178,7 @@ function validateSuccessResponse(schemas: ReadonlyArray<Schema.Constraint>, meth
       if (entry.noContent) {
         throw new Error(`Cannot combine no-content and streaming success responses for status: ${status}`)
       }
-      if (entry.bufferedContentTypes.has(normalizeResponseContentType(schema.contentType))) {
+      if (entry.bufferedContentTypes.has(MediaType.normalize(schema.contentType))) {
         throw new Error(
           `Cannot combine buffered and streaming success responses for status ${status} and content-type: ${schema.contentType}`
         )
@@ -1192,7 +1194,7 @@ function validateSuccessResponse(schemas: ReadonlyArray<Schema.Constraint>, meth
         }
         const encoding = HttpApiSchema.getResponseEncoding(schema.ast)
         if (
-          normalizeResponseContentType(encoding.contentType) === normalizeResponseContentType(entry.stream.contentType)
+          MediaType.normalize(encoding.contentType) === MediaType.normalize(entry.stream.contentType)
         ) {
           throw new Error(
             `Cannot combine buffered and streaming success responses for status ${status} and content-type: ${encoding.contentType}`
@@ -1201,18 +1203,12 @@ function validateSuccessResponse(schemas: ReadonlyArray<Schema.Constraint>, meth
       }
       if (!noContent) {
         entry.bufferedContentTypes.add(
-          normalizeResponseContentType(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
+          MediaType.normalize(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
         )
       }
       entry.noContent = entry.noContent || noContent
     }
   }
-}
-
-function normalizeResponseContentType(contentType: string): string {
-  const normalized = contentType.toLowerCase().trim()
-  const index = normalized.indexOf(";")
-  return index === -1 ? normalized : normalized.slice(0, index).trim()
 }
 
 function getStatusEntry(

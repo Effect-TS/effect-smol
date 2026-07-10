@@ -37,6 +37,7 @@ import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import type * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
+import * as MediaType from "./internal/mediaType.ts"
 
 /**
  * The type-safe client shape generated from HTTP API groups, with non-top-level
@@ -727,7 +728,7 @@ function addResponseAlternative(
   contentType: string,
   decode: ResponseDecoder
 ) {
-  const normalizedContentType = normalizeContentType(contentType)
+  const normalizedContentType = MediaType.normalize(contentType)
   const alternatives = map.get(status)
   if (alternatives === undefined) {
     map.set(status, [{ contentType: normalizedContentType, decode }])
@@ -742,7 +743,7 @@ function makeResponseDecoder(alternatives: ReadonlyArray<ResponseAlternative>): 
     return first.decode
   }
   return (response) => {
-    const contentType = normalizeContentType(response.headers["content-type"] ?? "")
+    const contentType = MediaType.normalize(response.headers["content-type"] ?? "")
     const alternative = alternatives.find((alternative) => alternative.contentType === contentType)
     return alternative === undefined
       ? failUnsupportedContentType(response, contentType, alternatives)
@@ -757,7 +758,7 @@ function groupSchemasByContentType(
   for (const schema of schemas) {
     const contentType = HttpApiSchema.isNoContent(schema.ast)
       ? ""
-      : normalizeContentType(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
+      : MediaType.normalize(HttpApiSchema.getResponseEncoding(schema.ast).contentType)
     const existing = grouped.get(contentType)
     if (existing === undefined) {
       grouped.set(contentType, [schema])
@@ -766,12 +767,6 @@ function groupSchemasByContentType(
     }
   }
   return grouped
-}
-
-function normalizeContentType(contentType: string): string {
-  const normalized = contentType.toLowerCase().trim()
-  const index = normalized.indexOf(";")
-  return index === -1 ? normalized : normalized.slice(0, index).trim()
 }
 
 function failUnsupportedContentType(
@@ -1009,7 +1004,7 @@ function getEncodePayloadSchemaFromBody(
             if (!Predicate.isObject(t)) {
               return Effect.fail(new SchemaIssue.InvalidValue(Option.some(t), { message: "Expected a record" }))
             }
-            return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any)))
+            return Effect.succeed(HttpBody.urlParams(UrlParams.fromInput(t as any), encoding.contentType))
           }
           case "Uint8Array": {
             if (!(t instanceof Uint8Array)) {

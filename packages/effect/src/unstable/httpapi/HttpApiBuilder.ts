@@ -52,6 +52,7 @@ import type * as HttpApiGroup from "./HttpApiGroup.ts"
 import * as HttpApiMiddleware from "./HttpApiMiddleware.ts"
 import * as HttpApiSchema from "./HttpApiSchema.ts"
 import type * as HttpApiSecurity from "./HttpApiSecurity.ts"
+import * as MediaType from "./internal/mediaType.ts"
 import * as OpenApi from "./OpenApi.ts"
 
 /**
@@ -686,7 +687,7 @@ function decodePayload(
 ): Effect.Effect<unknown, Schema.SchemaError, unknown> | HttpServerResponse | undefined {
   const hasBody = HttpMethod.hasBody(httpRequest.method)
   const contentType = hasBody
-    ? getRequestMediaType(httpRequest)
+    ? MediaType.normalize(httpRequest.headers["content-type"] ?? "application/json")
     : "application/x-www-form-urlencoded"
   const existing = payloadBy.get(contentType)
   if (!existing) {
@@ -822,17 +823,6 @@ export function handlerToRoute(
     handlerToHttpEffect(group, endpoint, context, handler.handler, handler.isRaw),
     { uninterruptible: handler.uninterruptible }
   )
-}
-
-const getRequestContentType = (request: HttpServerRequest): string =>
-  request.headers["content-type"]
-    ? request.headers["content-type"].toLowerCase().trim()
-    : "application/json"
-
-const getRequestMediaType = (request: HttpServerRequest): string => {
-  const contentType = getRequestContentType(request)
-  const index = contentType.indexOf(";")
-  return index === -1 ? contentType : contentType.slice(0, index).trim()
 }
 
 const applyMiddleware = <Group extends HttpApiGroup.Constraint, A extends Effect.Effect<any, any, any>>(
