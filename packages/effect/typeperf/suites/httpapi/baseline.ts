@@ -1,3 +1,4 @@
+// Shared HttpApi suite baseline that touches each public module used by the fixtures.
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

@@ -1,4 +1,4 @@
-// Measures the type-level cost of declaring 500 same-shaped endpoints as classes.
+// Measures class-like endpoint declaration for 500 same-shaped endpoints.
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

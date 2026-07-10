@@ -470,6 +470,129 @@ describe("HttpApiBuilder", () => {
         >
       >()
     })
+
+    it("selects the intended class-like endpoint when identifiers overlap", () => {
+      class UsersToken extends Context.Service<UsersToken, {
+        readonly token: "users"
+      }>()("UsersToken") {}
+      class UsersCurrent extends Context.Service<UsersCurrent, {
+        readonly userId: string
+      }>()("UsersCurrent") {}
+      class AdminsToken extends Context.Service<AdminsToken, {
+        readonly token: "admins"
+      }>()("AdminsToken") {}
+      class AdminsCurrent extends Context.Service<AdminsCurrent, {
+        readonly adminId: number
+      }>()("AdminsCurrent") {}
+      class UsersMiddleware extends HttpApiMiddleware.Service<UsersMiddleware, {
+        requires: UsersToken
+        provides: UsersCurrent
+      }>()("UsersMiddleware") {}
+      class AdminsMiddleware extends HttpApiMiddleware.Service<AdminsMiddleware, {
+        requires: AdminsToken
+        provides: AdminsCurrent
+      }>()("AdminsMiddleware") {}
+
+      class UsersLookup extends HttpApiEndpoint.post("lookup", "/users/:userId", {
+        params: {
+          userId: Schema.String
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        payload: Schema.Struct({ name: Schema.String }),
+        headers: {
+          "x-user": Schema.String
+        },
+        success: Schema.Struct({ userId: Schema.String, name: Schema.String })
+      }).middleware(UsersMiddleware) {}
+
+      const AdminsLookup = HttpApiEndpoint.post("lookup", "/admins/:adminId", {
+        params: {
+          adminId: Schema.FiniteFromString
+        },
+        query: {
+          scope: Schema.String
+        },
+        payload: Schema.Struct({ role: Schema.Literal("admin") }),
+        headers: {
+          "x-admin": Schema.String
+        },
+        success: Schema.Struct({ adminId: Schema.Number, role: Schema.String })
+      }).middleware(AdminsMiddleware)
+      const api = HttpApi.make("api").add(
+        HttpApiGroup.make("users").add(UsersLookup),
+        HttpApiGroup.make("admins").add(AdminsLookup)
+      )
+
+      const usersHandler = HttpApiBuilder.endpoint(
+        api,
+        "users",
+        "lookup",
+        Effect.fnUntraced(function*(request) {
+          expect(request.params).type.toBe<{ readonly userId: string }>()
+          expect(request.query).type.toBe<{ readonly page: number }>()
+          expect(request.payload).type.toBe<{ readonly name: string }>()
+          expect(request.headers).type.toBe<{ readonly "x-user": string }>()
+          expect(request.params).type.not.toHaveProperty("adminId")
+          const current = yield* UsersCurrent
+          return { userId: current.userId, name: request.payload.name }
+        })
+      )
+      const adminsHandler = HttpApiBuilder.endpoint(
+        api,
+        "admins",
+        "lookup",
+        Effect.fnUntraced(function*(request) {
+          expect(request.params).type.toBe<{ readonly adminId: number }>()
+          expect(request.query).type.toBe<{ readonly scope: string }>()
+          expect(request.payload).type.toBe<{ readonly role: "admin" }>()
+          expect(request.headers).type.toBe<{ readonly "x-admin": string }>()
+          expect(request.params).type.not.toHaveProperty("userId")
+          const current = yield* AdminsCurrent
+          return { adminId: current.adminId, role: request.payload.role }
+        })
+      )
+
+      expect<Effect.Services<typeof usersHandler>>().type.toBe<
+        UsersMiddleware | UsersToken | Generator | FileSystem | HttpPlatform | Path
+      >()
+      expect<Effect.Services<typeof adminsHandler>>().type.toBe<
+        AdminsMiddleware | AdminsToken | Generator | FileSystem | HttpPlatform | Path
+      >()
+      expect<Effect.Services<Effect.Success<typeof usersHandler>>>().type.toBe<
+        HttpServerRequest | ParsedSearchParams | RouteContext
+      >()
+      expect<Effect.Services<Effect.Success<typeof adminsHandler>>>().type.toBe<
+        HttpServerRequest | ParsedSearchParams | RouteContext
+      >()
+    })
+
+    it("rejects unknown group identifiers", () => {
+      const api = HttpApi.make("api").add(
+        HttpApiGroup.make("users").add(HttpApiEndpoint.get("getUser", "/users/:id"))
+      )
+
+      expect(HttpApiBuilder.endpoint).type.not.toBeCallableWith(
+        api,
+        "missing",
+        "getUser",
+        () => Effect.void
+      )
+    })
+
+    it("rejects unknown endpoint identifiers", () => {
+      const api = HttpApi.make("api").add(
+        HttpApiGroup.make("users").add(HttpApiEndpoint.get("getUser", "/users/:id"))
+      )
+
+      expect(HttpApiBuilder.endpoint).type.not.toBeCallableWith(
+        api,
+        "users",
+        "missing",
+        () => Effect.void
+      )
+    })
   })
 })
 

@@ -32,12 +32,11 @@ describe("HttpApiEndpoint", () => {
 
   describe("class extension", () => {
     it("supports extending an endpoint as a class", () => {
-      const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
-      class GetUser extends endpoint {}
+      class GetUser extends HttpApiEndpoint.get("getUser", "/users/:id") {}
 
       expect(GetUser.identifier).type.toBe<"getUser">()
       expect<HttpApiEndpoint.Identifier<typeof GetUser>>().type.toBe<"getUser">()
-      expect(GetUser.prefix("/v1")).type.toBe<HttpApiEndpoint.AddPrefix<typeof endpoint, "/v1">>()
+      expect(GetUser.prefix("/v1").path).type.toBe<"/v1/users/:id">()
     })
   })
 

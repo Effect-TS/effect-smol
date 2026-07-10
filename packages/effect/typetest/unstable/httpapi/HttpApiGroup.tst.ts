@@ -63,5 +63,19 @@ describe("HttpApiGroup", () => {
       expect(WithMiddleware.endpoints.getUser).type.toBe<HttpApiEndpoint.AddMiddleware<typeof GetUser, M>>()
       expect(WithMiddleware.endpoints.createUser).type.toBe<HttpApiEndpoint.AddMiddleware<typeof CreateUser, M>>()
     })
+
+    it("preserves class-like endpoints by identifier", () => {
+      class GetUser extends HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.String
+        },
+        success: Schema.Struct({ id: Schema.String })
+      }) {}
+
+      const Group = HttpApiGroup.make("users").add(GetUser)
+
+      expect(Group.endpoints.getUser).type.toBe<typeof GetUser>()
+      expect<HttpApiGroup.Endpoints<typeof Group>>().type.toBe<typeof GetUser>()
+    })
   })
 })

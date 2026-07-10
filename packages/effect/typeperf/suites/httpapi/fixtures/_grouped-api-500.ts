@@ -1,4 +1,4 @@
-// Shared 500-endpoint HttpApi fixture for client method type performance.
+// Shared API with one group containing 500 same-shaped endpoints.
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

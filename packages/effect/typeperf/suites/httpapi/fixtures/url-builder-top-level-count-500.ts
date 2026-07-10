@@ -1,7 +1,7 @@
-// Measures HttpApiClient UrlBuilder top-level method type production for 500 endpoints.
+// Measures top-level URL builder method derivation from 500 same-shaped endpoints.
 import { Schema } from "effect"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import type { Endpoint } from "./_client-methods-500.ts"
+import type { Endpoint } from "./_grouped-api-500.ts"
 
 Schema.String
 HttpApi.make("Api")

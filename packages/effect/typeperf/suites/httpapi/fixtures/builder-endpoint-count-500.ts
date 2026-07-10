@@ -1,7 +1,7 @@
-// Measures building a single HttpApiBuilder endpoint from a group with 500 endpoints.
+// Measures builder endpoint selection from one group with 500 same-shaped endpoints.
 import { Effect } from "effect"
 import { HttpApiBuilder } from "effect/unstable/httpapi"
-import { api } from "./_client-methods-500.ts"
+import { api } from "./_grouped-api-500.ts"
 
 export const httpApp = HttpApiBuilder.endpoint(
   api,

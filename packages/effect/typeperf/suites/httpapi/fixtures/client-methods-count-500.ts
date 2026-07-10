@@ -1,7 +1,7 @@
-// Measures generated HttpApiClient method type production for 500 same-shaped endpoints in one group.
+// Measures grouped client method derivation from one group with 500 same-shaped endpoints.
 import { Schema } from "effect"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { api } from "./_client-methods-500.ts"
+import { api } from "./_grouped-api-500.ts"
 
 Schema.String
 HttpApi.make("Api")

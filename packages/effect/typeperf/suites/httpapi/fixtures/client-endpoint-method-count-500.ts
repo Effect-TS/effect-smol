@@ -1,8 +1,8 @@
-// Measures HttpApiClient.endpoint method type production for one selected endpoint in a 500-endpoint group.
+// Measures client endpoint selection from one group with 500 same-shaped endpoints.
 import { Effect, Schema } from "effect"
 import { HttpClient } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import { api } from "./_client-methods-500.ts"
+import { api } from "./_grouped-api-500.ts"
 
 Schema.String
 HttpApi.make("Api")

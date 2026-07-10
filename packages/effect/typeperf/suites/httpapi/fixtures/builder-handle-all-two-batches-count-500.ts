@@ -1,4 +1,4 @@
-// Measures HttpApiBuilder handleAll in two partial 250-endpoint batches.
+// Measures builder handleAll registration across two chained batches of 250 endpoints each.
 import { Effect, Schema } from "effect"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

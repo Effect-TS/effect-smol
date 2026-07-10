@@ -133,6 +133,22 @@
           "file": "suites/httpapi/fixtures/client-groups-100x5-count-500.ts"
         },
         {
+          "name": "client-group-count-10",
+          "file": "suites/httpapi/fixtures/client-group-count-10.ts"
+        },
+        {
+          "name": "client-group-count-50",
+          "file": "suites/httpapi/fixtures/client-group-count-50.ts"
+        },
+        {
+          "name": "client-group-count-100",
+          "file": "suites/httpapi/fixtures/client-group-count-100.ts"
+        },
+        {
+          "name": "client-group-count-500",
+          "file": "suites/httpapi/fixtures/client-group-count-500.ts"
+        },
+        {
           "name": "client-endpoint-method-count-500",
           "file": "suites/httpapi/fixtures/client-endpoint-method-count-500.ts"
         },

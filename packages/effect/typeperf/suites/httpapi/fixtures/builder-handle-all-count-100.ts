@@ -1,4 +1,4 @@
-// Measures HttpApiBuilder handleAll with 100 same-shaped endpoints in one group.
+// Measures builder handleAll registration for 100 same-shaped endpoints in one group.
 import { Effect, Schema } from "effect"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

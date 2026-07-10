@@ -1,4 +1,4 @@
-// Measures how HttpApi type instantiations scale with 10 same-shaped endpoints in one group.
+// Measures endpoint declaration for 10 same-shaped endpoints in one group.
 import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

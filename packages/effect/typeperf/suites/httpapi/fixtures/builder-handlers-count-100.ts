@@ -1,4 +1,4 @@
-// Measures how HttpApiBuilder handler chains scale with 100 same-shaped endpoints in one group.
+// Measures chained builder handle registration for 100 same-shaped endpoints in one group.
 import { Effect, Schema } from "effect"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 

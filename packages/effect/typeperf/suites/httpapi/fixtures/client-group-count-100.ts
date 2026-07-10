@@ -1,19 +1,17 @@
-// Measures top-level client method derivation from 500 same-shaped endpoints.
+// Measures Client.Group derivation from one type-only group with 100 same-shaped endpoints.
 import { Schema } from "effect"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
-import type { Endpoint } from "./_grouped-api-500.ts"
+import type { Group } from "./_client-group-types.ts"
 
 Schema.String
 HttpApi.make("Api")
-HttpApiGroup.make("top", { topLevel: true })
+HttpApiGroup.make("users")
 HttpApiEndpoint.get("warmup", "/warmup")
 
-type TopGroup = HttpApiGroup.HttpApiGroup<"top", Endpoint, true>
-type Client = HttpApiClient.Client<TopGroup>
+type Client = HttpApiClient.Client.Group<Group<100>, never, never>
 type Methods = Client[keyof Client]
 
 export type GeneratedClient = Client
 export type ClientMethodNames = keyof Client
-export type ClientMethods = Methods
 export type ClientMethodRequests = Parameters<Methods>[0]
 export type ClientMethodResults = ReturnType<Methods>

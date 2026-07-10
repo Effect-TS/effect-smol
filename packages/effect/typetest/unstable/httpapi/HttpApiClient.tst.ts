@@ -181,6 +181,40 @@ describe("HttpApiClient", () => {
       >()
       expect(client).type.not.toHaveProperty("top")
     })
+
+    it("keeps nested and top-level methods distinct when identifiers overlap", () => {
+      const NestedLookup = HttpApiEndpoint.post("lookup", "/users", {
+        payload: Schema.Struct({ name: Schema.String }),
+        success: Schema.Struct({ userId: Schema.String })
+      })
+      const TopLevelLookup = HttpApiEndpoint.get("lookup", "/lookup", {
+        query: {
+          token: Schema.String
+        },
+        success: Schema.Struct({ available: Schema.Boolean })
+      })
+      const Users = HttpApiGroup.make("users").add(NestedLookup)
+      const Top = HttpApiGroup.make("top", { topLevel: true }).add(TopLevelLookup)
+
+      type GeneratedClient = HttpApiClient.Client<typeof Users | typeof Top, never, never>
+      const client = hole<GeneratedClient>()
+
+      expect<keyof GeneratedClient>().type.toBe<"users" | "lookup">()
+      expect<Parameters<typeof client.users.lookup>[0]>().type.toBe<
+        { readonly payload: { readonly name: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect<Parameters<typeof client.lookup>[0]>().type.toBe<
+        { readonly query: { readonly token: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect(client.users.lookup({ payload: { name: "Ada" } })).type.toBe<
+        Effect.Effect<{ readonly userId: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.lookup({ query: { token: "abc" } })).type.toBe<
+        Effect.Effect<{ readonly available: boolean }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.users.lookup).type.not.toBeCallableWith({ query: { token: "abc" } })
+      expect(client.lookup).type.not.toBeCallableWith({ payload: { name: "Ada" } })
+    })
   })
 
   describe("Client.Group", () => {
@@ -205,6 +239,64 @@ describe("HttpApiClient", () => {
       expect(client.getUser({ params: { id: 1 } })).type.toBe<
         Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
       >()
+    })
+
+    it("derives methods from class-like endpoints", () => {
+      class GetUser extends HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.FiniteFromString
+        },
+        success: Schema.Struct({ id: Schema.String })
+      }) {}
+
+      const Users = HttpApiGroup.make("users").add(GetUser)
+      type UsersClient = HttpApiClient.Client.Group<typeof Users, never, never>
+      const client = hole<UsersClient>()
+
+      expect<keyof UsersClient>().type.toBe<"getUser">()
+      expect<Parameters<typeof client.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(client.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+    })
+  })
+
+  describe("group", () => {
+    it("selects one group when endpoint identifiers overlap", () => {
+      const UsersLookup = HttpApiEndpoint.get("lookup", "/users/:userId", {
+        params: {
+          userId: Schema.String
+        },
+        success: Schema.Struct({ userId: Schema.String })
+      })
+      const AdminsLookup = HttpApiEndpoint.get("lookup", "/admins", {
+        query: {
+          email: Schema.String
+        },
+        success: Schema.Struct({ adminId: Schema.String })
+      })
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(UsersLookup),
+        HttpApiGroup.make("admins").add(AdminsLookup)
+      )
+      const httpClient = HttpClient.make(() => Effect.die("not used"))
+      const usersClient = HttpApiClient.group(Api, { group: "users", httpClient })
+      const adminsClient = HttpApiClient.group(Api, { group: "admins", httpClient })
+      const selectedUsers = hole<Effect.Success<typeof usersClient>>()
+      const selectedAdmins = hole<Effect.Success<typeof adminsClient>>()
+
+      expect<keyof Effect.Success<typeof usersClient>>().type.toBe<"lookup">()
+      expect<keyof Effect.Success<typeof adminsClient>>().type.toBe<"lookup">()
+      expect<Parameters<typeof selectedUsers.lookup>[0]>().type.toBe<
+        { readonly params: { readonly userId: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect<Parameters<typeof selectedAdmins.lookup>[0]>().type.toBe<
+        { readonly query: { readonly email: string }; readonly responseMode?: ResponseMode }
+      >()
+      expect(selectedUsers.lookup).type.not.toBeCallableWith({ query: { email: "admin@example.com" } })
+      expect(selectedAdmins.lookup).type.not.toBeCallableWith({ params: { userId: "1" } })
     })
   })
 
@@ -780,6 +872,162 @@ describe("HttpApiClient", () => {
         { readonly query: { readonly q: string }; readonly responseMode?: ResponseMode }
       >()
       expect(searchUsers).type.not.toBeCallableWith({ params: { id: "1" }, query: { page: 1 } })
+    })
+
+    it("selects within the requested group when endpoint identifiers overlap", () => {
+      class UsersEndpointError extends Schema.TaggedErrorClass<UsersEndpointError>()("UsersEndpointError", {}) {}
+      class AdminsEndpointError extends Schema.TaggedErrorClass<AdminsEndpointError>()("AdminsEndpointError", {}) {}
+      class UsersClientError extends Schema.TaggedErrorClass<UsersClientError>()("UsersClientError", {}) {}
+      class AdminsClientError extends Schema.TaggedErrorClass<AdminsClientError>()("AdminsClientError", {}) {}
+
+      class UsersMiddleware extends HttpApiMiddleware.Service<UsersMiddleware, {
+        clientError: UsersClientError
+      }>()("UsersMiddleware", {
+        error: Schema.Literal("users-middleware-error"),
+        requiredForClient: true
+      }) {}
+      class AdminsMiddleware extends HttpApiMiddleware.Service<AdminsMiddleware, {
+        clientError: AdminsClientError
+      }>()("AdminsMiddleware", {
+        error: Schema.Literal("admins-middleware-error"),
+        requiredForClient: true
+      }) {}
+
+      const UsersLookup = HttpApiEndpoint.post("lookup", "/users/:userId", {
+        params: {
+          userId: Schema.String
+        },
+        query: {
+          page: Schema.FiniteFromString
+        },
+        payload: Schema.Struct({ name: Schema.String }),
+        headers: {
+          "x-user": Schema.String
+        },
+        success: Schema.Struct({ userId: Schema.String, name: Schema.String }),
+        error: UsersEndpointError
+      }).middleware(UsersMiddleware)
+      const AdminsLookup = HttpApiEndpoint.post("lookup", "/admins/:adminId", {
+        params: {
+          adminId: Schema.FiniteFromString
+        },
+        query: {
+          scope: Schema.String
+        },
+        payload: Schema.Struct({ role: Schema.Literal("admin") }),
+        headers: {
+          "x-admin": Schema.String
+        },
+        success: Schema.Struct({ adminId: Schema.Number, role: Schema.String }),
+        error: AdminsEndpointError
+      }).middleware(AdminsMiddleware)
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(UsersLookup),
+        HttpApiGroup.make("admins").add(AdminsLookup)
+      )
+      const httpClient = HttpClient.make(() => Effect.die("not used"))
+
+      const usersEndpoint = HttpApiClient.endpoint(Api, {
+        group: "users",
+        endpoint: "lookup",
+        httpClient
+      })
+      const adminsEndpoint = HttpApiClient.endpoint(Api, {
+        group: "admins",
+        endpoint: "lookup",
+        httpClient
+      })
+      const usersMethod = hole<Effect.Success<typeof usersEndpoint>>()
+      const adminsMethod = hole<Effect.Success<typeof adminsEndpoint>>()
+
+      expect<Effect.Services<typeof usersEndpoint>>().type.toBe<HttpApiMiddleware.ForClient<UsersMiddleware>>()
+      expect<Effect.Services<typeof adminsEndpoint>>().type.toBe<HttpApiMiddleware.ForClient<AdminsMiddleware>>()
+      expect<Parameters<typeof usersMethod>[0]>().type.toBe<
+        {
+          readonly params: { readonly userId: string }
+          readonly query: { readonly page: number }
+          readonly payload: { readonly name: string }
+          readonly headers: { readonly "x-user": string }
+          readonly responseMode?: ResponseMode
+        }
+      >()
+      expect<Parameters<typeof adminsMethod>[0]>().type.toBe<
+        {
+          readonly params: { readonly adminId: number }
+          readonly query: { readonly scope: string }
+          readonly payload: { readonly role: "admin" }
+          readonly headers: { readonly "x-admin": string }
+          readonly responseMode?: ResponseMode
+        }
+      >()
+      expect(usersMethod({
+        params: { userId: "1" },
+        query: { page: 1 },
+        payload: { name: "Ada" },
+        headers: { "x-user": "user" }
+      })).type.toBe<
+        Effect.Effect<
+          { readonly userId: string; readonly name: string },
+          | UsersEndpointError
+          | UsersClientError
+          | "users-middleware-error"
+          | HttpClientError.HttpClientError
+          | Schema.SchemaError
+        >
+      >()
+      expect(adminsMethod({
+        params: { adminId: 1 },
+        query: { scope: "all" },
+        payload: { role: "admin" },
+        headers: { "x-admin": "admin" }
+      })).type.toBe<
+        Effect.Effect<
+          { readonly adminId: number; readonly role: string },
+          | AdminsEndpointError
+          | AdminsClientError
+          | "admins-middleware-error"
+          | HttpClientError.HttpClientError
+          | Schema.SchemaError
+        >
+      >()
+      expect(usersMethod).type.not.toBeCallableWith({
+        params: { adminId: 1 },
+        query: { scope: "all" },
+        payload: { role: "admin" },
+        headers: { "x-admin": "admin" }
+      })
+      expect(adminsMethod).type.not.toBeCallableWith({
+        params: { userId: "1" },
+        query: { page: 1 },
+        payload: { name: "Ada" },
+        headers: { "x-user": "user" }
+      })
+    })
+
+    it("rejects unknown group identifiers", () => {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(HttpApiEndpoint.get("getUser", "/users/:id"))
+      )
+      const httpClient = HttpClient.make(() => Effect.die("not used"))
+
+      expect(HttpApiClient.endpoint).type.not.toBeCallableWith(Api, {
+        group: "missing",
+        endpoint: "getUser",
+        httpClient
+      })
+    })
+
+    it("rejects unknown endpoint identifiers", () => {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(HttpApiEndpoint.get("getUser", "/users/:id"))
+      )
+      const httpClient = HttpClient.make(() => Effect.die("not used"))
+
+      expect(HttpApiClient.endpoint).type.not.toBeCallableWith(Api, {
+        group: "users",
+        endpoint: "missing",
+        httpClient
+      })
     })
 
     it("preserves custom HTTP client errors and requirements", () => {
