@@ -193,7 +193,7 @@ export declare namespace Client {
       Endpoint in Extract<
         HttpApiGroup.Endpoints<Extract<Groups, { readonly topLevel: true }>>,
         HttpApiEndpoint.ConstraintRequest
-      > as HttpApiEndpoint.Identifier<Endpoint>
+      > as Endpoint["identifier"]
     ]: Method<Endpoint, E, R>
   }
 }

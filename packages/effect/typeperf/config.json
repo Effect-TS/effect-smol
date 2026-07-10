@@ -129,6 +129,22 @@
           "file": "suites/httpapi/fixtures/client-top-level-methods-count-500.ts"
         },
         {
+          "name": "client-top-level-count-10",
+          "file": "suites/httpapi/fixtures/client-top-level-count-10.ts"
+        },
+        {
+          "name": "client-top-level-count-50",
+          "file": "suites/httpapi/fixtures/client-top-level-count-50.ts"
+        },
+        {
+          "name": "client-top-level-count-100",
+          "file": "suites/httpapi/fixtures/client-top-level-count-100.ts"
+        },
+        {
+          "name": "client-top-level-count-500",
+          "file": "suites/httpapi/fixtures/client-top-level-count-500.ts"
+        },
+        {
           "name": "client-groups-100x5-count-500",
           "file": "suites/httpapi/fixtures/client-groups-100x5-count-500.ts"
         },

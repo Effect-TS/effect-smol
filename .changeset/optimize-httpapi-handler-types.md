@@ -54,10 +54,10 @@ paths:
 
 | fixture                                 |  before |   after |
 | --------------------------------------- | ------: | ------: |
-| client methods, 500 endpoints           | 248,788 | 243,104 |
-| top-level client methods, 500 endpoints | 243,047 | 250,290 |
+| client methods, 500 endpoints           | 248,788 | 242,963 |
+| top-level client methods, 500 endpoints | 243,047 | 250,192 |
 | client endpoint method, 500 endpoints   |  67,890 | 112,242 |
-| client groups, 100 groups x 5 endpoints |  70,725 | 129,246 |
+| client groups, 100 groups x 5 endpoints |  70,725 | 129,148 |
 
 The focused `Client.Group` curve shows the improvement from consuming the
 identifier-keyed endpoint map directly:
@@ -68,6 +68,16 @@ identifier-keyed endpoint map directly:
 |        50 |          19,169 |       18,935 |
 |       100 |          27,570 |       27,236 |
 |       500 |          94,770 |       93,636 |
+
+The focused `Client.TopLevelMethods` curve improves by reading endpoint
+identifiers directly from the endpoint union:
+
+| endpoints | before |  after |
+| --------: | -----: | -----: |
+|        10 | 12,531 | 12,476 |
+|        50 | 19,252 | 19,197 |
+|       100 | 27,653 | 27,598 |
+|       500 | 94,853 | 94,798 |
 
 The focused `HttpApiClient.endpoint` selection curve improves by reading
 endpoint identifiers directly from the selected endpoint union:

@@ -20,16 +20,32 @@
     "maxTypesDelta": 7628
   },
   "client-methods-count-500": {
-    "maxInstantiationsDelta": 243104,
-    "maxTypesDelta": 23649
+    "maxInstantiationsDelta": 242963,
+    "maxTypesDelta": 23623
   },
   "client-top-level-methods-count-500": {
-    "maxInstantiationsDelta": 250290,
-    "maxTypesDelta": 23606
+    "maxInstantiationsDelta": 250192,
+    "maxTypesDelta": 23587
+  },
+  "client-top-level-count-10": {
+    "maxInstantiationsDelta": 12476,
+    "maxTypesDelta": 6040
+  },
+  "client-top-level-count-50": {
+    "maxInstantiationsDelta": 19197,
+    "maxTypesDelta": 6767
+  },
+  "client-top-level-count-100": {
+    "maxInstantiationsDelta": 27598,
+    "maxTypesDelta": 7672
+  },
+  "client-top-level-count-500": {
+    "maxInstantiationsDelta": 94798,
+    "maxTypesDelta": 14918
   },
   "client-groups-100x5-count-500": {
-    "maxInstantiationsDelta": 129246,
-    "maxTypesDelta": 16504
+    "maxInstantiationsDelta": 129148,
+    "maxTypesDelta": 16485
   },
   "client-group-count-10": {
     "maxInstantiationsDelta": 12294,

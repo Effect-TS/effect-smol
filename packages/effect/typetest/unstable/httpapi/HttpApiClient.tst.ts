@@ -215,6 +215,63 @@ describe("HttpApiClient", () => {
       expect(client.users.lookup).type.not.toBeCallableWith({ query: { token: "abc" } })
       expect(client.lookup).type.not.toBeCallableWith({ payload: { name: "Ada" } })
     })
+
+    it("derives top-level methods from class-like endpoints", () => {
+      class GetUser extends HttpApiEndpoint.get("getUser", "/users/:id", {
+        params: {
+          id: Schema.FiniteFromString
+        },
+        success: Schema.Struct({ id: Schema.String })
+      }) {}
+
+      const Top = HttpApiGroup.make("top", { topLevel: true }).add(GetUser)
+      type GeneratedClient = HttpApiClient.Client<typeof Top, never, never>
+      const client = hole<GeneratedClient>()
+
+      expect<keyof GeneratedClient>().type.toBe<"getUser">()
+      expect<Parameters<typeof client.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect(client.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client).type.not.toHaveProperty("top")
+    })
+
+    it("merges distinct endpoints from multiple top-level groups", () => {
+      const Users = HttpApiGroup.make("users", { topLevel: true }).add(
+        HttpApiEndpoint.get("getUser", "/users/:id", {
+          params: {
+            id: Schema.FiniteFromString
+          },
+          success: Schema.Struct({ id: Schema.String })
+        })
+      )
+      const Health = HttpApiGroup.make("system", { topLevel: true }).add(
+        HttpApiEndpoint.get("health", "/health", {
+          success: Schema.Struct({ ok: Schema.Boolean })
+        })
+      )
+
+      type GeneratedClient = HttpApiClient.Client<typeof Users | typeof Health, never, never>
+      const client = hole<GeneratedClient>()
+
+      expect<keyof GeneratedClient>().type.toBe<"getUser" | "health">()
+      expect<Parameters<typeof client.getUser>[0]>().type.toBe<
+        { readonly params: { readonly id: number }; readonly responseMode?: ResponseMode }
+      >()
+      expect<Parameters<typeof client.health>[0]>().type.toBe<
+        void | { readonly responseMode?: ResponseMode } | undefined
+      >()
+      expect(client.getUser({ params: { id: 1 } })).type.toBe<
+        Effect.Effect<{ readonly id: string }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client.health()).type.toBe<
+        Effect.Effect<{ readonly ok: boolean }, HttpClientError.HttpClientError | Schema.SchemaError>
+      >()
+      expect(client).type.not.toHaveProperty("users")
+      expect(client).type.not.toHaveProperty("system")
+    })
   })
 
   describe("Client.Group", () => {
