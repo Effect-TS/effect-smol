@@ -23,10 +23,10 @@ Endpoint declaration costs now grow with a lower slope:
 
 | endpoints |  before |  after |
 | --------: | ------: | -----: |
-|        10 |   4,815 |  2,970 |
-|        50 |  16,975 |  9,570 |
-|       100 |  32,175 | 17,820 |
-|       500 | 153,775 | 83,820 |
+|        10 |   4,815 |  2,827 |
+|        50 |  16,975 |  9,307 |
+|       100 |  32,175 | 17,407 |
+|       500 | 153,775 | 82,207 |
 
 `HttpApiBuilder` handler registration avoids the previous non-linear blow-up.
 For complete handler registration, `handleAll` is measured against the
@@ -34,29 +34,29 @@ equivalent fluent `handle` chain on the same endpoint set:
 
 | fixture              | before fluent | after fluent | `handleAll` |
 | -------------------- | ------------: | -----------: | ----------: |
-| 10 endpoints         |        32,523 |        8,643 |       6,107 |
-| 50 endpoints         |       560,763 |       61,163 |      22,467 |
-| 100 endpoints        |     2,139,063 |      180,813 |      42,917 |
-| 500 endpoints        | OOM / SIGKILL |    3,298,013 |     206,517 |
-| 500 eps, two batches | OOM / SIGKILL |    3,298,013 |     225,474 |
+| 10 endpoints         |        32,523 |       11,579 |       9,146 |
+| 50 endpoints         |       560,763 |       63,699 |      25,106 |
+| 100 endpoints        |     2,139,063 |      182,849 |      45,056 |
+| 500 endpoints        | OOM / SIGKILL |    3,296,049 |     204,656 |
+| 500 eps, two batches | OOM / SIGKILL |    3,296,049 |     223,613 |
 
 Generated-client type production also improves for the hot method-building
 paths:
 
 | fixture                                 |  before |   after |
 | --------------------------------------- | ------: | ------: |
-| client methods, 500 endpoints           | 248,788 | 181,843 |
-| top-level client methods, 500 endpoints | 243,047 | 185,754 |
-| client endpoint method, 500 endpoints   |  67,890 |  61,001 |
-| client groups, 100 groups x 5 endpoints |  70,725 |  71,844 |
+| client methods, 500 endpoints           | 248,788 | 243,193 |
+| top-level client methods, 500 endpoints | 243,047 | 250,371 |
+| client endpoint method, 500 endpoints   |  67,890 | 112,320 |
+| client groups, 100 groups x 5 endpoints |  70,725 | 136,491 |
 
 URL builder types now avoid repeatedly expanding the full API/group shape:
 
-| fixture                              |  before |  after |
-| ------------------------------------ | ------: | -----: |
-| URL builder, 500 endpoints           | 213,329 | 95,070 |
-| top-level URL builder, 500 endpoints | 209,118 | 97,039 |
-| builder endpoint, 500 endpoints      |  66,894 | 57,845 |
+| fixture                              |  before |   after |
+| ------------------------------------ | ------: | ------: |
+| URL builder, 500 endpoints           | 213,329 | 151,129 |
+| top-level URL builder, 500 endpoints | 209,118 | 156,734 |
+| builder endpoint, 500 endpoints      |  66,894 | 111,089 |
 
 ## Breaking Changes
 
@@ -122,11 +122,13 @@ group, and endpoint types.
 - `HttpApiEndpoint.HttpApiEndpoint` now stores lightweight phantom metadata for middleware and request shapes: `~Middleware`, `~MiddlewareServices`, `~Request`, and `~RequestRaw`. Its type identifier field is now `readonly [TypeId]: typeof TypeId`.
 - `HttpApiEndpoint.Constraint` is now a lightweight structural endpoint constraint and does not extend `Pipeable`; values typed only as `HttpApiEndpoint.Constraint` do not expose `.pipe`.
 - `HttpApiEndpoint.AddError` has been removed; it was not used internally by the `HttpApi` implementation.
-- `HttpApiEndpoint.Json` and `HttpApiEndpoint.StringTree` have been renamed to `HttpApiEndpoint.CodecJson` and `HttpApiEndpoint.CodecStringTree`.
+- `HttpApiEndpoint.Json` and `HttpApiEndpoint.StringTree` have been removed in
+  favor of the canonical `Schema.toCodecJson` and `Schema.toCodecStringTree`
+  types.
 - Omitted request-part metadata now remains `never` instead of being wrapped as
-  `HttpApiEndpoint.CodecStringTree<never>`; codec metadata is applied only when
+  `Schema.toCodecStringTree<never>`; codec metadata is applied only when
   a params, query, payload, or headers schema is present.
-- Success metadata now applies `HttpApiEndpoint.CodecJson` only to buffered
+- Success metadata now applies `Schema.toCodecJson` only to buffered
   success schemas and preserves stream success schemas unchanged, including
   mixed buffered and streaming success arrays.
 - Handler request parts are now flattened with `Struct.Simplify`, improving

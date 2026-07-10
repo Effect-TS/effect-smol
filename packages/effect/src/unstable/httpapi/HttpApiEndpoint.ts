@@ -82,15 +82,15 @@ type ExtractStreamSuccess<S extends SuccessConstraint> = UnwrapReadonlyArray<S> 
   : never
 
 type ToSuccessCodec<S extends SuccessConstraint> = [ExtractBufferedSuccess<S>] extends [never] ? ExtractStreamSuccess<S>
-  : CodecJson<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
+  : Schema.toCodecJson<ExtractBufferedSuccess<S>> | ExtractStreamSuccess<S>
 
 type ToJsonCodec<S> = [S] extends [never] ? never
-  : [S] extends [Schema.Constraint] ? CodecJson<S>
+  : [S] extends [Schema.Constraint] ? Schema.toCodecJson<S>
   : never
 
 type ToStringTreeCodec<S> = [S] extends [never] ? never
-  : [S] extends [Schema.Struct.Fields] ? CodecStringTree<Schema.Struct<S>>
-  : [S] extends [Schema.Constraint] ? CodecStringTree<S>
+  : [S] extends [Schema.Struct.Fields] ? Schema.toCodecStringTree<Schema.Struct<S>>
+  : [S] extends [Schema.Constraint] ? Schema.toCodecStringTree<S>
   : never
 
 type RequestFromParts<Endpoint, ParamsType, QueryType, PayloadType, HeadersType> =
@@ -1082,33 +1082,6 @@ type ToSchema<S extends Schema.Struct.Fields | Schema.Constraint | ReadonlyArray
   Schema.Struct.Fields ? Schema.Struct<S>
   : S extends ReadonlyArray<Schema.Constraint> ? S[number]
   : S
-
-/**
- * A schema codec that decodes and encodes the schema's value type through JSON
- * transport values.
- *
- * @category Codecs
- * @since 4.0.0
- */
-export interface CodecJson<S extends Schema.Constraint>
-  extends Schema.Codec<S["Type"], Schema.Json, S["DecodingServices"], S["EncodingServices"]>
-{}
-
-/**
- * A schema codec that decodes and encodes the schema's value type through
- * `Schema.StringTree` transport values.
- *
- * @category Codecs
- * @since 4.0.0
- */
-export interface CodecStringTree<S extends Schema.Constraint> extends
-  Schema.Codec<
-    S["Type"],
-    Schema.StringTree,
-    S["DecodingServices"],
-    S["EncodingServices"]
-  >
-{}
 
 function ensureStruct(
   params: Schema.Struct.Fields | Schema.Top | undefined,
