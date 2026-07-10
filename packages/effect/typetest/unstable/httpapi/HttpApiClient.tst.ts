@@ -15,8 +15,8 @@ import { describe, expect, it } from "tstyche"
 type ResponseMode = HttpApiEndpoint.ClientResponseMode
 
 describe("HttpApiClient", () => {
-  describe("path option", () => {
-    it("should accept a record of fields", () => {
+  describe("params", () => {
+    it("derives request params from a field record", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -38,8 +38,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("query option", () => {
-    it("should accept a record of fields", () => {
+  describe("query", () => {
+    it("derives request query from a field record", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -62,7 +62,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("urlBuilder", () => {
-    it("should mirror client shape and use schema input types", () => {
+    it("mirrors the client shape and uses schema input types", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("users")
@@ -110,7 +110,7 @@ describe("HttpApiClient", () => {
       expect(builder.users).type.not.toHaveProperty("missing")
     })
 
-    it("should support prefixes and top-level endpoints", () => {
+    it("preserves prefixes and exposes top-level endpoints", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("users")
@@ -141,8 +141,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("top-level group", () => {
-    it("should expose top-level endpoints directly on the generated client", () => {
+  describe("top-level groups", () => {
+    it("exposes top-level endpoints directly on the generated client", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("users")
@@ -184,7 +184,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("Client.Group", () => {
-    it("should derive a group client from a concrete group", () => {
+    it("derives a group client from a concrete group", () => {
       const Users = HttpApiGroup.make("users")
         .add(
           HttpApiEndpoint.get("getUser", "/users/:id", {
@@ -208,8 +208,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("headers option", () => {
-    it("should accept a record of fields", () => {
+  describe("headers", () => {
+    it("derives request headers from a field record", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -231,8 +231,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("payload option", () => {
-    it("should default to void", () => {
+  describe("payload", () => {
+    it("defaults requests without a payload to void", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -247,7 +247,7 @@ describe("HttpApiClient", () => {
       expect<Parameters<typeof f>[0]>().type.toBe<void | { readonly responseMode?: ResponseMode } | undefined>()
     })
 
-    it("should accept a record of fields", () => {
+    it("derives the request payload from a field record", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -268,7 +268,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should accept a multipart", () => {
+    it("uses FormData for multipart payloads", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -287,7 +287,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should accept a multipart stream", () => {
+    it("uses FormData for streaming multipart payloads", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -307,8 +307,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("success option", () => {
-    it("should accept a schema", () => {
+  describe("success", () => {
+    it("decodes a success schema", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -329,7 +329,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should accept an array of schemas", () => {
+    it("decodes multiple success schemas", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -356,7 +356,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should infer return type from responseMode", () => {
+    it("infers return types from responseMode", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -390,7 +390,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should preserve method parameter introspection for all response modes", () => {
+    it("preserves method parameters across response modes", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -419,7 +419,7 @@ describe("HttpApiClient", () => {
       expect(f).type.not.toBeCallableWith({ params: { id: "1" } })
     })
 
-    it("should preserve responseMode inference for generic callers", () => {
+    it("preserves responseMode inference for generic callers", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -447,7 +447,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should return decoded streams for StreamSse successes", () => {
+    it("returns decoded streams for StreamSse successes", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -492,7 +492,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should return decoded data streams for StreamSse data successes", () => {
+    it("returns decoded data streams for StreamSse data successes", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -528,7 +528,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should return decoded streams without typed stream errors when StreamSse error is omitted", () => {
+    it("omits typed stream errors when the StreamSse error schema is omitted", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -562,7 +562,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should return decoded streams for StreamUint8Array successes", () => {
+    it("returns decoded streams for StreamUint8Array successes", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -593,7 +593,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should not require StreamSse success decoding services in response-only mode", () => {
+    it("omits StreamSse decoding services in response-only mode", () => {
       type Event = { readonly event: "user.created"; readonly data: string }
       type StreamError = { readonly reason: string }
 
@@ -631,8 +631,8 @@ describe("HttpApiClient", () => {
     })
   })
 
-  describe("error option", () => {
-    it("should default to client and schema errors", () => {
+  describe("error", () => {
+    it("defaults to client and schema errors", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -652,7 +652,7 @@ describe("HttpApiClient", () => {
       >()
     })
 
-    it("should accept a schema", () => {
+    it("includes errors decoded from the endpoint schema", () => {
       const Api = HttpApi.make("Api")
         .add(
           HttpApiGroup.make("group")
@@ -677,7 +677,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("makeWith", () => {
-    it("should normalize the default HttpClientError for generic clients", () => {
+    it("normalizes the default HttpClientError for generic clients", () => {
       const makeClient = <ApiId extends string, Groups extends HttpApiGroup.Constraint>(
         api: HttpApi.HttpApi<ApiId, Groups>,
         httpClient: HttpClient.HttpClient
@@ -693,7 +693,7 @@ describe("HttpApiClient", () => {
       )
     })
 
-    it("should preserve custom client errors when normalizing HttpClientError", () => {
+    it("preserves custom client errors when normalizing HttpClientError", () => {
       class CustomClientError extends Schema.ErrorClass<CustomClientError>("CustomClientError")({
         _tag: Schema.tag("CustomClientError")
       }) {}
@@ -715,7 +715,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("endpoint", () => {
-    it("should select the endpoint and preserve request and response types", () => {
+    it("selects an endpoint and preserves its request and response types", () => {
       const User = Schema.Struct({
         id: Schema.String,
         age: Schema.FiniteFromString
@@ -782,7 +782,7 @@ describe("HttpApiClient", () => {
       expect(searchUsers).type.not.toBeCallableWith({ params: { id: "1" }, query: { page: 1 } })
     })
 
-    it("should preserve custom http client errors and requirements", () => {
+    it("preserves custom HTTP client errors and requirements", () => {
       interface CustomService {
         readonly customService: "customService"
       }
@@ -820,7 +820,7 @@ describe("HttpApiClient", () => {
   })
 
   describe("client middleware", () => {
-    it("requiredForClient requires layer and includes required client errors", () => {
+    it("requires layers and includes errors for required client middleware", () => {
       class RequiredClientError extends Schema.ErrorClass<RequiredClientError>("RequiredClientError")({
         _tag: Schema.tag("RequiredClientError")
       }) {}
@@ -873,7 +873,7 @@ describe("HttpApiClient", () => {
       )
     })
 
-    it("requiredForClient is enforced for makeWith, group, and endpoint", () => {
+    it("enforces required middleware for makeWith, group, and endpoint", () => {
       class RequiredClientError extends Schema.ErrorClass<RequiredClientError>("RequiredClientError")({
         _tag: Schema.tag("RequiredClientError")
       }) {}

@@ -41,396 +41,406 @@ describe("HttpApiBuilder", () => {
       expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "group">>>()
     })
 
-    it("tracks handled endpoints and preserves handler request inference", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const CreateUser = Schema.Struct({
-        name: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.post("createUser", "/users", {
-              payload: CreateUser,
-              success: User
-            })
-          )
-      )
+    describe("handle", () => {
+      it("tracks registrations and preserves request inference", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const CreateUser = Schema.Struct({
+          name: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.post("createUser", "/users", {
+                payload: CreateUser,
+                success: User
+              })
+            )
+        )
 
-      const handlers = HttpApiBuilder.group(
-        Api,
-        "users",
-        (handlers) =>
-          handlers
-            .handle("getUser", ({ params }) => {
-              expect(params.id).type.toBe<string>()
-              return Effect.succeed({ id: params.id })
-            })
-            .handle("createUser", ({ payload }) => {
-              expect(payload.name).type.toBe<string>()
-              return Effect.succeed({ id: payload.name })
-            })
-      )
-
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
-    })
-
-    it("handleAll tracks handled endpoints and preserves handler request inference", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const CreateUser = Schema.Struct({
-        name: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.post("createUser", "/users", {
-              payload: CreateUser,
-              success: User
-            })
-          )
-      )
-
-      const handlers = HttpApiBuilder.group(
-        Api,
-        "users",
-        (handlers) =>
-          handlers.handleAll({
-            getUser: ({ params }) => {
-              expect(params.id).type.toBe<string>()
-              return Effect.succeed({ id: params.id })
-            },
-            createUser: {
-              handler: ({ payload }) => {
+        const handlers = HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) =>
+            handlers
+              .handle("getUser", ({ params }) => {
+                expect(params.id).type.toBe<string>()
+                return Effect.succeed({ id: params.id })
+              })
+              .handle("createUser", ({ payload }) => {
                 expect(payload.name).type.toBe<string>()
                 return Effect.succeed({ id: payload.name })
-              },
-              options: { uninterruptible: true }
-            }
-          })
-      )
+              })
+        )
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
+        expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
+      })
     })
 
-    it("handleAll supports partial handler objects and rejects unknown endpoint identifiers", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-
-      HttpApiBuilder.group(
-        Api,
-        "users",
-        (handlers) => {
-          expect(handlers.handleAll).type.not.toBeCallableWith({
-            getUser: () => Effect.succeed({ id: "id" }),
-            listUsers: () => Effect.succeed([]),
-            missing: () => Effect.succeed({ id: "id" })
-          })
-
-          return handlers.handleAll({
-            getUser: ({ params }) => Effect.succeed({ id: params.id }),
-            listUsers: () => Effect.succeed([])
-          })
-        }
-      )
-
-      const incomplete = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        handlers.handleAll({
-          getUser: ({ params }) => Effect.succeed({ id: params.id })
+    describe("handleAll", () => {
+      it("tracks registrations and preserves request inference", () => {
+        const User = Schema.Struct({
+          id: Schema.String
         })
+        const CreateUser = Schema.Struct({
+          name: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.post("createUser", "/users", {
+                payload: CreateUser,
+                success: User
+              })
+            )
+        )
 
-      expect(HttpApiBuilder.group).type.not.toBeCallableWith(
-        Api,
-        "users",
-        incomplete
-      )
+        const handlers = HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) =>
+            handlers.handleAll({
+              getUser: ({ params }) => {
+                expect(params.id).type.toBe<string>()
+                return Effect.succeed({ id: params.id })
+              },
+              createUser: {
+                handler: ({ payload }) => {
+                  expect(payload.name).type.toBe<string>()
+                  return Effect.succeed({ id: payload.name })
+                },
+                options: { uninterruptible: true }
+              }
+            })
+        )
 
-      const completeInTwoSteps = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        handlers
-          .handleAll({
+        expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
+      })
+
+      it("validates partial batches", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
+        )
+
+        HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) => {
+            expect(handlers.handleAll).type.not.toBeCallableWith({
+              getUser: () => Effect.succeed({ id: "id" }),
+              listUsers: () => Effect.succeed([]),
+              missing: () => Effect.succeed({ id: "id" })
+            })
+
+            return handlers.handleAll({
+              getUser: ({ params }) => Effect.succeed({ id: params.id }),
+              listUsers: () => Effect.succeed([])
+            })
+          }
+        )
+
+        const incomplete = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+          handlers.handleAll({
             getUser: ({ params }) => Effect.succeed({ id: params.id })
           })
-          .handleAll({
+
+        expect(HttpApiBuilder.group).type.not.toBeCallableWith(
+          Api,
+          "users",
+          incomplete
+        )
+
+        const completeInTwoSteps = (
+          handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>
+        ) =>
+          handlers
+            .handleAll({
+              getUser: ({ params }) => Effect.succeed({ id: params.id })
+            })
+            .handleAll({
+              listUsers: () => Effect.succeed([])
+            })
+
+        expect(HttpApiBuilder.group).type.toBeCallableWith(
+          Api,
+          "users",
+          completeInTwoSteps
+        )
+
+        const rejectsDuplicateAcrossBatches = (
+          handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>
+        ) => {
+          const afterGetUser = handlers.handleAll({
+            getUser: ({ params }) => Effect.succeed({ id: params.id })
+          })
+
+          expect(afterGetUser.handleAll).type.not.toBeCallableWith({
+            getUser: () => Effect.succeed({ id: "id" }),
             listUsers: () => Effect.succeed([])
           })
 
-      expect(HttpApiBuilder.group).type.toBeCallableWith(
-        Api,
-        "users",
-        completeInTwoSteps
-      )
-
-      const rejectsDuplicateAcrossBatches = (
-        handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>
-      ) => {
-        const afterGetUser = handlers.handleAll({
-          getUser: ({ params }) => Effect.succeed({ id: params.id })
-        })
-
-        expect(afterGetUser.handleAll).type.not.toBeCallableWith({
-          getUser: () => Effect.succeed({ id: "id" }),
-          listUsers: () => Effect.succeed([])
-        })
-
-        return afterGetUser.handleAll({
-          listUsers: () => Effect.succeed([])
-        })
-      }
-
-      expect(HttpApiBuilder.group).type.toBeCallableWith(
-        Api,
-        "users",
-        rejectsDuplicateAcrossBatches
-      )
-    })
-
-    it("rejects incomplete handler collections", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
-
-      expect(HttpApiBuilder.group).type.not.toBeCallableWith(
-        Api,
-        "users",
-        build
-      )
-    })
-
-    it("rejects duplicate handlers", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) => {
-        const afterGetUser = handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
-
-        expect(afterGetUser.handle).type.not.toBeCallableWith(
-          "getUser",
-          () => Effect.succeed({ id: "id" })
-        )
-        expect(afterGetUser.handleRaw).type.not.toBeCallableWith(
-          "getUser",
-          () => Effect.succeed({ id: "id" })
-        )
-
-        return afterGetUser.handle("listUsers", () => Effect.succeed([]))
-      }
-
-      expect(HttpApiBuilder.group).type.toBeCallableWith(
-        Api,
-        "users",
-        build
-      )
-    })
-
-    it("rejects incomplete effectful handler collections", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        Effect.succeed(handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id })))
-
-      expect(HttpApiBuilder.group).type.not.toBeCallableWith(
-        Api,
-        "users",
-        build
-      )
-    })
-
-    it("accepts complete effectful handler collections", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-      const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
-        Effect.succeed(
-          handlers
-            .handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
-            .handle("listUsers", () => Effect.succeed([]))
-        )
-
-      expect(HttpApiBuilder.group).type.toBeCallableWith(
-        Api,
-        "users",
-        build
-      )
-    })
-
-    it("rejects unknown endpoint identifiers and duplicate handlers", () => {
-      const User = Schema.Struct({
-        id: Schema.String
-      })
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("users")
-          .add(
-            HttpApiEndpoint.get("getUser", "/users/:id", {
-              params: {
-                id: Schema.String
-              },
-              success: User
-            })
-          )
-          .add(
-            HttpApiEndpoint.get("listUsers", "/users", {
-              success: Schema.Array(User)
-            })
-          )
-      )
-
-      HttpApiBuilder.group(
-        Api,
-        "users",
-        (handlers) => {
-          expect(handlers.handle).type.not.toBeCallableWith(
-            "missing",
-            () => Effect.succeed({ id: "id" })
-          )
-
-          const remaining = handlers.handle(
-            "getUser",
-            ({ params }) => Effect.succeed({ id: params.id })
-          )
-
-          expect(remaining.handle).type.not.toBeCallableWith(
-            "getUser",
-            () => Effect.succeed({ id: "id" })
-          )
-
-          return remaining.handle("listUsers", () => Effect.succeed([]))
+          return afterGetUser.handleAll({
+            listUsers: () => Effect.succeed([])
+          })
         }
-      )
+
+        expect(HttpApiBuilder.group).type.toBeCallableWith(
+          Api,
+          "users",
+          rejectsDuplicateAcrossBatches
+        )
+      })
     })
 
-    it("preserves raw handler request inference", () => {
-      const Api = HttpApi.make("api").add(
-        HttpApiGroup.make("files").add(
-          HttpApiEndpoint.post("upload", "/files/:id", {
-            params: {
-              id: Schema.String
-            },
-            payload: Schema.String,
-            success: Schema.String
-          })
+    describe("handler validation", () => {
+      it("rejects incomplete synchronous handler collections", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
         )
-      )
+        const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+          handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
 
-      const handlers = HttpApiBuilder.group(
-        Api,
-        "files",
-        (handlers) =>
-          handlers.handleRaw("upload", (request) => {
-            expect(request.params.id).type.toBe<string>()
-            expect(request.request).type.toBe<HttpServerRequest>()
-            expect(request).type.not.toHaveProperty("payload")
-            return Effect.succeed("ok")
-          })
-      )
+        expect(HttpApiBuilder.group).type.not.toBeCallableWith(
+          Api,
+          "users",
+          build
+        )
+      })
 
-      expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "files">>>()
+      it("rejects duplicate handlers", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
+        )
+        const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) => {
+          const afterGetUser = handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
+
+          expect(afterGetUser.handle).type.not.toBeCallableWith(
+            "getUser",
+            () => Effect.succeed({ id: "id" })
+          )
+          expect(afterGetUser.handleRaw).type.not.toBeCallableWith(
+            "getUser",
+            () => Effect.succeed({ id: "id" })
+          )
+
+          return afterGetUser.handle("listUsers", () => Effect.succeed([]))
+        }
+
+        expect(HttpApiBuilder.group).type.toBeCallableWith(
+          Api,
+          "users",
+          build
+        )
+      })
+
+      it("rejects incomplete effectful handler collections", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
+        )
+        const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+          Effect.succeed(handlers.handle("getUser", ({ params }) => Effect.succeed({ id: params.id })))
+
+        expect(HttpApiBuilder.group).type.not.toBeCallableWith(
+          Api,
+          "users",
+          build
+        )
+      })
+
+      it("accepts complete effectful handler collections", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
+        )
+        const build = (handlers: HttpApiBuilder.Handlers.FromGroup<NonNullable<typeof Api.groups.users>>) =>
+          Effect.succeed(
+            handlers
+              .handle("getUser", ({ params }) => Effect.succeed({ id: params.id }))
+              .handle("listUsers", () => Effect.succeed([]))
+          )
+
+        expect(HttpApiBuilder.group).type.toBeCallableWith(
+          Api,
+          "users",
+          build
+        )
+      })
+
+      it("limits handle registrations to remaining endpoint identifiers", () => {
+        const User = Schema.Struct({
+          id: Schema.String
+        })
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users")
+            .add(
+              HttpApiEndpoint.get("getUser", "/users/:id", {
+                params: {
+                  id: Schema.String
+                },
+                success: User
+              })
+            )
+            .add(
+              HttpApiEndpoint.get("listUsers", "/users", {
+                success: Schema.Array(User)
+              })
+            )
+        )
+
+        HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) => {
+            expect(handlers.handle).type.not.toBeCallableWith(
+              "missing",
+              () => Effect.succeed({ id: "id" })
+            )
+
+            const remaining = handlers.handle(
+              "getUser",
+              ({ params }) => Effect.succeed({ id: params.id })
+            )
+
+            expect(remaining.handle).type.not.toBeCallableWith(
+              "getUser",
+              () => Effect.succeed({ id: "id" })
+            )
+
+            return remaining.handle("listUsers", () => Effect.succeed([]))
+          }
+        )
+      })
+    })
+
+    describe("handleRaw", () => {
+      it("preserves request inference", () => {
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("files").add(
+            HttpApiEndpoint.post("upload", "/files/:id", {
+              params: {
+                id: Schema.String
+              },
+              payload: Schema.String,
+              success: Schema.String
+            })
+          )
+        )
+
+        const handlers = HttpApiBuilder.group(
+          Api,
+          "files",
+          (handlers) =>
+            handlers.handleRaw("upload", (request) => {
+              expect(request.params.id).type.toBe<string>()
+              expect(request.request).type.toBe<HttpServerRequest>()
+              expect(request).type.not.toHaveProperty("payload")
+              return Effect.succeed("ok")
+            })
+        )
+
+        expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "files">>>()
+      })
     })
   })
 
   describe("endpoint", () => {
-    it("middleware & services", () => {
+    it("preserves selected endpoint middleware and service requirements", () => {
       const api = HttpApi.make("api").add(
         HttpApiGroup.make("group").add(
           HttpApiEndpoint.get("getUser", "/users/:id", {

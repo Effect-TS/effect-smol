@@ -17,7 +17,7 @@ describe("HttpApiMiddleware", () => {
       expect<HttpApiMiddleware.ErrorServicesDecode<M>>().type.toBe<never>()
     })
 
-    it("error", () => {
+    it("derives endpoint errors from an error schema", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String
       }) {}
@@ -39,7 +39,7 @@ describe("HttpApiMiddleware", () => {
       expect<HttpApiMiddleware.ErrorServicesDecode<M>>().type.toBe<never>()
     })
 
-    it("security", () => {
+    it("tracks security without adding middleware errors", () => {
       class M extends HttpApiMiddleware.Service<M>()("M", {
         security: {
           cookie: HttpApiSecurity.apiKey({
@@ -56,7 +56,7 @@ describe("HttpApiMiddleware", () => {
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
 
-    it("error + security", () => {
+    it("tracks error and security metadata together", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Logger", {
         error: Schema.String,
         security: {
@@ -74,7 +74,7 @@ describe("HttpApiMiddleware", () => {
       expect(M.security).type.toBe<{ readonly cookie: HttpApiSecurity.ApiKey }>()
     })
 
-    it("error array", () => {
+    it("derives an endpoint error union from an error schema array", () => {
       class M extends HttpApiMiddleware.Service<M>()("Http/Auth", {
         error: [HttpApiError.UnauthorizedNoContent, HttpApiError.ForbiddenNoContent]
       }) {}

@@ -15,7 +15,7 @@ describe("HttpApiEndpoint", () => {
   })
 
   describe("Identifier", () => {
-    it("should extract endpoint identifiers", () => {
+    it("extracts endpoint identifiers", () => {
       const a = HttpApiEndpoint.get("a", "/a")
       const b = HttpApiEndpoint.get("b", "/b")
 
@@ -23,15 +23,15 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.Identifier<typeof a | typeof b>>().type.toBe<"a" | "b">()
     })
 
-    it("should expose the identifier literal", () => {
+    it("exposes the identifier literal", () => {
       const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
 
       expect(endpoint.identifier).type.toBe<"getUser">()
     })
   })
 
-  describe("class-like endpoint", () => {
-    it("can be extended as a class", () => {
+  describe("class extension", () => {
+    it("supports extending an endpoint as a class", () => {
       const endpoint = HttpApiEndpoint.get("getUser", "/users/:id")
       class GetUser extends endpoint {}
 
@@ -41,13 +41,13 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("params option", () => {
-    it("should default to never", () => {
+  describe("params", () => {
+    it("defaults to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       expect(endpoint["~Params"]).type.toBe<never>()
     })
 
-    it("should accept a record of fields", () => {
+    it("accepts a field record", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         params: {
           id: Schema.Finite
@@ -60,7 +60,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept a Struct", () => {
+    it("accepts a Struct schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         params: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
@@ -72,13 +72,13 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("query option", () => {
-    it("should default to never", () => {
+  describe("query", () => {
+    it("defaults to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       expect(endpoint["~Query"]).type.toBe<never>()
     })
 
-    it("should accept a record of fields", () => {
+    it("accepts a field record", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: {
           id: Schema.Finite
@@ -87,7 +87,7 @@ describe("HttpApiEndpoint", () => {
       expect(endpoint["~Query"]).type.toBe<Schema.toCodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
     })
 
-    it("should accept a Struct.Record", () => {
+    it("accepts a Struct record", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: Struct.Record(["a", "b"], Schema.Finite)
       })
@@ -96,7 +96,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept a Struct", () => {
+    it("accepts a Struct schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         query: Schema.Struct({ a: Schema.Finite, b: Schema.Finite })
       })
@@ -108,13 +108,13 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("headers option", () => {
-    it("should default to never", () => {
+  describe("headers", () => {
+    it("defaults to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       expect(endpoint["~Headers"]).type.toBe<never>()
     })
 
-    it("should accept a record of fields", () => {
+    it("accepts a field record", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         headers: {
           id: Schema.FiniteFromString
@@ -125,7 +125,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept a Struct", () => {
+    it("accepts a Struct schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         headers: Schema.Struct({ a: Schema.FiniteFromString, b: Schema.FiniteFromString })
       })
@@ -137,14 +137,14 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("payload option", () => {
-    it("should default to never", () => {
+  describe("payload", () => {
+    it("defaults to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       expect(endpoint["~Payload"]).type.toBe<never>()
     })
 
     describe("GET", () => {
-      it("should accept a record of fields", () => {
+      it("accepts a field record", () => {
         const endpoint = HttpApiEndpoint.get("a", "/a", {
           payload: {
             id: Schema.Finite
@@ -153,7 +153,7 @@ describe("HttpApiEndpoint", () => {
         expect(endpoint["~Payload"]).type.toBe<Schema.toCodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
-      it("should not accept any other schema", () => {
+      it("rejects non-field schemas", () => {
         expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
@@ -161,7 +161,7 @@ describe("HttpApiEndpoint", () => {
     })
 
     describe("POST", () => {
-      it("should accept a schema", () => {
+      it("accepts a schema", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: Schema.Struct({ a: Schema.String })
         })
@@ -170,7 +170,7 @@ describe("HttpApiEndpoint", () => {
         >()
       })
 
-      it("should accept an array of schemas", () => {
+      it("accepts multiple schemas", () => {
         const endpoint = HttpApiEndpoint.post("a", "/a", {
           payload: [
             Schema.Struct({ a: Schema.String }), // application/json
@@ -187,7 +187,7 @@ describe("HttpApiEndpoint", () => {
     })
 
     describe("HEAD", () => {
-      it("should accept a record of fields", () => {
+      it("accepts a field record", () => {
         const endpoint = HttpApiEndpoint.head("a", "/a", {
           payload: {
             id: Schema.Finite
@@ -196,7 +196,7 @@ describe("HttpApiEndpoint", () => {
         expect(endpoint["~Payload"]).type.toBe<Schema.toCodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
-      it("should not accept any other schema", () => {
+      it("rejects non-field schemas", () => {
         expect(HttpApiEndpoint.head).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
@@ -204,7 +204,7 @@ describe("HttpApiEndpoint", () => {
     })
 
     describe("OPTIONS", () => {
-      it("should accept a record of fields", () => {
+      it("accepts a field record", () => {
         const endpoint = HttpApiEndpoint.options("a", "/a", {
           payload: {
             id: Schema.Finite
@@ -213,7 +213,7 @@ describe("HttpApiEndpoint", () => {
         expect(endpoint["~Payload"]).type.toBe<Schema.toCodecStringTree<Schema.Struct<{ id: Schema.Finite }>>>()
       })
 
-      it("should not accept any other schema", () => {
+      it("rejects non-field schemas", () => {
         expect(HttpApiEndpoint.options).type.not.toBeCallableWith("a", "/a", {
           payload: Schema.Struct({ id: Schema.String })
         })
@@ -221,8 +221,8 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("disableCodecs option", () => {
-    it("should default request parts to never", () => {
+  describe("disableCodecs", () => {
+    it("leaves omitted request parts as never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         disableCodecs: true
       })
@@ -233,7 +233,7 @@ describe("HttpApiEndpoint", () => {
       expect(endpoint["~Payload"]).type.toBe<never>()
     })
 
-    it("should preserve schemas without codec wrappers", () => {
+    it("preserves request schemas without codec wrappers", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         disableCodecs: true,
         params: {
@@ -255,8 +255,8 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("Handler", () => {
-    it("should expose decoded request parts through Request", () => {
+  describe("request and handler types", () => {
+    it("derives decoded request parts with Request", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         params: {
           id: Schema.String
@@ -282,7 +282,7 @@ describe("HttpApiEndpoint", () => {
       expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
     })
 
-    it("should expose decoded request parts through RequestRaw without payload", () => {
+    it("omits the payload from RequestRaw", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         params: {
           id: Schema.String
@@ -300,7 +300,7 @@ describe("HttpApiEndpoint", () => {
       expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
     })
 
-    it("should expose decoded request parts to normal handlers", () => {
+    it("passes decoded request parts to Handler", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         params: {
           id: Schema.String
@@ -326,7 +326,7 @@ describe("HttpApiEndpoint", () => {
       expect<Request["endpoint"]>().type.toBe<typeof endpoint>()
     })
 
-    it("should expose decoded request parts to raw handlers without payload", () => {
+    it("omits the payload from HandlerRaw requests", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         params: {
           id: Schema.String
@@ -345,20 +345,20 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("success option", () => {
-    it("should default to HttpApiSchema.NoContent", () => {
+  describe("success", () => {
+    it("defaults to HttpApiSchema.NoContent", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a")
       expect(endpoint["~Success"]).type.toBe<Schema.toCodecJson<typeof HttpApiSchema.NoContent>>()
     })
 
-    it("should accept a schema", () => {
+    it("applies the JSON codec to a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: Schema.Struct({ a: Schema.String })
       })
       expect(endpoint["~Success"]).type.toBe<Schema.toCodecJson<Schema.Struct<{ readonly a: Schema.String }>>>()
     })
 
-    it("should accept an array of schemas", () => {
+    it("applies the JSON codec to multiple buffered schemas", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: [
           Schema.Struct({ a: Schema.String }), // application/json
@@ -371,7 +371,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept mixed buffered and stream schemas", () => {
+    it("preserves mixed buffered and stream schemas", () => {
       const stream = HttpApiSchema.StreamSse({
         data: Schema.Struct({ token: Schema.String }),
         error: Schema.Struct({ reason: Schema.String })
@@ -389,7 +389,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept StreamSse", () => {
+    it("preserves StreamSse schemas", () => {
       const stream = HttpApiSchema.StreamSse({
         events: Schema.Struct({
           event: Schema.Literal("user.created"),
@@ -403,7 +403,7 @@ describe("HttpApiEndpoint", () => {
       expect(endpoint["~Success"]).type.toBe<typeof stream>()
     })
 
-    it("should map StreamSse to stream success helper and handler types", () => {
+    it("maps StreamSse to stream success and handler types", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamSse({
           events: Schema.Struct({
@@ -427,7 +427,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should map StreamSse data mode to data stream helper and handler types", () => {
+    it("maps StreamSse data mode to data stream and handler types", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamSse({
           data: Schema.Struct({ id: Schema.String }),
@@ -445,7 +445,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should map StreamSse without error schema to never stream errors", () => {
+    it("maps an omitted StreamSse error schema to never", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamSse({
           data: Schema.Struct({ id: Schema.String })
@@ -461,7 +461,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept StreamUint8Array", () => {
+    it("preserves StreamUint8Array schemas", () => {
       const stream = HttpApiSchema.StreamUint8Array()
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: stream
@@ -469,7 +469,7 @@ describe("HttpApiEndpoint", () => {
       expect(endpoint["~Success"]).type.toBe<typeof stream>()
     })
 
-    it("should map StreamUint8Array to stream success helper and handler types", () => {
+    it("maps StreamUint8Array to stream success and handler types", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamUint8Array()
       })
@@ -485,7 +485,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should include StreamSse event and error schema services", () => {
+    it("includes StreamSse event and error schema services", () => {
       type Event = { readonly event: "user.created"; readonly data: string }
       type StreamError = { readonly reason: string }
 
@@ -498,8 +498,10 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.ServerServices<typeof endpoint>>().type.toBe<"EventsEncoding" | "ErrorEncoding">()
       expect<HttpApiEndpoint.ClientServices<typeof endpoint>>().type.toBe<"EventsDecoding" | "ErrorDecoding">()
     })
+  })
 
-    it("should include endpoint and middleware error decoding services", () => {
+  describe("error services", () => {
+    it("includes endpoint and middleware decoding services", () => {
       type EndpointError = { readonly reason: string }
       type MiddlewareError = { readonly reason: string }
 
@@ -519,7 +521,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should include endpoint and middleware error encoding services", () => {
+    it("includes endpoint and middleware encoding services", () => {
       type EndpointError = { readonly reason: string }
       type MiddlewareError = { readonly reason: string }
 
@@ -540,8 +542,8 @@ describe("HttpApiEndpoint", () => {
     })
   })
 
-  describe("error option", () => {
-    it("should accept a schema", () => {
+  describe("error", () => {
+    it("applies the JSON codec to a schema", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         error: Schema.Struct({ a: Schema.String })
       })
@@ -552,7 +554,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should accept an array of schemas", () => {
+    it("applies the JSON codec to multiple schemas", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         error: [
           Schema.Struct({ a: Schema.String }), // application/json
@@ -569,7 +571,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should include endpoint and middleware errors", () => {
+    it("combines endpoint and middleware errors", () => {
       type EndpointError = { readonly _tag: "EndpointError" }
       type MiddlewareError = { readonly _tag: "MiddlewareError" }
 
@@ -589,7 +591,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should infer endpoint errors with mixed buffered and StreamSse success schemas", () => {
+    it("preserves endpoint errors with mixed buffered and StreamSse successes", () => {
       const endpoint = HttpApiEndpoint.post("completions", "/completions", {
         payload: Schema.Struct({ prompt: Schema.String }),
         success: [
@@ -608,7 +610,7 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.Errors<typeof endpoint>>().type.toBe<HttpApiError.BadRequest>()
     })
 
-    it("should infer a single endpoint error with StreamSse success", () => {
+    it("preserves a single endpoint error with a StreamSse success", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamSse({
           data: Schema.Struct({ token: Schema.String }),
@@ -620,7 +622,7 @@ describe("HttpApiEndpoint", () => {
       expect<HttpApiEndpoint.Errors<typeof endpoint>>().type.toBe<HttpApiError.BadRequest>()
     })
 
-    it("should infer endpoint error arrays with StreamSse success", () => {
+    it("preserves endpoint error unions with a StreamSse success", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamSse({
           data: Schema.Struct({ token: Schema.String }),
@@ -634,7 +636,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should infer endpoint error arrays with StreamSse first in a success array", () => {
+    it("preserves endpoint error unions when StreamSse is the first success", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: [
           HttpApiSchema.StreamSse({
@@ -651,7 +653,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should infer endpoint error arrays with StreamUint8Array success", () => {
+    it("preserves endpoint error unions with a StreamUint8Array success", () => {
       const endpoint = HttpApiEndpoint.get("a", "/a", {
         success: HttpApiSchema.StreamUint8Array(),
         error: [HttpApiError.BadRequest, HttpApiError.Conflict]
@@ -662,7 +664,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should infer endpoint errors with disableCodecs enabled", () => {
+    it("preserves endpoint errors when codecs are disabled", () => {
       const endpoint = HttpApiEndpoint.post("a", "/a", {
         disableCodecs: true,
         payload: Schema.Struct({ prompt: Schema.String }),
@@ -682,7 +684,7 @@ describe("HttpApiEndpoint", () => {
       >()
     })
 
-    it("should not accept streaming schemas", () => {
+    it("rejects streaming schemas", () => {
       expect(HttpApiEndpoint.get).type.not.toBeCallableWith("a", "/a", {
         error: HttpApiSchema.StreamUint8Array()
       })
