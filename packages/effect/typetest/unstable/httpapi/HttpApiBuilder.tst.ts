@@ -3,7 +3,7 @@ import type { FileSystem } from "effect/FileSystem"
 import type { Path } from "effect/Path"
 import type { Generator } from "effect/unstable/http/Etag"
 import type { HttpPlatform } from "effect/unstable/http/HttpPlatform"
-import type { RouteContext } from "effect/unstable/http/HttpRouter"
+import type { Request as HttpRouterRequest, RouteContext } from "effect/unstable/http/HttpRouter"
 import type { HttpServerRequest, ParsedSearchParams } from "effect/unstable/http/HttpServerRequest"
 import type { HttpServerResponse } from "effect/unstable/http/HttpServerResponse"
 import {
@@ -83,6 +83,32 @@ describe("HttpApiBuilder", () => {
         )
 
         expect(handlers).type.toBe<Layer.Layer<HttpApiGroup.Service<"api", "users">>>()
+      })
+
+      it("propagates handler service requirements", () => {
+        class UserRepository extends Context.Service<UserRepository, {}>()("UserRepository") {}
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users").add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              success: Schema.String
+            })
+          )
+        )
+
+        const handlers = HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) =>
+            handlers.handle(
+              "getUser",
+              Effect.fnUntraced(function*() {
+                yield* UserRepository
+                return "user"
+              })
+            )
+        )
+
+        expect<Layer.Services<typeof handlers>>().type.toBe<HttpRouterRequest<"Requires", UserRepository>>()
       })
     })
 
@@ -222,6 +248,44 @@ describe("HttpApiBuilder", () => {
           "users",
           rejectsDuplicateAcrossBatches
         )
+      })
+
+      it("propagates all handler service requirements", () => {
+        class UserRepository extends Context.Service<UserRepository, {}>()("UserRepository") {}
+        class UserPreferences extends Context.Service<UserPreferences, {}>()("UserPreferences") {}
+        const Api = HttpApi.make("api").add(
+          HttpApiGroup.make("users").add(
+            HttpApiEndpoint.get("getUser", "/users/:id", {
+              success: Schema.String
+            }),
+            HttpApiEndpoint.get("getPreferences", "/users/:id/preferences", {
+              success: Schema.String
+            })
+          )
+        )
+
+        const handlers = HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) =>
+            handlers.handleAll({
+              getUser: Effect.fnUntraced(function*() {
+                yield* UserRepository
+                return "user"
+              }),
+              getPreferences: Effect.fnUntraced(function*() {
+                yield* UserPreferences
+                return "preferences"
+              })
+            })
+        )
+
+        type Requirements =
+          | HttpRouterRequest<"Requires", UserRepository>
+          | HttpRouterRequest<"Requires", UserPreferences>
+
+        expect<Layer.Services<typeof handlers>>().type.toBeAssignableTo<Requirements>()
+        expect<Layer.Services<typeof handlers>>().type.toBeAssignableFrom<Requirements>()
       })
     })
 

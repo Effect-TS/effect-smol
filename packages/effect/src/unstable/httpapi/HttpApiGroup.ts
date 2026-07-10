@@ -261,8 +261,7 @@ export type MiddlewareClient<Group> = HttpApiEndpoint.MiddlewareClient<Endpoints
 export type MiddlewareServices<Group> = HttpApiEndpoint.MiddlewareServices<Endpoints<Group>>
 
 /**
- * Selects the endpoints in a group whose identifier matches the provided endpoint
- * identifier.
+ * Extracts the endpoint union from the group with the specified identifier.
  *
  * @category models
  * @since 4.0.0
