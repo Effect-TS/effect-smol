@@ -28,6 +28,13 @@ Endpoint declaration costs now grow with a lower slope:
 |       100 |  32,175 | 17,407 |
 |       500 | 153,775 | 82,207 |
 
+Class-like endpoint declarations are slightly cheaper than inline endpoint
+values in the same 500-endpoint fixture shape:
+
+| fixture       | inline | class-like |
+| ------------- | -----: | ---------: |
+| 500 endpoints | 82,207 |     71,850 |
+
 `HttpApiBuilder` handler registration avoids the previous non-linear blow-up.
 For complete handler registration, `handleAll` is measured against the
 equivalent fluent `handle` chain on the same endpoint set:

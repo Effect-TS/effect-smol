@@ -117,6 +117,10 @@
           "file": "suites/httpapi/fixtures/endpoint-count-500.ts"
         },
         {
+          "name": "endpoint-class-count-500",
+          "file": "suites/httpapi/fixtures/endpoint-class-count-500.ts"
+        },
+        {
           "name": "client-methods-count-500",
           "file": "suites/httpapi/fixtures/client-methods-count-500.ts"
         },

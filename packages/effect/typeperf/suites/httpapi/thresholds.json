@@ -61,5 +61,8 @@
   },
   "builder-raw-handlers-count-500": {
     "maxDelta": 3294547
+  },
+  "endpoint-class-count-500": {
+    "maxDelta": 71850
   }
 }
