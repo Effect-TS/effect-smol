@@ -483,8 +483,10 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
     case "Http": {
       return Effect.map(
         HttpServerRequest,
-        // schemeLength + space
-        (request) => Redacted.make((request.headers.authorization ?? "").slice(self.schemeLength + 1)) as any
+        (request) =>
+          Redacted.make(
+            getAuthorizationCredential(request.headers.authorization, self.scheme) ?? ""
+          ) as any
       )
     }
     case "ApiKey": {
@@ -511,24 +513,20 @@ export const securityDecode = <Security extends HttpApiSecurity.HttpApiSecurity>
         username: "",
         password: Redacted.make("")
       } as any
-      return HttpServerRequest.pipe(
-        Effect.flatMap((request) =>
-          Effect.fromResult(Encoding.decodeBase64String((request.headers.authorization ?? "").slice(basicLen)))
-        ),
-        Effect.match({
-          onFailure: () => empty,
-          onSuccess: (header) => {
-            const parts = header.split(":")
-            if (parts.length !== 2) {
-              return empty
-            }
-            return {
-              username: parts[0],
-              password: Redacted.make(parts[1])
-            } as any
-          }
-        })
-      )
+      return Effect.map(HttpServerRequest, (request) => {
+        const encoded = getAuthorizationCredential(request.headers.authorization, basicScheme)
+        if (encoded === undefined) return empty
+        const decoded = Result.getOrUndefined(Encoding.decodeBase64String(encoded))
+        if (decoded === undefined) return empty
+        // RFC 7617, Section 2: only the first colon separates the user-id from the password.
+        // https://www.rfc-editor.org/rfc/rfc7617.html#section-2
+        const separator = decoded.indexOf(":")
+        if (separator === -1) return empty
+        return {
+          username: decoded.slice(0, separator),
+          password: Redacted.make(decoded.slice(separator + 1))
+        } as any
+      })
     }
   }
 }
@@ -559,7 +557,29 @@ export const securitySetCookie = (
 // Internal
 // -----------------------------------------------------------------------------
 
-const basicLen = `Basic `.length
+const basicScheme = "Basic"
+
+function getAuthorizationCredential(
+  authorization: string | undefined,
+  scheme: string
+): string | undefined {
+  const schemeLength = scheme.length
+  // RFC 9110, Section 11.1: schemes are case-insensitive and credentials follow 1*SP.
+  // https://www.rfc-editor.org/rfc/rfc9110.html#section-11.1
+  if (
+    authorization === undefined ||
+    authorization.length <= schemeLength ||
+    authorization.charCodeAt(schemeLength) !== 32 ||
+    authorization.slice(0, schemeLength).toLowerCase() !== scheme.toLowerCase()
+  ) {
+    return undefined
+  }
+  let credentialStart = schemeLength + 1
+  while (authorization.charCodeAt(credentialStart) === 32) {
+    credentialStart++
+  }
+  return credentialStart === authorization.length ? undefined : authorization.slice(credentialStart)
+}
 
 const registerHandler = (
   self: Handlers<any, any, any>,
