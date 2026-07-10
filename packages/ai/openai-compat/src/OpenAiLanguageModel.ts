@@ -1712,7 +1712,7 @@ const toAssistantChatMessageContent = (
     readonly type: string
     readonly [x: string]: unknown
   }>
-): string | null => {
+): string => {
   let text = ""
   for (const part of content) {
     if (part.type === "output_text" && typeof part.text === "string") {
@@ -1722,7 +1722,7 @@ const toAssistantChatMessageContent = (
       text += part.refusal
     }
   }
-  return text.length > 0 ? text : null
+  return text
 }
 
 const toChatMessageContent = (
