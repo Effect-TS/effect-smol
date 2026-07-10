@@ -208,7 +208,7 @@ export const annotations: (
   transform: Transform
 })
 
-const apiCache = new WeakMap<HttpApi.Any, OpenAPISpec>()
+const apiCache = new WeakMap<HttpApi.Constraint, OpenAPISpec>()
 
 /**
  * This function checks if a given tag exists within the provided context. If
@@ -246,7 +246,7 @@ function processAnnotation<Services, S, I>(
  * @category constructors
  * @since 4.0.0
  */
-export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
+export function fromApi<Id extends string, Groups extends HttpApiGroup.Constraint>(
   api: HttpApi.HttpApi<Id, Groups>
 ): OpenAPISpec {
   const cached = apiCache.get(api)
@@ -331,7 +331,7 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
         operationId: Context.getOrElse(
           endpoint.annotations,
           Identifier,
-          () => group.topLevel ? endpoint.name : `${group.identifier}.${endpoint.name}`
+          () => group.topLevel ? endpoint.identifier : `${group.identifier}.${endpoint.identifier}`
         ),
         parameters: [],
         security: [],
@@ -340,31 +340,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       const path = endpoint.path.replace(/:(\w+)\??/g, "{$1}")
       const method = endpoint.method.toLowerCase() as OpenAPISpecMethodName
-
-      function processRequestBodies(payloadMap: HttpApiEndpoint.PayloadMap) {
-        if (payloadMap.size > 0) {
-          const c: OpenApiSpecContent = {}
-          let hasContent = false
-          payloadMap.forEach(({ encoding, schemas }, contentType) => {
-            const filtered = schemas.filter((s) => !HttpApiSchema.isNoContent(s.ast))
-            if (filtered.length === 0) return
-            hasContent = true
-            const asts = filtered.map(SchemaAST.getAST)
-            const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
-            pathOps.push({
-              _tag: "schema",
-              ast: toEncodingAST(ast, encoding._tag),
-              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
-            })
-            c[contentType] = {
-              schema: {}
-            }
-          })
-          if (hasContent) {
-            op.requestBody = { content: c, required: true }
-          }
-        }
-      }
 
       function processResponseBodies(bodies: ResponseBodies, defaultDescription: () => string) {
         for (const [status, { content, descriptions, streamContent }] of bodies) {
@@ -510,7 +485,36 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Any>(
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
       if (hasBody) {
-        processRequestBodies(endpoint.payload)
+        const schemasByContentType = new Map<string, {
+          readonly encoding: HttpApiSchema.PayloadEncoding
+          readonly schemas: Array<Schema.Top>
+        }>()
+        for (const schema of HttpApiEndpoint.getPayloadSchemas(endpoint)) {
+          if (HttpApiSchema.isNoContent(schema.ast)) continue
+          const encoding = HttpApiSchema.getPayloadEncoding(schema.ast, endpoint.method)
+          const existing = schemasByContentType.get(encoding.contentType)
+          if (existing === undefined) {
+            schemasByContentType.set(encoding.contentType, { encoding, schemas: [schema] })
+          } else {
+            existing.schemas.push(schema)
+          }
+        }
+        if (schemasByContentType.size > 0) {
+          const content: OpenApiSpecContent = {}
+          for (const [contentType, { encoding, schemas }] of schemasByContentType) {
+            const asts = schemas.map(SchemaAST.getAST)
+            const ast = asts.length === 1 ? asts[0] : new SchemaAST.Union(asts, "anyOf")
+            pathOps.push({
+              _tag: "schema",
+              ast: toEncodingAST(ast, encoding._tag),
+              path: ["paths", path, method, "requestBody", "content", contentType, "schema"]
+            })
+            content[contentType] = {
+              schema: {}
+            }
+          }
+          op.requestBody = { content, required: true }
+        }
       }
 
       processParameters(endpoint.params, "path")
@@ -627,7 +631,7 @@ type ResponseBodies = Map<
 
 const reservedStreamFailureEvent = "effect/httpapi/stream/failure"
 
-function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.AnyWithProps): ResponseBodies {
+function extractSuccessResponseBodies(endpoint: HttpApiEndpoint.Top): ResponseBodies {
   return extractResponseBodies(
     HttpApiEndpoint.getSuccessSchemas(endpoint),
     HttpApiSchema.getStatusSuccess,

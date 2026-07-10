@@ -15,6 +15,7 @@
     "coverage": "vitest --coverage",
     "check": "tsc -b tsconfig.json",
     "typeperf": "pnpm --dir packages/effect exec node typeperf/run.mjs",
+    "typeperf-compare": "pnpm --dir packages/effect exec node typeperf/compare.mjs",
     "check-recursive": "pnpm --recursive --filter \"./packages/**/*\" exec tsc -b tsconfig.json",
     "jsdocs": "effect-jsdocs",
     "lint": "pnpm jsdocs && oxlint -f unix && dprint check",
@@ -22,7 +23,7 @@
     "docgen": "pnpm --recursive --filter \"./packages/**/*\" exec docgen && node scripts/docs.mjs",
     "ai-docgen": "effect-ai-docgen ai-docs/src -o LLMS.md",
     "ai-docgen:watch": "pnpm ai-docgen --watch",
-    "test-types": "tstyche",
+    "test-types": "tstyche --target '>=5.9'",
     "changeset-version": "changeset version",
     "changeset-publish": "pnpm codemod && pnpm build && changeset publish"
   },

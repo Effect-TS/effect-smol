@@ -3,6 +3,40 @@ import { Schema } from "effect"
 import { HttpApi, HttpApiEndpoint, HttpApiGroup, HttpApiSchema, OpenApi } from "effect/unstable/httpapi"
 
 describe("OpenApi", () => {
+  it("preserves every declared payload content type for normalized equivalents", () => {
+    const profileA = "Application/Vnd.Effect+JSON; Profile=A"
+    const profileB = "application/vnd.effect+json; profile=b"
+    const Api = HttpApi.make("Api").add(
+      HttpApiGroup.make("test").add(
+        HttpApiEndpoint.post("create", "/create", {
+          payload: [
+            Schema.Struct({ a: Schema.String }).pipe(HttpApiSchema.asJson({ contentType: profileA })),
+            Schema.Struct({ b: Schema.String }).pipe(HttpApiSchema.asJson({ contentType: profileB }))
+          ]
+        })
+      )
+    )
+
+    const spec = OpenApi.fromApi(Api)
+    const content = spec.paths["/create"]?.post?.requestBody?.content
+
+    assert.isDefined(content)
+    assert.property(content, profileA)
+    assert.property(content, profileB)
+    assert.deepStrictEqual(content[profileA]?.schema, {
+      type: "object",
+      properties: { a: { type: "string" } },
+      required: ["a"],
+      additionalProperties: false
+    })
+    assert.deepStrictEqual(content[profileB]?.schema, {
+      type: "object",
+      properties: { b: { type: "string" } },
+      required: ["b"],
+      additionalProperties: false
+    })
+  })
+
   it("emits buffered and stream successes with the same status", () => {
     const Api = HttpApi.make("Api").add(
       HttpApiGroup.make("test").add(

@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
 import { Cause, Effect, Schema, Stream } from "effect"
 import { Sse } from "effect/unstable/encoding"
-import { HttpClient, HttpClientResponse } from "effect/unstable/http"
+import { HttpClient, HttpClientError, HttpClientResponse } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
 
 describe("HttpApiClient", () => {
@@ -164,6 +164,88 @@ describe("HttpApiClient", () => {
         }
         const events = yield* Stream.runCollect(stream)
         assert.deepStrictEqual(events, [{ text: "hello" }])
+      }))
+  })
+
+  describe("error responses", () => {
+    const makeClient = (response: () => Response) =>
+      HttpApiClient.makeWith(ErrorContentTypeApi, {
+        baseUrl: "http://test",
+        httpClient: clientFromResponse(response)
+      })
+
+    it.effect("selects schemas by normalized content type regardless of declaration order", () =>
+      Effect.gen(function*() {
+        for (const endpoint of ["textFirst", "jsonFirst"] as const) {
+          const jsonClient = yield* makeClient(() =>
+            new Response(JSON.stringify({ _tag: "JsonError", message: "bad request" }), {
+              status: 400,
+              headers: { "content-type": "Application/JSON; charset=utf-8" }
+            })
+          )
+          const jsonError = yield* Effect.flip(jsonClient.test[endpoint]({}))
+          assert.deepStrictEqual(jsonError, { _tag: "JsonError", message: "bad request" })
+
+          const textClient = yield* makeClient(() =>
+            new Response("bad request", {
+              status: 400,
+              headers: { "content-type": "text/plain" }
+            })
+          )
+          const textError = yield* Effect.flip(textClient.test[endpoint]({}))
+          assert.strictEqual(textError, "bad request")
+        }
+      }))
+
+    it.effect("reports unsupported error response content types", () =>
+      Effect.gen(function*() {
+        const client = yield* makeClient(() =>
+          new Response("<error />", {
+            status: 400,
+            headers: { "content-type": "application/xml" }
+          })
+        )
+
+        const exit = yield* Effect.exit(client.test.textFirst({}))
+        assert.strictEqual(exit._tag, "Failure")
+        if (exit._tag === "Failure") {
+          const errors: Array<unknown> = []
+          for (const reason of exit.cause.reasons) {
+            if (Cause.isFailReason(reason)) {
+              errors.push(reason.error)
+            }
+          }
+          assert.ok(
+            errors.some((error) => HttpClientError.isHttpClientError(error) && error.reason._tag === "StatusCodeError")
+          )
+          const decodeError = errors.find((error) =>
+            HttpClientError.isHttpClientError(error) && error.reason._tag === "DecodeError"
+          )
+          assert.ok(HttpClientError.isHttpClientError(decodeError))
+          assert.strictEqual(decodeError.reason._tag, "DecodeError")
+          assert.ok(decodeError.reason.description?.includes("Unsupported response content-type"))
+        }
+      }))
+
+    it.effect("decodes no-content errors without a content-type header", () =>
+      Effect.gen(function*() {
+        const client = yield* makeClient(() => new Response(null, { status: 400 }))
+
+        const error = yield* Effect.flip(client.test.noContent({}))
+        assert.strictEqual(error, "NoContentError")
+      }))
+
+    it.effect("groups schemas by normalized declared content type", () =>
+      Effect.gen(function*() {
+        const client = yield* makeClient(() =>
+          new Response(JSON.stringify({ _tag: "SecondJsonError", message: "bad request" }), {
+            status: 400,
+            headers: { "content-type": "application/problem+json" }
+          })
+        )
+
+        const error = yield* Effect.flip(client.test.equivalentJson({}))
+        assert.deepStrictEqual(error, { _tag: "SecondJsonError", message: "bad request" })
       }))
   })
 
@@ -410,6 +492,55 @@ const MixedSuccessApi = HttpApi.make("MixedSuccessApi").add(
           MixedSuccess,
           HttpApiSchema.StreamSse({ data: MixedEventData, error: StreamError })
         ]
+      })
+    )
+)
+
+const JsonResponseError = Schema.Struct({
+  _tag: Schema.Literal("JsonError"),
+  message: Schema.String
+}).pipe(HttpApiSchema.status(400))
+
+const TextResponseError = Schema.String.pipe(
+  HttpApiSchema.asText(),
+  HttpApiSchema.status(400)
+)
+
+const NoContentResponseError = Schema.Literal("NoContentError").pipe(
+  HttpApiSchema.asNoContent({ decode: () => "NoContentError" as const }),
+  HttpApiSchema.status(400)
+)
+
+const FirstJsonResponseError = Schema.Struct({
+  _tag: Schema.Literal("FirstJsonError"),
+  code: Schema.Number
+}).pipe(
+  HttpApiSchema.asJson({ contentType: "Application/Problem+JSON" }),
+  HttpApiSchema.status(400)
+)
+
+const SecondJsonResponseError = Schema.Struct({
+  _tag: Schema.Literal("SecondJsonError"),
+  message: Schema.String
+}).pipe(
+  HttpApiSchema.asJson({ contentType: "application/problem+json; charset=utf-8" }),
+  HttpApiSchema.status(400)
+)
+
+const ErrorContentTypeApi = HttpApi.make("ErrorContentTypeApi").add(
+  HttpApiGroup.make("test")
+    .add(
+      HttpApiEndpoint.get("textFirst", "/text-first", {
+        error: [TextResponseError, JsonResponseError]
+      }),
+      HttpApiEndpoint.get("jsonFirst", "/json-first", {
+        error: [JsonResponseError, TextResponseError]
+      }),
+      HttpApiEndpoint.get("noContent", "/no-content", {
+        error: [NoContentResponseError, TextResponseError]
+      }),
+      HttpApiEndpoint.get("equivalentJson", "/equivalent-json", {
+        error: [FirstJsonResponseError, SecondJsonResponseError]
       })
     )
 )
