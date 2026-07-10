@@ -18,17 +18,20 @@ concrete endpoint map directly instead of rebuilding it from the endpoint union.
 
 ## Measured Type-Level Performance
 
-All numbers are fixture deltas, measured as type instantiations over the shared
-`httpapi` suite baseline.
+Main/current comparisons use identical generated fixtures compiled once per
+revision with TypeScript 7.0.2. The recorded revisions are `main` at
+`97fdaa9c1f52` and the branch source at `5798fc5fafcd`. Focused pre/post curves
+use the regular `httpapi` regression suite. All numbers are type-instantiation
+deltas over the corresponding shared baseline.
 
 Endpoint declaration costs now grow with a lower slope:
 
-| endpoints |  before |  after |
-| --------: | ------: | -----: |
-|        10 |   4,815 |  2,827 |
-|        50 |  16,975 |  9,307 |
-|       100 |  32,175 | 17,407 |
-|       500 | 153,775 | 82,207 |
+| endpoints |    main | current |
+| --------: | ------: | ------: |
+|        10 |   4,580 |   2,808 |
+|        50 |  15,500 |   9,168 |
+|       100 |  29,150 |  17,118 |
+|       500 | 138,350 |  80,718 |
 
 Class-like endpoint declarations are slightly cheaper than inline endpoint
 values in the same 500-endpoint fixture shape:
@@ -37,27 +40,40 @@ values in the same 500-endpoint fixture shape:
 | ------------- | -----: | ---------: |
 | 500 endpoints | 82,207 |     71,850 |
 
-`HttpApiBuilder` handler registration avoids the previous non-linear blow-up.
-For complete handler registration, `handleAll` is measured against the
-equivalent fluent `handle` chain on the same endpoint set:
+`HttpApiBuilder` fluent handler registration avoids the previous non-linear
+blow-up in the cross-ref comparison:
 
-| fixture              | before fluent | after fluent | `handleAll` |
-| -------------------- | ------------: | -----------: | ----------: |
-| 10 endpoints         |        32,523 |       11,579 |       9,146 |
-| 50 endpoints         |       560,763 |       63,699 |      25,106 |
-| 100 endpoints        |     2,139,063 |      182,849 |      45,056 |
-| 500 endpoints        | OOM / SIGKILL |    3,296,049 |     204,656 |
-| 500 eps, two batches | OOM / SIGKILL |    3,296,049 |     223,613 |
+| fixture          |       main |   current |
+| ---------------- | ---------: | --------: |
+| 10 endpoints     |     37,856 |    11,582 |
+| 50 endpoints     |    568,576 |    63,702 |
+| 100 endpoints    |  2,154,476 |   182,852 |
+| 500 endpoints    | 51,741,676 | 3,296,052 |
+| 500 raw handlers | 51,734,176 | 3,294,550 |
+
+On the current branch, `handleAll` remains the scalable alternative to the
+equivalent fluent chain in the regular regression suite:
+
+| fixture              |    fluent | `handleAll` |
+| -------------------- | --------: | ----------: |
+| 10 endpoints         |    11,579 |       9,146 |
+| 50 endpoints         |    63,699 |      25,106 |
+| 100 endpoints        |   182,849 |      45,056 |
+| 500 endpoints        | 3,296,049 |     204,656 |
+| 500 eps, two batches | 3,296,049 |     223,613 |
 
 Generated-client type production also improves for the hot method-building
 paths:
 
-| fixture                                 |  before |   after |
+| fixture                                 |    main | current |
 | --------------------------------------- | ------: | ------: |
-| client methods, 500 endpoints           | 248,788 | 242,963 |
-| top-level client methods, 500 endpoints | 243,047 | 250,192 |
-| client endpoint method, 500 endpoints   |  67,890 | 112,242 |
-| client groups, 100 groups x 5 endpoints |  70,725 | 129,148 |
+| client methods, 500 endpoints           | 245,795 | 176,850 |
+| top-level client methods, 500 endpoints | 243,651 | 179,809 |
+| client endpoint method, 500 endpoints   |  56,738 |  46,294 |
+| client groups, 100 groups x 5 endpoints |  49,019 |  25,893 |
+
+The following focused curves compare the regular suite immediately before and
+after each isolated type-level change.
 
 The focused `Client.Group` curve shows the improvement from consuming the
 identifier-keyed endpoint map directly:
@@ -72,40 +88,40 @@ identifier-keyed endpoint map directly:
 The focused `Client.TopLevelMethods` curve improves by reading endpoint
 identifiers directly from the endpoint union:
 
-| endpoints | before |  after |
-| --------: | -----: | -----: |
-|        10 | 12,531 | 12,476 |
-|        50 | 19,252 | 19,197 |
-|       100 | 27,653 | 27,598 |
-|       500 | 94,853 | 94,798 |
+| endpoints | pre-change | post-change |
+| --------: | ---------: | ----------: |
+|        10 |     12,531 |      12,476 |
+|        50 |     19,252 |      19,197 |
+|       100 |     27,653 |      27,598 |
+|       500 |     94,853 |      94,798 |
 
 The focused `HttpApiClient.endpoint` selection curve improves by reading
 endpoint identifiers directly from the selected endpoint union:
 
-| endpoints | before |  after |
-| --------: | -----: | -----: |
-|        10 |  7,666 |  7,588 |
-|        50 |  8,707 |  8,629 |
-|       100 | 10,008 |  9,930 |
-|       500 | 20,408 | 20,330 |
+| endpoints | pre-change | post-change |
+| --------: | ---------: | ----------: |
+|        10 |      7,666 |       7,588 |
+|        50 |      8,707 |       8,629 |
+|       100 |     10,008 |       9,930 |
+|       500 |     20,408 |      20,330 |
 
 The focused `HttpApiBuilder.endpoint` selection curve improves by reading
 endpoint identifiers directly from the selected endpoint union:
 
-| endpoints | before |  after |
-| --------: | -----: | -----: |
-|        10 | 12,828 | 12,745 |
-|        50 | 13,869 | 13,786 |
-|       100 | 15,170 | 15,087 |
-|       500 | 25,570 | 25,487 |
+| endpoints | pre-change | post-change |
+| --------: | ---------: | ----------: |
+|        10 |     12,828 |      12,745 |
+|        50 |     13,869 |      13,786 |
+|       100 |     15,170 |      15,087 |
+|       500 |     25,570 |      25,487 |
 
 URL builder types now avoid repeatedly expanding the full API/group shape:
 
-| fixture                              |  before |   after |
+| fixture                              |    main | current |
 | ------------------------------------ | ------: | ------: |
-| URL builder, 500 endpoints           | 213,329 | 151,129 |
-| top-level URL builder, 500 endpoints | 209,118 | 156,734 |
-| builder endpoint, 500 endpoints      |  66,894 | 111,006 |
+| URL builder, 500 endpoints           | 211,356 |  91,610 |
+| top-level URL builder, 500 endpoints | 210,724 |  93,118 |
+| builder endpoint, 500 endpoints      |  62,894 |  51,952 |
 
 ## Breaking Changes
 

@@ -59,6 +59,29 @@ suite name (`schema`) or an individual fixture (`schema/struct-required`).
 `--update` writes exact measured instantiation and type deltas to threshold
 files. When a target is provided, only the selected suite or fixture is updated.
 
+## Cross-Ref Comparisons
+
+Use the separate comparison runner when a changeset needs measurements against
+another Git revision:
+
+```sh
+pnpm typeperf-compare httpapi --base main --head HEAD
+pnpm typeperf-compare httpapi/endpoint-count-100 --base main --head HEAD
+```
+
+The runner creates detached worktrees under `tmp/typeperf-compare`, copies the
+same generated fixture sources into both worktrees, and compiles them with the
+TypeScript installation from the current checkout. Each fixture and baseline is
+compiled once per revision. The normal `pnpm typeperf` suite and its thresholds
+are not affected.
+
+Comparison fixtures use only APIs shared by both revisions. They also contain
+type-level assertions that reject degenerate results such as missing methods or
+`never` endpoint selections. A fixture is comparable only when the exact same
+source compiles on both revisions. Results are printed to the terminal and
+written as JSON under `tmp/typeperf-compare/results/`, including the resolved
+Git SHAs, TypeScript version, and fixture-suite hash.
+
 ## Adding A Fixture
 
 Add a fixture when a change optimizes one specific constructor, helper, or
