@@ -342,6 +342,7 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
 ]
 const mcpSessionIdHeader = "mcp-session-id"
 const mcpProtocolVersionHeader = "mcp-protocol-version"
+const acceptedHttpResponse = HttpServerResponse.empty({ status: 202 })
 
 /**
  * Runs an MCP server over the current `RpcServer.Protocol`.
@@ -439,14 +440,38 @@ export const run: (options: {
     ...protocol,
     run: (f) =>
       protocol.run((clientId, request_) => {
-        const request = request_ as any as
+        const request = request_ as unknown as
           | RpcMessage.FromServerEncoded
           | RpcMessage.FromClientEncoded
+        const httpRequest = isHttp
+          ? Context.getUnsafe(Fiber.getCurrent()!.context, HttpServerRequest.HttpServerRequest)
+          : undefined
+        if (httpRequest !== undefined) {
+          const protocolVersion = httpRequest.headers[mcpProtocolVersionHeader]
+          if (
+            protocolVersion !== undefined &&
+            !SUPPORTED_PROTOCOL_VERSIONS.includes(protocolVersion)
+          ) {
+            appendPreResponseHandlerUnsafe(
+              httpRequest,
+              () => Effect.succeed(HttpServerResponse.empty({ status: 400 }))
+            )
+            return Effect.die(new Error(`Unsupported MCP-Protocol-Version`))
+          }
+        }
+        if (httpRequest !== undefined && request._tag !== "Eof") {
+          appendPreResponseHandlerUnsafe(httpRequest, (_, response) =>
+            Effect.succeed(
+              response.status === 200 &&
+                response.body._tag === "Uint8Array" &&
+                response.body.contentLength === 0
+                ? acceptedHttpResponse
+                : response
+            ))
+        }
         switch (request._tag) {
           case "Request": {
-            if (isHttp) {
-              const fiber = Fiber.getCurrent()!
-              const httpRequest = Context.getUnsafe(fiber.context, HttpServerRequest.HttpServerRequest)
+            if (httpRequest !== undefined) {
               const client = getInitializedClient(clientSessions, clientId, httpRequest.headers)
               if (client) {
                 appendPreResponseHandlerUnsafe(httpRequest, (_, res) =>
@@ -635,8 +660,7 @@ export const layerStdio = (options: {
   )
 
 /**
- * Registers an HTTP POST JSON-RPC route at `options.path` on the current
- * `HttpRouter`.
+ * Registers a Streamable HTTP MCP endpoint at `options.path`.
  *
  * **When to use**
  *
@@ -644,8 +668,9 @@ export const layerStdio = (options: {
  *
  * **Details**
  *
- * This layer composes `layer(options)`, `RpcServer.layerProtocolHttp(options)`,
- * and `RpcSerialization.layerJsonRpc()`.
+ * POST serves JSON-RPC and accepted notification-only requests return `202`.
+ * Unsupported protocol versions return `400`; methods without MCP handlers
+ * return `405`.
  *
  * @see {@link layerStdio} for exposing the server over stdio
  * @see {@link layer} for the base MCP server layer without a transport protocol
@@ -658,11 +683,22 @@ export const layerHttp = (options: {
   readonly version: string
   readonly path: HttpRouter.PathInput
   readonly extensions?: Record<`${string}/${string}`, unknown> | undefined
-}): Layer.Layer<McpServer | McpServerClient, never, HttpRouter.HttpRouter> =>
-  layer(options).pipe(
+}): Layer.Layer<McpServer | McpServerClient, never, HttpRouter.HttpRouter> => {
+  const methodNotAllowedResponse = HttpServerResponse.empty({
+    status: 405,
+    headers: { allow: "POST" }
+  })
+  const routes = Layer.mergeAll(
+    HttpRouter.add("GET", options.path, methodNotAllowedResponse),
+    HttpRouter.add("PUT", options.path, methodNotAllowedResponse),
+    HttpRouter.add("PATCH", options.path, methodNotAllowedResponse),
+    HttpRouter.add("DELETE", options.path, methodNotAllowedResponse)
+  )
+  return Layer.merge(layer(options), routes).pipe(
     Layer.provide(RpcServer.layerProtocolHttp(options)),
     Layer.provide(RpcSerialization.layerJsonRpc())
   )
+}
 
 /**
  * Registers a `Toolkit` with the `McpServer`.
