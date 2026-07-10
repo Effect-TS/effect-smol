@@ -119,14 +119,11 @@ export declare namespace Client {
     : [Mode] extends ["response-only"] ? HttpClientResponse.HttpClientResponse
     : Success
 
-  type GroupByEndpoint<Group extends HttpApiGroup.Constraint, E, R> = {
-    readonly [
-      Endpoint in Extract<
-        HttpApiGroup.Endpoints<Group>,
-        HttpApiEndpoint.ConstraintRequest
-      > as HttpApiEndpoint.Identifier<Endpoint>
-    ]: Method<Endpoint, E, R>
-  }
+  type GroupByEndpoint<Group extends HttpApiGroup.Constraint, E, R> = Group["endpoints"] extends
+    infer Endpoints extends Readonly<Record<string, HttpApiEndpoint.ConstraintRequest>> ? {
+      readonly [Identifier in keyof Endpoints]: Method<Endpoints[Identifier], E, R>
+    }
+    : {}
 
   /**
    * The client object for one API group, mapping each endpoint identifier in that

@@ -20,32 +20,32 @@
     "maxTypesDelta": 7628
   },
   "client-methods-count-500": {
-    "maxInstantiationsDelta": 243193,
-    "maxTypesDelta": 23659
+    "maxInstantiationsDelta": 243104,
+    "maxTypesDelta": 23649
   },
   "client-top-level-methods-count-500": {
-    "maxInstantiationsDelta": 250371,
-    "maxTypesDelta": 23609
+    "maxInstantiationsDelta": 250290,
+    "maxTypesDelta": 23606
   },
   "client-groups-100x5-count-500": {
-    "maxInstantiationsDelta": 136491,
-    "maxTypesDelta": 16812
+    "maxInstantiationsDelta": 129246,
+    "maxTypesDelta": 16504
   },
   "client-group-count-10": {
-    "maxInstantiationsDelta": 12448,
-    "maxTypesDelta": 6036
+    "maxInstantiationsDelta": 12294,
+    "maxTypesDelta": 6014
   },
   "client-group-count-50": {
-    "maxInstantiationsDelta": 19169,
-    "maxTypesDelta": 6763
+    "maxInstantiationsDelta": 18935,
+    "maxTypesDelta": 6741
   },
   "client-group-count-100": {
-    "maxInstantiationsDelta": 27570,
-    "maxTypesDelta": 7668
+    "maxInstantiationsDelta": 27236,
+    "maxTypesDelta": 7646
   },
   "client-group-count-500": {
-    "maxInstantiationsDelta": 94770,
-    "maxTypesDelta": 14914
+    "maxInstantiationsDelta": 93636,
+    "maxTypesDelta": 14892
   },
   "client-endpoint-method-count-500": {
     "maxInstantiationsDelta": 112320,
@@ -65,42 +65,42 @@
   },
   "builder-handlers-count-10": {
     "maxInstantiationsDelta": 11579,
-    "maxTypesDelta": 2432
+    "maxTypesDelta": 2430
   },
   "builder-handlers-count-50": {
     "maxInstantiationsDelta": 63699,
-    "maxTypesDelta": 4912
+    "maxTypesDelta": 4910
   },
   "builder-handlers-count-100": {
     "maxInstantiationsDelta": 182849,
-    "maxTypesDelta": 8044
+    "maxTypesDelta": 8042
   },
   "builder-handlers-count-500": {
     "maxInstantiationsDelta": 3296049,
-    "maxTypesDelta": 33229
+    "maxTypesDelta": 33227
   },
   "builder-handle-all-count-10": {
     "maxInstantiationsDelta": 9146,
-    "maxTypesDelta": 2209
+    "maxTypesDelta": 2207
   },
   "builder-handle-all-count-50": {
     "maxInstantiationsDelta": 25106,
-    "maxTypesDelta": 3169
+    "maxTypesDelta": 3167
   },
   "builder-handle-all-count-100": {
     "maxInstantiationsDelta": 45056,
-    "maxTypesDelta": 4401
+    "maxTypesDelta": 4399
   },
   "builder-handle-all-count-500": {
     "maxInstantiationsDelta": 204656,
-    "maxTypesDelta": 14386
+    "maxTypesDelta": 14384
   },
   "builder-handle-all-two-batches-count-500": {
     "maxInstantiationsDelta": 223613,
-    "maxTypesDelta": 14927
+    "maxTypesDelta": 14925
   },
   "builder-raw-handlers-count-500": {
     "maxInstantiationsDelta": 3294547,
-    "maxTypesDelta": 33229
+    "maxTypesDelta": 33227
   }
 }

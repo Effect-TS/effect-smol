@@ -2,9 +2,11 @@
 "effect": patch
 ---
 
-Optimize TypeScript type-level performance for unstable `HttpApi` declarations
-with large endpoint sets. The implementation now uses identifier-keyed maps and
-lighter structural constraints in several hot type-level paths.
+Improve unstable `HttpApi` type-level performance.
+
+The implementation now uses identifier-keyed maps and lighter structural
+constraints in several hot type-level paths. Generated group clients consume the
+concrete endpoint map directly instead of rebuilding it from the endpoint union.
 
 ## New Features
 
@@ -52,10 +54,20 @@ paths:
 
 | fixture                                 |  before |   after |
 | --------------------------------------- | ------: | ------: |
-| client methods, 500 endpoints           | 248,788 | 243,193 |
-| top-level client methods, 500 endpoints | 243,047 | 250,371 |
+| client methods, 500 endpoints           | 248,788 | 243,104 |
+| top-level client methods, 500 endpoints | 243,047 | 250,290 |
 | client endpoint method, 500 endpoints   |  67,890 | 112,320 |
-| client groups, 100 groups x 5 endpoints |  70,725 | 136,491 |
+| client groups, 100 groups x 5 endpoints |  70,725 | 129,246 |
+
+The focused `Client.Group` curve shows the improvement from consuming the
+identifier-keyed endpoint map directly:
+
+| endpoints | union remapping | endpoint map |
+| --------: | --------------: | -----------: |
+|        10 |          12,448 |       12,294 |
+|        50 |          19,169 |       18,935 |
+|       100 |          27,570 |       27,236 |
+|       500 |          94,770 |       93,636 |
 
 URL builder types now avoid repeatedly expanding the full API/group shape:
 
