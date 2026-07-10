@@ -20,9 +20,11 @@ concrete endpoint map directly instead of rebuilding it from the endpoint union.
 
 Main/current comparisons use identical generated fixtures compiled once per
 revision with TypeScript 7.0.2. The recorded revisions are `main` at
-`97fdaa9c1f52` and the branch source at `5798fc5fafcd`. Focused pre/post curves
-use the regular `httpapi` regression suite. All numbers are type-instantiation
-deltas over the corresponding shared baseline.
+`97fdaa9c1f52` and the branch source at `5798fc5fafcd`. The focused pre/post
+curves below were captured with the regular `httpapi` regression suite during
+development. The retained suite uses representative stress points instead of
+rerunning every point in those historical curves. All numbers are
+type-instantiation deltas over the corresponding shared baseline.
 
 Endpoint declaration costs now grow with a lower slope:
 
@@ -51,8 +53,8 @@ blow-up in the cross-ref comparison:
 | 500 endpoints    | 51,741,676 | 3,296,052 |
 | 500 raw handlers | 51,734,176 | 3,294,550 |
 
-On the current branch, `handleAll` remains the scalable alternative to the
-equivalent fluent chain in the regular regression suite:
+In the recorded regular-suite measurements, `handleAll` remains the scalable
+alternative to the equivalent fluent chain:
 
 | fixture              |    fluent | `handleAll` |
 | -------------------- | --------: | ----------: |
@@ -72,8 +74,8 @@ paths:
 | client endpoint method, 500 endpoints   |  56,738 |  46,294 |
 | client groups, 100 groups x 5 endpoints |  49,019 |  25,893 |
 
-The following focused curves compare the regular suite immediately before and
-after each isolated type-level change.
+The following focused curves were captured immediately before and after each
+isolated type-level change.
 
 The focused `Client.Group` curve shows the improvement from consuming the
 identifier-keyed endpoint map directly:

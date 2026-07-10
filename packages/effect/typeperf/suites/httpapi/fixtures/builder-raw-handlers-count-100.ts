@@ -1,4 +1,4 @@
-// Measures builder handleAll registration for 100 same-shaped endpoints in one group.
+// Measures chained builder handleRaw registration for 100 same-shaped endpoints in one group.
 import { Effect, Schema } from "effect"
 import { HttpApi, HttpApiBuilder, HttpApiEndpoint, HttpApiGroup } from "effect/unstable/httpapi"
 
@@ -422,508 +422,507 @@ const group = HttpApiGroup.make("users").add(
 const api = HttpApi.make("Api").add(group)
 
 const layer = HttpApiBuilder.group(api, "users", (handlers) =>
-  handlers.handleAll({
-    getUser0001: ({ params }) =>
+  handlers
+    .handleRaw("getUser0001", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0002: ({ params }) =>
+      }))
+    .handleRaw("getUser0002", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0003: ({ params }) =>
+      }))
+    .handleRaw("getUser0003", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0004: ({ params }) =>
+      }))
+    .handleRaw("getUser0004", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0005: ({ params }) =>
+      }))
+    .handleRaw("getUser0005", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0006: ({ params }) =>
+      }))
+    .handleRaw("getUser0006", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0007: ({ params }) =>
+      }))
+    .handleRaw("getUser0007", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0008: ({ params }) =>
+      }))
+    .handleRaw("getUser0008", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0009: ({ params }) =>
+      }))
+    .handleRaw("getUser0009", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0010: ({ params }) =>
+      }))
+    .handleRaw("getUser0010", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0011: ({ params }) =>
+      }))
+    .handleRaw("getUser0011", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0012: ({ params }) =>
+      }))
+    .handleRaw("getUser0012", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0013: ({ params }) =>
+      }))
+    .handleRaw("getUser0013", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0014: ({ params }) =>
+      }))
+    .handleRaw("getUser0014", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0015: ({ params }) =>
+      }))
+    .handleRaw("getUser0015", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0016: ({ params }) =>
+      }))
+    .handleRaw("getUser0016", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0017: ({ params }) =>
+      }))
+    .handleRaw("getUser0017", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0018: ({ params }) =>
+      }))
+    .handleRaw("getUser0018", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0019: ({ params }) =>
+      }))
+    .handleRaw("getUser0019", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0020: ({ params }) =>
+      }))
+    .handleRaw("getUser0020", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0021: ({ params }) =>
+      }))
+    .handleRaw("getUser0021", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0022: ({ params }) =>
+      }))
+    .handleRaw("getUser0022", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0023: ({ params }) =>
+      }))
+    .handleRaw("getUser0023", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0024: ({ params }) =>
+      }))
+    .handleRaw("getUser0024", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0025: ({ params }) =>
+      }))
+    .handleRaw("getUser0025", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0026: ({ params }) =>
+      }))
+    .handleRaw("getUser0026", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0027: ({ params }) =>
+      }))
+    .handleRaw("getUser0027", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0028: ({ params }) =>
+      }))
+    .handleRaw("getUser0028", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0029: ({ params }) =>
+      }))
+    .handleRaw("getUser0029", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0030: ({ params }) =>
+      }))
+    .handleRaw("getUser0030", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0031: ({ params }) =>
+      }))
+    .handleRaw("getUser0031", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0032: ({ params }) =>
+      }))
+    .handleRaw("getUser0032", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0033: ({ params }) =>
+      }))
+    .handleRaw("getUser0033", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0034: ({ params }) =>
+      }))
+    .handleRaw("getUser0034", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0035: ({ params }) =>
+      }))
+    .handleRaw("getUser0035", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0036: ({ params }) =>
+      }))
+    .handleRaw("getUser0036", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0037: ({ params }) =>
+      }))
+    .handleRaw("getUser0037", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0038: ({ params }) =>
+      }))
+    .handleRaw("getUser0038", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0039: ({ params }) =>
+      }))
+    .handleRaw("getUser0039", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0040: ({ params }) =>
+      }))
+    .handleRaw("getUser0040", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0041: ({ params }) =>
+      }))
+    .handleRaw("getUser0041", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0042: ({ params }) =>
+      }))
+    .handleRaw("getUser0042", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0043: ({ params }) =>
+      }))
+    .handleRaw("getUser0043", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0044: ({ params }) =>
+      }))
+    .handleRaw("getUser0044", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0045: ({ params }) =>
+      }))
+    .handleRaw("getUser0045", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0046: ({ params }) =>
+      }))
+    .handleRaw("getUser0046", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0047: ({ params }) =>
+      }))
+    .handleRaw("getUser0047", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0048: ({ params }) =>
+      }))
+    .handleRaw("getUser0048", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0049: ({ params }) =>
+      }))
+    .handleRaw("getUser0049", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0050: ({ params }) =>
+      }))
+    .handleRaw("getUser0050", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0051: ({ params }) =>
+      }))
+    .handleRaw("getUser0051", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0052: ({ params }) =>
+      }))
+    .handleRaw("getUser0052", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0053: ({ params }) =>
+      }))
+    .handleRaw("getUser0053", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0054: ({ params }) =>
+      }))
+    .handleRaw("getUser0054", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0055: ({ params }) =>
+      }))
+    .handleRaw("getUser0055", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0056: ({ params }) =>
+      }))
+    .handleRaw("getUser0056", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0057: ({ params }) =>
+      }))
+    .handleRaw("getUser0057", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0058: ({ params }) =>
+      }))
+    .handleRaw("getUser0058", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0059: ({ params }) =>
+      }))
+    .handleRaw("getUser0059", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0060: ({ params }) =>
+      }))
+    .handleRaw("getUser0060", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0061: ({ params }) =>
+      }))
+    .handleRaw("getUser0061", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0062: ({ params }) =>
+      }))
+    .handleRaw("getUser0062", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0063: ({ params }) =>
+      }))
+    .handleRaw("getUser0063", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0064: ({ params }) =>
+      }))
+    .handleRaw("getUser0064", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0065: ({ params }) =>
+      }))
+    .handleRaw("getUser0065", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0066: ({ params }) =>
+      }))
+    .handleRaw("getUser0066", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0067: ({ params }) =>
+      }))
+    .handleRaw("getUser0067", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0068: ({ params }) =>
+      }))
+    .handleRaw("getUser0068", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0069: ({ params }) =>
+      }))
+    .handleRaw("getUser0069", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0070: ({ params }) =>
+      }))
+    .handleRaw("getUser0070", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0071: ({ params }) =>
+      }))
+    .handleRaw("getUser0071", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0072: ({ params }) =>
+      }))
+    .handleRaw("getUser0072", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0073: ({ params }) =>
+      }))
+    .handleRaw("getUser0073", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0074: ({ params }) =>
+      }))
+    .handleRaw("getUser0074", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0075: ({ params }) =>
+      }))
+    .handleRaw("getUser0075", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0076: ({ params }) =>
+      }))
+    .handleRaw("getUser0076", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0077: ({ params }) =>
+      }))
+    .handleRaw("getUser0077", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0078: ({ params }) =>
+      }))
+    .handleRaw("getUser0078", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0079: ({ params }) =>
+      }))
+    .handleRaw("getUser0079", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0080: ({ params }) =>
+      }))
+    .handleRaw("getUser0080", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0081: ({ params }) =>
+      }))
+    .handleRaw("getUser0081", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0082: ({ params }) =>
+      }))
+    .handleRaw("getUser0082", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0083: ({ params }) =>
+      }))
+    .handleRaw("getUser0083", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0084: ({ params }) =>
+      }))
+    .handleRaw("getUser0084", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0085: ({ params }) =>
+      }))
+    .handleRaw("getUser0085", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0086: ({ params }) =>
+      }))
+    .handleRaw("getUser0086", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0087: ({ params }) =>
+      }))
+    .handleRaw("getUser0087", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0088: ({ params }) =>
+      }))
+    .handleRaw("getUser0088", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0089: ({ params }) =>
+      }))
+    .handleRaw("getUser0089", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0090: ({ params }) =>
+      }))
+    .handleRaw("getUser0090", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0091: ({ params }) =>
+      }))
+    .handleRaw("getUser0091", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0092: ({ params }) =>
+      }))
+    .handleRaw("getUser0092", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0093: ({ params }) =>
+      }))
+    .handleRaw("getUser0093", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0094: ({ params }) =>
+      }))
+    .handleRaw("getUser0094", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0095: ({ params }) =>
+      }))
+    .handleRaw("getUser0095", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0096: ({ params }) =>
+      }))
+    .handleRaw("getUser0096", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0097: ({ params }) =>
+      }))
+    .handleRaw("getUser0097", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0098: ({ params }) =>
+      }))
+    .handleRaw("getUser0098", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0099: ({ params }) =>
+      }))
+    .handleRaw("getUser0099", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      }),
-    getUser0100: ({ params }) =>
+      }))
+    .handleRaw("getUser0100", ({ params }) =>
       Effect.succeed({
         id: String(params.id),
         name: "Ada"
-      })
-  }))
+      })))
 
 export type Layer = typeof layer
 export type Handlers = HttpApiBuilder.Handlers.FromGroup<typeof group>
