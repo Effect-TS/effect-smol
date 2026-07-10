@@ -1,4 +1,4 @@
-import { assert, it } from "@effect/vitest"
+import { assert, it, vi } from "@effect/vitest"
 import { Cause, Effect, FileSystem, Layer, Path, Redacted, Schema, Stream } from "effect"
 import { Etag, HttpPlatform } from "effect/unstable/http"
 import {
@@ -21,6 +21,39 @@ const TestServices = Layer.mergeAll(
   Etag.layerWeak,
   HttpPlatform.layer
 ).pipe(Layer.provideMerge(FileSystem.layerNoop({})))
+
+it.effect("reuses response schema transformations by source AST", () => {
+  const SharedSuccess = Schema.String.pipe(HttpApiSchema.asText())
+  const DistinctSuccess = Schema.String.pipe(HttpApiSchema.asText({ contentType: "text/custom" }))
+  const Api = HttpApi.make("Api").add(
+    HttpApiGroup.make("test")
+      .add(HttpApiEndpoint.get("first", "/first", { success: SharedSuccess }))
+      .add(HttpApiEndpoint.get("second", "/second", { success: SharedSuccess }))
+      .add(HttpApiEndpoint.get("distinct", "/distinct", { success: DistinctSuccess }))
+  )
+  const GroupLive = HttpApiBuilder.group(
+    Api,
+    "test",
+    (handlers) =>
+      handlers
+        .handle("first", () => Effect.succeed("first"))
+        .handle("second", () => Effect.succeed("second"))
+        .handle("distinct", () => Effect.succeed("distinct"))
+  )
+
+  return Effect.acquireUseRelease(
+    Effect.sync(() => vi.spyOn(Schema, "decodeTo")),
+    (decodeTo) =>
+      Effect.gen(function*() {
+        yield* Effect.scoped(Layer.build(GroupLive))
+        const responseSchemaCalls = decodeTo.mock.calls.filter(
+          ([schema]) => schema === SharedSuccess || schema === DistinctSuccess
+        )
+        assert.strictEqual(responseSchemaCalls.length, 2)
+      }),
+    (decodeTo) => Effect.sync(() => decodeTo.mockRestore())
+  )
+})
 
 it.layer(TestServices)("HttpApiBuilder payload content types", (it) => {
   it.effect("round trips mixed-case media types with declared and received parameters", () =>

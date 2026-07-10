@@ -1062,7 +1062,7 @@ function toResponseSchema(getStatus: (ast: SchemaAST.AST) => number) {
     const responseSchema = $HttpServerResponse.pipe(
       Schema.decodeTo(schema, getResponseTransformation(getStatus, schema))
     )
-    cache.set(responseSchema.ast, responseSchema)
+    cache.set(schema.ast, responseSchema)
     return responseSchema
   }
 }
