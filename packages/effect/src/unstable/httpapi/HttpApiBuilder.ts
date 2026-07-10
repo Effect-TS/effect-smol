@@ -601,8 +601,7 @@ const HandlersProto = {
       }
     >
   ) {
-    for (const identifier in handlers) {
-      const entry = handlers[identifier]
+    for (const [identifier, entry] of Object.entries(handlers)) {
       const handler = typeof entry === "function" ? entry : entry.handler
       const options = typeof entry === "function" ? undefined : entry.options
       registerHandler(this, identifier, handler, false, options)

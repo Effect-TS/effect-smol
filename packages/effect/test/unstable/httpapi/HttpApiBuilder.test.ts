@@ -240,6 +240,36 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.deepStrictEqual(createUser, { id: "created", name: "Grace" })
     }))
 
+  it.effect("ignores inherited handleAll properties", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("getUser", "/users", {
+            success: Schema.String
+          })
+        )
+      )
+      const implementations: {
+        readonly getUser: () => Effect.Effect<string>
+      } = Object.assign(
+        Object.create({
+          inherited: () => Effect.succeed("inherited")
+        }),
+        {
+          getUser: () => Effect.succeed("own")
+        }
+      )
+      const GroupLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) => handlers.handleAll(implementations)
+      )
+
+      const client = yield* HttpApiTest.groups(Api, ["users"]).pipe(Effect.provide(GroupLive))
+
+      assert.strictEqual(yield* client.users.getUser(), "own")
+    }))
+
   it.effect("executes effectful handler builders", () =>
     Effect.gen(function*() {
       const User = Schema.Struct({
