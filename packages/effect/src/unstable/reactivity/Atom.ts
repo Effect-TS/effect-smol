@@ -2150,7 +2150,7 @@ export const kvs = <S extends Schema.ConstraintCodec<any, any>, const Mode exten
       },
     (ctx, value: S["Type"]) => {
       ctx.set(setAtom, value as any)
-      ctx.setSelf(value)
+      ctx.setSelf(options.mode === "async" ? AsyncResult.success(value) : value)
     }
   ) as any
 }

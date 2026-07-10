@@ -2504,6 +2504,12 @@ describe.sequential("Atom", () => {
       expect(result.value).toEqual(42)
       expect(result.waiting).toEqual(false)
       expect(storage.get("test-key")).toEqual(JSON.stringify(42))
+
+      r.set(atom, 24)
+
+      const updated = r.get(atom)
+      assert(AsyncResult.isSuccess(updated))
+      expect(updated.value).toEqual(24)
     })
   })
 })
