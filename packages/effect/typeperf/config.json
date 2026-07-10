@@ -121,6 +121,22 @@
           "file": "suites/httpapi/fixtures/endpoint-class-count-500.ts"
         },
         {
+          "name": "group-endpoints-count-10",
+          "file": "suites/httpapi/fixtures/group-endpoints-count-10.ts"
+        },
+        {
+          "name": "group-endpoints-count-50",
+          "file": "suites/httpapi/fixtures/group-endpoints-count-50.ts"
+        },
+        {
+          "name": "group-endpoints-count-100",
+          "file": "suites/httpapi/fixtures/group-endpoints-count-100.ts"
+        },
+        {
+          "name": "group-endpoints-count-500",
+          "file": "suites/httpapi/fixtures/group-endpoints-count-500.ts"
+        },
+        {
           "name": "client-methods-count-500",
           "file": "suites/httpapi/fixtures/client-methods-count-500.ts"
         },

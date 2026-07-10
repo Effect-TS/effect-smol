@@ -78,4 +78,48 @@ describe("HttpApiGroup", () => {
       expect<HttpApiGroup.Endpoints<typeof Group>>().type.toBe<typeof GetUser>()
     })
   })
+
+  describe("Endpoints", () => {
+    it("extracts the endpoint union from one group", () => {
+      const GetUser = HttpApiEndpoint.get("getUser", "/users/:id")
+      const CreateUser = HttpApiEndpoint.post("createUser", "/users")
+      const Group = HttpApiGroup.make("users").add(GetUser, CreateUser)
+
+      expect<HttpApiGroup.Endpoints<typeof Group>>().type.toBe<typeof GetUser | typeof CreateUser>()
+    })
+
+    it("distributes over groups with disjoint endpoint identifiers", () => {
+      const GetUser = HttpApiEndpoint.get("getUser", "/users/:id")
+      const GetPost = HttpApiEndpoint.get("getPost", "/posts/:id")
+      const Users = HttpApiGroup.make("users").add(GetUser)
+      const Posts = HttpApiGroup.make("posts").add(GetPost)
+
+      type Groups = typeof Users | typeof Posts
+
+      expect<HttpApiGroup.Endpoints<Groups>>().type.toBe<typeof GetUser | typeof GetPost>()
+    })
+
+    it("preserves endpoints with the same identifier across groups", () => {
+      const GetUser = HttpApiEndpoint.get("get", "/users/:id", {
+        success: Schema.Struct({ userId: Schema.String })
+      })
+      const GetPost = HttpApiEndpoint.get("get", "/posts/:id", {
+        success: Schema.Struct({ postId: Schema.String })
+      })
+      const Users = HttpApiGroup.make("users").add(GetUser)
+      const Posts = HttpApiGroup.make("posts").add(GetPost)
+
+      type Groups = typeof Users | typeof Posts
+
+      expect<HttpApiGroup.Endpoints<Groups>>().type.toBe<typeof GetUser | typeof GetPost>()
+    })
+
+    it("returns never for an unknown group identifier", () => {
+      const GetUser = HttpApiEndpoint.get("getUser", "/users/:id")
+      const Group = HttpApiGroup.make("users").add(GetUser)
+      type UnknownGroup = HttpApiGroup.WithIdentifier<typeof Group, "posts">
+
+      expect<HttpApiGroup.Endpoints<UnknownGroup>>().type.toBe<never>()
+    })
+  })
 })

@@ -19,6 +19,22 @@
     "maxInstantiationsDelta": 71850,
     "maxTypesDelta": 7628
   },
+  "group-endpoints-count-10": {
+    "maxInstantiationsDelta": 8395,
+    "maxTypesDelta": 5155
+  },
+  "group-endpoints-count-50": {
+    "maxInstantiationsDelta": 8996,
+    "maxTypesDelta": 5282
+  },
+  "group-endpoints-count-100": {
+    "maxInstantiationsDelta": 9747,
+    "maxTypesDelta": 5437
+  },
+  "group-endpoints-count-500": {
+    "maxInstantiationsDelta": 15747,
+    "maxTypesDelta": 6683
+  },
   "client-methods-count-500": {
     "maxInstantiationsDelta": 242963,
     "maxTypesDelta": 23623
