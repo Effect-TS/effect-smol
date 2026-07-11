@@ -156,12 +156,11 @@ export const Help: Action<boolean> = action({
     Flag.withAlias("h"),
     Flag.withDescription("Show help information")
   ),
-  run: (_, { command, commandPath }) =>
-    Effect.gen(function*() {
-      const formatter = yield* CliOutput.Formatter
-      const helpDoc = yield* HelpInternal.getHelpForCommandPath(command, commandPath, BuiltIns)
-      yield* Console.log(formatter.formatHelpDoc(helpDoc))
-    })
+  run: Effect.fnUntraced(function*(_, { command, commandPath }) {
+    const formatter = yield* CliOutput.Formatter
+    const helpDoc = yield* HelpInternal.getHelpForCommandPath(command, commandPath, BuiltIns)
+    yield* Console.log(formatter.formatHelpDoc(helpDoc))
+  })
 })
 
 /**
@@ -179,11 +178,10 @@ export const Version: Action<boolean> = action({
     Flag.withAlias("v"),
     Flag.withDescription("Show version information")
   ),
-  run: (_, { command, version }) =>
-    Effect.gen(function*() {
-      const formatter = yield* CliOutput.Formatter
-      yield* Console.log(formatter.formatVersion(command.name, version))
-    })
+  run: Effect.fnUntraced(function*(_, { command, version }) {
+    const formatter = yield* CliOutput.Formatter
+    yield* Console.log(formatter.formatVersion(command.name, version))
+  })
 })
 
 /**
@@ -206,14 +204,13 @@ export const Completions: Action<Option.Option<"bash" | "zsh" | "fish">> = actio
       Flag.withMetavar("<bash|zsh|fish|sh>"),
       Flag.withDescription("Print shell completion script")
     ),
-  run: (shell, { command }) =>
-    Effect.gen(function*() {
-      if (Option.isNone(shell)) return
-      const descriptor = CommandDescriptor.fromCommand(command)
-      yield* Console.log(
-        Completions_.generate(command.name, shell.value, descriptor)
-      )
-    })
+  run: Effect.fnUntraced(function*(shell, { command }) {
+    if (Option.isNone(shell)) return
+    const descriptor = CommandDescriptor.fromCommand(command)
+    yield* Console.log(
+      Completions_.generate(command.name, shell.value, descriptor)
+    )
+  })
 })
 
 /**
