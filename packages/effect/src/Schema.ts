@@ -40,7 +40,6 @@ import * as InternalArbitrary from "./internal/schema/arbitrary.ts"
 import * as InternalEquivalence from "./internal/schema/equivalence.ts"
 import * as InternalStandard from "./internal/schema/representation.ts"
 import * as InternalSchema from "./internal/schema/schema.ts"
-import { SchemaError } from "./internal/schema/schema.ts"
 import * as JsonPatch from "./JsonPatch.ts"
 import * as JsonSchema from "./JsonSchema.ts"
 import { remainder } from "./Number.ts"
@@ -54,6 +53,7 @@ import * as Redacted_ from "./Redacted.ts"
 import * as Result_ from "./Result.ts"
 import * as Scheduler from "./Scheduler.ts"
 import * as SchemaAST from "./SchemaAST.ts"
+import { isSchemaError, SchemaError } from "./SchemaError.ts"
 import * as SchemaGetter from "./SchemaGetter.ts"
 import * as SchemaIssue from "./SchemaIssue.ts"
 import * as SchemaParser from "./SchemaParser.ts"
@@ -1030,6 +1030,27 @@ export interface Optic<out T, out Iso> extends Schema<T> {
 
 export {
   /**
+   * Returns `true` if `u` is a {@link SchemaError}.
+   *
+   * **Example** (Narrowing Schema errors in a catch block)
+   *
+   * ```ts
+   * import { Schema } from "effect"
+   *
+   * try {
+   *   Schema.decodeUnknownSync(Schema.Number)("oops")
+   * } catch (err) {
+   *   if (Schema.isSchemaError(err)) {
+   *     console.log(err._tag) // "SchemaError"
+   *   }
+   * }
+   * ```
+   *
+   * @category guards
+   * @since 4.0.0
+   */
+  isSchemaError,
+  /**
    * Error thrown (or returned as the error channel value) when schema decoding
    * or encoding fails.
    *
@@ -1061,30 +1082,6 @@ export {
    * @since 4.0.0
    */
   SchemaError
-}
-
-/**
- * Returns `true` if `u` is a {@link SchemaError}.
- *
- * **Example** (Narrowing Schema errors in a catch block)
- *
- * ```ts
- * import { Schema } from "effect"
- *
- * try {
- *   Schema.decodeUnknownSync(Schema.Number)("oops")
- * } catch (err) {
- *   if (Schema.isSchemaError(err)) {
- *     console.log(err._tag) // "SchemaError"
- *   }
- * }
- * ```
- *
- * @category guards
- * @since 4.0.0
- */
-export function isSchemaError(u: unknown): u is SchemaError {
-  return Predicate.hasProperty(u, InternalSchema.SchemaErrorTypeId)
 }
 
 function makeStandardResult<A>(exit: Exit_.Exit<StandardSchemaV1.Result<A>>): StandardSchemaV1.Result<A> {
@@ -1374,7 +1371,7 @@ export function decodeUnknownEffect<S extends Constraint>(schema: S, options?: S
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Type"], SchemaError, S["DecodingServices"]> => {
-    return InternalSchema.mapSchemaIssueEffect(parser(input, options))
+    return InternalSchema.fromIssueEffect(parser(input, options))
   }
 }
 
@@ -1478,8 +1475,14 @@ function runSchemaErrorSync<A>(
 export function decodeUnknownExit<S extends ConstraintDecoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.decodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Type"], SchemaError> => {
-    return InternalSchema.mapSchemaIssueExit(parser(input, options))
+    return fromIssueExit(parser(input, options))
   }
+}
+
+function fromIssueExit<A>(exit: Exit_.Exit<A, SchemaIssue.Issue>): Exit_.Exit<A, SchemaError> {
+  return Exit_.isSuccess(exit)
+    ? Exit_.succeed(exit.value)
+    : Exit_.failCause(Cause_.map(exit.cause, (issue) => new SchemaError(issue)))
 }
 
 /**
@@ -1837,7 +1840,7 @@ export function encodeUnknownEffect<S extends Constraint>(schema: S, options?: S
     input: unknown,
     options?: SchemaAST.ParseOptions
   ): Effect.Effect<S["Encoded"], SchemaError, S["EncodingServices"]> => {
-    return InternalSchema.mapSchemaIssueEffect(parser(input, options))
+    return InternalSchema.fromIssueEffect(parser(input, options))
   }
 }
 
@@ -1902,7 +1905,7 @@ export const encodeEffect: <S extends Constraint>(
 export function encodeUnknownExit<S extends ConstraintEncoder<unknown>>(schema: S, options?: SchemaAST.ParseOptions) {
   const parser = SchemaParser.encodeUnknownExit(schema, options)
   return (input: unknown, options?: SchemaAST.ParseOptions): Exit_.Exit<S["Encoded"], SchemaError> => {
-    return InternalSchema.mapSchemaIssueExit(parser(input, options))
+    return fromIssueExit(parser(input, options))
   }
 }
 
@@ -5695,7 +5698,13 @@ export function withConstructorDefault<S extends Constraint & WithoutConstructor
   defaultValue: Effect.Effect<S["~type.make.in"], SchemaError>
 ) {
   return (schema: S): withConstructorDefault<S> =>
-    make(SchemaAST.withConstructorDefault(schema.ast, InternalSchema.mapSchemaErrorEffect(defaultValue)), { schema })
+    make(SchemaAST.withConstructorDefault(schema.ast, toIssueEffect(defaultValue)), { schema })
+}
+
+function toIssueEffect<A, R>(
+  self: Effect.Effect<A, SchemaError, R>
+): Effect.Effect<A, SchemaIssue.Issue, R> {
+  return Effect.catchCause(self, (cause) => Effect.failCauseSync(() => Cause_.map(cause, (error) => error.issue)))
 }
 
 /**
@@ -5767,7 +5776,7 @@ export function withDecodingDefaultKey<S extends Constraint, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefaultKey<S, R> => {
     return optionalKey(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(InternalSchema.mapSchemaErrorEffect(defaultValue)),
+      decode: SchemaGetter.withDefault(toIssueEffect(defaultValue)),
       encode
     }))
   }
@@ -5875,7 +5884,7 @@ export function withDecodingDefault<S extends Constraint, R = never>(
   const encode = options?.encodingStrategy === "omit" ? SchemaGetter.omit() : SchemaGetter.passthrough()
   return (self: S): withDecodingDefault<S, R> => {
     return optional(toEncoded(self)).pipe(decodeTo(self, {
-      decode: SchemaGetter.withDefault(InternalSchema.mapSchemaErrorEffect(defaultValue)),
+      decode: SchemaGetter.withDefault(toIssueEffect(defaultValue)),
       encode
     }))
   }

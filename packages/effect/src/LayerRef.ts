@@ -93,8 +93,7 @@ export interface LayerRef<in out I, in out E = never> {
  * **Example** (Sharing one layer-built service)
  *
  * ```ts
- * import { Context, Effect, Layer } from "effect"
- * import { make } from "effect/LayerRef"
+ * import { Context, Effect, Layer, LayerRef } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: Effect.Effect<string>
@@ -111,7 +110,7 @@ export interface LayerRef<in out I, in out E = never> {
  *
  * const program = Effect.scoped(
  *   Effect.gen(function*() {
- *     const ref = yield* make(databaseLayer, {
+ *     const ref = yield* LayerRef.make(databaseLayer, {
  *       idleTimeToLive: "5 seconds"
  *     })
  *
@@ -272,8 +271,7 @@ export interface TagClass<
  * **Example** (Defining a refreshable service)
  *
  * ```ts
- * import { Context, Effect, Layer } from "effect"
- * import { Service } from "effect/LayerRef"
+ * import { Context, Effect, Layer, LayerRef } from "effect"
  *
  * class Database extends Context.Service<Database, {
  *   readonly query: Effect.Effect<string>
@@ -283,7 +281,7 @@ export interface TagClass<
  *   query: Effect.succeed("result")
  * })
  *
- * class DatabaseRef extends Service<DatabaseRef>()("DatabaseRef", {
+ * class DatabaseRef extends LayerRef.Service<DatabaseRef>()("DatabaseRef", {
  *   layer: databaseLayer,
  *   preload: true
  * }) {}
