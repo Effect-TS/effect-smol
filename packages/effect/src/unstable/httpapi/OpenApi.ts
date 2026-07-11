@@ -11,7 +11,9 @@
 import * as Arr from "../../Array.ts"
 import type { NonEmptyArray } from "../../Array.ts"
 import * as Context from "../../Context.ts"
+import * as Equal from "../../Equal.ts"
 import { constFalse } from "../../Function.ts"
+import * as internalRecord from "../../internal/record.ts"
 import * as JsonPatch from "../../JsonPatch.ts"
 import { escapeToken } from "../../JsonPointer.ts"
 import * as JsonSchema from "../../JsonSchema.ts"
@@ -279,6 +281,8 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Constrain
       readonly path: ReadonlyArray<string>
     }
   > = []
+  const pathOperations = new Set<string>()
+  const operationIds = new Set<string>()
 
   processAnnotation(api.annotations, Title, (title) => {
     spec.info.title = title
@@ -477,10 +481,19 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Constrain
         name: string,
         security: HttpApiSecurity
       ) {
-        if (spec.components.securitySchemes[name] !== undefined) {
+        const scheme = makeSecurityScheme(security)
+        if (!Object.hasOwn(spec.components.securitySchemes, name)) {
+          internalRecord.set(spec.components.securitySchemes, name, scheme)
           return
         }
-        spec.components.securitySchemes[name] = makeSecurityScheme(security)
+        if (
+          !Equal.equals(
+            securitySchemeForComparison(spec.components.securitySchemes[name]),
+            securitySchemeForComparison(scheme)
+          )
+        ) {
+          throw new globalThis.Error(`Conflicting OpenAPI security scheme: ${name}`)
+        }
       }
 
       const hasBody = HttpMethod.hasBody(endpoint.method)
@@ -538,10 +551,6 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Constrain
         () => "Error"
       )
 
-      if (!spec.paths[path]) {
-        spec.paths[path] = {}
-      }
-
       processAnnotation(endpoint.annotations, Override, (override) => {
         Object.assign(op, override)
       })
@@ -549,6 +558,21 @@ export function fromApi<Id extends string, Groups extends HttpApiGroup.Constrain
         op = transformFn(op) as OpenAPISpecOperation
       })
 
+      const pathOperation = `${method} ${path.replace(/\{[^}]+\}/g, "{}")}`
+      if (pathOperations.has(pathOperation)) {
+        throw new globalThis.Error(`Duplicate OpenAPI operation for ${endpoint.method} ${path}`)
+      }
+      const operationId = op.operationId
+      if (operationId !== undefined) {
+        if (operationIds.has(operationId)) {
+          throw new globalThis.Error(`Duplicate OpenAPI operationId: ${operationId}`)
+        }
+        operationIds.add(operationId)
+      }
+      pathOperations.add(pathOperation)
+      if (!spec.paths[path]) {
+        spec.paths[path] = {}
+      }
       spec.paths[path][method] = op
     }
   })
@@ -816,6 +840,16 @@ const makeSecurityScheme = (security: HttpApiSecurity): OpenAPISecurityScheme =>
       }
     }
   }
+}
+
+const securitySchemeForComparison = (scheme: OpenAPISecurityScheme): OpenAPISecurityScheme => {
+  if (scheme.type === "http") {
+    return { ...scheme, scheme: scheme.scheme.toLowerCase() }
+  }
+  if (scheme.in === "header") {
+    return { ...scheme, name: scheme.name.toLowerCase() }
+  }
+  return scheme
 }
 
 /**
