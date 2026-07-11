@@ -3883,8 +3883,15 @@ export function isJson(u: unknown): u is Schema.Json {
     if (validated.has(u)) {
       return true
     }
+    const isArray = Array.isArray(u)
+    if (!isArray) {
+      const prototype = Object.getPrototypeOf(u)
+      if (prototype !== null && Object.getPrototypeOf(prototype) !== null) {
+        return false
+      }
+    }
     onPath.add(u)
-    const ok = Array.isArray(u)
+    const ok = isArray
       ? u.every(recur)
       : Object.keys(u).every((key) => recur((u as Record<string, unknown>)[key]))
     // Pop on exit so siblings reaching the same node via a different path

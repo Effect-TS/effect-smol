@@ -1,4 +1,5 @@
 import { Schema, SchemaAST, SchemaGetter, SchemaTransformation } from "effect"
+import { runInNewContext } from "node:vm"
 import { describe, it } from "vitest"
 import { deepStrictEqual, doesNotThrow, strictEqual, throws } from "../utils/assert.ts"
 
@@ -24,6 +25,22 @@ describe("SchemaAST", () => {
     strictEqual(SchemaAST.isJson({ a: 1 }), true)
     strictEqual(SchemaAST.isJson({ a: undefined }), false)
     strictEqual(SchemaAST.isJson({ a: 1, b: 1n }), false)
+    strictEqual(SchemaAST.isJson(new Map([["a", 1]])), false)
+    strictEqual(SchemaAST.isJson(new Set([1])), false)
+    strictEqual(SchemaAST.isJson(new Date(0)), false)
+    strictEqual(SchemaAST.isJson(/a/), false)
+    strictEqual(SchemaAST.isJson(new Uint8Array([1])), false)
+    class A {
+      readonly a = 1
+    }
+    strictEqual(SchemaAST.isJson(new A()), false)
+    const nullPrototype: Record<string, unknown> = Object.create(null)
+    nullPrototype.a = { b: [1, true, null] }
+    strictEqual(SchemaAST.isJson(nullPrototype), true)
+    const crossRealmRecord: unknown = runInNewContext("({ a: [1, true, null] })")
+    strictEqual(SchemaAST.isJson(crossRealmRecord), true)
+    const crossRealmClass: unknown = runInNewContext("new (class A { a = 1 })()")
+    strictEqual(SchemaAST.isJson(crossRealmClass), false)
     // nested
     strictEqual(SchemaAST.isJson({ a: { b: 1 } }), true)
     strictEqual(SchemaAST.isJson({ a: [1, { b: "c" }] }), true)
@@ -39,6 +56,11 @@ describe("SchemaAST", () => {
     // Nested DAG
     const deeper = { parent: { left: shared, right: shared } }
     strictEqual(SchemaAST.isJson(deeper), true)
+  })
+
+  it("Schema.toCodecJson rejects non-JSON objects", () => {
+    const encode = Schema.encodeUnknownExit(Schema.toCodecJson(Schema.Unknown))
+    strictEqual(encode(new Map([["a", 1]]))._tag, "Failure")
   })
 
   it("isStringTree", () => {
