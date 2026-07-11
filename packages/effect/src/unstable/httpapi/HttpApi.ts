@@ -15,7 +15,6 @@ import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as SchemaAST from "../../SchemaAST.ts"
-import type { Mutable } from "../../Types.ts"
 import type { PathInput } from "../http/HttpRouter.ts"
 import * as HttpApiEndpoint from "./HttpApiEndpoint.ts"
 import type * as HttpApiGroup from "./HttpApiGroup.ts"
@@ -67,7 +66,22 @@ export interface HttpApi<
   add<const A extends NonEmptyReadonlyArray<HttpApiGroup.Constraint>>(...groups: A): HttpApi<Id, Groups | A[number]>
 
   /**
-   * Add another `HttpApi` to the `HttpApi`.
+   * Adds every group from another `HttpApi` while preserving its annotation scope.
+   *
+   * **When to use**
+   *
+   * Use when you want to compose an API from groups declared and annotated under another API.
+   *
+   * **Details**
+   *
+   * The added API is flattened into this API rather than retained as a nested value. Each added group
+   * is copied with the added API's annotations, leaving the added API unchanged. Annotation precedence
+   * from least to most specific is this API, the added API, the group, and then the endpoint.
+   *
+   * **Gotchas**
+   *
+   * Annotations from the added API do not become top-level annotations of the result and do not affect
+   * groups already present in this API. They remain scoped to the groups and endpoints being added.
    */
   addHttpApi<Id2 extends string, Groups2 extends HttpApiGroup.Constraint>(
     api: HttpApi<Id2, Groups2>
@@ -143,9 +157,10 @@ const Proto = {
   ) {
     const newGroups = { ...this.groups }
     for (const key in api.groups) {
-      const newGroup: Mutable<HttpApiGroup.Top> = api.groups[key]
-      newGroup.annotations = Context.merge(api.annotations, newGroup.annotations)
-      newGroups[key] = newGroup as any
+      const group = api.groups[key]
+      newGroups[key] = group.annotateMerge(
+        Context.merge(api.annotations, group.annotations)
+      )
     }
     return makeProto({
       ...optionsFromApi(this),
