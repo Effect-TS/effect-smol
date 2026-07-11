@@ -342,7 +342,6 @@ const SUPPORTED_PROTOCOL_VERSIONS = [
 ]
 const mcpSessionIdHeader = "mcp-session-id"
 const mcpProtocolVersionHeader = "mcp-protocol-version"
-const acceptedHttpResponse = HttpServerResponse.empty({ status: 202 })
 
 /**
  * Runs an MCP server over the current `RpcServer.Protocol`.
@@ -465,7 +464,10 @@ export const run: (options: {
               response.status === 200 &&
                 response.body._tag === "Uint8Array" &&
                 response.body.contentLength === 0
-                ? acceptedHttpResponse
+                ? HttpServerResponse.empty({
+                  headers: Headers.remove(response.headers, "content-type"),
+                  status: 202
+                })
                 : response
             ))
         }

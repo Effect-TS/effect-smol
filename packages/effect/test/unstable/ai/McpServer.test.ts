@@ -26,7 +26,9 @@ const pingBody = {
   id: 0
 }
 
-const makeTestClient = Effect.gen(function*() {
+const makeTestClient = Effect.fnUntraced(function*(options?: {
+  readonly routerLayer?: Layer.Layer<never, never, HttpRouter.HttpRouter> | undefined
+}) {
   const responses: Array<Response> = []
 
   const serverLayer = McpServer.layerHttp({
@@ -34,7 +36,8 @@ const makeTestClient = Effect.gen(function*() {
     version: "1.0.0",
     path: "/mcp"
   })
-  const { handler, dispose } = HttpRouter.toWebHandler(serverLayer, { disableLogger: true })
+  const appLayer = options?.routerLayer ? Layer.merge(serverLayer, options.routerLayer) : serverLayer
+  const { handler, dispose } = HttpRouter.toWebHandler(appLayer, { disableLogger: true })
   yield* Effect.addFinalizer(() => Effect.promise(() => dispose()))
 
   let sessionId: string | null = null
@@ -67,7 +70,7 @@ const makeTestClient = Effect.gen(function*() {
 describe("McpServer", () => {
   it.effect("replays MCP session and negotiated protocol headers after initialize", () =>
     Effect.gen(function*() {
-      const { client, responses } = yield* makeTestClient
+      const { client, responses } = yield* makeTestClient()
 
       yield* client.initialize({
         protocolVersion: "9999-01-01",
@@ -87,7 +90,7 @@ describe("McpServer", () => {
 
   it.effect("returns 404 when a non-initialize request omits the MCP session id", () =>
     Effect.gen(function*() {
-      const { httpClient } = yield* makeTestClient
+      const { httpClient } = yield* makeTestClient()
 
       const response = yield* HttpClientRequest.post("http://localhost/mcp").pipe(
         HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", method: "ping", params: {}, id: 0 }),
@@ -99,7 +102,7 @@ describe("McpServer", () => {
 
   it.effect("rejects unsupported HTTP methods without disturbing an initialized session", () =>
     Effect.gen(function*() {
-      const { client, httpClient } = yield* makeTestClient
+      const { client, httpClient } = yield* makeTestClient()
 
       yield* client.initialize(initializePayload)
 
@@ -116,7 +119,7 @@ describe("McpServer", () => {
 
   it.effect("returns an empty 202 for notifications and responses and remains successful for request POSTs", () =>
     Effect.gen(function*() {
-      const { client, httpClient } = yield* makeTestClient
+      const { client, httpClient } = yield* makeTestClient({ routerLayer: HttpRouter.cors() })
 
       yield* client.initialize(initializePayload)
 
@@ -130,6 +133,9 @@ describe("McpServer", () => {
       )
       strictEqual(notificationResponse.status, 202)
       strictEqual(yield* notificationResponse.text, "")
+      strictEqual(notificationResponse.headers["content-type"], undefined)
+      strictEqual(notificationResponse.headers["access-control-allow-origin"], "*")
+      strictEqual(notificationResponse.headers["mcp-protocol-version"], "2025-06-18")
 
       const responseOnly = yield* HttpClientRequest.post("http://localhost/mcp").pipe(
         HttpClientRequest.bodyJsonUnsafe({ jsonrpc: "2.0", id: 1, result: {} }),
@@ -149,7 +155,7 @@ describe("McpServer", () => {
 
   it.effect("validates supplied protocol versions on POST", () =>
     Effect.gen(function*() {
-      const { client, httpClient } = yield* makeTestClient
+      const { client, httpClient } = yield* makeTestClient()
 
       yield* client.initialize(initializePayload)
 
