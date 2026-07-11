@@ -597,7 +597,9 @@ export const endpoint = <
     readonly group: GroupIdentifier
     readonly endpoint: EndpointIdentifier
     readonly httpClient: HttpClient.HttpClient.With<E, R>
-    readonly transformClient?: ((client: HttpClient.HttpClient) => HttpClient.HttpClient) | undefined
+    readonly transformClient?:
+      | ((client: HttpClient.HttpClient.With<E, R>) => HttpClient.HttpClient.With<E, R>)
+      | undefined
     readonly transformResponse?:
       | ((effect: Effect.Effect<unknown, unknown, unknown>) => Effect.Effect<unknown, unknown, unknown>)
       | undefined
@@ -607,6 +609,9 @@ export const endpoint = <
   let client: any = undefined
   return makeClient(api, {
     ...options,
+    httpClient: options.transformClient
+      ? options.transformClient(options.httpClient)
+      : options.httpClient,
     predicate: ({ endpoint, group }) => group.identifier === options.group && endpoint.identifier === options.endpoint,
     onEndpoint({ endpointFn }) {
       client = endpointFn

@@ -2,7 +2,7 @@ import { assert, describe, it } from "@effect/vitest"
 import { strictEqual } from "@effect/vitest/utils"
 import { Cause, Effect, Schema, Stream } from "effect"
 import { Sse } from "effect/unstable/encoding"
-import { HttpClient, HttpClientError, HttpClientResponse } from "effect/unstable/http"
+import { HttpClient, HttpClientError, HttpClientRequest, HttpClientResponse } from "effect/unstable/http"
 import { HttpApi, HttpApiClient, HttpApiEndpoint, HttpApiGroup, HttpApiSchema } from "effect/unstable/httpapi"
 
 describe("HttpApiClient", () => {
@@ -363,6 +363,36 @@ describe("HttpApiClient", () => {
       strictEqual(builder.health(), "https://api.example.com/v1/health")
     })
   })
+
+  it.effect("applies transformClient to endpoint clients exactly once", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("test").add(HttpApiEndpoint.get("health", "/health"))
+      )
+      let transformations = 0
+      const httpClient = HttpClient.make((request, url) =>
+        Effect.sync(() => {
+          strictEqual(url.toString(), "https://api.example.com/health")
+          return HttpClientResponse.fromWeb(request, new Response(null, { status: 204 }))
+        })
+      )
+      const health = yield* HttpApiClient.endpoint(Api, {
+        group: "test",
+        endpoint: "health",
+        httpClient,
+        transformClient: (client) => {
+          transformations++
+          return client.pipe(
+            HttpClient.mapRequest(HttpClientRequest.prependUrl("https://api.example.com"))
+          )
+        }
+      })
+
+      yield* health({ responseMode: "response-only" })
+      yield* health({ responseMode: "response-only" })
+
+      strictEqual(transformations, 1)
+    }))
 
   it.effect("encodes path parameters when executing requests", () =>
     Effect.gen(function*() {

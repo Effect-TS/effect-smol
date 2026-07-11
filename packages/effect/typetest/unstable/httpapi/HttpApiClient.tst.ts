@@ -1136,7 +1136,15 @@ describe("HttpApiClient", () => {
 
       const httpClient = hole<HttpClient.HttpClient.With<CustomClientError, CustomService>>()
       const getUser = Effect.runSync(
-        HttpApiClient.endpoint(Api, { group: "users", endpoint: "getUser", httpClient })
+        HttpApiClient.endpoint(Api, {
+          group: "users",
+          endpoint: "getUser",
+          httpClient,
+          transformClient: (client) => {
+            expect(client).type.toBe<HttpClient.HttpClient.With<CustomClientError, CustomService>>()
+            return client
+          }
+        })
       )
 
       expect(getUser({ params: { id: "1" } })).type.toBe<
