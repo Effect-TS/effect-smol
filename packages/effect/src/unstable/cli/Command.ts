@@ -517,7 +517,7 @@ export const make: {
     name: Name,
     config: Config,
     handler: (config: Command.Config.Infer<Config>) => Effect.Effect<void, E, R>
-  ): Command<Name, Command.Config.Infer<Config>, {}, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
+  ): Command<Name, Command.Config.Infer<Config>, {}, E, Exclude<R, BuiltInSettingContext>>
 } = ((
   name: string,
   config?: Command.Config,
@@ -565,15 +565,15 @@ export const withHandler: {
     handler: (value: A) => Effect.Effect<void, E, R>
   ): <Name extends string, XR, XE, ContextInput>(
     self: Command<Name, A, ContextInput, XE, XR>
-  ) => Command<Name, A, ContextInput, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
+  ) => Command<Name, A, ContextInput, E, Exclude<R, BuiltInSettingContext>>
   <Name extends string, A, XR, XE, R, E, ContextInput>(
     self: Command<Name, A, ContextInput, XE, XR>,
     handler: (value: A) => Effect.Effect<void, E, R>
-  ): Command<Name, A, ContextInput, E, Exclude<R, GlobalFlag.BuiltInSettingContext>>
+  ): Command<Name, A, ContextInput, E, Exclude<R, BuiltInSettingContext>>
 } = dual(2, <Name extends string, A, XR, XE, R, E, ContextInput>(
   self: Command<Name, A, ContextInput, XE, XR>,
   handler: (value: A) => Effect.Effect<void, E, R>
-): Command<Name, A, ContextInput, E, Exclude<R, GlobalFlag.BuiltInSettingContext>> =>
+): Command<Name, A, ContextInput, E, Exclude<R, BuiltInSettingContext>> =>
   makeCommand({ ...toImpl(self), handle: handler } as any))
 
 interface SubcommandGroupInternal {
@@ -925,6 +925,7 @@ type ExtractGlobalFlagContext<T extends ReadonlyArray<GlobalFlag.GlobalFlag<any>
   ? F extends GlobalFlag.Setting<infer Id, infer _A> ? GlobalFlag.Setting.Identifier<Id>
   : never
   : never
+type BuiltInSettingContext = ExtractGlobalFlagContext<typeof GlobalFlag.BuiltIns>
 type ExtractSubcommand<T> = T extends Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? T
   : T extends Command.SubcommandGroup<infer Commands> ? Commands[number]
   : never
@@ -1574,14 +1575,13 @@ export const runWith = <const Name extends string, Input, E, R, ContextInput>(
 
       // 7. Provide setting values
       let program = commandImpl.handle(parseResult.success, [command.name])
+      const [, logLevel] = yield* GlobalFlag.LogLevel.flag.parse(emptyArgs)
+      program = Effect.provideService(program, GlobalFlag.LogLevel, logLevel)
       for (const flag of activeFlags) {
-        if (flag._tag !== "Setting") continue
+        if (flag._tag !== "Setting" || flag === GlobalFlag.LogLevel) continue
         const [, value] = yield* flag.flag.parse(emptyArgs)
         program = Effect.provideService(program, flag, value)
       }
-
-      const [, logLevel] = yield* GlobalFlag.LogLevel.flag.parse(emptyArgs)
-      program = Effect.provideService(program, GlobalFlag.LogLevel, logLevel)
 
       // 8. Apply built-in setting behavior
       const services = Option.match(logLevel, {

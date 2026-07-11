@@ -121,4 +121,27 @@ describe("Command", () => {
       expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
     })
   })
+
+  describe("built-in global flags", () => {
+    it("strips built-in setting context from Command.make handlers", () => {
+      const command = Command.make("example", {}, () =>
+        Effect.gen(function*() {
+          yield* GlobalFlag.LogLevel
+        }))
+
+      expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
+    })
+
+    it("strips built-in setting context from Command.withHandler handlers", () => {
+      const command = Command.make("example").pipe(
+        Command.withHandler(() =>
+          Effect.gen(function*() {
+            yield* GlobalFlag.LogLevel
+          })
+        )
+      )
+
+      expect(command).type.toBe<Command.Command<"example", {}, {}, never, never>>()
+    })
+  })
 })

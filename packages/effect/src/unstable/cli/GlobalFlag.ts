@@ -279,17 +279,9 @@ export const LogLevel: Setting<"log-level", Option.Option<LogLevelType>> = setti
  * @category references
  * @since 4.0.0
  */
-export const BuiltIns: ReadonlyArray<GlobalFlag<any>> = [
-  Help,
-  Version,
-  Completions,
-  LogLevel
-]
-
-/**
- * Built-in setting context identifiers.
- *
- * @category models
- * @since 4.0.0
- */
-export type BuiltInSettingContext = Setting.Identifier<"log-level">
+export const BuiltIns: readonly [
+  Action<boolean>,
+  Action<boolean>,
+  Action<Option.Option<"bash" | "zsh" | "fish">>,
+  Setting<"log-level", Option.Option<LogLevelType>>
+] = [Help, Version, Completions, LogLevel]
