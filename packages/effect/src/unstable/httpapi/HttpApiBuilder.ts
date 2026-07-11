@@ -589,6 +589,14 @@ const registerHandler = (
   isRaw: boolean,
   options?: HandlerOptions | undefined
 ) => {
+  if (!Object.hasOwn(self.group.endpoints, identifier)) {
+    throw new Error(`HttpApiEndpoint "${identifier}" not found in HttpApiGroup "${self.group.identifier}"`)
+  }
+  if (self.handlers.has(identifier)) {
+    throw new Error(
+      `Handler for HttpApiEndpoint "${identifier}" is already registered in HttpApiGroup "${self.group.identifier}"`
+    )
+  }
   const endpoint = self.group.endpoints[identifier]
   self.handlers.set(identifier, {
     endpoint,

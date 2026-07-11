@@ -340,6 +340,72 @@ it.layer(TestServices)("HttpApiBuilder streaming success responses", (it) => {
       assert.deepStrictEqual(createUser, { id: "created", name: "Grace" })
     }))
 
+  it.effect("rejects unknown endpoint identifiers", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("getUser", "/users", { success: Schema.String })
+        )
+      )
+
+      for (const identifier of ["missing", "toString"] as const) {
+        const GroupLive = HttpApiBuilder.group(
+          Api,
+          "users",
+          (handlers) => handlers.handle(identifier as "getUser", () => Effect.succeed("missing"))
+        )
+        const exit = yield* Effect.exit(Effect.scoped(Layer.build(GroupLive)))
+
+        assert.strictEqual(exit._tag, "Failure")
+        if (exit._tag === "Failure") {
+          const error = Cause.squash(exit.cause)
+          assert.instanceOf(error, Error)
+          assert.strictEqual(
+            error.message,
+            `HttpApiEndpoint "${identifier}" not found in HttpApiGroup "users"`
+          )
+        }
+      }
+    }))
+
+  it.effect("rejects duplicate handle and handleAll registrations", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("users").add(
+          HttpApiEndpoint.get("getUser", "/users", { success: Schema.String })
+        )
+      )
+      const HandleLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) => {
+          handlers.handle("getUser", () => Effect.succeed("first"))
+          return handlers.handle("getUser", () => Effect.succeed("second"))
+        }
+      )
+      const HandleAllLive = HttpApiBuilder.group(
+        Api,
+        "users",
+        (handlers) => {
+          handlers.handleAll({ getUser: () => Effect.succeed("first") })
+          return handlers.handleAll({ getUser: () => Effect.succeed("second") })
+        }
+      )
+
+      for (const GroupLive of [HandleLive, HandleAllLive]) {
+        const exit = yield* Effect.exit(Effect.scoped(Layer.build(GroupLive)))
+        assert.strictEqual(exit._tag, "Failure")
+        if (exit._tag === "Failure") {
+          const error = Cause.squash(exit.cause)
+          assert.instanceOf(error, Error)
+          assert.strictEqual(
+            error.message,
+            "Handler for HttpApiEndpoint \"getUser\" is already registered in HttpApiGroup \"users\""
+          )
+        }
+      }
+    }))
+
   it.effect("ignores inherited handleAll properties", () =>
     Effect.gen(function*() {
       const Api = HttpApi.make("Api").add(
