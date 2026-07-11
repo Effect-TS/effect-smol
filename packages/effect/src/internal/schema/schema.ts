@@ -42,7 +42,6 @@ export function make<S extends Schema.Constraint>(ast: S["ast"], options?: objec
   return self
 }
 
-/** @internal */
 export const SchemaErrorTypeId = "~effect/Schema/SchemaError"
 
 // purposefully not internal

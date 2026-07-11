@@ -107,6 +107,13 @@ describe("Schema", () => {
     })
   })
 
+  describe("SchemaError", () => {
+    it("includes the runtime type identifier", () => {
+      const error = hole<Schema.SchemaError>()
+      expect(error).type.toHaveProperty("~effect/Schema/SchemaError")
+    })
+  })
+
   describe("make", () => {
     it("Never", () => {
       const schema = Schema.Never
