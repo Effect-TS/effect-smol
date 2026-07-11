@@ -24,12 +24,13 @@ import { ChildAlreadyExistsError, StoppedError } from "./machineErrors.ts"
 
 type ChildEntry =
   | {
-    readonly _tag: "Reserved"
+    readonly _tag: "Starting"
+    readonly token: symbol
   }
   | {
     readonly _tag: "Started"
     readonly token: symbol
-    readonly send: (event: unknown) => Effect.Effect<void>
+    readonly send: (event: unknown) => Effect.Effect<void, StoppedError>
     readonly stop: Effect.Effect<void>
   }
 
@@ -94,16 +95,25 @@ export interface MachineRef<out State, in Event, out Error = never, out Output =
   readonly changes: Stream.Stream<RuntimeSnapshot<State, Error, Output>>
   readonly join: Effect.Effect<Output, Error | StoppedError>
   readonly stop: Effect.Effect<void>
-  readonly send: (event: Event) => Effect.Effect<void>
+  readonly send: (event: Event) => Effect.Effect<void, StoppedError>
+}
+
+interface ProcessAddress<in Event> {
+  readonly id: string
+  readonly sessionId: string
+  readonly stop: Effect.Effect<void>
+  readonly send: (event: Event) => Effect.Effect<void, StoppedError>
 }
 
 export interface ProcessScope<Event> {
-  readonly self: MachineRef<unknown, Event, unknown, unknown>
-  readonly parent: MachineRef<unknown, unknown, unknown, unknown> | undefined
+  readonly self: ProcessAddress<Event>
+  readonly parent: ProcessAddress<unknown> | undefined
   readonly spawn: ProcessSpawn
-  readonly sendParent: (event: unknown) => Effect.Effect<void>
-  readonly sendTo: <Address extends string>(id: Address, event: unknown) => Effect.Effect<void>
+  readonly sendParent: (event: unknown) => Effect.Effect<void, StoppedError>
+  readonly sendTo: <Address extends string>(id: Address, event: unknown) => Effect.Effect<void, StoppedError>
   readonly stopChild: (id: string) => Effect.Effect<void>
+  /** @internal */
+  readonly failCause: (cause: Cause.Cause<unknown>) => Effect.Effect<void>
 }
 
 export interface ProcessContext<State, Event> extends ProcessScope<Event> {
@@ -123,8 +133,8 @@ export interface ProcessLogic<
   out Output = never,
   out InitialError = never
 > {
-  readonly initial: (scope: ProcessScope<Event>) => Effect.Effect<State, InitialError, Requirements>
-  readonly run: (context: ProcessContext<State, Event>) => Effect.Effect<Output, Error, Requirements>
+  initial(scope: ProcessScope<Event>): Effect.Effect<State, InitialError, Requirements>
+  run(context: ProcessContext<State, Event>): Effect.Effect<Output, Error, Requirements>
 }
 
 export interface ProcessSpawn {
@@ -239,11 +249,13 @@ const makeProcessRuntime: Effect.Effect<ProcessRuntime> = Effect.gen(function*()
 })
 
 interface StartInternalOptions {
+  readonly detached?: boolean
   readonly fiberScope?: Scope.Scope
   readonly finalizer?: (exit: Exit.Exit<unknown, unknown>) => Effect.Effect<void>
   readonly id?: string
+  readonly onReady?: (ref: MachineRef<any, any, any, any>) => Effect.Effect<void>
   readonly onStop?: Effect.Effect<void>
-  readonly parent?: MachineRef<unknown, unknown, unknown, unknown>
+  readonly parent?: ProcessAddress<unknown>
   readonly runtime: ProcessRuntime
 }
 
@@ -269,6 +281,7 @@ const startInternal: <
   const id = options.id ?? sessionId
   const queue = yield* Queue.unbounded<Event>()
   const stopSelfDeferred = yield* Deferred.make<Effect.Effect<void>>()
+  const externalFailure = yield* Deferred.make<never, Error | InitialError>()
   const done = yield* Deferred.make<Output, Error | InitialError | StoppedError>()
   const fiberRef = yield* Deferred.make<Fiber.Fiber<void>>()
   const changes = yield* PubSub.unbounded<Take.Take<RuntimeSnapshot<State, Error | InitialError, Output>>>({
@@ -295,24 +308,16 @@ const startInternal: <
 
   const cleanup = options.onStop ?? Effect.void
 
-  const reserveChildId = (id: string): Effect.Effect<void, ChildAlreadyExistsError> =>
+  const reserveChildId = (id: string, token: symbol): Effect.Effect<void, ChildAlreadyExistsError> =>
     SynchronizedRef.modifyEffect(childRegistry, (children) =>
       HashMap.has(children, id)
         ? Effect.fail(new ChildAlreadyExistsError({ id }))
-        : Effect.succeed([undefined, HashMap.set(children, id, { _tag: "Reserved" })] as const))
+        : Effect.succeed([undefined, HashMap.set(children, id, { _tag: "Starting", token })] as const))
 
-  const unregisterReservedChild = (id: string): Effect.Effect<void> =>
+  const unregisterChild = (id: string, token: symbol): Effect.Effect<void> =>
     SynchronizedRef.update(childRegistry, (children) => {
       const entry = HashMap.get(children, id)
-      return Option.isSome(entry) && entry.value._tag === "Reserved"
-        ? HashMap.remove(children, id)
-        : children
-    })
-
-  const unregisterStartedChild = (id: string, token: symbol): Effect.Effect<void> =>
-    SynchronizedRef.update(childRegistry, (children) => {
-      const entry = HashMap.get(children, id)
-      return Option.isSome(entry) && entry.value._tag === "Started" && entry.value.token === token
+      return Option.isSome(entry) && entry.value.token === token
         ? HashMap.remove(children, id)
         : children
     })
@@ -320,15 +325,20 @@ const startInternal: <
   const registerStartedChild = (
     id: string,
     token: symbol,
-    send: (event: unknown) => Effect.Effect<void>,
+    send: (event: unknown) => Effect.Effect<void, StoppedError>,
     stop: Effect.Effect<void>
-  ): Effect.Effect<void> =>
-    SynchronizedRef.update(
+  ): Effect.Effect<boolean> =>
+    SynchronizedRef.modify(
       childRegistry,
-      (children) => HashMap.set(children, id, { _tag: "Started", token, send, stop })
+      (children) => {
+        const entry = HashMap.get(children, id)
+        return Option.isSome(entry) && entry.value._tag === "Starting" && entry.value.token === token
+          ? [true, HashMap.set(children, id, { _tag: "Started", token, send, stop })] as const
+          : [false, children] as const
+      }
     )
 
-  const sendTo = (id: string, event: unknown): Effect.Effect<void> =>
+  const sendTo = (id: string, event: unknown): Effect.Effect<void, StoppedError> =>
     SynchronizedRef.get(childRegistry).pipe(
       Effect.flatMap((children) => {
         const entry = HashMap.get(children, id)
@@ -344,7 +354,7 @@ const startInternal: <
       })
     )
 
-  const sendParent = (event: unknown): Effect.Effect<void> =>
+  const sendParent = (event: unknown): Effect.Effect<void, StoppedError> =>
     options.parent === undefined ? Effect.void : options.parent.send(event)
 
   function spawn<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
@@ -398,16 +408,28 @@ const startInternal: <
       Effect.flatMap((childrenScope) =>
         Effect.acquireRelease(
           Effect.gen(function*() {
-            yield* reserveChildId(childId)
             const token = Symbol()
+            yield* reserveChildId(childId, token)
             const child = yield* startInternal(logic, {
               fiberScope: childrenScope,
               id: childId,
-              onStop: unregisterStartedChild(childId, token),
-              parent: self as MachineRef<unknown, unknown, unknown, unknown>,
+              onReady: (child) =>
+                registerStartedChild(
+                  childId,
+                  token,
+                  (event) => child.send(event),
+                  child.stop
+                ).pipe(Effect.asVoid),
+              onStop: unregisterChild(childId, token),
+              parent: self as ProcessAddress<unknown>,
               runtime: options.runtime
-            }).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? unregisterReservedChild(childId) : Effect.void))
-            yield* registerStartedChild(childId, token, (event) => child.send(event as ChildEvent), child.stop)
+            }).pipe(
+              Effect.onExit((exit) =>
+                Exit.isFailure(exit)
+                  ? unregisterChild(childId, token)
+                  : Effect.void
+              )
+            )
             return child
           }),
           (child) => child.stop
@@ -420,15 +442,14 @@ const startInternal: <
     >
   }
 
-  const self: MachineRef<unknown, Event, unknown, unknown> = {
+  const self: ProcessAddress<Event> = {
     id,
     sessionId,
-    state: Effect.die("Machine self state is not available during initialization"),
-    snapshot: Effect.die("Machine self snapshot is not available during initialization"),
-    changes: Stream.empty,
-    join: Effect.never,
     stop: Deferred.await(stopSelfDeferred).pipe(Effect.flatMap((stopSelf) => stopSelf)),
-    send: (event: Event) => Queue.offer(queue, event).pipe(Effect.asVoid)
+    send: (event: Event) =>
+      Queue.offer(queue, event).pipe(
+        Effect.flatMap((accepted) => accepted ? Effect.void : Effect.fail(new StoppedError()))
+      )
   }
 
   const scope: ProcessScope<Event> = {
@@ -437,7 +458,8 @@ const startInternal: <
     spawn: spawn as ProcessSpawn,
     sendParent,
     sendTo,
-    stopChild
+    stopChild,
+    failCause: (cause) => Deferred.failCause(externalFailure, cause as Cause.Cause<Error | InitialError>)
   }
 
   const initial = yield* logic.initial(scope).pipe(Effect.onExit(cleanupStartupFailure))
@@ -446,6 +468,7 @@ const startInternal: <
     state: initial
   })
   const terminalizing = yield* Ref.make(false)
+  const terminalized = yield* Deferred.make<void>()
 
   const publishSnapshot = (
     snapshot: RuntimeSnapshot<State, Error | InitialError, Output>
@@ -551,31 +574,39 @@ const startInternal: <
     exit: Exit.Exit<unknown, unknown>,
     completeDone: Effect.Effect<void>
   ): Effect.Effect<void> =>
-    Queue.shutdown(queue).pipe(
-      Effect.andThen(closeChildren(exit)),
-      Effect.andThen(cleanup),
-      Effect.andThen(setAndPublishSnapshot(snapshot)),
-      Effect.andThen(finalize(exit)),
-      Effect.andThen(completeDone)
+    Effect.uninterruptible(
+      Queue.shutdown(queue).pipe(
+        Effect.andThen(closeChildren(exit)),
+        Effect.andThen(cleanup),
+        Effect.andThen(setAndPublishSnapshot(snapshot)),
+        Effect.andThen(finalize(exit)),
+        Effect.andThen(completeDone),
+        Effect.ensuring(Deferred.succeed(terminalized, void 0))
+      )
     )
 
-  const stopSelf: Effect.Effect<void> = reserveTerminalSnapshot((snapshot) => ({
-    status: "stopped",
-    state: snapshot.state
-  })).pipe(
-    Effect.flatMap((snapshot) =>
-      snapshot === undefined
-        ? Effect.void
-        : Effect.suspend(() => {
-          const exit = Exit.void
-          return terminalizeWith(
-            snapshot,
-            exit,
-            Deferred.fail(done, new StoppedError())
-          ).pipe(
-            Effect.andThen(Deferred.await(fiberRef).pipe(Effect.flatMap(Fiber.interrupt)))
-          )
-        })
+  const stopSelf: Effect.Effect<void> = Effect.uninterruptible(
+    reserveTerminalSnapshot((snapshot) => ({
+      status: "stopped",
+      state: snapshot.state
+    })).pipe(
+      Effect.flatMap((snapshot) =>
+        snapshot === undefined
+          ? Deferred.await(terminalized)
+          : Effect.suspend(() => {
+            const exit = Exit.void
+            return Deferred.await(fiberRef).pipe(
+              Effect.flatMap(Fiber.interrupt),
+              Effect.andThen(
+                terminalizeWith(
+                  snapshot,
+                  exit,
+                  Deferred.fail(done, new StoppedError())
+                )
+              )
+            )
+          })
+      )
     )
   )
 
@@ -649,18 +680,6 @@ const startInternal: <
       )
     )
 
-  const runFiber: Effect.Effect<void, never, Requirements> = logic.run(context).pipe(
-    Effect.matchCauseEffect({
-      onFailure: terminalizeFailure,
-      onSuccess: terminalizeSuccess
-    })
-  )
-
-  const fiber = yield* runFiber.pipe(
-    (effect) => options.fiberScope === undefined ? Effect.forkChild(effect) : Effect.forkIn(effect, options.fiberScope)
-  )
-  yield* Deferred.succeed(fiberRef, fiber)
-
   const ref: MachineRef<State, Event, Error | InitialError, Output> = {
     id,
     sessionId,
@@ -671,6 +690,31 @@ const startInternal: <
     stop: stopSelf,
     send: self.send
   }
+
+  if (options.onReady !== undefined) {
+    yield* options.onReady(ref)
+  }
+
+  const runFiber: Effect.Effect<void, never, Requirements> = Effect.raceFirst(
+    logic.run(context),
+    Deferred.await(externalFailure)
+  ).pipe(
+    Effect.matchCauseEffect({
+      onFailure: terminalizeFailure,
+      onSuccess: terminalizeSuccess
+    })
+  )
+
+  const fiber = yield* runFiber.pipe(
+    (effect) =>
+      options.fiberScope !== undefined ?
+        Effect.forkIn(effect, options.fiberScope)
+        : options.detached === true ?
+        Effect.forkDetach(effect)
+        : Effect.forkChild(effect)
+  )
+  yield* Deferred.succeed(fiberRef, fiber)
+  yield* Effect.yieldNow
 
   return ref
 })
@@ -701,7 +745,16 @@ export const startProcess: <
   return yield* startInternal(
     logic,
     options === undefined
-      ? { finalizer: runtime.close, runtime }
-      : { ...options, finalizer: runtime.close, runtime }
+      ? {
+        detached: true,
+        finalizer: runtime.close,
+        runtime
+      }
+      : {
+        ...options,
+        detached: true,
+        finalizer: runtime.close,
+        runtime
+      }
   ).pipe(Effect.onExit((exit) => Exit.isFailure(exit) ? runtime.close(exit) : Effect.void))
 })

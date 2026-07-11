@@ -3,18 +3,18 @@ import * as Data from "../../../Data.ts"
 import type * as Schema from "../../../Schema.ts"
 
 /**
- * Error returned when a machine contract value does not match the schema
- * declared for a machine boundary.
+ * Error returned when a machine contract value does not match the schema or
+ * structural configuration declared for a machine boundary.
  *
  * @category errors
  * @since 4.0.0
  */
 export class MachineSchemaDecodeError extends Data.TaggedError("MachineSchemaDecodeError")<{
   readonly machineId: string | undefined
-  readonly boundary: "input" | "event" | "emit" | "state" | "output"
+  readonly boundary: "input" | "event" | "emit" | "state" | "output" | "configuration"
   readonly state?: string
   readonly event?: string
-  readonly cause: Schema.SchemaError
+  readonly cause: Schema.SchemaError | Cause.Cause<unknown>
 }> {}
 
 /**

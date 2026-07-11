@@ -57,6 +57,10 @@ describe("Machine", () => {
     readonly doneMessage: string
   }>()("test/Machine/DoneRequirement") {}
 
+  class DeferredRequirement extends Context.Service<DeferredRequirement, {
+    readonly deferredMessage: string
+  }>()("test/Machine/DeferredRequirement") {}
+
   const UpStates = Machine.defineStates({
     up: {
       schema: Up,
@@ -177,9 +181,7 @@ describe("Machine", () => {
     const planned = Machine.planInitial(machine)
 
     expect<Effect.Services<typeof planned>>().type.toBe<InitialRequirement | EntryRequirement>()
-    expect<Effect.Services<Effect.Success<typeof planned>["actions"][number]>>().type.toBe<
-      InitialRequirement | EntryRequirement
-    >()
+    expect<Effect.Services<Effect.Success<typeof planned>["actions"][number]>>().type.toBe<never>()
   })
 
   it("planInitial provides compatible machine runtime requirements", () => {
@@ -197,6 +199,68 @@ describe("Machine", () => {
     const planned = Machine.planInitial(machine)
 
     expect<Effect.Services<typeof planned>>().type.toBe<never>()
+  })
+
+  it("keeps staged action errors and services out of planning", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    }).handle({
+      down: {
+        entry: ({ action }) =>
+          action(
+            DeferredRequirement.pipe(
+              Effect.andThen(Effect.fail("action-failed" as const))
+            )
+          )
+      }
+    })
+
+    const planned = Machine.planInitial(machine)
+    const started = Machine.start(machine)
+
+    expect<Effect.Services<typeof planned>>().type.toBe<never>()
+    expect<Effect.Error<Effect.Success<typeof planned>["actions"][number]>>().type.toBe<"action-failed">()
+    expect<Effect.Services<Effect.Success<typeof planned>["actions"][number]>>().type.toBe<DeferredRequirement>()
+    expect<"action-failed">().type.toBeAssignableTo<Effect.Error<typeof started>>()
+  })
+
+  it("effect infers output, errors, and requirements without an event protocol", () => {
+    const success = Machine.effect(Effect.as(DeferredRequirement, 1 as const))
+    const failure = Machine.effect(Effect.fail("effect-failed" as const))
+
+    expect(success).type.toBeAssignableTo<
+      Machine.Logic<void, never, never, DeferredRequirement, 1>
+    >()
+    expect(failure).type.toBeAssignableTo<
+      Machine.Logic<void, never, "effect-failed", never, never>
+    >()
+  })
+
+  it("invoke requires one-shot outputs to be parent machine events or void", () => {
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    })
+
+    expect(machine.handle).type.toBeCallableWith({
+      down: {
+        invoke: Machine.invoke({
+          id: "valid",
+          src: () => Machine.effect(Effect.succeed(new SignIn({ userId: "user-1" })))
+        })
+      }
+    })
+    expect(machine.handle).type.not.toBeCallableWith({
+      down: {
+        invoke: Machine.invoke({
+          id: "invalid",
+          src: () => Machine.effect(Effect.succeed(1))
+        })
+      }
+    })
   })
 
   it("plan and getters require snapshots", () => {

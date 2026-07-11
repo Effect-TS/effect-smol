@@ -9,7 +9,7 @@ import * as Context from "../../../Context.ts"
 import * as Effect from "../../../Effect.ts"
 import * as Option from "../../../Option.ts"
 import type * as Schema from "../../../Schema.ts"
-import type { InitialEvent as MachineInitialEvent, Machine, Runtime } from "../Machine.ts"
+import type { ActionRequirement, InitialEvent as MachineInitialEvent, Machine, Runtime } from "../Machine.ts"
 import {
   InfiniteTransitionError,
   MachineSchemaDecodeError,
@@ -42,7 +42,7 @@ import {
   snapshotFromConfiguration,
   validateInitialConfiguration
 } from "./machineModel.ts"
-import { MachineRuntime, type ProcessScope } from "./machineRuntime.ts"
+import type { ProcessScope } from "./machineRuntime.ts"
 
 type DeferredAction<E = any, R = any> = Effect.Effect<void, E, R>
 
@@ -68,7 +68,9 @@ class DeferredActions extends Context.Service<DeferredActions, {
 
 class DeferredRaisedEvents extends Context.Service<DeferredRaisedEvents, {
   readonly add: <Event>(event: Event) => Effect.Effect<void>
+  readonly addEmitted: <Event>(event: Event) => Effect.Effect<void>
   readonly read: Effect.Effect<ReadonlyArray<any>>
+  readonly readEmitted: Effect.Effect<ReadonlyArray<any>>
 }>()("effect/Machine/DeferredRaisedEvents") {}
 
 class RuntimeContext extends Context.Service<RuntimeContext, Runtime<any, any>>()(
@@ -96,14 +98,18 @@ const makeDeferredActions = Effect.map(
     })
 )
 
-const makeDeferredRaisedEvents = Effect.map(
-  makeDeferredQueue<any>(),
-  (queue) =>
+const makeDeferredRaisedEvents = Effect.gen(function*() {
+  const raised = yield* makeDeferredQueue<any>()
+  const emitted = yield* makeDeferredQueue<any>()
+  return (
     DeferredRaisedEvents.of({
-      read: queue.read,
-      add: (event) => queue.add(event)
+      read: raised.read,
+      readEmitted: emitted.read,
+      add: (event) => raised.add(event),
+      addEmitted: (event) => emitted.add(event)
     })
-)
+  )
+})
 
 const provideDeferredServices = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -127,14 +133,6 @@ const provideRuntimeContext = <A, E, R, Events, Emits>(
     runtime as Runtime<any, any>
   ) as Effect.Effect<A, E, R>
 
-const sendParentOptional = <Event>(event: Event): Effect.Effect<void> =>
-  Effect.contextWith((context: Context.Context<never>) => {
-    const runtime = Context.getOption(context as Context.Context<MachineRuntime>, MachineRuntime)
-    return Option.isSome(runtime)
-      ? runtime.value.sendParent(event)
-      : Effect.void
-  })
-
 const makePlanningRuntime = <Events, Emits>(
   machine: Machine.Any,
   deferredRaisedEvents: DeferredRaisedEvents["Service"]
@@ -146,7 +144,7 @@ const makePlanningRuntime = <Events, Emits>(
       ),
     sendParent: (event) =>
       decodeEmit(machine, event).pipe(
-        Effect.flatMap(sendParentOptional)
+        Effect.flatMap((event) => deferredRaisedEvents.addEmitted(event))
       )
   })
 
@@ -174,6 +172,15 @@ export const runActions = <E, R, Events, Emits>(
     { discard: true }
   )
 
+export const runEmittedEvents = <Events, Emits>(
+  events: Iterable<Emits>,
+  runtime: Runtime<Events, Emits>
+) =>
+  Effect.all(
+    Array.from(events, (event) => runtime.sendParent(event)),
+    { discard: true }
+  )
+
 export const runtimeFor = <Events, Emits>(): Effect.Effect<
   Runtime<Events, Emits>,
   never,
@@ -182,8 +189,10 @@ export const runtimeFor = <Events, Emits>(): Effect.Effect<
 
 export type MicrostepPlan<State, Event, E, R> = {
   readonly next: State
+  readonly event: Event | MachineInitialEvent
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
   readonly raisedEvents: ReadonlyArray<Event>
+  readonly emittedEvents: ReadonlyArray<unknown>
   readonly exitPaths: ReadonlyArray<string>
   readonly entryPaths: ReadonlyArray<string>
   readonly changed: boolean
@@ -193,6 +202,7 @@ export type MacrostepPlan<State, Event, E, R, Output> = {
   readonly next: State
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
   readonly microsteps: ReadonlyArray<MicrostepPlan<State, Event, E, R>>
+  readonly emittedEvents: ReadonlyArray<unknown>
   readonly output: Output | undefined
 }
 
@@ -238,9 +248,11 @@ const collectStateAction = Effect.fnUntraced(function*<Context, Event, E, R>(
   }
   const actions = yield* deferredActions.read
   const raisedEvents = yield* deferredRaisedEvents.read
+  const emittedEvents = yield* deferredRaisedEvents.readEmitted
   return {
     actions: actions as ReadonlyArray<DeferredAction<E, R>>,
-    raisedEvents: raisedEvents as ReadonlyArray<Event>
+    raisedEvents: raisedEvents as ReadonlyArray<Event>,
+    emittedEvents
   }
 })
 
@@ -263,10 +275,12 @@ const collectTransition = Effect.fnUntraced(function*<
     : result
   const actions = yield* deferredActions.read
   const raisedEvents = yield* deferredRaisedEvents.read
+  const emittedEvents = yield* deferredRaisedEvents.readEmitted
   return {
     state,
     actions: actions as ReadonlyArray<DeferredAction<E, R>>,
-    raisedEvents: raisedEvents as ReadonlyArray<Event>
+    raisedEvents: raisedEvents as ReadonlyArray<Event>,
+    emittedEvents
   }
 })
 
@@ -285,6 +299,7 @@ type EvaluatedTransition<States extends Machine.StateSchemas, Event, E, R, Conte
     | undefined
   readonly actions: ReadonlyArray<Effect.Effect<void, E, R>>
   readonly raisedEvents: ReadonlyArray<Event>
+  readonly emittedEvents: ReadonlyArray<unknown>
   readonly changed: boolean
   readonly exitPaths: ReadonlyArray<string>
   readonly entryPaths: ReadonlyArray<string>
@@ -331,10 +346,16 @@ const getExitPaths = (
 
 const getEntryPaths = (
   machine: Machine.Any,
-  targetLeaf: string,
+  configuration: ActiveConfiguration,
   boundary: string | undefined
 ): ReadonlyArray<string> =>
-  getPathToRoot(machine, targetLeaf).filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+  sortEntryPaths(
+    machine,
+    Array.from(configuration.active).filter((path) => boundary === undefined || isDescendantOf(path, boundary))
+  )
+
+const hasSameActivePaths = (left: ActiveConfiguration, right: ActiveConfiguration): boolean =>
+  left.active.size === right.active.size && Array.from(left.active).every((path) => right.active.has(path))
 
 export const sortExitPaths = (machine: Machine.Any, paths: Iterable<string>): ReadonlyArray<string> =>
   Array.from(new Set(paths))
@@ -350,6 +371,18 @@ export const sortEntryPaths = (machine: Machine.Any, paths: Iterable<string>): R
       return depth === 0 ? compareDocumentOrder(machine, left, right) : depth
     })
 
+const makePlanningCapabilities = <Events, Emits>(): Machine.PlanningCapabilities<Events, Emits> & {
+  readonly runtime: Effect.Effect<Runtime<Events, Emits>, never, Runtime.Requirement<Events, Emits>>
+} => {
+  const runtimeEffect = runtimeFor<Events, Emits>()
+  return {
+    action,
+    runtime: runtimeEffect,
+    raise: (event) => Effect.flatMap(runtimeEffect, (runtime) => runtime.raise(event)),
+    emit: (event) => Effect.flatMap(runtimeEffect, (runtime) => runtime.sendParent(event))
+  }
+}
+
 const makeStateActionContext = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -362,7 +395,7 @@ const makeStateActionContext = <
 ): Machine.StateActionContext<States, Events, Emits, StateId> => ({
   state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
   event,
-  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
+  ...makePlanningCapabilities<Machine.EventOf<Events>, Machine.EmitOf<Emits>>()
 })
 
 const makeTransitionContext = <
@@ -379,7 +412,7 @@ const makeTransitionContext = <
 ): Machine.HandlerContext<States, Events, Emits, StateId, EventTag, any, any> => ({
   state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
   event,
-  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+  ...makePlanningCapabilities<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
   target: machine.makeTargetBuilder(path as StateId)
 })
 
@@ -398,7 +431,7 @@ const makeDoneContext = <
   state: getActiveValue(configuration, path) as Machine.StateByIdentifier<States, StateId>,
   event,
   output: output as Machine.CompletionOutputByIdentifier<States, StateId>,
-  runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+  ...makePlanningCapabilities<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
   target: machine.makeTargetBuilder(path as StateId)
 })
 
@@ -417,6 +450,7 @@ const collectStateActions = Effect.fnUntraced(function*<
 ) {
   const actions: Array<DeferredAction<E, R>> = []
   const raisedEvents: Array<Machine.EventOf<Events>> = []
+  const emittedEvents: Array<Machine.EmitOf<Emits>> = []
   for (const path of paths) {
     const collected = yield* collectStateAction<
       Machine.StateActionContext<States, Events, Emits, Machine.StateIdentifier<States>>,
@@ -430,8 +464,9 @@ const collectStateActions = Effect.fnUntraced(function*<
     )
     actions.push(...collected.actions)
     raisedEvents.push(...collected.raisedEvents)
+    emittedEvents.push(...collected.emittedEvents as ReadonlyArray<Machine.EmitOf<Emits>>)
   }
-  return { actions, raisedEvents }
+  return { actions, emittedEvents, raisedEvents }
 })
 
 const selectAlwaysTransitions = <
@@ -482,7 +517,7 @@ const selectAlwaysTransitions = <
                 Machine.StateIdentifier<States>
               >,
               event,
-              runtime: runtimeFor<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
+              ...makePlanningCapabilities<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(),
               target: machine.makeTargetBuilder(path as Machine.StateIdentifier<States>)
             }
           })
@@ -733,10 +768,7 @@ const collectEvaluatedTransition = Effect.fnUntraced(function*<
   const stateAfterTransition = target === undefined
     ? state
     : yield* normalizeTargetConfigurationEffect<States>(machine, state, target)
-  const targetIdentifier = targetPath === undefined
-    ? stateIdentifier
-    : getActiveLeafPathFrom(machine, stateAfterTransition, targetPath)
-  const changed = targetIdentifier !== stateIdentifier || selection.transition.reenter
+  const changed = selection.transition.reenter || !hasSameActivePaths(state, stateAfterTransition)
 
   if (!changed) {
     return {
@@ -744,6 +776,7 @@ const collectEvaluatedTransition = Effect.fnUntraced(function*<
       target,
       actions: transitionResult.actions,
       raisedEvents: transitionResult.raisedEvents,
+      emittedEvents: transitionResult.emittedEvents,
       changed,
       exitPaths: [],
       entryPaths: []
@@ -752,16 +785,17 @@ const collectEvaluatedTransition = Effect.fnUntraced(function*<
 
   const boundary = selection.transition.reenter
     ? getNode(machine, selection.sourcePath).parent
-    : getLeastCommonAncestor(machine, stateIdentifier, targetIdentifier)
+    : getLeastCommonAncestor(machine, stateIdentifier, targetPath!)
 
   return {
     selection,
     target,
     actions: transitionResult.actions,
     raisedEvents: transitionResult.raisedEvents,
+    emittedEvents: transitionResult.emittedEvents,
     changed,
     exitPaths: getExitPaths(machine, state, boundary),
-    entryPaths: getEntryPaths(machine, targetIdentifier, boundary)
+    entryPaths: getEntryPaths(machine, stateAfterTransition, boundary)
   } as EvaluatedTransition<States, Event, E, R, Context>
 })
 
@@ -839,6 +873,7 @@ export const planInitial: <
     readonly actions: ReadonlyArray<
       Effect.Effect<void, InitialE | MachineSchemaDecodeError | StartupError, InitialR | R>
     >
+    readonly emittedEvents: ReadonlyArray<Machine.EmitOf<Emits>>
     readonly output: Output | undefined
   },
   InitialE | MachineSchemaDecodeError | StartupError,
@@ -883,6 +918,7 @@ export const planInitial: <
   validateInitialConfiguration(machine, configuration)
   const actions = yield* deferredActions.read
   const raisedEvents = yield* deferredRaisedEvents.read
+  const emittedEvents = yield* deferredRaisedEvents.readEmitted
   const settled = yield* (catchStartup(Effect.gen(function*() {
     const entry = yield* collectStateActions<States, Events, Emits, E, R>(
       machine,
@@ -897,6 +933,7 @@ export const planInitial: <
       InitialEvent,
       [...entry.actions] as Array<Effect.Effect<void, E, R>>,
       [...raisedEvents, ...entry.raisedEvents] as Array<Machine.EventOf<Events>>,
+      [...emittedEvents, ...entry.emittedEvents],
       []
     ) as Effect.Effect<MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R, Output>>)
   })) as Effect.Effect<
@@ -909,8 +946,9 @@ export const planInitial: <
     state: snapshotFromConfiguration<States>(machine, settled.next),
     actions: [
       ...actions,
-      ...settled.actions.map((action) => catchStartup(action))
+      ...settled.actions
     ] as ReadonlyArray<Effect.Effect<void, InitialE | MachineSchemaDecodeError | StartupError, InitialR | R>>,
+    emittedEvents: settled.emittedEvents as ReadonlyArray<Machine.EmitOf<Emits>>,
     output: settled.output
   }
 })
@@ -1022,12 +1060,16 @@ const microstep: <
     .flatMap((transition) => transition.actions)
   const transitionRaisedEvents = sortedTransitions
     .flatMap((transition) => transition.raisedEvents)
+  const transitionEmittedEvents = sortedTransitions
+    .flatMap((transition) => transition.emittedEvents)
 
   if (!changed) {
     return {
       next: stateAfterTransition,
+      event,
       actions: transitionActions,
       raisedEvents: transitionRaisedEvents,
+      emittedEvents: transitionEmittedEvents,
       exitPaths: [],
       entryPaths: [],
       changed: false
@@ -1053,12 +1095,14 @@ const microstep: <
 
   return {
     next: stateAfterTransition,
+    event,
     actions: [...exit.actions, ...transitionActions, ...entry.actions] as ReadonlyArray<
       Effect.Effect<void, E, R>
     >,
     raisedEvents: [...exit.raisedEvents, ...transitionRaisedEvents, ...entry.raisedEvents] as ReadonlyArray<
       Machine.EventOf<Events>
     >,
+    emittedEvents: [...exit.emittedEvents, ...transitionEmittedEvents, ...entry.emittedEvents],
     exitPaths,
     entryPaths,
     changed: true
@@ -1083,6 +1127,7 @@ const settle: <
   event: Machine.LifecycleEvent<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
+  emittedEvents: Array<unknown>,
   microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>
 ) => Effect.Effect<
   MacrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R, Output>,
@@ -1106,6 +1151,7 @@ const settle: <
   event: Machine.LifecycleEvent<Events>,
   actions: Array<Effect.Effect<void, E, R>>,
   raisedEvents: Array<Machine.EventOf<Events>>,
+  emittedEvents: Array<unknown>,
   microsteps: Array<MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R>>
 ) {
   let currentState = state
@@ -1114,15 +1160,31 @@ const settle: <
   let iterations = 0
   let raisedEventIndex = 0
   let finalOutput: Output | undefined = undefined
+  const pendingCompletions: Array<{ readonly path: string; readonly output: unknown }> = []
 
   while (true) {
+    iterations += 1
+    if (iterations > MaxMacrostepIterations) {
+      return yield* new InfiniteTransitionError({
+        machineId: machine.id,
+        state: String(getLeafPath(machine, currentState)),
+        maxIterations: MaxMacrostepIterations
+      })
+    }
+
     const completed = yield* completeConfigurationEffect(machine, currentState, currentEvent)
     currentState = completed.configuration
+    pendingCompletions.push(
+      ...completed.completions.filter((completion) => machine.handlers[completion.path]?.onDone !== undefined)
+    )
+    while (pendingCompletions.length > 0 && !currentState.active.has(pendingCompletions[0].path)) {
+      pendingCompletions.shift()
+    }
     const done = selectDoneTransitions<States, Events, Emits, E, R>(
       machine,
       currentState,
       currentEvent,
-      completed.completions
+      pendingCompletions.length === 0 ? [] : [pendingCompletions.shift()!]
     )
     if (done.length > 0) {
       const doneStep: MicrostepPlan<ActiveConfiguration, Machine.EventOf<Events>, E, R> = yield* microstep(
@@ -1133,6 +1195,7 @@ const settle: <
       )
       actions.push(...doneStep.actions)
       raisedEvents.push(...doneStep.raisedEvents)
+      emittedEvents.push(...doneStep.emittedEvents)
       microsteps.push(doneStep)
       currentState = doneStep.next
       shouldRunAlways = doneStep.changed
@@ -1142,15 +1205,6 @@ const settle: <
       const root = getRootPath(machine, currentState)
       finalOutput = currentState.outputs.get(root) as Output | undefined
       break
-    }
-
-    iterations += 1
-    if (iterations > MaxMacrostepIterations) {
-      return yield* new InfiniteTransitionError({
-        machineId: machine.id,
-        state: String(getLeafPath(machine, currentState)),
-        maxIterations: MaxMacrostepIterations
-      })
     }
 
     const always = shouldRunAlways
@@ -1165,6 +1219,7 @@ const settle: <
       )
       actions.push(...alwaysStep.actions)
       raisedEvents.push(...alwaysStep.raisedEvents)
+      emittedEvents.push(...alwaysStep.emittedEvents)
       microsteps.push(alwaysStep)
       currentState = alwaysStep.next
       shouldRunAlways = alwaysStep.changed
@@ -1191,6 +1246,7 @@ const settle: <
     )
     actions.push(...raisedStep.actions)
     raisedEvents.push(...raisedStep.raisedEvents)
+    emittedEvents.push(...raisedStep.emittedEvents)
     microsteps.push(raisedStep)
     currentState = raisedStep.next
     shouldRunAlways = true
@@ -1199,6 +1255,7 @@ const settle: <
   return {
     next: currentState,
     actions,
+    emittedEvents,
     microsteps,
     output: finalOutput
   }
@@ -1247,6 +1304,7 @@ const macrostep: <
     return {
       next: snapshot,
       actions: [],
+      emittedEvents: [],
       microsteps: [],
       output: undefined
     }
@@ -1265,15 +1323,19 @@ const macrostep: <
   )
   const actions = [...step.actions]
   const raisedEvents = [...step.raisedEvents]
+  const emittedEvents = [...step.emittedEvents]
   const microsteps = [step]
-  const settled = yield* settle(machine, step.next, decodedEvent, actions, raisedEvents, microsteps)
+  const settled = yield* settle(machine, step.next, decodedEvent, actions, raisedEvents, emittedEvents, microsteps)
   return {
     next: snapshotFromConfiguration<States>(machine, settled.next),
     actions: settled.actions,
+    emittedEvents: settled.emittedEvents,
     microsteps: settled.microsteps.map((step) => ({
       next: snapshotFromConfiguration<States>(machine, step.next),
+      event: step.event,
       actions: step.actions,
       raisedEvents: step.raisedEvents,
+      emittedEvents: step.emittedEvents,
       exitPaths: step.exitPaths,
       entryPaths: step.entryPaths,
       changed: step.changed
@@ -1299,7 +1361,8 @@ const actionUnsafe = Effect.fnUntraced(function*<E, R>(
  */
 export const action = <E, R>(
   effect: Effect.Effect<void, E, R>
-): Effect.Effect<void, E, R> => actionUnsafe(effect) as unknown as Effect.Effect<void, E, R>
+): Effect.Effect<void, never, ActionRequirement<E, R>> =>
+  actionUnsafe(effect) as unknown as Effect.Effect<void, never, ActionRequirement<E, R>>
 
 /**
  * Returns the typed runtime capability for the current machine.

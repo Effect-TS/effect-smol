@@ -12,7 +12,7 @@ import * as Ref from "../../../Ref.ts"
 import type * as Schema from "../../../Schema.ts"
 import * as Scope from "../../../Scope.ts"
 import * as Stream from "../../../Stream.ts"
-import type { Machine, Runtime } from "../Machine.ts"
+import type { ActionError, ExecutionServices, Machine, Runtime } from "../Machine.ts"
 import type {
   InfiniteTransitionError,
   MachineSchemaDecodeError,
@@ -67,14 +67,14 @@ export const toProcessLogic: <
 ) => internalRuntime.ProcessLogic<
   Machine.Snapshot<States>,
   Machine.EventOf<Events>,
-  E | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
+  E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
   ExcludeCompatibleRuntime<
-    Exclude<InitialR | R, internalRuntime.MachineRuntime>,
+    Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >,
   Output | undefined,
-  InitialE | MachineSchemaDecodeError | StartupError
+  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError
 > = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -96,10 +96,15 @@ export const toProcessLogic: <
       internalRuntime.provideMachineRuntime(
         Effect.gen(function*() {
           const planned = yield* internalPlanner.planInitial(machine, ...args)
+          const runtime = internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(
+            machine,
+            scope
+          )
           yield* internalPlanner.runActions(
             planned.actions,
-            internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, scope)
+            runtime
           )
+          yield* internalPlanner.runEmittedEvents(planned.emittedEvents, runtime)
           return planned.state
         }),
         scope
@@ -155,7 +160,13 @@ export const toProcessLogic: <
                 ? [current.value, HashMap.remove(sessions, key)] as const
                 : [undefined, sessions] as const
             }).pipe(
-              Effect.flatMap((session) => session === undefined ? Effect.void : Scope.close(session.scope, exit))
+              Effect.flatMap((session) =>
+                session === undefined
+                  ? Effect.void
+                  : Scope.close(session.scope, exit).pipe(
+                    Effect.andThen(context.stopChild(session.childId))
+                  )
+              )
             )
           const stopAllInvokes = (exit: Exit.Exit<unknown, unknown>): Effect.Effect<void> =>
             Ref.modify(invokeSessions, (sessions) => [HashMap.toEntries(sessions), HashMap.empty()] as const).pipe(
@@ -199,27 +210,28 @@ export const toProcessLogic: <
                   Effect.asVoid
                 )
               }
-              if (config.event !== undefined) {
-                const mapEvent = config.event
-                yield* internalRuntime.watch(child).pipe(
-                  Stream.runForEach((outcome) =>
-                    isCurrentInvoke(key, token).pipe(
-                      Effect.flatMap((isCurrent) => {
-                        if (!isCurrent) {
-                          return Effect.void
-                        }
-                        const mappedEvent = mapEvent({ id: config.id, outcome })
-                        return mappedEvent === undefined
+              yield* internalRuntime.watch(child).pipe(
+                Stream.runForEach((outcome) =>
+                  isCurrentInvoke(key, token).pipe(
+                    Effect.flatMap((isCurrent) => {
+                      if (!isCurrent || outcome._tag === "Stopped") {
+                        return Effect.void
+                      }
+                      if (outcome._tag === "Done") {
+                        return outcome.output === undefined
                           ? Effect.void
-                          : context.self.send(mappedEvent as Machine.EventOf<Events>)
-                      })
-                    )
-                  ),
-                  Effect.forkIn(scope),
-                  Effect.asVoid
-                )
-              }
-          })
+                          : context.self.send(outcome.output as Machine.EventOf<Events>).pipe(
+                            Effect.catchTag("StoppedError", () => Effect.void)
+                          )
+                      }
+                      return context.failCause(outcome.cause)
+                    })
+                  )
+                ),
+                Effect.forkIn(scope),
+                Effect.asVoid
+              )
+            })
           const startInvoke = <StateId extends Machine.StateIdentifier<States>>(
             path: StateId,
             config: AnyInvokeConfig,
@@ -231,6 +243,8 @@ export const toProcessLogic: <
               const invokeId = String(config.id)
               const key = makeInvokeSessionKey(path, invokeId)
               const childId = makeInvokeChildId(path, invokeId)
+              const scope = yield* Scope.make("parallel")
+              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, key, { token, scope, childId }))
               const child = yield* context.spawn(
                 config.src({
                   state,
@@ -243,8 +257,6 @@ export const toProcessLogic: <
                   Exit.isFailure(exit) ? clearInvoke(key, token, Exit.failCause(exit.cause)) : Effect.void
                 )
               )
-              const scope = yield* Scope.make("parallel")
-              yield* Ref.update(invokeSessions, (sessions) => HashMap.set(sessions, key, { token, scope, childId }))
               yield* startInvokeWatchers(config, child, key, token, scope)
             })
           const startInvokes: (
@@ -302,15 +314,19 @@ export const toProcessLogic: <
                   const planned = yield* internalPlanner.plan(machine, current, event)
                   const changed = planned.microsteps.some((step) => step.changed)
                   const exitPaths = planned.microsteps.flatMap((step) => step.exitPaths)
-                  const entryPaths = planned.microsteps.flatMap((step) => step.entryPaths)
 
+                  const runtime = internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(
+                    machine,
+                    context
+                  )
+                  yield* internalPlanner.runActions(planned.actions, runtime)
                   if (changed) {
                     yield* stopInvokes(exitPaths)
                   }
                   yield* setState(planned.next)
-                  yield* internalPlanner.runActions(
-                    planned.actions,
-                    internalPlanner.makeLiveRuntime<Machine.EventOf<Events>, Machine.EmitOf<Emits>>(machine, context)
+                  yield* internalPlanner.runEmittedEvents(
+                    planned.emittedEvents as ReadonlyArray<Machine.EmitOf<Emits>>,
+                    runtime
                   )
 
                   if (internalPlanner.isFinalState(machine, planned.next)) {
@@ -319,7 +335,15 @@ export const toProcessLogic: <
                     yield* stopAllInvokes(Exit.succeed(output))
                   } else {
                     if (changed) {
-                      yield* startInvokes(planned.next, entryPaths, event)
+                      for (const step of planned.microsteps) {
+                        if (step.changed) {
+                          yield* startInvokes(
+                            planned.next,
+                            step.entryPaths,
+                            step.event as Machine.LifecycleEvent<Events>
+                          )
+                        }
+                      }
                     }
                     yield* Effect.yieldNow
                   }
@@ -337,14 +361,14 @@ export const toProcessLogic: <
   }) as internalRuntime.ProcessLogic<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
+    E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
     ExcludeCompatibleRuntime<
-      Exclude<InitialR | R, internalRuntime.MachineRuntime>,
+      Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
       Machine.EventOf<Events>,
       Machine.EmitOf<Emits>
     >,
     Output | undefined,
-    InitialE | MachineSchemaDecodeError | StartupError
+    InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError
   >
 
 export const start: <
@@ -366,12 +390,18 @@ export const start: <
   internalRuntime.MachineRef<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | InitialE | InfiniteTransitionError | MachineSchemaDecodeError | StartupError | UnhandledEventError,
+    | E
+    | InitialE
+    | ActionError<R | InitialR>
+    | InfiniteTransitionError
+    | MachineSchemaDecodeError
+    | StartupError
+    | UnhandledEventError,
     Output | undefined
   >,
-  InitialE | MachineSchemaDecodeError | StartupError,
+  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError,
   ExcludeCompatibleRuntime<
-    Exclude<InitialR | R, internalRuntime.MachineRuntime>,
+    Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >

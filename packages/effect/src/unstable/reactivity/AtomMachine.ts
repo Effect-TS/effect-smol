@@ -34,7 +34,7 @@ type ExcludeCompatibleMachineRuntime<Requirements, Events, Emits> = Requirements
   : Requirements
 
 type MachineRequirements<InitialR, R, Events, Emits> = ExcludeCompatibleMachineRuntime<
-  Exclude<InitialR | R, internalRuntime.MachineRuntime>,
+  Exclude<Machine.ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
   Events,
   Emits
 >
@@ -72,6 +72,7 @@ const startMachineAtomEffect = <
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
     | E
+    | Machine.ActionError<InitialR | R>
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
@@ -79,7 +80,7 @@ const startMachineAtomEffect = <
     | InitialE,
     Output | undefined
   >,
-  InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError,
+  InitialE | Machine.ActionError<InitialR | R> | Machine.MachineSchemaDecodeError | Machine.StartupError,
   MachineRequirements<InitialR, R, Machine.Machine.EventOf<Events>, Machine.Machine.EmitOf<Emits>>
 > =>
   Effect.scoped(
@@ -135,7 +136,7 @@ export interface MachineAtom<State, Event, Error = never, Output = never, StartE
    *
    * @since 4.0.0
    */
-  readonly send: Atom.Writable<AsyncResult.AsyncResult<void, StartError>, Event>
+  readonly send: Atom.Writable<AsyncResult.AsyncResult<void, StartError | Machine.StoppedError>, Event>
 
   /**
    * Writable atom that stops the machine.
@@ -183,12 +184,17 @@ const makeFromRefAtom = <State, Event, Error, Output, StartError>(
     })
   })
 
-  const send = Atom.writable<AsyncResult.AsyncResult<void, StartError>, Event>(
+  const send = Atom.writable<AsyncResult.AsyncResult<void, StartError | Machine.StoppedError>, Event>(
     (get) => AsyncResult.map(get(ref), () => undefined),
     (ctx, event: Event) => {
       const result = ctx.get(ref)
       if (AsyncResult.isSuccess(result)) {
-        Effect.runCallback(result.value.send(event))
+        Effect.runCallback(result.value.send(event), {
+          onExit: (exit) =>
+            ctx.setSelf(
+              AsyncResult.fromExit(exit)
+            )
+        })
       }
     }
   )
@@ -259,13 +265,14 @@ export const make: {
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
     | E
+    | Machine.ActionError<InitialR | R>
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
     | Machine.UnhandledEventError
     | InitialE,
     Output | undefined,
-    InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError
+    InitialE | Machine.ActionError<InitialR | R> | Machine.MachineSchemaDecodeError | Machine.StartupError
   >
   <
     RuntimeError,
@@ -310,13 +317,18 @@ export const make: {
     Machine.Machine.Snapshot<States>,
     Machine.Machine.EventOf<Events>,
     | E
+    | Machine.ActionError<InitialR | R>
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
     | Machine.UnhandledEventError
     | InitialE,
     Output | undefined,
-    InitialE | Machine.MachineSchemaDecodeError | Machine.StartupError | RuntimeError
+    | InitialE
+    | Machine.ActionError<InitialR | R>
+    | Machine.MachineSchemaDecodeError
+    | Machine.StartupError
+    | RuntimeError
   >
 } = ((...args: ReadonlyArray<any>) => {
   const runtimeOrMachine = args[0] as Atom.AtomRuntime<any, any> | Machine.Machine.Any

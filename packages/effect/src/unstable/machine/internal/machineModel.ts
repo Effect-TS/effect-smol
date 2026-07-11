@@ -4,15 +4,15 @@
  * @since 4.0.0
  */
 
+import * as Cause from "../../../Cause.ts"
 import * as Effect from "../../../Effect.ts"
+import * as Option from "../../../Option.ts"
 import { hasProperty } from "../../../Predicate.ts"
 import * as Schema from "../../../Schema.ts"
 import type { Machine } from "../Machine.ts"
 import { MachineSchemaDecodeError } from "./machineErrors.ts"
 
 export const TargetTypeId = "~effect/Machine/Target"
-
-const CompletedOutputsTypeId: unique symbol = Symbol("effect/Machine/CompletedOutputs")
 
 export const getSchemaTag = (schema: Machine.TaggedSchema): PropertyKey | undefined => {
   const tag = (schema as any).fields?._tag?.schema?.literal ?? (schema as any).fields?._tag?.ast?.literal
@@ -84,6 +84,9 @@ export const compileStateNodes = (states: Machine.StateSchemas): Machine.StateNo
   const compile = (tree: Machine.StateTree, parent: string | undefined): ReadonlyArray<string> => {
     const paths: Array<string> = []
     for (const key of Object.keys(tree)) {
+      if (key.includes(".")) {
+        throw new Error(`Machine state keys cannot contain ".": "${key}"`)
+      }
       const path = parent === undefined ? key : `${parent}.${key}`
       const definition = getStateNodeDefinition(path, tree[key])
       const node = {
@@ -153,17 +156,13 @@ export interface ActiveConfiguration {
   readonly outputs: ReadonlyMap<string, unknown>
 }
 
-export type SnapshotWithCompletedOutputs = Machine.AtomicSnapshot<string, unknown> & {
-  readonly [CompletedOutputsTypeId]?: ReadonlyMap<string, unknown>
-}
-
 export interface FinalCompletion {
   readonly path: string
   readonly output: unknown
 }
 
 export interface DecodeBoundaryOptions {
-  readonly boundary: "input" | "event" | "emit" | "state" | "output"
+  readonly boundary: "input" | "event" | "emit" | "state" | "output" | "configuration"
   readonly state?: string
   readonly event?: string
 }
@@ -378,10 +377,16 @@ export const snapshotFromConfiguration = <const States extends Machine.StateSche
     configuration,
     getRootPath(machine, configuration)
   ) as Machine.Snapshot<States>
-  Object.defineProperty(snapshot, CompletedOutputsTypeId, {
-    value: new Map(configuration.outputs),
-    enumerable: false
-  })
+  const root = getRootPath(machine, configuration)
+  const retainPartialOutputs = !isActiveFinalNode(machine, configuration, root)
+  const completed = Array.from(configuration.outputs)
+    .filter(([path]) => retainPartialOutputs || hasCompletionHandler(machine, path))
+    .map(([path, output]) => ({ path, output }))
+  if (completed.length > 0) {
+    ;(snapshot as Machine.AtomicSnapshot<string, unknown> & {
+      completed: ReadonlyArray<Machine.SnapshotCompletion>
+    }).completed = completed
+  }
   return snapshot
 }
 
@@ -391,7 +396,7 @@ export const configurationFromSnapshot = (
 ): ActiveConfiguration => {
   const active = new Set<string>()
   const values = new Map<string, unknown>()
-  const snapshotOutputs = (snapshot as SnapshotWithCompletedOutputs)[CompletedOutputsTypeId]
+  const snapshotOutputs = snapshot.completed
 
   const visit = (current: Machine.AtomicSnapshot<string, unknown>): void => {
     const node = getNode(machine, String(current.path))
@@ -433,7 +438,7 @@ export const configurationFromSnapshot = (
   visit(snapshot)
   const outputs = new Map<string, unknown>()
   if (snapshotOutputs !== undefined) {
-    for (const [path, output] of snapshotOutputs) {
+    for (const { output, path } of snapshotOutputs) {
       if (active.has(path)) {
         outputs.set(path, output)
       }
@@ -453,7 +458,7 @@ export const configurationFromSnapshotEffect = Effect.fnUntraced(function*(
 ) {
   const active = new Set<string>()
   const values = new Map<string, unknown>()
-  const snapshotOutputs = (snapshot as SnapshotWithCompletedOutputs)[CompletedOutputsTypeId]
+  const snapshotOutputs = snapshot.completed
 
   const visit: (
     current: Machine.AtomicSnapshot<string, unknown>
@@ -497,7 +502,7 @@ export const configurationFromSnapshotEffect = Effect.fnUntraced(function*(
   yield* visit(snapshot)
   const outputs = new Map<string, unknown>()
   if (snapshotOutputs !== undefined) {
-    for (const [path, output] of snapshotOutputs) {
+    for (const { output, path } of snapshotOutputs) {
       if (active.has(path)) {
         outputs.set(path, output)
       }
@@ -509,7 +514,21 @@ export const configurationFromSnapshotEffect = Effect.fnUntraced(function*(
 export const normalizeConfigurationEffect = <const States extends Machine.StateSchemas>(
   machine: Machine.Any,
   state: Machine.Snapshot<States>
-): Effect.Effect<ActiveConfiguration, MachineSchemaDecodeError> => configurationFromSnapshotEffect(machine, state)
+): Effect.Effect<ActiveConfiguration, MachineSchemaDecodeError> =>
+  configurationFromSnapshotEffect(machine, state).pipe(
+    Effect.catchCause((cause) => {
+      const error = Cause.findErrorOption(cause)
+      return Option.isSome(error) && error.value instanceof MachineSchemaDecodeError
+        ? Effect.fail(error.value)
+        : Effect.fail(
+          new MachineSchemaDecodeError({
+            machineId: machine.id,
+            boundary: "configuration",
+            cause
+          })
+        )
+    })
+  )
 
 export const validateInitialConfiguration = (machine: Machine.Any, configuration: ActiveConfiguration): void => {
   for (const path of configuration.active) {
@@ -678,7 +697,7 @@ export const normalizeTargetConfigurationEffect = <const States extends Machine.
     )
   }
   if (isSnapshot(target)) {
-    return configurationFromSnapshotEffect(machine, target)
+    return normalizeConfigurationEffect(machine, target)
   }
   throw new Error("Machine expected transition target to be a snapshot or target builder result")
 }

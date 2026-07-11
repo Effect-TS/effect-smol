@@ -1,5 +1,5 @@
 import { assert, describe, it } from "@effect/vitest"
-import { Context, Data, Effect, Fiber, Layer, Option, Schema, Stream } from "effect"
+import { Cause, Context, Data, Effect, Fiber, Layer, Option, Schema, Stream } from "effect"
 import { Machine } from "effect/unstable/machine"
 import { AsyncResult, Atom, AtomMachine, AtomRegistry } from "effect/unstable/reactivity"
 
@@ -117,6 +117,7 @@ describe("AtomMachine", () => {
       const registry = yield* makeRegistry
       const bridge = AtomMachine.make(makeCounterMachine())
       yield* mount(registry, bridge.snapshot)
+      yield* mount(registry, bridge.send)
 
       yield* AtomRegistry.getResult(registry, bridge.snapshot)
       yield* Effect.sync(() => registry.set(bridge.stop, undefined))
@@ -176,6 +177,34 @@ describe("AtomMachine", () => {
           value: new Count({ value: 0 })
         }
       })
+    })))
+
+  it.effect("exposes stopped send failures through the writable send atom", () =>
+    Effect.scoped(Effect.gen(function*() {
+      const registry = yield* makeRegistry
+      const bridge = AtomMachine.make(makeCounterMachine())
+      yield* mount(registry, bridge.snapshot)
+
+      yield* AtomRegistry.getResult(registry, bridge.snapshot)
+      yield* Effect.sync(() => registry.set(bridge.stop, undefined))
+      yield* waitForResult(registry, bridge.snapshot, (snapshot) => snapshot.status === "stopped")
+      const failureFiber = yield* AtomRegistry.toStream(registry, bridge.send).pipe(
+        Stream.filter(AsyncResult.isFailure),
+        Stream.take(1),
+        Stream.runCollect,
+        Effect.forkChild({ startImmediately: true })
+      )
+      yield* Effect.sync(() => registry.set(bridge.send, new Finish({ by: 1 })))
+
+      const result = Array.from(yield* Fiber.join(failureFiber))[0]!
+      assert.strictEqual(AsyncResult.isFailure(result), true)
+      if (AsyncResult.isFailure(result)) {
+        const error = Cause.findErrorOption(result.cause)
+        assert.strictEqual(Option.isSome(error), true)
+        if (Option.isSome(error)) {
+          assert.instanceOf(error.value, Machine.StoppedError)
+        }
+      }
     })))
 
   it.effect("runs a machine and exposes the final snapshot", () =>
