@@ -508,7 +508,7 @@ describe("Machine", () => {
         assertMachineSchemaDecodeError(error, "event", { event: "NonEmptySubmit" })
       }))
 
-    it.effect("surfaces sent event decode failures through actor lifecycle", () =>
+    it.effect("surfaces sent event decode failures through the machine lifecycle", () =>
       Effect.gen(function*() {
         const states = Machine.defineStates({ NonEmptyIdle })
         const machine = Machine.make({
@@ -815,7 +815,7 @@ describe("Machine", () => {
       assertStateSnapshot(reset.next, "a", new Duplicate({ value: "reset" }))
     }))
 
-  it.effect("exposes path identity through actor snapshots", () =>
+  it.effect("exposes path identity through machine snapshots", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
         states: {
@@ -3775,7 +3775,7 @@ describe("Machine", () => {
       assert.deepStrictEqual(yield* deferredLog.read, ["success"])
     }))
 
-  it.effect("exposes final state output from an actor", () =>
+  it.effect("exposes final state output from a running machine", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
         states: { Idle, Success: SuccessOutput },
@@ -4187,7 +4187,7 @@ describe("Machine", () => {
       })
     }))
 
-  it.effect("start returns an actor-backed runtime with lifecycle snapshots", () =>
+  it.effect("start returns a machine runtime with lifecycle snapshots", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
         states: { Idle, Loading },
@@ -4231,7 +4231,7 @@ describe("Machine", () => {
       })
     }))
 
-  it.effect("start completes actor output from a final state", () =>
+  it.effect("start completes machine output from a final state", () =>
     Effect.gen(function*() {
       const machine = Machine.make({
         states: { Idle, Success: SuccessOutput },
@@ -4347,9 +4347,10 @@ describe("Machine", () => {
 
   it.effect("spawned child processes send events to the parent", () =>
     Effect.gen(function*() {
-      const childLogic = Machine.effect(({ sendParent }) =>
-        sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
-      )
+      const childLogic = Machine.logic({
+        initial: undefined,
+        run: ({ sendParent }) => sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
+      })
       const parentMachine = Machine.make({
         states: { Idle, Success: SuccessOutput },
         events: [Submit, ParentRequestProgress],
@@ -4463,7 +4464,10 @@ describe("Machine", () => {
       const notifyWorkerDone = (
         sendParent: (event: ParentRequestProgress) => Effect.Effect<void, Machine.StoppedError>
       ) => sendParent(new ParentRequestProgress({ id: "request", loaded: 42 }))
-      const childLogic = Machine.effect(({ sendParent }) => notifyWorkerDone(sendParent))
+      const childLogic = Machine.logic({
+        initial: undefined,
+        run: ({ sendParent }) => notifyWorkerDone(sendParent)
+      })
 
       const parentMachine = Machine.make({
         states: { Idle, Success: SuccessOutput },
@@ -6552,5 +6556,144 @@ describe("Machine", () => {
         state: { path: "Idle", value: new Idle({ userId: "user-1" }) },
         cause: Cause.fail(error)
       })
+    }))
+
+  class CounterRunning extends Schema.TaggedClass<CounterRunning>("CounterRunning")("CounterRunning", {}) {}
+
+  class LeftCounter extends Schema.TaggedClass<LeftCounter>("LeftCounter")("LeftCounter", {
+    value: Schema.Number
+  }) {}
+
+  class RightCounter extends Schema.TaggedClass<RightCounter>("RightCounter")("RightCounter", {
+    value: Schema.Number
+  }) {}
+
+  class AdvanceCounters extends Schema.TaggedClass<AdvanceCounters>("AdvanceCounters")("AdvanceCounters", {}) {}
+
+  class ConcurrentIdle extends Schema.TaggedClass<ConcurrentIdle>("ConcurrentIdle")("ConcurrentIdle", {}) {}
+
+  class ConcurrentPing extends Schema.TaggedClass<ConcurrentPing>("ConcurrentPing")("ConcurrentPing", {}) {}
+
+  const ParallelCounterStates = Machine.defineStates({
+    running: {
+      schema: CounterRunning,
+      type: "parallel",
+      states: {
+        left: LeftCounter,
+        right: RightCounter
+      }
+    }
+  })
+
+  const makeParallelCounterMachine = () =>
+    Machine.make({
+      states: ParallelCounterStates.states,
+      events: [AdvanceCounters],
+      initial: () =>
+        ParallelCounterStates.initial.running(
+          new CounterRunning({}),
+          (running) => running.left(new LeftCounter({ value: 0 })).right(new RightCounter({ value: 0 }))
+        )
+    }).handle({
+      running: {
+        states: {
+          left: {
+            on: {
+              AdvanceCounters: ({ state, target }) =>
+                target.branch.running.left(new LeftCounter({ value: state.value + 1 }))
+            }
+          },
+          right: {
+            on: {
+              AdvanceCounters: ({ state, target }) =>
+                target.branch.running.right(new RightCounter({ value: state.value + 1 }))
+            }
+          }
+        }
+      }
+    })
+
+  const makeConcurrentMachine = () => {
+    const states = Machine.defineStates({ ConcurrentIdle })
+    return Machine.make({
+      states: states.states,
+      events: [ConcurrentPing],
+      initial: () => states.initial.ConcurrentIdle(new ConcurrentIdle({}))
+    }).handle({
+      ConcurrentIdle: {
+        on: {
+          ConcurrentPing: () => {}
+        }
+      }
+    })
+  }
+
+  it.effect("keeps every parallel state active across repeated transitions", () =>
+    Effect.gen(function*() {
+      const machine = makeParallelCounterMachine()
+      let snapshot: Machine.Machine.Snapshot<typeof ParallelCounterStates.states> =
+        (yield* Machine.planInitial(machine)).state
+
+      for (let iteration = 1; iteration <= 32; iteration++) {
+        const cloned = {
+          ...snapshot,
+          states: { ...snapshot.states }
+        }
+        const planned = yield* Machine.plan(machine, cloned, new AdvanceCounters({}))
+
+        assert.strictEqual(planned.next.path, "running")
+        assert.deepStrictEqual(Object.keys(planned.next.states).sort(), ["left", "right"])
+        assert.strictEqual(planned.next.states.left.path, "running.left")
+        assert.strictEqual(planned.next.states.right.path, "running.right")
+        assert.strictEqual(planned.next.states.left.value.value, iteration)
+        assert.strictEqual(planned.next.states.right.value.value, iteration)
+
+        for (const microstep of planned.microsteps) {
+          assert.strictEqual(new Set(microstep.exitPaths).size, microstep.exitPaths.length)
+          assert.strictEqual(new Set(microstep.entryPaths).size, microstep.entryPaths.length)
+        }
+
+        snapshot = planned.next
+      }
+    }))
+
+  it.effect("reports a schema error when structuredClone removes state class identity", () =>
+    Effect.gen(function*() {
+      const machine = makeParallelCounterMachine()
+      const snapshot = (yield* Machine.planInitial(machine)).state
+      const error = yield* Effect.flip(Machine.plan(machine, structuredClone(snapshot), new AdvanceCounters({})))
+
+      assert.instanceOf(error, Machine.MachineSchemaDecodeError)
+      assert.strictEqual(error.boundary, "state")
+      assert.strictEqual(error.state, "running")
+    }))
+
+  it.effect("leaves a machine stopped when it is stopped concurrently", () =>
+    Effect.gen(function*() {
+      const ref = yield* Machine.start(makeConcurrentMachine())
+
+      yield* Effect.all([ref.stop, ref.stop, ref.stop], { concurrency: "unbounded" })
+
+      assert.deepStrictEqual(yield* ref.snapshot, {
+        status: "stopped",
+        state: { path: "ConcurrentIdle", value: new ConcurrentIdle({}) }
+      })
+    }))
+
+  it.effect("keeps a machine stopped when sending an event races with stopping it", () =>
+    Effect.gen(function*() {
+      for (let iteration = 0; iteration < 32; iteration++) {
+        const ref = yield* Machine.start(makeConcurrentMachine())
+        const send = ref.send(new ConcurrentPing({})).pipe(
+          Effect.as("accepted" as const),
+          Effect.catchTag("StoppedError", () => Effect.succeed("stopped" as const))
+        )
+
+        const [sendResult] = yield* Effect.all([send, ref.stop], { concurrency: "unbounded" })
+
+        assert.strictEqual(sendResult === "accepted" || sendResult === "stopped", true)
+        assert.strictEqual((yield* ref.snapshot).status, "stopped")
+        assert.instanceOf(yield* Effect.flip(ref.send(new ConcurrentPing({}))), Machine.StoppedError)
+      }
     }))
 })

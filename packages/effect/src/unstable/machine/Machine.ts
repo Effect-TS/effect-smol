@@ -4,12 +4,14 @@
  * @since 4.0.0
  */
 
+import type * as Cause from "../../Cause.ts"
 import * as Effect from "../../Effect.ts"
 import { PipeInspectableProto } from "../../internal/core.ts"
 import type { Pipeable } from "../../Pipeable.ts"
 import { hasProperty } from "../../Predicate.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
+import type * as Stream from "../../Stream.ts"
 import type * as Types from "../../Types.ts"
 import type {
   ChildAlreadyExistsError,
@@ -186,6 +188,7 @@ export {
 
 const RuntimeRequirementTypeId = "~effect/Machine/RuntimeRequirement"
 const ActionRequirementTypeId = "~effect/Machine/ActionRequirement"
+type MachineRuntimeRequirement = internalRuntime.MachineRuntime
 
 /**
  * Opaque marker used to keep staged action errors and services separate from
@@ -232,7 +235,9 @@ export type PlanningServices<Requirements> = Exclude<Requirements, ActionRequire
  * @category utility types
  * @since 4.0.0
  */
-export type ExecutionServices<Requirements> = PlanningServices<Requirements> | ActionServices<Requirements>
+export type ExecutionServices<Requirements> =
+  | Exclude<PlanningServices<Requirements>, MachineRuntimeRequirement>
+  | Exclude<ActionServices<Requirements>, MachineRuntimeRequirement>
 
 /**
  * Runtime capability available to machine actions.
@@ -694,46 +699,104 @@ type SpawnError<Options extends SpawnOptions> = SpawnIdError<Options>
 type SpawnResult<State, Event, Error, Requirements, Output, SpawnError, InitialError = never> = Effect.Effect<
   MachineRef<State, Event, Error | InitialError, Output>,
   SpawnError | InitialError,
-  internalRuntime.MachineRuntime | SpawnRequirements<Requirements>
+  MachineRuntimeRequirement | SpawnRequirements<Requirements>
 >
 
 /**
- * Lifecycle-aware snapshot of a running machine.
+ * Represents the active or terminal lifecycle state of a running machine.
+ *
+ * **Details**
+ *
+ * Failures retain the last successfully published machine state and expose the
+ * complete `Cause`. Stopped machines are distinct from machines that complete
+ * with output or fail while processing an event.
  *
  * @category models
  * @since 4.0.0
  */
-export type RuntimeSnapshot<State, Error = never, Output = never> = internalRuntime.RuntimeSnapshot<
-  State,
-  Error,
-  Output
->
+export type RuntimeSnapshot<State, Error = never, Output = never> =
+  | {
+    readonly status: "active"
+    readonly state: State
+  }
+  | {
+    readonly status: "done"
+    readonly state: State
+    readonly output: Output
+  }
+  | {
+    readonly status: "error"
+    readonly state: State
+    readonly cause: Cause.Cause<Error>
+  }
+  | {
+    readonly status: "stopped"
+    readonly state: State
+  }
 
 /**
- * Terminal lifecycle outcome derived from a runtime snapshot.
+ * Represents a classified terminal outcome derived from a runtime snapshot.
  *
  * @category models
  * @since 4.0.0
  */
-export type RuntimeOutcome<State, Error = never, Output = never> = internalRuntime.RuntimeOutcome<
-  State,
-  Error,
-  Output
->
+export type RuntimeOutcome<State, Error = never, Output = never> =
+  | {
+    readonly _tag: "Done"
+    readonly output: Output
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "done" }>
+  }
+  | {
+    readonly _tag: "Failure"
+    readonly error: Error
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Defect"
+    readonly defect: unknown
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Interrupted"
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Cause"
+    readonly cause: Cause.Cause<Error>
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "error" }>
+  }
+  | {
+    readonly _tag: "Stopped"
+    readonly snapshot: Extract<RuntimeSnapshot<State, Error, Output>, { readonly status: "stopped" }>
+  }
 
 /**
- * Running machine handle with current state, lifecycle snapshots, and a
- * stop action.
+ * Provides access to a running machine's state, lifecycle, event input, and
+ * termination operations.
+ *
+ * **Gotchas**
+ *
+ * `send` reports whether an event was accepted for delivery. Errors that occur
+ * while asynchronously processing an accepted event are observed through
+ * `snapshot`, `changes`, or `join`. Sending after termination fails with
+ * `StoppedError`.
  *
  * @category models
  * @since 4.0.0
  */
-export type MachineRef<State, Event, Error = never, Output = never> = internalRuntime.MachineRef<
-  State,
-  Event,
-  Error,
-  Output
->
+export interface MachineRef<out State, in Event, out Error = never, out Output = never> {
+  readonly id: string
+  readonly sessionId: string
+  readonly state: Effect.Effect<State>
+  readonly snapshot: Effect.Effect<RuntimeSnapshot<State, Error, Output>>
+  readonly changes: Stream.Stream<RuntimeSnapshot<State, Error, Output>>
+  readonly join: Effect.Effect<Output, Error | StoppedError>
+  readonly stop: Effect.Effect<void>
+  readonly send: (event: Event) => Effect.Effect<void, StoppedError>
+}
 
 /**
  * Machine-specific process logic used by `spawn` and `invoke`.
@@ -741,23 +804,99 @@ export type MachineRef<State, Event, Error = never, Output = never> = internalRu
  * @category models
  * @since 4.0.0
  */
-export type Logic<
+export interface Logic<
   State,
   Event,
-  Error = never,
-  Requirements = never,
-  Output = never,
-  InitialError = never
-> = internalRuntime.ProcessLogic<State, Event, Error, Requirements, Output, InitialError>
+  out Error = never,
+  out Requirements = never,
+  out Output = never,
+  out InitialError = never
+> {
+  initial(scope: Logic.Scope<Event>): Effect.Effect<State, InitialError, Requirements>
+  run(context: Logic.Context<State, Event>): Effect.Effect<Output, Error, Requirements>
+}
 
 /**
- * Capabilities available to a one-shot effect process.
+ * Public types used by advanced machine process logic.
  *
- * @category models
  * @since 4.0.0
  */
-export interface EffectScope {
-  readonly sendParent: (event: unknown) => Effect.Effect<void, StoppedError>
+export declare namespace Logic {
+  /**
+   * Machine-local endpoint that can receive events and be stopped.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Address<in Event> {
+    readonly id: string
+    readonly sessionId: string
+    readonly stop: Effect.Effect<void>
+    readonly send: (event: Event) => Effect.Effect<void, StoppedError>
+  }
+
+  /**
+   * Starts child process logic owned by the current machine process.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Spawn {
+    <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Logic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>
+    ): Effect.Effect<
+      MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+      ChildInitialError,
+      Exclude<ChildRequirements, Scope.Scope>
+    >
+    <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
+      logic: Logic<ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError>,
+      options: { readonly id: string }
+    ): Effect.Effect<
+      MachineRef<ChildState, ChildEvent, ChildError | ChildInitialError, ChildOutput>,
+      ChildAlreadyExistsError | ChildInitialError,
+      Exclude<ChildRequirements, Scope.Scope>
+    >
+  }
+
+  /**
+   * Machine-local capabilities available while process logic initializes.
+   *
+   * **Gotchas**
+   *
+   * `sendParent` accepts `unknown` because process logic is independent from
+   * the parent that eventually owns it. Prefer typed process output or an
+   * invoke snapshot mapper when either can represent the communication.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Scope<Event> {
+    readonly self: Address<Event>
+    readonly parent: Address<unknown> | undefined
+    readonly spawn: Spawn
+    readonly sendParent: (event: unknown) => Effect.Effect<void, StoppedError>
+    readonly sendTo: <Address extends string>(
+      id: Address,
+      event: ChildAddress.Event<Address>
+    ) => Effect.Effect<void, StoppedError>
+    readonly stopChild: (id: string) => Effect.Effect<void>
+  }
+
+  /**
+   * Machine-local capabilities available while stateful process logic runs.
+   *
+   * @category models
+   * @since 4.0.0
+   */
+  export interface Context<State, Event> extends Scope<Event> {
+    readonly receive: Effect.Effect<Event>
+    readonly state: Effect.Effect<State>
+    readonly setState: (state: State) => Effect.Effect<void>
+    readonly updateState: <E, R>(
+      update: (state: State) => Effect.Effect<State, E, R>
+    ) => Effect.Effect<void, E, R>
+  }
 }
 
 const ChildAddressTypeId = "~effect/Machine/ChildAddress"
@@ -1233,8 +1372,15 @@ export declare namespace Machine {
   }
 
   /**
-   * Serializable lifecycle metadata carried by snapshots that have already
-   * handled a completion transition without leaving the completed state.
+   * Carries lifecycle metadata required to resume planning from a cloned
+   * snapshot.
+   *
+   * **Gotchas**
+   *
+   * Snapshots contain decoded in-memory values. Their current object shape is
+   * experimental and is not a stable JSON persistence or wire format. Copies
+   * must preserve decoded values such as `Schema.Class` instances; JSON and
+   * `structuredClone` may not preserve those runtime contracts.
    *
    * @category models
    * @since 4.0.0
@@ -1807,8 +1953,7 @@ export declare namespace Machine {
    */
   export type InvokeInitialError<Invoke> = Invoke extends AnyInvokeConfig<any, any, any, infer InitialError>
     ? InitialError
-    : InvokeLogic<Invoke> extends internalRuntime.ProcessLogic<any, any, any, any, any, infer InitialError>
-      ? InitialError
+    : InvokeLogic<Invoke> extends Logic<any, any, any, any, any, infer InitialError> ? InitialError
     : never
   /**
    * Extracts the runtime error from an invoked child process.
@@ -1817,7 +1962,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeRuntimeError<Invoke> = Invoke extends AnyInvokeConfig<any, infer Error, any, any> ? Error
-    : InvokeLogic<Invoke> extends internalRuntime.ProcessLogic<any, any, infer Error, any, any, any> ? Error
+    : InvokeLogic<Invoke> extends Logic<any, any, infer Error, any, any, any> ? Error
     : never
   /**
    * Extracts the output from an invoked child process.
@@ -1826,7 +1971,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeOutput<Invoke> = Invoke extends AnyInvokeConfig<infer Output> ? Output
-    : InvokeLogic<Invoke> extends internalRuntime.ProcessLogic<any, any, any, any, infer Output, any> ? Output
+    : InvokeLogic<Invoke> extends Logic<any, any, any, any, infer Output, any> ? Output
     : never
   /**
    * Extracts the service requirements from an invoke source child process logic.
@@ -1835,8 +1980,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeServices<Invoke> = Invoke extends AnyInvokeConfig<any, any, infer Requirements, any> ? Requirements
-    : InvokeLogic<Invoke> extends internalRuntime.ProcessLogic<any, any, any, infer Requirements, any, any>
-      ? Requirements
+    : InvokeLogic<Invoke> extends Logic<any, any, any, infer Requirements, any, any> ? Requirements
     : never
   /**
    * Extracts the parent transition error contribution from invoked children.
@@ -1853,7 +1997,7 @@ export declare namespace Machine {
    * @since 4.0.0
    */
   export type InvokeRequirements<Config> = [InvokeReturn<Config>] extends [never] ? never
-    : internalRuntime.MachineRuntime | InvokeServices<InvokeReturn<Config>>
+    : MachineRuntimeRequirement | InvokeServices<InvokeReturn<Config>>
   /**
    * Extracts the return value from an eventless transition.
    *
@@ -1934,7 +2078,7 @@ export declare namespace Machine {
     readonly id: string
     src(
       context: InvokeContext<States, Events, Emits, StateId>
-    ): internalRuntime.ProcessLogic<
+    ): Logic<
       ChildState,
       ChildEvent,
       ChildError,
@@ -3076,6 +3220,44 @@ export const defineStates = <
 /**
  * Creates a schema-first machine definition.
  *
+ * **Details**
+ *
+ * State and event schemas provide runtime boundary validation while their
+ * decoded types drive handler, state, event, target, error, and service
+ * inference. Call `handle` on the returned definition to implement state
+ * behavior with ordinary TypeScript control flow.
+ *
+ * **Example** (Typed counter machine)
+ *
+ * ```ts
+ * import { Schema } from "effect"
+ * import { Machine } from "effect/unstable/machine"
+ *
+ * class Count extends Schema.TaggedClass<Count>("Count")("Count", {
+ *   value: Schema.Number
+ * }) {}
+ *
+ * class Increment extends Schema.TaggedClass<Increment>("Increment")("Increment", {
+ *   by: Schema.Number
+ * }) {}
+ *
+ * const States = Machine.defineStates({ Count })
+ *
+ * const counter = Machine.make({
+ *   states: States.states,
+ *   events: [Increment],
+ *   initial: () => States.initial.Count(new Count({ value: 0 }))
+ * }).handle({
+ *   Count: {
+ *     on: {
+ *       Increment: ({ event, state }) =>
+ *         States.initial.Count(new Count({ value: state.value + event.by }))
+ *     }
+ *   }
+ * })
+ * ```
+ *
+ * @see {@link defineStates} for typed initial snapshot builders.
  * @category constructors
  * @since 4.0.0
  */
@@ -3135,8 +3317,27 @@ export const make = <
  * **Gotchas**
  *
  * Invoked child processes run while their owning state is active and are
- * stopped before the state exits.
+ * stopped before the state exits. An unrecovered child failure fails the owning
+ * machine; recover inside the child Effect when failure should become an event.
  *
+ * **Example** (Effect output as a parent event)
+ *
+ * ```ts
+ * import { Effect, Schema } from "effect"
+ * import { Machine } from "effect/unstable/machine"
+ *
+ * class Loaded extends Schema.TaggedClass<Loaded>("Loaded")("Loaded", {
+ *   value: Schema.String
+ * }) {}
+ *
+ * const load = Machine.invoke({
+ *   id: "load",
+ *   src: () => Machine.effect(Effect.succeed(new Loaded({ value: "ready" })))
+ * })
+ * ```
+ *
+ * @see {@link effect} for one-shot child effects.
+ * @see {@link spawn} for children whose lifetime is controlled by actions.
  * @category constructors
  * @since 4.0.0
  */
@@ -3154,7 +3355,7 @@ export const invoke = <
     readonly id: Id
     readonly src: (
       context: Machine.InvokeContext<any, any, any, any>
-    ) => internalRuntime.ProcessLogic<
+    ) => Logic<
       ChildState,
       ChildEvent,
       ChildError,
@@ -3183,6 +3384,21 @@ export const invoke = <
 /**
  * Plans the initial state for a machine without running deferred actions.
  *
+ * **Details**
+ *
+ * The returned plan contains the settled initial snapshot, staged actions,
+ * emitted events, and optional final output. Planning may evaluate transition
+ * logic and follow completion, eventless, and raised-event steps, but it does
+ * not execute effects passed to `action`.
+ *
+ * **Gotchas**
+ *
+ * Callers that execute a plan manually must run actions sequentially before
+ * publishing its state or delivering its emitted events. `start` performs this
+ * protocol automatically.
+ *
+ * @see {@link plan} for planning a received event.
+ * @see {@link start} for the managed runtime protocol.
  * @category constructors
  * @since 4.0.0
  */
@@ -3235,6 +3451,22 @@ export const enabled = <
 /**
  * Plans the next state snapshot without running deferred actions.
  *
+ * **Details**
+ *
+ * Planning selects child transitions before conflicting ancestors, permits
+ * non-conflicting transitions in parallel regions, processes completion and
+ * eventless transitions, and drains raised events in FIFO order. Exit paths
+ * are deepest-first and entry paths are parent-first.
+ *
+ * **Gotchas**
+ *
+ * `plan` returns data; it does not implement the runtime commit protocol. Run
+ * actions sequentially, publish `next` only after they succeed, and then
+ * deliver `emittedEvents`. A failed action must retain the previously
+ * published state and suppress emissions.
+ *
+ * @see {@link planInitial} for planning machine startup.
+ * @see {@link start} for managed execution and lifecycle observation.
  * @category combinators
  * @since 4.0.0
  */
@@ -3278,6 +3510,29 @@ export const plan: <
 /**
  * Defers an effectful action until the current machine step is planned.
  *
+ * **Details**
+ *
+ * The action's error and service requirements are retained in the machine
+ * type without becoming requirements of `plan` or `planInitial`. The managed
+ * runtime executes staged actions sequentially before publishing the planned
+ * state.
+ *
+ * **Example** (Typed staged action)
+ *
+ * ```ts
+ * import { Context, Effect } from "effect"
+ * import { Machine } from "effect/unstable/machine"
+ *
+ * class Audit extends Context.Service<Audit, {
+ *   readonly write: Effect.Effect<void, "AuditError">
+ * }>()("example/Audit") {}
+ *
+ * const writeAudit = Machine.action(
+ *   Effect.flatMap(Audit, (audit) => audit.write)
+ * )
+ * ```
+ *
+ * @see {@link plan} for inspecting staged actions without executing them.
  * @category combinators
  * @since 4.0.0
  */
@@ -3307,31 +3562,44 @@ export const runtime = <const Protocol extends Runtime.Protocol = {}>(): Effect.
  * **Details**
  *
  * The Effect may run arbitrary side effects. Its success value is the process
- * output, its typed error is preserved, and its services are inferred. A
- * callback overload exposes the machine-local parent channel when needed.
+ * output, its typed error is preserved, and its services are inferred. When
+ * invoked, the output is sent to the owning machine as an event unless it is
+ * `void`.
  *
  * **Gotchas**
  *
- * This process has no incoming event protocol. Use `transition` for a process
- * that receives events over time.
+ * This process has no incoming event protocol. Its Effect runs once. Use
+ * `transition` for a process that receives events over time and `logic` for
+ * direct machine-local communication or intermediate snapshots.
+ *
+ * **Example** (Recover a child failure as output)
+ *
+ * ```ts
+ * import { Effect, Schema } from "effect"
+ * import { Machine } from "effect/unstable/machine"
+ *
+ * class LoadFailed extends Schema.TaggedClass<LoadFailed>("LoadFailed")("LoadFailed", {
+ *   reason: Schema.String
+ * }) {}
+ *
+ * const load = Machine.effect(
+ *   Effect.fail("unavailable").pipe(
+ *     Effect.catch((reason) => Effect.succeed(new LoadFailed({ reason })))
+ *   )
+ * )
+ * ```
  *
  * @see {@link transition} for event-driven state.
  * @see {@link logic} for direct control over intermediate snapshots.
  * @category constructors
  * @since 4.0.0
  */
-export const effect: {
-  <Output, Error = never, Requirements = never>(
-    effect: Effect.Effect<Output, Error, Requirements>
-  ): Logic<void, never, Error, Requirements, Output>
-  <Output, Error = never, Requirements = never>(
-    run: (scope: EffectScope) => Effect.Effect<Output, Error, Requirements>
-  ): Logic<void, never, Error, Requirements, Output>
-} = ((effectOrRun: Effect.Effect<unknown, unknown, unknown> | ((scope: EffectScope) => Effect.Effect<unknown>)) => ({
+export const effect = <Output, Error = never, Requirements = never>(
+  effect: Effect.Effect<Output, Error, Requirements>
+): Logic<void, never, Error, Requirements, Output> => ({
   initial: () => Effect.void,
-  run: (context: internalRuntime.ProcessContext<void, never>) =>
-    Effect.isEffect(effectOrRun) ? effectOrRun : effectOrRun({ sendParent: context.sendParent })
-})) as any
+  run: () => effect
+})
 
 /**
  * Creates advanced stateful process logic from explicit initialization and
@@ -3341,6 +3609,20 @@ export const effect: {
  *
  * Use when you need a machine-scoped process to publish intermediate snapshots
  * directly.
+ *
+ * **Details**
+ *
+ * Initialization produces the first state before `run` starts. The running
+ * context receives events, reads or updates state, manages child processes,
+ * and can communicate with its owning machine. Errors and service requirements
+ * from both phases remain in the returned `Logic` type.
+ *
+ * **Gotchas**
+ *
+ * This is the low-level process constructor. Parent messages sent directly
+ * through its scope are intentionally `unknown` because the logic does not know
+ * which machine will eventually own it. Prefer typed output, typed child
+ * addresses, or invoke snapshot mapping when possible.
  *
  * @see {@link effect} for one-shot work.
  * @see {@link transition} for event-driven state.
@@ -3360,17 +3642,17 @@ export const logic = <
     readonly initial:
       | State
       | ((
-        scope: internalRuntime.ProcessScope<Event>
+        scope: Logic.Scope<Event>
       ) => Effect.Effect<State, InitialError, InitialRequirements>)
     readonly run: (
-      context: internalRuntime.ProcessContext<State, Event>
+      context: Logic.Context<State, Event>
     ) => Effect.Effect<Output, Error, Requirements>
   }
 ): Logic<State, Event, Error, Requirements | InitialRequirements, Output, InitialError> => ({
   initial: (scope) =>
     typeof options.initial === "function"
       ? (options.initial as (
-        scope: internalRuntime.ProcessScope<Event>
+        scope: Logic.Scope<Event>
       ) => Effect.Effect<State, InitialError, InitialRequirements>)(scope)
       : Effect.succeed(options.initial),
   run: options.run
@@ -3379,13 +3661,25 @@ export const logic = <
 /**
  * Creates child process logic from an initial state and a transition function.
  *
+ * **When to use**
+ *
+ * Use when a child process only needs sequential event-driven state updates and
+ * does not need direct control over intermediate snapshots or child ownership.
+ *
+ * **Details**
+ *
+ * Each received event runs the transition Effect against the latest state. The
+ * resulting state is published before the next queued event is processed.
+ *
+ * @see {@link effect} for one-shot work.
+ * @see {@link logic} for direct process lifecycle control.
  * @category constructors
  * @since 4.0.0
  */
 export const transition = <State, Event, Error = never, Requirements = never>(
   initial: State,
   transition: (state: State, event: Event) => Effect.Effect<State, Error, Requirements>
-): internalRuntime.ProcessLogic<State, Event, Error, Requirements, never> =>
+): Logic<State, Event, Error, Requirements, never> =>
   logic<State, Event, never, Error, Requirements>({
     initial,
     run: ({ receive, updateState }) =>
@@ -3425,7 +3719,7 @@ export const child = <Event>(id: string): ChildAddress<Event> => id as ChildAddr
  */
 export const spawn: {
   <ChildState, ChildEvent, ChildError, ChildRequirements, ChildOutput, ChildInitialError = never>(
-    logic: internalRuntime.ProcessLogic<
+    logic: Logic<
       ChildState,
       ChildEvent,
       ChildError,
@@ -3443,7 +3737,7 @@ export const spawn: {
     Options extends SpawnOptions,
     ChildInitialError = never
   >(
-    logic: internalRuntime.ProcessLogic<
+    logic: Logic<
       ChildState,
       ChildEvent,
       ChildError,
@@ -3462,7 +3756,7 @@ export const spawn: {
     ChildInitialError
   >
 } = ((
-  logic: internalRuntime.ProcessLogic<any, any, any, any, any, any>,
+  logic: Logic<any, any, any, any, any, any>,
   options?: SpawnOptions
 ) =>
   Effect.flatMap(
@@ -3476,11 +3770,12 @@ export const spawn: {
  * @category runtime
  * @since 4.0.0
  */
-export const sendTo = <Address extends string>(
+export const sendTo: <Address extends string>(
   id: Address,
   event: ChildAddress.Event<Address>
-): Effect.Effect<void, StoppedError, internalRuntime.MachineRuntime> =>
-  Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.sendTo(id, event))
+) => Effect.Effect<void, StoppedError, MachineRuntimeRequirement> =
+  ((id: string, event: unknown) =>
+    Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.sendTo(id, event))) as any
 
 /**
  * Stops a named child process of the running machine.
@@ -3488,8 +3783,8 @@ export const sendTo = <Address extends string>(
  * @category runtime
  * @since 4.0.0
  */
-export const stopChild = (id: string): Effect.Effect<void, never, internalRuntime.MachineRuntime> =>
-  Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.stopChild(id))
+export const stopChild: (id: string) => Effect.Effect<void, never, MachineRuntimeRequirement> =
+  ((id: string) => Effect.flatMap(internalRuntime.MachineRuntime, (runtime) => runtime.stopChild(id))) as any
 
 /**
  * Returns a stream of terminal lifecycle outcomes for a running machine.
@@ -3497,7 +3792,9 @@ export const stopChild = (id: string): Effect.Effect<void, never, internalRuntim
  * @category combinators
  * @since 4.0.0
  */
-export const watch = internalRuntime.watch
+export const watch = <State, Event, Error = never, Output = never>(
+  ref: MachineRef<State, Event, Error, Output>
+): Stream.Stream<RuntimeOutcome<State, Error, Output>> => internalRuntime.watch(ref)
 
 /**
  * Starts a machine.
@@ -3507,12 +3804,23 @@ export const watch = internalRuntime.watch
  * Use when you want asynchronous event delivery, lifecycle snapshots, `join`,
  * and machine-owned spawned or invoked children.
  *
+ * **Details**
+ *
+ * For each accepted event the runtime plans the complete macrostep, runs staged
+ * actions sequentially, stops invokes for exited states, publishes the new
+ * state, delivers emitted events, and then starts invokes for entered states.
+ * If an action fails, the previous published state is retained and emissions
+ * from that plan are suppressed.
+ *
  * **Gotchas**
  *
  * The returned handle's `send` operation only enqueues events. Transition
  * failures are reported through the runtime snapshot, `changes`, and `join`
- * rather than being returned by `send`.
+ * rather than being returned by `send`. Sending after the machine reaches any
+ * terminal state fails immediately with `StoppedError`.
  *
+ * @see {@link plan} for inspecting the same transition plan without executing it.
+ * @see {@link watch} for classified terminal outcomes.
  * @category constructors
  * @since 4.0.0
  */
@@ -3541,12 +3849,13 @@ export const start: <
     | InfiniteTransitionError
     | MachineSchemaDecodeError
     | StartupError
+    | StoppedError
     | UnhandledEventError,
     Output | undefined
   >,
-  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError,
+  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError | StoppedError,
   ExcludeCompatibleRuntime<
-    Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
+    ExecutionServices<InitialR | R>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >

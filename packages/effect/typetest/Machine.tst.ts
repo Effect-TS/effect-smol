@@ -236,6 +236,37 @@ describe("Machine", () => {
     expect(failure).type.toBeAssignableTo<
       Machine.Logic<void, never, "effect-failed", never, never>
     >()
+    expect(Machine.effect).type.not.toBeCallableWith(() => Effect.succeed(1))
+  })
+
+  it("logic exposes public machine-scoped context types", () => {
+    Machine.logic<number, SignIn>({
+      initial: (scope) => {
+        expect(scope).type.toBe<Machine.Logic.Scope<SignIn>>()
+        expect(scope.self).type.toBe<Machine.Logic.Address<SignIn>>()
+        return Effect.succeed(0)
+      },
+      run: (context) => {
+        expect(context).type.toBe<Machine.Logic.Context<number, SignIn>>()
+        return Effect.void
+      }
+    })
+  })
+
+  it("start discharges machine-scoped child runtime requirements", () => {
+    const child = Machine.transition(0, (_state: number, _event: SignIn) => Effect.succeed(1))
+    const machine = Machine.make({
+      states: UpStates.states,
+      events: [SignIn],
+      initial: () => UpStates.initial.down(new Down({}))
+    }).handle({
+      down: {
+        entry: ({ action }) => action(Machine.spawn(child).pipe(Effect.asVoid))
+      }
+    })
+    const started = Machine.start(machine)
+
+    expect<Effect.Services<typeof started>>().type.toBe<never>()
   })
 
   it("invoke requires one-shot outputs to be parent machine events or void", () => {

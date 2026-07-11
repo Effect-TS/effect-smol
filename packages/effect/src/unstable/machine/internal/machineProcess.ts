@@ -17,6 +17,7 @@ import type {
   InfiniteTransitionError,
   MachineSchemaDecodeError,
   StartupError,
+  StoppedError,
   UnhandledEventError
 } from "./machineErrors.ts"
 import * as Model from "./machineModel.ts"
@@ -67,14 +68,14 @@ export const toProcessLogic: <
 ) => internalRuntime.ProcessLogic<
   Machine.Snapshot<States>,
   Machine.EventOf<Events>,
-  E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
+  E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | StoppedError | UnhandledEventError,
   ExcludeCompatibleRuntime<
     Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,
     Machine.EmitOf<Emits>
   >,
   Output | undefined,
-  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError
+  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError | StoppedError
 > = <
   const States extends Machine.StateSchemas,
   const Events extends ReadonlyArray<Machine.TaggedSchema>,
@@ -361,14 +362,14 @@ export const toProcessLogic: <
   }) as internalRuntime.ProcessLogic<
     Machine.Snapshot<States>,
     Machine.EventOf<Events>,
-    E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | UnhandledEventError,
+    E | ActionError<R> | InfiniteTransitionError | MachineSchemaDecodeError | StoppedError | UnhandledEventError,
     ExcludeCompatibleRuntime<
       Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
       Machine.EventOf<Events>,
       Machine.EmitOf<Emits>
     >,
     Output | undefined,
-    InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError
+    InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError | StoppedError
   >
 
 export const start: <
@@ -396,10 +397,11 @@ export const start: <
     | InfiniteTransitionError
     | MachineSchemaDecodeError
     | StartupError
+    | StoppedError
     | UnhandledEventError,
     Output | undefined
   >,
-  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError,
+  InitialE | ActionError<InitialR | R> | MachineSchemaDecodeError | StartupError | StoppedError,
   ExcludeCompatibleRuntime<
     Exclude<ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
     Machine.EventOf<Events>,

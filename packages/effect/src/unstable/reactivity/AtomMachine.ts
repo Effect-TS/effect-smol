@@ -8,7 +8,6 @@ import * as Effect from "../../Effect.ts"
 import type * as Schema from "../../Schema.ts"
 import type * as Scope from "../../Scope.ts"
 import * as Stream from "../../Stream.ts"
-import type * as internalRuntime from "../machine/internal/machineRuntime.ts"
 import * as Machine from "../machine/Machine.ts"
 import * as AsyncResult from "./AsyncResult.ts"
 import * as Atom from "./Atom.ts"
@@ -34,7 +33,7 @@ type ExcludeCompatibleMachineRuntime<Requirements, Events, Emits> = Requirements
   : Requirements
 
 type MachineRequirements<InitialR, R, Events, Emits> = ExcludeCompatibleMachineRuntime<
-  Exclude<Machine.ExecutionServices<InitialR | R>, internalRuntime.MachineRuntime>,
+  Machine.ExecutionServices<InitialR | R>,
   Events,
   Emits
 >
@@ -76,11 +75,16 @@ const startMachineAtomEffect = <
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
+    | Machine.StoppedError
     | Machine.UnhandledEventError
     | InitialE,
     Output | undefined
   >,
-  InitialE | Machine.ActionError<InitialR | R> | Machine.MachineSchemaDecodeError | Machine.StartupError,
+  | InitialE
+  | Machine.ActionError<InitialR | R>
+  | Machine.MachineSchemaDecodeError
+  | Machine.StartupError
+  | Machine.StoppedError,
   MachineRequirements<InitialR, R, Machine.Machine.EventOf<Events>, Machine.Machine.EmitOf<Emits>>
 > =>
   Effect.scoped(
@@ -269,10 +273,15 @@ export const make: {
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
+    | Machine.StoppedError
     | Machine.UnhandledEventError
     | InitialE,
     Output | undefined,
-    InitialE | Machine.ActionError<InitialR | R> | Machine.MachineSchemaDecodeError | Machine.StartupError
+    | InitialE
+    | Machine.ActionError<InitialR | R>
+    | Machine.MachineSchemaDecodeError
+    | Machine.StartupError
+    | Machine.StoppedError
   >
   <
     RuntimeError,
@@ -321,6 +330,7 @@ export const make: {
     | Machine.InfiniteTransitionError
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
+    | Machine.StoppedError
     | Machine.UnhandledEventError
     | InitialE,
     Output | undefined,
@@ -328,6 +338,7 @@ export const make: {
     | Machine.ActionError<InitialR | R>
     | Machine.MachineSchemaDecodeError
     | Machine.StartupError
+    | Machine.StoppedError
     | RuntimeError
   >
 } = ((...args: ReadonlyArray<any>) => {

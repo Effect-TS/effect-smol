@@ -126,12 +126,12 @@ const provideDeferredServices = <A, E, R>(
 const provideRuntimeContext = <A, E, R, Events, Emits>(
   effect: Effect.Effect<A, E, R>,
   runtime: Runtime<Events, Emits>
-): Effect.Effect<A, E, R> =>
+): Effect.Effect<A, E, ExcludeCompatibleRuntime<R, Events, Emits>> =>
   Effect.provideService(
     effect as Effect.Effect<A, E, R | RuntimeContext>,
     RuntimeContext,
     runtime as Runtime<any, any>
-  ) as Effect.Effect<A, E, R>
+  ) as Effect.Effect<A, E, ExcludeCompatibleRuntime<R, Events, Emits>>
 
 const makePlanningRuntime = <Events, Emits>(
   machine: Machine.Any,
@@ -166,7 +166,7 @@ export const makeLiveRuntime = <Events, Emits>(
 export const runActions = <E, R, Events, Emits>(
   actions: Iterable<Effect.Effect<void, E, R>>,
   runtime: Runtime<Events, Emits>
-): Effect.Effect<void, E, R> =>
+): Effect.Effect<void, E, ExcludeCompatibleRuntime<R, Events, Emits>> =>
   Effect.all(
     Array.from(actions, (action) => provideRuntimeContext(action, runtime)),
     { discard: true }
