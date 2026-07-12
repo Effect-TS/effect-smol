@@ -27,6 +27,25 @@ describe("HttpApiClient", () => {
         assert.deepStrictEqual(first, [{ event: "first", data: "one" }])
       }))
 
+    it.effect("keeps StreamSse parser state isolated between responses", () =>
+      Effect.gen(function*() {
+        const bodies = [
+          "event: first\ndata: one\n\n",
+          "event: second\ndata: two\n\n"
+        ]
+        let index = 0
+        const client = yield* HttpApiClient.makeWith(StreamingApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() => new Response(textStream([bodies[index++]!]), { status: 200 }))
+        })
+
+        const first = yield* client.test.events({}).pipe(Effect.flatMap(Stream.runCollect))
+        const second = yield* client.test.events({}).pipe(Effect.flatMap(Stream.runCollect))
+
+        assert.deepStrictEqual(first, [{ event: "first", data: "one" }])
+        assert.deepStrictEqual(second, [{ event: "second", data: "two" }])
+      }))
+
     it.effect("decodes StreamSse reserved failure events as full causes", () =>
       Effect.gen(function*() {
         const expectedCause = Cause.fail({ reason: "boom" })

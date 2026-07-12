@@ -815,20 +815,25 @@ function getStreamSuccessSchemas(endpoint: HttpApiEndpoint.Top): Array<HttpApiSc
 }
 
 function streamToResponse(streamSchema: HttpApiSchema.StreamSchema) {
+  const sse = HttpApiSchema.isStreamUint8Array(streamSchema)
+    ? undefined
+    : {
+      declaration: streamSchema,
+      decoder: makeSseDecoder(streamSchema)
+    }
   return (response: HttpClientResponse.HttpClientResponse) =>
     Effect.map(Effect.context<never>(), (context) =>
       Stream.provideContext(
-        HttpApiSchema.isStreamUint8Array(streamSchema) ?
+        sse === undefined ?
           response.stream :
-          decodeSseStream(response.stream, streamSchema),
+          decodeSseStream(response.stream, sse.declaration, sse.decoder),
         context as Context.Context<unknown>
       ))
 }
 
-function decodeSseStream(
-  stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
+function makeSseDecoder(
   declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>
-): Stream.Stream<unknown, unknown, unknown> {
+) {
   const Event = Schema.Union([
     declaration.events,
     Schema.Struct({
@@ -836,10 +841,18 @@ function decodeSseStream(
       data: Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
     })
   ])
+  return Sse.decodeSchema(Event)
+}
+
+function decodeSseStream(
+  stream: Stream.Stream<Uint8Array, HttpClientError.HttpClientError>,
+  declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>,
+  decoder: ReturnType<typeof makeSseDecoder>
+): Stream.Stream<unknown, unknown, unknown> {
   const events = Stream.transformPull(
     stream.pipe(
       Stream.decodeText,
-      Stream.pipeThroughChannel(Sse.decodeSchema(Event))
+      Stream.pipeThroughChannel(decoder)
     ),
     (pull) =>
       Effect.sync(() => {
