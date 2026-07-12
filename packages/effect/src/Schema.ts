@@ -13200,8 +13200,7 @@ export function toFormatter<S extends Constraint>(schema: S, options?: {
             // handle post rest elements
             // ---------------------------------------------
             for (let j = 0; j < tail.length; j++) {
-              i += j
-              out.push(tail[j](t[i]))
+              out.push(tail[j](t[i + j]))
             }
           }
 
