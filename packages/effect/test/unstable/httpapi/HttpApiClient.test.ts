@@ -73,6 +73,29 @@ describe("HttpApiClient", () => {
         }
       }))
 
+    it.effect("emits StreamSse reserved names with non-Cause data as user events", () =>
+      Effect.gen(function*() {
+        const failureEvent = Sse.encoder.write({
+          _tag: "Event",
+          event: "effect/httpapi/stream/failure",
+          id: undefined,
+          data: "not-json"
+        })
+
+        const client = yield* HttpApiClient.makeWith(StreamingApi, {
+          baseUrl: "http://test",
+          httpClient: clientFromResponse(() => new Response(textStream([failureEvent]), { status: 200 }))
+        })
+
+        const stream = yield* client.test.events({})
+        const events = yield* Stream.runCollect(stream)
+
+        assert.deepStrictEqual(events, [{
+          event: "effect/httpapi/stream/failure",
+          data: "not-json"
+        }])
+      }))
+
     it.effect("returns StreamUint8Array response bytes incrementally", () =>
       Effect.gen(function*() {
         const client = yield* HttpApiClient.makeWith(StreamingApi, {

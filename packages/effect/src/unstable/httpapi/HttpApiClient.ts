@@ -856,19 +856,19 @@ function decodeSseStream(
     ),
     (pull) =>
       Effect.sync(() => {
-        let failureCause: Cause.Cause<unknown> | undefined = undefined
+        let pendingFailureCause: Cause.Cause<unknown> | undefined = undefined
         return Effect.suspend(() => {
-          if (failureCause) {
-            return Effect.failCause(failureCause)
+          if (pendingFailureCause !== undefined) {
+            return Effect.failCause(pendingFailureCause)
           }
           return Effect.flatMap(pull, (events) => {
             for (let i = 0; i < events.length; i++) {
               const event = events[i]
-              if (event.event === reservedStreamFailureEvent) {
+              if (event.event === reservedStreamFailureEvent && Cause.isCause(event.data)) {
                 if (i === 0) {
                   return Effect.failCause(event.data)
                 }
-                failureCause = event.data
+                pendingFailureCause = event.data
                 events = events.slice(0, i) as any
                 break
               }
