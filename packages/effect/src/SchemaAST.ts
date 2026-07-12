@@ -2504,9 +2504,9 @@ export function collectSentinels(ast: AST): Array<Sentinel> {
 }
 
 type CandidateIndex = {
-  byType?: { [K in Type]?: Array<AST> }
-  bySentinel?: Map<PropertyKey, Map<LiteralValue | symbol, Array<AST>>>
-  otherwise?: { [K in Type]?: Array<AST> }
+  byType?: { [K in Type]?: Array<number> }
+  bySentinel?: Map<PropertyKey, Map<LiteralValue | symbol, Array<number>>>
+  otherwise?: { [K in Type]?: Array<number> }
 }
 
 const candidateIndexCache = new WeakMap<ReadonlyArray<AST>, CandidateIndex>()
@@ -2516,16 +2516,17 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
   if (idx) return idx
 
   idx = {}
-  for (const a of types) {
+  for (let i = 0; i < types.length; i++) {
+    const a = types[i]
     const encoded = toEncoded(a)
     if (isNever(encoded)) continue
 
-    const types = getCandidateTypes(encoded)
+    const candidateTypes = getCandidateTypes(encoded)
     const sentinels = collectSentinels(encoded)
 
     // by-type (always filled – cheap primary filter)
     idx.byType ??= {}
-    for (const t of types) (idx.byType[t] ??= []).push(a)
+    for (const t of candidateTypes) (idx.byType[t] ??= []).push(i)
 
     if (sentinels.length > 0) { // discriminated variants
       idx.bySentinel ??= new Map()
@@ -2534,11 +2535,11 @@ function getIndex(types: ReadonlyArray<AST>): CandidateIndex {
         if (!m) idx.bySentinel.set(key, m = new Map())
         let arr = m.get(literal)
         if (!arr) m.set(literal, arr = [])
-        arr.push(a)
+        arr.push(i)
       }
     } else { // non-discriminated
       idx.otherwise ??= {}
-      for (const t of types) (idx.otherwise[t] ??= []).push(a)
+      for (const t of candidateTypes) (idx.otherwise[t] ??= []).push(i)
     }
   }
 
@@ -2571,18 +2572,22 @@ export function getCandidates(input: any, types: ReadonlyArray<AST>): ReadonlyAr
   if (idx.bySentinel) {
     const base = idx.otherwise?.[runtimeType] ?? []
     if (runtimeType === "object" || runtimeType === "array") {
+      const selected = new Set(base)
       for (const [k, m] of idx.bySentinel) {
         if (Object.hasOwn(input, k)) {
           const match = m.get((input as any)[k])
-          if (match) return [...match, ...base].filter(filterLiterals(input))
+          if (match) {
+            for (const candidate of match) selected.add(candidate)
+          }
         }
       }
+      return Array.from(selected).sort((a, b) => a - b).map((i) => types[i]).filter(filterLiterals(input))
     }
-    return base
+    return base.map((i) => types[i])
   }
 
   // 2. Fallback: runtime-type dispatch only
-  return (idx.byType?.[runtimeType] ?? []).filter(filterLiterals(input))
+  return (idx.byType?.[runtimeType] ?? []).map((i) => types[i]).filter(filterLiterals(input))
 }
 
 /**
@@ -2656,6 +2661,10 @@ export class Union<A extends AST = AST> extends Base {
         out: undefined,
         successes: [],
         issues: undefined as Arr.NonEmptyArray<SchemaIssue.Issue> | undefined,
+        candidates,
+        results: new Array<UnionResult | undefined>(candidates.length),
+        next: 0,
+        terminal: undefined as Exit.Exit<void, SchemaIssue.Issue> | undefined,
         options
       }
       const concurrency = resolveConcurrency(options?.concurrency)
@@ -2733,6 +2742,8 @@ export class Union<A extends AST = AST> extends Base {
   }
 }
 
+type UnionResult = Exit.Exit<Option.Option<unknown>, SchemaIssue.Issue>
+
 const parseUnion = iterateEager<{
   readonly recur: (ast: AST) => SchemaParser.Parser
   readonly ast: Union
@@ -2742,28 +2753,45 @@ const parseUnion = iterateEager<{
   out: Option.Option<unknown> | undefined
   successes: Array<AST>
   issues: Array<SchemaIssue.Issue> | undefined
+  readonly candidates: ReadonlyArray<AST>
+  readonly results: Array<UnionResult | undefined>
+  next: number
+  terminal: Exit.Exit<void, SchemaIssue.Issue> | undefined
 }, AST>()({
   onItem(s, ast) {
     const parser = s.recur(ast)
     return parser(s.oinput, s.options)
   },
-  step(s, candidate, exit) {
-    if (exit._tag === "Failure") {
-      const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
-      if (issue === undefined) {
-        return exit
-      }
-      if (s.issues) s.issues.push(issue)
-      else s.issues = [issue]
-    } else {
-      if (s.out && s.ast.mode === "oneOf") {
+  step(s, _, exit, index) {
+    if (s.terminal) return s.terminal
+    s.results[index] = exit
+    while (s.next < s.results.length) {
+      const index = s.next
+      const exit = s.results[index]
+      if (exit === undefined) return
+      s.results[index] = undefined
+      const candidate = s.candidates[index]
+      s.next++
+      if (exit._tag === "Failure") {
+        const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
+        if (issue === undefined) {
+          s.terminal = exit
+          return exit
+        }
+        if (s.issues) s.issues.push(issue)
+        else s.issues = [issue]
+      } else {
+        if (s.out && s.ast.mode === "oneOf") {
+          s.successes.push(candidate)
+          s.terminal = Exit.fail(new SchemaIssue.OneOf(s.ast, s.input, s.successes))
+          return s.terminal
+        }
+        s.out = exit.value
         s.successes.push(candidate)
-        return Exit.fail(new SchemaIssue.OneOf(s.ast, s.input, s.successes))
-      }
-      s.out = exit.value
-      s.successes.push(candidate)
-      if (s.ast.mode === "anyOf") {
-        return Exit.void
+        if (s.ast.mode === "anyOf") {
+          s.terminal = Exit.void
+          return s.terminal
+        }
       }
     }
   }

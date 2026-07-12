@@ -275,6 +275,22 @@ describe("SchemaAST", () => {
       deepStrictEqual(SchemaAST.getCandidates(1, ast.types), [])
     })
 
+    it("should collect matches from different sentinel keys without duplicates", () => {
+      const schema = Schema.Union([
+        Schema.Struct({
+          kind: Schema.Literal("a"),
+          status: Schema.Literal("ready"),
+          value: Schema.String
+        }),
+        Schema.Struct({ status: Schema.Literal("ready"), value: Schema.String })
+      ])
+      const ast = schema.ast
+      deepStrictEqual(
+        SchemaAST.getCandidates({ kind: "a", status: "ready", value: "value" }, ast.types),
+        [ast.types[0], ast.types[1]]
+      )
+    })
+
     it("should handle tagged tuples", () => {
       const schema = Schema.Union([
         Schema.Tuple([Schema.Literal("a"), Schema.String]),
