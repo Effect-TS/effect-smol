@@ -207,15 +207,21 @@ export const make = Effect.fnUntraced(function*<
                   (isShuttingDown || isUninterruptibleForServer(request.message.annotations))
                 ) {
                   if (!isShuttingDown) {
-                    return server.write(0, {
-                      ...request.message.envelope,
-                      id: request.message.envelope.requestId as any,
-                      tag: request.message.envelope.tag as any,
-                      payload: new Request({
+                    return server.write(
+                      0,
+                      {
                         ...request.message.envelope,
-                        lastSentChunk: request.lastSentChunk
-                      } as any) as any
-                    }).pipe(
+                        id: request.message.envelope.requestId as any,
+                        tag: request.message.envelope.tag as any,
+                        payload: new Request({
+                          ...request.message.envelope,
+                          lastSentChunk: request.lastSentChunk
+                        } as any) as any
+                      },
+                      Context.get(request.rpc.annotations, WithTransaction)
+                        ? { onRequest: options.storage.withTransaction }
+                        : undefined
+                    ).pipe(
                       Effect.forkIn(scope)
                     )
                   }
@@ -295,16 +301,22 @@ export const make = Effect.fnUntraced(function*<
           for (const id of defectRequestIds) {
             const request = activeRequests.get(id)
             if (!request) continue
-            const { lastSentChunk, message } = request
-            yield* server.write(0, {
-              ...message.envelope,
-              id: message.envelope.requestId as any,
-              tag: message.envelope.tag as any,
-              payload: new Request({
+            const { lastSentChunk, message, rpc } = request
+            yield* server.write(
+              0,
+              {
                 ...message.envelope,
-                lastSentChunk
-              } as any) as any
-            })
+                id: message.envelope.requestId as any,
+                tag: message.envelope.tag as any,
+                payload: new Request({
+                  ...message.envelope,
+                  lastSentChunk
+                } as any) as any
+              },
+              Context.get(rpc.annotations, WithTransaction)
+                ? { onRequest: options.storage.withTransaction }
+                : undefined
+            )
           }
           defectRequestIds.clear()
         }
@@ -341,11 +353,11 @@ export const make = Effect.fnUntraced(function*<
     const state: EntityState = {
       scope,
       address,
-      write(clientId, message) {
+      write(clientId, message, writeOptions) {
         if (writeRef.state.current._tag !== "Acquired") {
-          return Effect.flatMap(writeRef.await, (write) => write(clientId, message))
+          return Effect.flatMap(writeRef.await, (write) => write(clientId, message, writeOptions))
         }
-        return writeRef.state.current.value(clientId, message)
+        return writeRef.state.current.value(clientId, message, writeOptions)
       },
       activeRequests,
       lastActiveCheck: clock.currentTimeMillisUnsafe(),
@@ -472,21 +484,23 @@ export const make = Effect.fnUntraced(function*<
                 })
               }
               server.activeRequests.set(message.envelope.requestId, entry)
-              let write = server.write(0, {
-                ...message.envelope,
-                id: message.envelope.requestId as any,
-                payload: new Request({
+              return server.write(
+                0,
+                {
                   ...message.envelope,
-                  lastSentChunk: Option.filter(
-                    message.lastSentReply,
-                    (reply): reply is Reply.Chunk<R> => reply._tag === "Chunk"
-                  )
-                })
-              })
-              if (Context.get(message.annotations, WithTransaction)) {
-                write = options.storage.withTransaction(write)
-              }
-              return write
+                  id: message.envelope.requestId as any,
+                  payload: new Request({
+                    ...message.envelope,
+                    lastSentChunk: Option.filter(
+                      message.lastSentReply,
+                      (reply): reply is Reply.Chunk<R> => reply._tag === "Chunk"
+                    )
+                  })
+                },
+                Context.get(message.annotations, WithTransaction)
+                  ? { onRequest: options.storage.withTransaction }
+                  : undefined
+              )
             }
             case "IncomingEnvelope": {
               const entry = server.activeRequests.get(message.envelope.requestId)

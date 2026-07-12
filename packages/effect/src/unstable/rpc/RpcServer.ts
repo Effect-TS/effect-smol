@@ -67,7 +67,9 @@ import { withRun } from "./Utils.ts"
  * @since 4.0.0
  */
 export interface RpcServer<A extends Rpc.Any> {
-  readonly write: (clientId: number, message: FromClient<A>) => Effect.Effect<void>
+  readonly write: (clientId: number, message: FromClient<A>, options?: {
+    readonly onRequest?: (<A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>) | undefined
+  }) => Effect.Effect<void>
   readonly disconnect: (clientId: number) => Effect.Effect<void>
 }
 
@@ -164,7 +166,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       return Effect.void
     })
 
-  const write = (clientId: number, message: FromClient<Rpcs>): Effect.Effect<void> =>
+  const write: RpcServer<Rpcs>["write"] = (clientId, message, opts) =>
     Effect.catchDefect(
       Effect.withFiber((requestFiber) => {
         if (isShutdown) return Effect.interrupt
@@ -184,7 +186,7 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
 
         switch (message._tag) {
           case "Request": {
-            return handleRequest(requestFiber, client, message)
+            return handleRequest(requestFiber, client, message, opts)
           }
           case "Ack": {
             const latch = client.latches.get(message.requestId)
@@ -231,7 +233,8 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
   const handleRequest = (
     requestFiber: Fiber.Fiber<any, any>,
     client: Client,
-    request: Request<Rpcs>
+    request: Request<Rpcs>,
+    opts: Parameters<RpcServer<Rpcs>["write"]>[2]
   ): Effect.Effect<void> => {
     if (client.fibers.has(request.id)) {
       return Effect.interrupt
@@ -312,6 +315,9 @@ export const makeNoSerialization: <Rpcs extends Rpc.Any>(
       }
       return close ? Effect.ensuring(write, close) : write
     })
+    if (opts?.onRequest) {
+      effect = opts.onRequest(effect)
+    }
     if (enableTracing) {
       const parentSpan = requestFiber.context.mapUnsafe.get(
         Tracer.ParentSpan.key
