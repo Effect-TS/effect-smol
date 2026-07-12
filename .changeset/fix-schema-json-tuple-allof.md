@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-Fix JSON Schema `allOf` imports for tuples with different prefix lengths or rest constraints.
+Fix JSON Schema `allOf` imports for tuple intersections and preserve primitive refinements when combining literal constraints.

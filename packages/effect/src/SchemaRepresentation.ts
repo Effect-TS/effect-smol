@@ -18,6 +18,7 @@ import { collectBrands } from "./internal/schema/annotations.ts"
 import * as InternalRepresentation from "./internal/schema/representation.ts"
 import { unescapeToken } from "./JsonPointer.ts"
 import type * as JsonSchema from "./JsonSchema.ts"
+import { remainder } from "./Number.ts"
 import * as Option from "./Option.ts"
 import * as Predicate from "./Predicate.ts"
 import * as Rec from "./Record.ts"
@@ -3282,7 +3283,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             }
           }
           case "Literal":
-            return typeof b.literal === "string" ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
+            return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -3303,7 +3304,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
             }
           }
           case "Literal":
-            return typeof b.literal === "number" ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
+            return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Union":
             return combine(b, a)
           case "Reference":
@@ -3337,9 +3338,9 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
               ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
               : never
           case "String":
-            return typeof a.literal === "string" ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
+            return satisfiesLiteral(b, a) ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Number":
-            return typeof a.literal === "number" ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
+            return satisfiesLiteral(b, a) ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Boolean":
             return typeof a.literal === "boolean"
               ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
@@ -3412,6 +3413,45 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         }
       }
     }
+  }
+
+  function satisfiesPrimitiveCheck(check: Check<Meta>, value: unknown): boolean {
+    if (check._tag === "FilterGroup") {
+      return check.checks.every((check) => satisfiesPrimitiveCheck(check, value))
+    }
+    const meta = check.meta
+    switch (meta._tag) {
+      case "isMinLength":
+        return typeof value === "string" && value.length >= meta.minLength
+      case "isMaxLength":
+        return typeof value === "string" && value.length <= meta.maxLength
+      case "isPattern":
+        return typeof value === "string" && meta.regExp.test(value)
+      case "isFinite":
+        return typeof value === "number" && globalThis.Number.isFinite(value)
+      case "isInt":
+        return typeof value === "number" && globalThis.Number.isSafeInteger(value)
+      case "isMultipleOf":
+        return typeof value === "number" && remainder(value, meta.divisor) === 0
+      case "isGreaterThan":
+        return typeof value === "number" && value > meta.exclusiveMinimum
+      case "isGreaterThanOrEqualTo":
+        return typeof value === "number" && value >= meta.minimum
+      case "isLessThan":
+        return typeof value === "number" && value < meta.exclusiveMaximum
+      case "isLessThanOrEqualTo":
+        return typeof value === "number" && value <= meta.maximum
+      default:
+        return false
+    }
+  }
+
+  function satisfiesLiteral(type: String | Number, literal: Literal): boolean {
+    const value = literal.literal
+    if (type._tag === "String" ? typeof value !== "string" : typeof value !== "number") {
+      return false
+    }
+    return type.checks.every((check) => satisfiesPrimitiveCheck(check, value))
   }
 
   function collectProperties(js: JsonSchema.JsonSchema): Array<PropertySignature> {

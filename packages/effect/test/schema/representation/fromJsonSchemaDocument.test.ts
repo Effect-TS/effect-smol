@@ -1328,6 +1328,81 @@ describe("fromJsonSchemaDocument", () => {
   })
 
   describe("allOf", () => {
+    function assertLiteralRefinement(
+      refinement: JsonSchema.JsonSchema,
+      valid: string | number,
+      invalid: string | number
+    ) {
+      for (const literal of [valid, invalid]) {
+        for (const allOf of [[refinement, { const: literal }], [{ const: literal }, refinement]]) {
+          const document = SchemaRepresentation.fromJsonSchemaDocument(
+            JsonSchema.fromSchemaDraft2020_12({ allOf })
+          )
+          const is = Schema.is(SchemaRepresentation.toSchema(document))
+          if (literal === valid) {
+            assertTrue(is(literal))
+          } else {
+            assertFalse(is(literal))
+          }
+        }
+      }
+    }
+
+    describe("literal refinements", () => {
+      const cases: ReadonlyArray<
+        readonly [
+          name: string,
+          refinement: JsonSchema.JsonSchema,
+          valid: string | number,
+          invalid: string | number
+        ]
+      > = [
+        ["minLength", { type: "string", minLength: 2 }, "ab", "a"],
+        ["maxLength", { type: "string", maxLength: 1 }, "a", "ab"],
+        ["pattern", { type: "string", pattern: "^a+$" }, "aa", "ab"],
+        ["integer", { type: "integer" }, 1, 1.5],
+        ["multipleOf", { type: "number", multipleOf: 0.1 }, 0.3, 0.31],
+        ["minimum", { type: "number", minimum: 1 }, 1, 0],
+        ["maximum", { type: "number", maximum: 1 }, 1, 2],
+        ["exclusiveMinimum", { type: "number", exclusiveMinimum: 1 }, 2, 1],
+        ["exclusiveMaximum", { type: "number", exclusiveMaximum: 1 }, 0, 1],
+        [
+          "filter group",
+          { type: "number", allOf: [{ minimum: 1, maximum: 2, description: "range" }] },
+          2,
+          0
+        ]
+      ]
+
+      for (const [name, refinement, valid, invalid] of cases) {
+        it(name, () => {
+          assertLiteralRefinement(refinement, valid, invalid)
+        })
+      }
+
+      it("filters enum members", () => {
+        const expected = {
+          representation: {
+            _tag: "Union" as const,
+            types: [{ _tag: "Literal" as const, literal: "ab" }],
+            mode: "anyOf" as const
+          }
+        }
+        for (
+          const [schema, member] of [
+            [{ type: "string", minLength: 2 }, { enum: ["a", "ab"] }],
+            [{ enum: ["a", "ab"] }, { type: "string", minLength: 2 }]
+          ]
+        ) {
+          assertFromJsonSchema(
+            { schema: { ...schema, allOf: [member] } },
+            expected,
+            `Schema.Literal("ab")`
+          )
+        }
+      })
+    })
+
     it("no type", () => {
       assertFromJsonSchema(
         {
@@ -2116,6 +2191,78 @@ describe("fromJsonSchemaDocument", () => {
           `Schema.Tuple([Schema.String])`,
           [["head"]],
           [[], ["head", "tail"], ["head", 1]]
+        )
+      })
+
+      it("rejects a required literal that fails rest refinements", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            minItems: 1,
+            items: { const: 0 }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "number", minimum: 1 }],
+            minItems: 1,
+            maxItems: 1
+          },
+          { representation: { _tag: "Never" } },
+          `Schema.Never`,
+          [],
+          [[], [0]]
+        )
+      })
+
+      it("truncates an optional literal that fails rest refinements", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            items: { const: 0 }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "number", minimum: 1 }],
+            maxItems: 1
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [],
+              rest: [],
+              checks: []
+            }
+          },
+          `Schema.Tuple([])`,
+          [[]],
+          [[0]]
+        )
+      })
+
+      it("preserves a literal that satisfies rest refinements", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            minItems: 1,
+            items: { const: 2 }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "number", minimum: 1 }],
+            minItems: 1,
+            maxItems: 1
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [{ isOptional: false, type: { _tag: "Literal", literal: 2 } }],
+              rest: [],
+              checks: [{ _tag: "Filter", meta: { _tag: "isMinLength", minLength: 1 } }]
+            }
+          },
+          `Schema.Tuple([Schema.Literal(2)]).check(Schema.isMinLength(1))`,
+          [[2]],
+          [[], [0]]
         )
       })
     })
