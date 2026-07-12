@@ -3356,11 +3356,13 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
           case "Unknown":
             return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Arrays": {
+            const arrays = combineArrays(a, b)
+            if (arrays === undefined) return never
             const checks = combineArraysChecks(a.checks, b.checks, b.annotations)
             return {
               _tag: "Arrays",
-              elements: combineElements(a.elements, b.elements),
-              rest: combineRest(a.rest, b.rest),
+              elements: arrays.elements,
+              rest: arrays.rest,
               checks: checks ?? a.checks,
               ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
             }
@@ -3446,35 +3448,32 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
     return out
   }
 
-  function combineElements(a: ReadonlyArray<Element>, b: ReadonlyArray<Element>): Array<Element> {
-    const len = Math.max(a.length, b.length)
-    let out: Array<Element> = []
+  function combineArrays(a: Arrays, b: Arrays): Pick<Arrays, "elements" | "rest"> | undefined {
+    const elements: Array<Element> = []
+    const len = Math.max(a.elements.length, b.elements.length)
     for (let i = 0; i < len; i++) {
-      out.push({
-        isOptional: a[i].isOptional && b[i].isOptional,
-        type: combine(a[i].type, b[i].type)
-      })
+      const ae = a.elements[i]
+      const be = b.elements[i]
+      const isOptional = ae?.isOptional !== false && be?.isOptional !== false
+      const at = ae?.type ?? a.rest[0]
+      const bt = be?.type ?? b.rest[0]
+      if (at === undefined || bt === undefined) {
+        return isOptional ? { elements, rest: [] } : undefined
+      }
+      const type = combine(at, bt)
+      if (type === never) {
+        return isOptional ? { elements, rest: [] } : undefined
+      }
+      elements.push({ isOptional, type })
     }
-    if (a.length > len) {
-      out = [...out, ...a.slice(len)]
-    } else if (b.length > len) {
-      out = [...out, ...b.slice(len)]
-    }
-    return out
-  }
 
-  function combineRest(a: ReadonlyArray<Representation>, b: ReadonlyArray<Representation>): Array<Representation> {
-    const len = Math.max(a.length, b.length)
-    let out: Array<Representation> = []
-    for (let i = 0; i < len; i++) {
-      out.push(combine(a[i], b[i]))
+    const ar = a.rest[0]
+    const br = b.rest[0]
+    if (ar === undefined || br === undefined) {
+      return { elements, rest: [] }
     }
-    if (a.length > len) {
-      out = [...out, ...a.slice(len)]
-    } else if (b.length > len) {
-      out = [...out, ...b.slice(len)]
-    }
-    return out
+    const rest = combine(ar, br)
+    return { elements, rest: rest === never ? [] : [rest] }
   }
 
   function combinePropertySignatures(

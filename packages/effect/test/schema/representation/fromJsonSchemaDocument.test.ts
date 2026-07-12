@@ -1,6 +1,6 @@
 import { JsonSchema, Schema, SchemaRepresentation } from "effect"
 import { describe, it } from "vitest"
-import { deepStrictEqual, strictEqual } from "../../utils/assert.ts"
+import { assertFalse, assertTrue, deepStrictEqual, strictEqual } from "../../utils/assert.ts"
 
 const json = (annotations?: Schema.Annotations.Annotations) => {
   const representation = SchemaRepresentation.fromAST(Schema.Json.ast).representation
@@ -40,6 +40,7 @@ describe("fromJsonSchemaDocument", () => {
     if (runtime !== undefined) {
       strictEqual(SchemaRepresentation.toCodeDocument(multiDocument).codes[0].runtime, runtime)
     }
+    return document
   }
 
   it("{}", () => {
@@ -1935,6 +1936,30 @@ describe("fromJsonSchemaDocument", () => {
     })
 
     describe("type: array", () => {
+      function assertArrayAllOf(
+        a: JsonSchema.JsonSchema,
+        b: JsonSchema.JsonSchema,
+        expected: Parameters<typeof assertFromJsonSchema>[1],
+        runtime: string,
+        valid: ReadonlyArray<unknown>,
+        invalid: ReadonlyArray<unknown>
+      ) {
+        for (const [schema, member] of [[a, b], [b, a]]) {
+          const document = assertFromJsonSchema(
+            { schema: { ...schema, allOf: [member] } },
+            expected,
+            runtime
+          )
+          const is = Schema.is(SchemaRepresentation.toSchema(document))
+          for (const value of valid) {
+            assertTrue(is(value))
+          }
+          for (const value of invalid) {
+            assertFalse(is(value))
+          }
+        }
+      }
+
       it("uniqueItems & uniqueItems", () => {
         assertFromJsonSchema(
           {
@@ -1955,6 +1980,142 @@ describe("fromJsonSchemaDocument", () => {
             }
           },
           `Schema.Array(Schema.Json).check(Schema.isUnique())`
+        )
+      })
+
+      it("combines unequal open prefixes", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            items: { type: "string" }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }, { const: "tail" }],
+            minItems: 2,
+            items: { type: "string" }
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [
+                { isOptional: false, type: { _tag: "String", checks: [] } },
+                { isOptional: false, type: { _tag: "Literal", literal: "tail" } }
+              ],
+              rest: [{ _tag: "String", checks: [] }],
+              checks: []
+            }
+          },
+          `Schema.TupleWithRest(Schema.Tuple([Schema.String, Schema.Literal("tail")]), [Schema.String])`,
+          [["head", "tail"], ["head", "tail", "more"]],
+          [["head"], ["head", "other"], ["head", "tail", 1]]
+        )
+      })
+
+      it("truncates optional elements forbidden by a closed tuple", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            maxItems: 1
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }, { type: "number" }],
+            minItems: 1,
+            maxItems: 2
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
+              rest: [],
+              checks: []
+            }
+          },
+          `Schema.Tuple([Schema.String])`,
+          [["head"]],
+          [[], ["head", 1]]
+        )
+      })
+
+      it("returns Never when a closed tuple forbids a required element", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            maxItems: 1
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }, { type: "number" }],
+            minItems: 2,
+            maxItems: 2
+          },
+          { representation: { _tag: "Never" } },
+          `Schema.Never`,
+          [],
+          [[], ["head"], ["head", 1]]
+        )
+      })
+
+      it("combines an open rest with a closed rest", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            items: { type: "number" }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            maxItems: 1
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
+              rest: [],
+              checks: []
+            }
+          },
+          `Schema.Tuple([Schema.String])`,
+          [["head"]],
+          [[], ["head", 1]]
+        )
+      })
+
+      it("closes the tuple when the rest intersection is Never", () => {
+        assertArrayAllOf(
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            items: { type: "string" }
+          },
+          {
+            type: "array",
+            prefixItems: [{ type: "string" }],
+            minItems: 1,
+            items: { type: "number" }
+          },
+          {
+            representation: {
+              _tag: "Arrays",
+              elements: [{ isOptional: false, type: { _tag: "String", checks: [] } }],
+              rest: [],
+              checks: []
+            }
+          },
+          `Schema.Tuple([Schema.String])`,
+          [["head"]],
+          [[], ["head", "tail"], ["head", 1]]
         )
       })
     })
