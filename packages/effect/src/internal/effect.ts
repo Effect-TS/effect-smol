@@ -4585,17 +4585,20 @@ const forEachSequential = <A, B, E, R>(
     )
   })
 
+type IterateEagerOptions = {
+  readonly concurrency?: number | undefined
+  readonly start?: number | undefined
+  readonly end?: number | undefined
+  readonly orderedStep?: boolean | undefined
+}
+
 const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
   readonly onItem: (state: S, item: A, index: number) => Effect.Effect<X, E, R>
   readonly step: (state: NoInfer<S>, item: A, exit: Exit.Exit<X, E>, index: number) => Exit.Exit<void, E2> | void
 }): (
   initialState: S,
   items: ReadonlyArray<A>,
-  options?: {
-    readonly concurrency?: number | undefined
-    readonly start?: number | undefined
-    readonly end?: number | undefined
-  }
+  options?: IterateEagerOptions
 ) => Effect.Effect<void, E | E2, R> | undefined => {
   const onItem = options.onItem
   const step = options.step
@@ -4603,15 +4606,12 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
   return (
     state: S,
     items: ReadonlyArray<A>,
-    opts: {
-      readonly concurrency?: number | undefined
-      readonly start?: number | undefined
-      readonly end?: number | undefined
-    } | undefined
+    opts: IterateEagerOptions | undefined
   ): Effect.Effect<void, E | E2, R> | undefined => {
     let index = opts?.start ?? 0
     const end = opts?.end ?? items.length
     const concurrency = opts?.concurrency ?? 1
+    const orderedStep = opts?.orderedStep === true && concurrency > 1
     let done = false
     let parentFiber: Fiber.Fiber<any, any> | undefined
     let fibers: Set<Fiber.Fiber<any, any>> | undefined
@@ -4619,6 +4619,22 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
     let interrupted = false
     let terminal: Exit.Exit<void, E | E2> | void
     let effect: Effect.Effect<X, E, R> | undefined
+    let nextIndex = index
+    const exits: Array<Exit.Exit<X, E> | undefined> | undefined = orderedStep ? new Array(end) : undefined
+
+    const runStep = (item: A, exit: Exit.Exit<X, E>, currentIndex: number): Exit.Exit<void, E | E2> | void => {
+      if (!orderedStep) return step(state, item, exit, currentIndex)
+      if (terminal) return terminal
+      exits![currentIndex] = exit
+      while (nextIndex < end) {
+        const nextExit = exits![nextIndex]
+        if (nextExit === undefined) return
+        exits![nextIndex] = undefined
+        const index = nextIndex++
+        const result = step(state, items[index], nextExit, index)
+        if (result) return result
+      }
+    }
 
     const go = (): Effect.Effect<void, E | E2, R> | undefined => {
       let paused = false
@@ -4628,13 +4644,13 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
 
         // fast case (already an exit)
         if (effectIsExit(eff)) {
-          terminal = step(state, item, eff, index)
+          terminal = runStep(item, eff, index)
           if (terminal) break
 
           // Use flatMap for concurrency of 1
         } else if (concurrency === 1) {
           return flatMap(exit(eff), (exit) => {
-            terminal = step(state, item, exit, index)
+            terminal = runStep(item, exit, index)
             index++
             return terminal ?? go() ?? void_
           })
@@ -4661,7 +4677,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
 
           const fiber = forkUnsafe(parentFiber, eff, true, true, "inherit")
           if (fiber._exit) {
-            terminal = step(state, item, fiber._exit, index)
+            terminal = runStep(item, fiber._exit, index)
             if (terminal) break
             continue
           }
@@ -4685,7 +4701,7 @@ const iterateEagerImpl = <S, A, X, E, R, E2>(options: {
                 }
               }
             } else {
-              const result = step(state, item, exit, currentIndex)
+              const result = runStep(item, exit, currentIndex)
               if (result) {
                 terminal = result._tag === "Failure"
                   ? exitFailCause(causeFromReasons(result.cause.reasons.slice()))
@@ -4741,11 +4757,7 @@ export const iterateEager = <S, A>(): <X, E, R, E2>(options: {
 }) => (
   initialState: S,
   items: ReadonlyArray<A>,
-  options?: {
-    readonly concurrency?: number | undefined
-    readonly start?: number | undefined
-    readonly end?: number | undefined
-  }
+  options?: IterateEagerOptions
 ) => Effect.Effect<void, E | E2, R> | undefined => iterateEagerImpl
 
 const forEachConcurrent = iterateEagerImpl({

@@ -4139,6 +4139,18 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
       )
     })
 
+    it(`mode: "oneOf" counts repeated member occurrences`, async () => {
+      const member = Schema.Struct({ kind: Schema.Literal("a") })
+      const schema = Schema.Union([member, member], { mode: "oneOf" })
+      const asserts = new TestSchema.Asserts(schema)
+
+      const decoding = asserts.decoding()
+      await decoding.fail(
+        { kind: "a" },
+        `Expected exactly one member to match the input {"kind":"a"}`
+      )
+    })
+
     it("preserves member order after sentinel dispatch", async () => {
       const fallback = Schema.Struct({ value: Schema.String }).pipe(
         Schema.decodeTo(Schema.String, {
@@ -4185,6 +4197,120 @@ Expected a value with a size of at most 2, got Map([["a",1],["b",NaN],["c",3]])`
         yield* Effect.yieldNow
         yield* Deferred.succeed(firstLatch, undefined)
         strictEqual(yield* Fiber.join(fiber), "first")
+      }))
+
+    it.effect("uses a buffered concurrent success after earlier candidates fail", () =>
+      Effect.gen(function*() {
+        const firstLatch = yield* Deferred.make<void>()
+        const secondCompleted = yield* Deferred.make<void>()
+        const first = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail((value) =>
+              Deferred.await(firstLatch).pipe(
+                Effect.andThen(Effect.fail(new SchemaIssue.Forbidden(Option.some(value), { message: "first failed" })))
+              )
+            ),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const second = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail(() =>
+              Deferred.succeed(secondCompleted, undefined).pipe(Effect.as("second"))
+            ),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const fiber = yield* Schema.decodeUnknownEffect(Schema.Union([first, second]))("value", {
+          concurrency: 2
+        }).pipe(Effect.forkChild)
+
+        yield* Deferred.await(secondCompleted)
+        yield* Effect.yieldNow
+        yield* Deferred.succeed(firstLatch, undefined)
+        strictEqual(yield* Fiber.join(fiber), "second")
+      }))
+
+    it.effect(`mode: "oneOf" detects concurrent successes in member order`, () =>
+      Effect.gen(function*() {
+        const firstLatch = yield* Deferred.make<void>()
+        const secondCompleted = yield* Deferred.make<void>()
+        const first = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail(() => Deferred.await(firstLatch).pipe(Effect.as("first"))),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const second = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail(() =>
+              Deferred.succeed(secondCompleted, undefined).pipe(Effect.as("second"))
+            ),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const fiber = yield* Schema.decodeUnknownEffect(Schema.Union([first, second], { mode: "oneOf" }))(
+          "value",
+          { concurrency: 2 }
+        ).pipe(Effect.exit, Effect.forkChild)
+
+        yield* Deferred.await(secondCompleted)
+        yield* Effect.yieldNow
+        yield* Deferred.succeed(firstLatch, undefined)
+        const exit = yield* Fiber.join(fiber)
+        strictEqual(exit._tag, "Failure")
+        if (exit._tag === "Failure") {
+          const reason = exit.cause.reasons[0]
+          strictEqual(reason._tag, "Fail")
+          if (reason._tag === "Fail") {
+            assertTrue(Schema.isSchemaError(reason.error))
+            if (Schema.isSchemaError(reason.error)) {
+              strictEqual(reason.error.issue._tag, "OneOf")
+              if (reason.error.issue._tag === "OneOf") {
+                deepStrictEqual(reason.error.issue.successes, [first.ast, second.ast])
+              }
+            }
+          }
+        }
+      }))
+
+    it.effect("interrupts pending concurrent members after anyOf succeeds", () =>
+      Effect.gen(function*() {
+        const firstStarted = yield* Deferred.make<void>()
+        const firstLatch = yield* Deferred.make<void>()
+        const secondStarted = yield* Deferred.make<void>()
+        const secondInterrupted = yield* Deferred.make<void>()
+        const first = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail(() =>
+              Deferred.succeed(firstStarted, undefined).pipe(
+                Effect.andThen(Deferred.await(firstLatch)),
+                Effect.as("first")
+              )
+            ),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const second = Schema.String.pipe(
+          Schema.decode({
+            decode: SchemaGetter.transformOrFail(() =>
+              Deferred.succeed(secondStarted, undefined).pipe(
+                Effect.andThen(Effect.never),
+                Effect.onInterrupt(() => Deferred.succeed(secondInterrupted, undefined).pipe(Effect.asVoid))
+              )
+            ),
+            encode: SchemaGetter.passthrough()
+          })
+        )
+        const fiber = yield* Schema.decodeUnknownEffect(Schema.Union([first, second]))("value", {
+          concurrency: 2
+        }).pipe(Effect.forkChild)
+
+        yield* Deferred.await(firstStarted)
+        yield* Deferred.await(secondStarted)
+        yield* Deferred.succeed(firstLatch, undefined)
+        strictEqual(yield* Fiber.join(fiber), "first")
+        yield* Deferred.await(secondInterrupted)
       }))
 
     it(`mode: "oneOf" with Void`, async () => {

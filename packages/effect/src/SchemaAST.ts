@@ -2661,14 +2661,10 @@ export class Union<A extends AST = AST> extends Base {
         out: undefined,
         successes: [],
         issues: undefined as Arr.NonEmptyArray<SchemaIssue.Issue> | undefined,
-        candidates,
-        results: new Array<UnionResult | undefined>(candidates.length),
-        next: 0,
-        terminal: undefined as Exit.Exit<void, SchemaIssue.Issue> | undefined,
         options
       }
       const concurrency = resolveConcurrency(options?.concurrency)
-      const eff = parseUnion(state, candidates, concurrency)
+      const eff = parseUnion(state, candidates, concurrency ? { ...concurrency, orderedStep: true } : undefined)
       if (!eff) {
         return state.out
           ? Effect.succeed(state.out)
@@ -2742,8 +2738,6 @@ export class Union<A extends AST = AST> extends Base {
   }
 }
 
-type UnionResult = Exit.Exit<Option.Option<unknown>, SchemaIssue.Issue>
-
 const parseUnion = iterateEager<{
   readonly recur: (ast: AST) => SchemaParser.Parser
   readonly ast: Union
@@ -2753,45 +2747,28 @@ const parseUnion = iterateEager<{
   out: Option.Option<unknown> | undefined
   successes: Array<AST>
   issues: Array<SchemaIssue.Issue> | undefined
-  readonly candidates: ReadonlyArray<AST>
-  readonly results: Array<UnionResult | undefined>
-  next: number
-  terminal: Exit.Exit<void, SchemaIssue.Issue> | undefined
 }, AST>()({
   onItem(s, ast) {
     const parser = s.recur(ast)
     return parser(s.oinput, s.options)
   },
-  step(s, _, exit, index) {
-    if (s.terminal) return s.terminal
-    s.results[index] = exit
-    while (s.next < s.results.length) {
-      const index = s.next
-      const exit = s.results[index]
-      if (exit === undefined) return
-      s.results[index] = undefined
-      const candidate = s.candidates[index]
-      s.next++
-      if (exit._tag === "Failure") {
-        const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
-        if (issue === undefined) {
-          s.terminal = exit
-          return exit
-        }
-        if (s.issues) s.issues.push(issue)
-        else s.issues = [issue]
-      } else {
-        if (s.out && s.ast.mode === "oneOf") {
-          s.successes.push(candidate)
-          s.terminal = Exit.fail(new SchemaIssue.OneOf(s.ast, s.input, s.successes))
-          return s.terminal
-        }
-        s.out = exit.value
+  step(s, candidate, exit) {
+    if (exit._tag === "Failure") {
+      const issue = InternalSchemaCause.getSchemaIssue(exit.cause)
+      if (issue === undefined) {
+        return exit
+      }
+      if (s.issues) s.issues.push(issue)
+      else s.issues = [issue]
+    } else {
+      if (s.out && s.ast.mode === "oneOf") {
         s.successes.push(candidate)
-        if (s.ast.mode === "anyOf") {
-          s.terminal = Exit.void
-          return s.terminal
-        }
+        return Exit.fail(new SchemaIssue.OneOf(s.ast, s.input, s.successes))
+      }
+      s.out = exit.value
+      s.successes.push(candidate)
+      if (s.ast.mode === "anyOf") {
+        return Exit.void
       }
     }
   }
