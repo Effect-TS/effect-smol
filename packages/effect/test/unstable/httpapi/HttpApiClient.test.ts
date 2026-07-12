@@ -362,7 +362,41 @@ describe("HttpApiClient", () => {
 
       strictEqual(builder.health(), "https://api.example.com/v1/health")
     })
+
+    it("stores __proto__ identifiers as own properties", () => {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("__proto__").add(
+          HttpApiEndpoint.get("__proto__", "/proto")
+        )
+      )
+      const builder = HttpApiClient.urlBuilder(Api)
+
+      assert.isTrue(Object.hasOwn(builder, "__proto__"))
+      assert.isTrue(Object.hasOwn(builder["__proto__"], "__proto__"))
+      strictEqual(builder["__proto__"]["__proto__"](), "/proto")
+    })
   })
+
+  it.effect("stores __proto__ client identifiers as own properties", () =>
+    Effect.gen(function*() {
+      const Api = HttpApi.make("Api").add(
+        HttpApiGroup.make("__proto__").add(
+          HttpApiEndpoint.get("__proto__", "/proto")
+        )
+      )
+      const httpClient = clientFromResponse(() => new Response(null, { status: 204 }))
+      const client = yield* HttpApiClient.makeWith(Api, { httpClient })
+      const groupClient = yield* HttpApiClient.group(Api, {
+        group: "__proto__",
+        httpClient
+      })
+
+      assert.isTrue(Object.hasOwn(client, "__proto__"))
+      assert.isTrue(Object.hasOwn(client["__proto__"], "__proto__"))
+      assert.strictEqual(typeof client["__proto__"]["__proto__"], "function")
+      assert.isTrue(Object.hasOwn(groupClient, "__proto__"))
+      assert.strictEqual(typeof groupClient["__proto__"], "function")
+    }))
 
   it.effect("applies transformClient to endpoint clients exactly once", () =>
     Effect.gen(function*() {

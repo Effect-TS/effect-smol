@@ -12,6 +12,7 @@
  */
 import type { NonEmptyReadonlyArray } from "../../Array.ts"
 import * as Context from "../../Context.ts"
+import * as internalRecord from "../../internal/record.ts"
 import { type Pipeable, pipeArguments } from "../../Pipeable.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Record from "../../Record.ts"
@@ -307,7 +308,7 @@ const Proto = {
   add(this: Top, ...toAdd: NonEmptyReadonlyArray<HttpApiEndpoint.Top>) {
     const endpoints = { ...this.endpoints }
     for (const endpoint of toAdd) {
-      endpoints[endpoint.identifier] = endpoint
+      internalRecord.set(endpoints, endpoint.identifier, endpoint)
     }
     return makeProto({
       ...optionsFromGroup(this),

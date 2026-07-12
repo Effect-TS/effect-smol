@@ -15,6 +15,7 @@ import * as Cause from "../../Cause.ts"
 import type * as Context from "../../Context.ts"
 import * as Effect from "../../Effect.ts"
 import { identity } from "../../Function.ts"
+import * as internalRecord from "../../internal/record.ts"
 import * as Option from "../../Option.ts"
 import * as Predicate from "../../Predicate.ts"
 import * as Schema from "../../Schema.ts"
@@ -519,10 +520,14 @@ export const makeWith = <ApiId extends string, Groups extends HttpApiGroup.Const
     ...options,
     onGroup({ group }) {
       if (group.topLevel) return
-      client[group.identifier] = {}
+      internalRecord.set(client, group.identifier, {})
     },
     onEndpoint({ endpoint, endpointFn, group }) {
-      ;(group.topLevel ? client : client[group.identifier])[endpoint.identifier] = endpointFn
+      internalRecord.set(
+        group.topLevel ? client : client[group.identifier],
+        endpoint.identifier,
+        endpointFn
+      )
     }
   }).pipe(Effect.as(client)) as any
 }
@@ -560,7 +565,7 @@ export const group = <
     ...options,
     predicate: ({ group }) => group.identifier === options.group,
     onEndpoint({ endpoint, endpointFn }) {
-      client[endpoint.identifier] = endpointFn
+      internalRecord.set(client, endpoint.identifier, endpointFn)
     }
   }).pipe(Effect.map(() => client)) as any
 }
@@ -657,7 +662,7 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
   HttpApi.reflect(api as unknown as HttpApi.Top, {
     onGroup({ group }) {
       if (group.topLevel) return
-      builder[group.identifier] = {}
+      internalRecord.set(builder, group.identifier, {})
     },
     onEndpoint({ group, endpoint }) {
       const makeUrl = compilePath(endpoint.path)
@@ -683,7 +688,11 @@ export const urlBuilder = <Api extends HttpApi.Constraint>(api: Api, options?: {
         const url = query === "" ? path : `${path}?${query}`
         return options?.baseUrl === undefined ? url : new URL(url, options.baseUrl.toString()).toString()
       }
-      ;(group.topLevel ? builder : builder[group.identifier])[endpoint.identifier] = endpointBuilder
+      internalRecord.set(
+        group.topLevel ? builder : builder[group.identifier],
+        endpoint.identifier,
+        endpointBuilder
+      )
     }
   })
 
