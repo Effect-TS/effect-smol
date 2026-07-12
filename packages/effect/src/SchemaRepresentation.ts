@@ -3251,167 +3251,117 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
         return combine(resolveReference(a.$ref), b)
       case "Never":
         return a
-      case "Unknown":
-        switch (b._tag) {
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return { ...b, ...combineAnnotations(a.annotations, b.annotations) }
-        }
+      case "Unknown": {
+        const resolved = b._tag === "Reference" ? resolveReference(b.$ref) : b
+        return { ...resolved, ...combineAnnotations(a.annotations, resolved.annotations) }
+      }
       case "Null":
-        switch (b._tag) {
-          case "Unknown":
-          case "Null":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
-        }
       case "String":
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "String": {
-            const checks = combineChecks(a.checks, b.checks, b.annotations)
-            return {
-              _tag: "String",
-              checks: checks ?? a.checks,
-              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
-            }
-          }
-          case "Literal":
-            return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
-        }
       case "Number":
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Number": {
-            const checks = combineNumberChecks(a.checks, b.checks, b.annotations)
-            return {
-              _tag: "Number",
-              checks: checks ?? a.checks,
-              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
-            }
-          }
-          case "Literal":
-            return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
-        }
       case "Boolean":
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Boolean":
-            return { _tag: "Boolean", ...combineAnnotations(a.annotations, b.annotations) }
-          case "Literal":
-            return typeof b.literal === "boolean"
-              ? { ...b, ...combineAnnotations(a.annotations, b.annotations) }
-              : never
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
+      case "Literal":
+      case "Arrays":
+      case "Objects":
+      case "Union":
+        break
+    }
+
+    if (b._tag === "Reference") {
+      return combine(a, resolveReference(b.$ref))
+    }
+    if (b._tag === "Unknown") {
+      return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
+    }
+    if (a._tag === "Union") {
+      const types = a.types.map((s) => combine(s, b)).filter((s) => s !== never)
+      if (types.length === 0) return never
+      return {
+        _tag: "Union",
+        types,
+        mode: a.mode,
+        ...makeAnnotations(a.annotations)
+      }
+    }
+    if (b._tag === "Union") {
+      return combine(b, a)
+    }
+
+    switch (a._tag) {
+      case "Null":
+        return b._tag === "Null" ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
+      case "String": {
+        if (b._tag === "Literal") {
+          return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
         }
+        if (b._tag !== "String") return never
+        const checks = combineChecks(a.checks, b.checks, b.annotations)
+        return {
+          _tag: "String",
+          checks: checks ?? a.checks,
+          ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
+        }
+      }
+      case "Number": {
+        if (b._tag === "Literal") {
+          return satisfiesLiteral(a, b) ? { ...b, ...combineAnnotations(a.annotations, b.annotations) } : never
+        }
+        if (b._tag !== "Number") return never
+        const checks = combineNumberChecks(a.checks, b.checks, b.annotations)
+        return {
+          _tag: "Number",
+          checks: checks ?? a.checks,
+          ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
+        }
+      }
+      case "Boolean":
+        if (b._tag === "Boolean") {
+          return { _tag: "Boolean", ...combineAnnotations(a.annotations, b.annotations) }
+        }
+        return b._tag === "Literal" && typeof b.literal === "boolean"
+          ? { ...b, ...combineAnnotations(a.annotations, b.annotations) }
+          : never
       case "Literal":
         switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
           case "Literal":
             return a.literal === b.literal
               ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
               : never
           case "String":
-            return satisfiesLiteral(b, a) ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Number":
             return satisfiesLiteral(b, a) ? { ...a, ...combineAnnotations(a.annotations, b.annotations) } : never
           case "Boolean":
             return typeof a.literal === "boolean"
               ? { ...a, ...combineAnnotations(a.annotations, b.annotations) }
               : never
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
           default:
             return never
         }
-      case "Arrays":
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Arrays": {
-            const arrays = combineArrays(a, b)
-            if (arrays === undefined) return never
-            const checks = combineArraysChecks(a.checks, b.checks, b.annotations)
-            return {
-              _tag: "Arrays",
-              elements: arrays.elements,
-              rest: arrays.rest,
-              checks: checks ?? a.checks,
-              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
-            }
-          }
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
-        }
-      case "Objects":
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          case "Objects": {
-            const checks = combineChecks(a.checks, b.checks, b.annotations)
-            return {
-              _tag: "Objects",
-              propertySignatures: combinePropertySignatures(a.propertySignatures, b.propertySignatures),
-              indexSignatures: combineIndexSignatures(a.indexSignatures, b.indexSignatures),
-              checks: checks ?? a.checks,
-              ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
-            }
-          }
-          case "Union":
-            return combine(b, a)
-          case "Reference":
-            return combine(a, resolveReference(b.$ref))
-          default:
-            return never
-        }
-      case "Union": {
-        switch (b._tag) {
-          case "Unknown":
-            return { ...a, ...combineAnnotations(a.annotations, b.annotations) }
-          default: {
-            const types = a.types.map((s) => combine(s, b)).filter((s) => s !== never)
-            if (types.length === 0) return never
-            return {
-              _tag: "Union",
-              types,
-              mode: a.mode,
-              ...makeAnnotations(a.annotations)
-            }
-          }
+      case "Arrays": {
+        if (b._tag !== "Arrays") return never
+        const arrays = combineArrays(a, b)
+        if (arrays === undefined) return never
+        const checks = combineArraysChecks(a.checks, b.checks, b.annotations)
+        return {
+          _tag: "Arrays",
+          elements: arrays.elements,
+          rest: arrays.rest,
+          checks: checks ?? a.checks,
+          ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
         }
       }
+      case "Objects": {
+        if (b._tag !== "Objects") return never
+        const checks = combineChecks(a.checks, b.checks, b.annotations)
+        return {
+          _tag: "Objects",
+          propertySignatures: combinePropertySignatures(a.propertySignatures, b.propertySignatures),
+          indexSignatures: combineIndexSignatures(a.indexSignatures, b.indexSignatures),
+          checks: checks ?? a.checks,
+          ...combineAnnotations(a.annotations, checks ? undefined : b.annotations)
+        }
+      }
+      default:
+        return never
     }
   }
 

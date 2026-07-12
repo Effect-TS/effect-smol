@@ -1328,6 +1328,93 @@ describe("fromJsonSchemaDocument", () => {
   })
 
   describe("allOf", () => {
+    it("resolves references on either side of an intersection", () => {
+      const definition: JsonSchema.JsonSchema = { type: "string", minLength: 1 }
+      const expected = {
+        representation: {
+          _tag: "String" as const,
+          checks: [
+            { _tag: "Filter" as const, meta: { _tag: "isMinLength" as const, minLength: 1 } },
+            { _tag: "Filter" as const, meta: { _tag: "isMaxLength" as const, maxLength: 2 } }
+          ]
+        },
+        references: {
+          A: {
+            _tag: "String" as const,
+            checks: [{ _tag: "Filter" as const, meta: { _tag: "isMinLength" as const, minLength: 1 } }]
+          }
+        }
+      }
+      for (
+        const schema of [
+          {
+            $ref: "#/$defs/A",
+            allOf: [{ type: "string", maxLength: 2 }],
+            $defs: { A: definition }
+          },
+          {
+            allOf: [{ $ref: "#/$defs/A" }, { type: "string", maxLength: 2 }],
+            $defs: { A: definition }
+          }
+        ]
+      ) {
+        assertFromJsonSchema({ schema }, expected)
+      }
+    })
+
+    it("preserves annotations on array and object intersections", () => {
+      assertFromJsonSchema(
+        {
+          schema: {
+            type: "array",
+            allOf: [{ description: "a" }]
+          }
+        },
+        {
+          representation: {
+            _tag: "Arrays",
+            elements: [],
+            rest: [json()],
+            checks: [],
+            annotations: { description: "a" }
+          }
+        },
+        `Schema.Array(Schema.Json).annotate({ "description": "a" })`
+      )
+      assertFromJsonSchema(
+        {
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            allOf: [{ description: "a" }]
+          }
+        },
+        {
+          representation: {
+            _tag: "Objects",
+            propertySignatures: [],
+            indexSignatures: [],
+            checks: [],
+            annotations: { description: "a" }
+          }
+        },
+        `Schema.Struct({  }).annotate({ "description": "a" })`
+      )
+    })
+
+    it("returns Never when a union has no compatible member", () => {
+      assertFromJsonSchema(
+        {
+          schema: {
+            type: "string",
+            allOf: [{ anyOf: [{ type: "number" }, { type: "boolean" }] }]
+          }
+        },
+        { representation: { _tag: "Never" } },
+        `Schema.Never`
+      )
+    })
+
     function assertLiteralRefinement(
       refinement: JsonSchema.JsonSchema,
       valid: string | number,
