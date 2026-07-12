@@ -835,11 +835,11 @@ function makeSseDecoder(
   declaration: HttpApiSchema.StreamSse<Sse.EventCodec, Schema.Constraint, unknown>
 ) {
   const Event = Schema.Union([
-    declaration.events,
     Schema.Struct({
       event: Schema.Literal(reservedStreamFailureEvent),
       data: Schema.fromJsonString(Schema.toCodecJson(Schema.Cause(declaration.error, Schema.Defect())))
-    })
+    }),
+    declaration.events
   ])
   return Sse.decodeSchema(Event)
 }
