@@ -162,6 +162,32 @@ export const suite = (name: string, layer: Layer.Layer<PersistedQueue.PersistedQ
 
         assert.isUndefined(fiber.pollUnsafe())
       }))
+
+    it.effect("counts schema decode failures as attempts", () =>
+      Effect.gen(function*() {
+        const store = yield* PersistedQueue.PersistedQueueStore
+        const queue = yield* PersistedQueue.make({
+          name: "test-queue-decode-failure",
+          schema: Item
+        })
+
+        yield* store.offer({
+          name: "test-queue-decode-failure",
+          id: crypto.randomUUID(),
+          element: { n: null },
+          isCustomId: false
+        })
+
+        const error = yield* queue.take(Effect.succeed, { maxAttempts: 1 }).pipe(Effect.flip)
+        assert.isTrue(Schema.isSchemaError(error))
+
+        const fiber = yield* queue.take(Effect.succeed, { maxAttempts: 1 }).pipe(Effect.forkScoped)
+
+        yield* TestClock.adjust(1000)
+        yield* Effect.sleep(1000).pipe(TestClock.withLive)
+
+        assert.isUndefined(fiber.pollUnsafe())
+      }))
   })
 
 const Item = Schema.Struct({

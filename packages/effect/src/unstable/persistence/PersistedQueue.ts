@@ -170,19 +170,13 @@ export const makeFactory = Effect.gen(function*() {
             }
           ),
         take: (f, opts) =>
-          Effect.uninterruptibleMask(Effect.fnUntraced(function*(restore) {
-            const scope = yield* Scope.make()
+          Effect.scopedWith(Effect.fnUntraced(function*(scope) {
             const item = yield* store.take({
               name: options.name,
               maxAttempts: opts?.maxAttempts ?? 10
-            }).pipe(
-              Scope.provide(scope),
-              restore
-            )
+            }).pipe(Scope.provide(scope))
             const decoded = yield* decodeUnknown(item.element)
-            const exit = yield* Effect.exit(restore(f(decoded, { id: item.id, attempts: item.attempts })))
-            yield* Scope.close(scope, exit)
-            return yield* exit
+            return yield* f(decoded, { id: item.id, attempts: item.attempts })
           }))
       })
     }
@@ -1115,7 +1109,6 @@ export const makeStoreSql: (
           for (let i = 0; i < results.length; i++) {
             const element = results[i]
             elementIds.add(element.sequence)
-            element.element = JSON.parse(element.element)
           }
           yield* Queue.offerAll(queue, results)
           yield* takenLatch.await
@@ -1170,7 +1163,11 @@ export const makeStoreSql: (
                   : retry(element.sequence, element.attempts + 1, cause),
               onSuccess: () => complete(element.sequence, element.attempts + 1)
             }))
-          )
+          ),
+          Effect.map((element) => ({
+            ...element,
+            element: JSON.parse(element.element)
+          }))
         )
       )
   })

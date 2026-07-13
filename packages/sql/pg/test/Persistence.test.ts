@@ -1,9 +1,10 @@
 import { assert, it } from "@effect/vitest"
-import { Effect, Fiber, Latch, Layer } from "effect"
+import { Effect, Exit, Fiber, Latch, Layer, Schema } from "effect"
 import * as PersistedCacheTest from "effect-test/unstable/persistence/PersistedCacheTest"
 import * as PersistedQueueTest from "effect-test/unstable/persistence/PersistedQueueTest"
 import { TestClock } from "effect/testing"
 import { PersistedQueue, Persistence } from "effect/unstable/persistence"
+import { SqlClient } from "effect/unstable/sql"
 import { PgContainer } from "./utils.ts"
 
 PersistedCacheTest.suite(
@@ -60,5 +61,46 @@ it.layer(PgContainer.layerClient, { timeout: "30 seconds" })("PersistedQueue SQL
       yield* Fiber.interrupt(first)
       const received = yield* Fiber.join(second)
       assert.deepStrictEqual(received.element, element)
+    }).pipe(TestClock.withLive))
+
+  it.effect("counts malformed JSON as an attempt and continues", () =>
+    Effect.gen(function*() {
+      const tableName = "effect_queue_invalid_json"
+      const store = yield* PersistedQueue.makeStoreSql({
+        tableName,
+        pollInterval: "10 millis"
+      })
+      const factory = yield* PersistedQueue.makeFactory.pipe(
+        Effect.provideService(PersistedQueue.PersistedQueueStore, store)
+      )
+      const queue = yield* factory.make({
+        name: "invalid-json",
+        schema: Schema.String
+      })
+      const sql = (yield* SqlClient.SqlClient).withoutTransforms()
+      const table = sql(tableName)
+      const poisonId = crypto.randomUUID()
+
+      yield* store.offer({
+        name: "invalid-json",
+        id: poisonId,
+        element: "poison",
+        isCustomId: false
+      })
+      yield* sql`UPDATE ${table} SET element = ${"{"} WHERE id = ${poisonId}`
+      yield* queue.offer("valid")
+
+      const malformed = yield* Effect.exit(queue.take(Effect.succeed, { maxAttempts: 1 }))
+      assert.isTrue(Exit.isFailure(malformed))
+
+      const rows = yield* sql<{
+        readonly attempts: number
+        readonly last_failure: string | null
+      }>`SELECT attempts, last_failure FROM ${table} WHERE id = ${poisonId}`
+      assert.strictEqual(rows[0].attempts, 1)
+      assert.isNotNull(rows[0].last_failure)
+
+      const value = yield* queue.take(Effect.succeed, { maxAttempts: 1 })
+      assert.strictEqual(value, "valid")
     }).pipe(TestClock.withLive))
 })
