@@ -1449,6 +1449,12 @@ describe("fromJsonSchemaDocument", () => {
         ["pattern", { type: "string", pattern: "^a+$" }, "aa", "ab"],
         ["integer", { type: "integer" }, 1, 1.5],
         ["multipleOf", { type: "number", multipleOf: 0.1 }, 0.3, 0.31],
+        [
+          "multipleOf beyond the toFixed precision limit",
+          { type: "number", multipleOf: Number("1e-101") },
+          0,
+          Number("5e-102")
+        ],
         ["minimum", { type: "number", minimum: 1 }, 1, 0],
         ["maximum", { type: "number", maximum: 1 }, 1, 2],
         ["exclusiveMinimum", { type: "number", exclusiveMinimum: 1 }, 2, 1],

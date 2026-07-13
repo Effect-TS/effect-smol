@@ -311,6 +311,16 @@ describe("remainder", () => {
     assert.notStrictEqual(N.remainder(2.5e-7, divisor), 0)
     assert.notStrictEqual(N.remainder(1.5e-7, divisor), 0)
   })
+
+  it("handles scientific notation beyond the toFixed precision limit", () => {
+    const divisor = Number("1e-101")
+
+    assert.strictEqual(N.remainder(0, divisor), 0)
+    assert.strictEqual(N.remainder(divisor, divisor), 0)
+    assert.strictEqual(N.remainder(Number("3e-101"), divisor), 0)
+    assert.strictEqual(N.remainder(Number("2.5e-101"), divisor), Number("5e-102"))
+    assertNegativeZero(N.remainder(Number("-3e-101"), divisor))
+  })
 })
 
 describe("nextPow2", () => {

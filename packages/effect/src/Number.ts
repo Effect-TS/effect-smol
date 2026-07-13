@@ -650,10 +650,37 @@ export const remainder: {
   const selfDecCount = decimalCount(self)
   const divisorDecCount = decimalCount(divisor)
   const decCount = selfDecCount > divisorDecCount ? selfDecCount : divisorDecCount
+  if (decCount > 100) {
+    if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
+      return NaN
+    }
+    return remainderBeyondFixedPrecision(self, divisor)
+  }
   const selfInt = parseInt(self.toFixed(decCount).replace(".", ""))
   const divisorInt = parseInt(divisor.toFixed(decCount).replace(".", ""))
   return (selfInt % divisorInt) / Math.pow(10, decCount)
 })
+
+function remainderBeyondFixedPrecision(self: number, divisor: number): number {
+  const [selfCoefficient, selfExponent] = toScientificInteger(self)
+  const [divisorCoefficient, divisorExponent] = toScientificInteger(divisor)
+  const exponent = Math.min(selfExponent, divisorExponent)
+  const selfInteger = selfCoefficient * BigInt(10) ** BigInt(selfExponent - exponent)
+  const divisorInteger = divisorCoefficient * BigInt(10) ** BigInt(divisorExponent - exponent)
+  const out = selfInteger % divisorInteger
+  if (out === BigInt(0)) {
+    return self < 0 || Object.is(self, -0) ? -0 : 0
+  }
+  return globalThis.Number(`${out}e${exponent}`)
+}
+
+function toScientificInteger(n: number): readonly [coefficient: bigint, exponent: number] {
+  const scientific = Math.abs(n).toExponential()
+  const eIndex = scientific.indexOf("e")
+  const digits = scientific.slice(0, eIndex).replace(".", "")
+  const coefficient = BigInt(digits) * (n < 0 ? -BigInt(1) : BigInt(1))
+  return [coefficient, globalThis.Number(scientific.slice(eIndex + 1)) - digits.length + 1]
+}
 
 function decimalCount(n: number): number {
   const s = n.toString()
