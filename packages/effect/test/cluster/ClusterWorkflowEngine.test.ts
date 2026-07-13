@@ -176,8 +176,9 @@ describe.concurrent("ClusterWorkflowEngine", () => {
       expect(flags.get("interrupt3")).toBeFalsy()
     }).pipe(Effect.provide(TestWorkflowLayer)))
 
-  it.effect("Activity.raceAll resumes the first durable activity", () =>
+  it.effect("Activity.raceAll replays the first durable activity", () =>
     Effect.gen(function*() {
+      const flags = yield* Flags
       const sharding = yield* Sharding.Sharding
       yield* TestClock.adjust(1)
 
@@ -187,6 +188,15 @@ describe.concurrent("ClusterWorkflowEngine", () => {
 
       yield* TestClock.adjust(1)
       yield* TestClock.adjust(1000)
+      yield* sharding.pollStorage
+      yield* TestClock.adjust(5000)
+
+      const token = flags.get("durable-race-token")
+      assert(typeof token === "string")
+      yield* DurableDeferred.done(DurableRaceGate, {
+        token: DurableDeferred.Token.make(token),
+        exit: Exit.void
+      })
       yield* sharding.pollStorage
       yield* TestClock.adjust(5000)
 
@@ -526,6 +536,8 @@ const DurableRaceWorkflow = Workflow.make("DurableRaceWorkflow", {
   idempotencyKey: ({ id }) => id
 })
 
+const DurableRaceGate = DurableDeferred.make("DurableRaceGate")
+
 const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(function*() {
   const flags = yield* Flags
 
@@ -535,7 +547,7 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
     })
   )
 
-  return yield* Activity.raceAll("race", [
+  const result = yield* Activity.raceAll("race", [
     Activity.make({
       name: "Activity1",
       success: Schema.String,
@@ -573,6 +585,9 @@ const DurableRaceWorkflowLayer = DurableRaceWorkflow.toLayer(Effect.fnUntraced(f
       )
     })
   ])
+  flags.set("durable-race-token", yield* DurableDeferred.token(DurableRaceGate))
+  yield* DurableDeferred.await(DurableRaceGate)
+  return result
 }))
 
 const ParentWorkflow = Workflow.make("ParentWorkflow", {
