@@ -321,6 +321,15 @@ describe("remainder", () => {
     assert.strictEqual(N.remainder(Number("2.5e-101"), divisor), Number("5e-102"))
     assertNegativeZero(N.remainder(Number("-3e-101"), divisor))
   })
+
+  it("handles large values formatted in scientific notation", () => {
+    const large = Number("1e21")
+
+    assert.strictEqual(N.remainder(large, 2), 0)
+    assert.strictEqual(N.remainder(large, 3), 1)
+    assert.strictEqual(N.remainder(3, large), 3)
+    assertNegativeZero(N.remainder(-large, 2))
+  })
 })
 
 describe("nextPow2", () => {

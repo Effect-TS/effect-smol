@@ -650,18 +650,18 @@ export const remainder: {
   const selfDecCount = decimalCount(self)
   const divisorDecCount = decimalCount(divisor)
   const decCount = selfDecCount > divisorDecCount ? selfDecCount : divisorDecCount
-  if (decCount > 100) {
+  if (decCount > 100 || Math.abs(self) >= 1e21 || Math.abs(divisor) >= 1e21) {
     if (!globalThis.Number.isFinite(self) || !globalThis.Number.isFinite(divisor) || divisor === 0) {
       return NaN
     }
-    return remainderBeyondFixedPrecision(self, divisor)
+    return remainderWithScientificNotation(self, divisor)
   }
   const selfInt = parseInt(self.toFixed(decCount).replace(".", ""))
   const divisorInt = parseInt(divisor.toFixed(decCount).replace(".", ""))
   return (selfInt % divisorInt) / Math.pow(10, decCount)
 })
 
-function remainderBeyondFixedPrecision(self: number, divisor: number): number {
+function remainderWithScientificNotation(self: number, divisor: number): number {
   const [selfCoefficient, selfExponent] = toScientificInteger(self)
   const [divisorCoefficient, divisorExponent] = toScientificInteger(divisor)
   const exponent = Math.min(selfExponent, divisorExponent)

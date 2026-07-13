@@ -2,4 +2,4 @@
 "effect": patch
 ---
 
-Fix `Number.remainder` for scientific notation beyond `toFixed`'s precision limit.
+Fix `Number.remainder` for very small and large values formatted in scientific notation.
