@@ -936,10 +936,12 @@ export const makeStoreSql: (
   const elementIds = new Set<number>()
   const refreshLocks: Effect.Effect<void, SqlError> = Effect.suspend((): Effect.Effect<void, SqlError> => {
     if (elementIds.size === 0) return Effect.void
+    const ids = Array.from(elementIds)
     return sql`
       UPDATE ${tableNameSql}
       SET acquired_at = ${sqlNow}
-      WHERE acquired_by = ${workerIdSql}
+      WHERE sequence IN (${sql.literal(ids.join(","))})
+      AND acquired_by = ${workerIdSql}
     `
   })
   const complete = (sequence: number, attempts: number) => {
@@ -1110,6 +1112,7 @@ export const makeStoreSql: (
           takenLatch.closeUnsafe()
           for (let i = 0; i < results.length; i++) {
             const element = results[i]
+            elementIds.add(element.sequence)
             element.element = JSON.parse(element.element)
           }
           yield* Queue.offerAll(queue, results)
