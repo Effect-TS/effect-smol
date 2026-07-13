@@ -5835,10 +5835,15 @@ class ClockImpl implements Clock.Clock {
   }
   readonly currentTimeNanos: Effect.Effect<bigint> = sync(() => this.currentTimeNanosUnsafe())
   sleep(duration: Duration.Duration): Effect.Effect<void> {
-    const millis = Duration.toMillis(duration)
+    return this.sleepMillis(Duration.toMillis(duration))
+  }
+  private sleepMillis(millis: number): Effect.Effect<void> {
     if (millis <= 0) return yieldNow
+    else if (!Number.isFinite(millis)) return never
     return callback((resume) => {
-      const continuation = millis > MAX_TIMER_MILLIS ? this.sleep(millis - MAX_TIMER_MILLIS) : void_
+      const continuation = millis > MAX_TIMER_MILLIS
+        ? this.sleepMillis(millis - MAX_TIMER_MILLIS)
+        : void_
       const handle = setTimeout(() => resume(continuation), Math.min(millis, MAX_TIMER_MILLIS))
       return sync(() => clearTimeout(handle))
     })
