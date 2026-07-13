@@ -3039,63 +3039,37 @@ export function fromJsonSchemaDocument(document: JsonSchema.Document<"draft-2020
 export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"draft-2020-12">, options?: {
   readonly onEnter?: ((js: JsonSchema.JsonSchema) => JsonSchema.JsonSchema) | undefined
 }): MultiDocument {
-  let visited: Set<string>
+  let definitionIdentifier: string | undefined
   const references: Record<string, Representation> = {}
 
-  type Slot = {
-    // 0 = not started, 1 = building, 2 = done
-    state: 0 | 1 | 2
-    value: Exclude<Representation, { _tag: "Reference" }> | undefined
-  }
+  type ResolvedReference = Exclude<Representation, { _tag: "Reference" }>
+  const resolvedReferences = new Map<string, ResolvedReference | null>()
 
-  const slots = new Map<string, Slot>()
-
-  function getSlot(identifier: string): Slot {
-    const existing = slots.get(identifier)
-    if (existing) return existing
-
-    // Create the slot *before* resolving, so self-references can see it.
-    const slot: Slot = {
-      state: 0,
-      value: undefined
-    }
-    slots.set(identifier, slot)
-    return slot
-  }
-
-  function resolveReference($ref: string): Exclude<Representation, { _tag: "Reference" }> {
+  function resolveReference($ref: string): ResolvedReference {
     const definition = document.definitions[$ref]
     if (definition === undefined) {
       throw new Error(`Reference ${$ref} not found`)
     }
 
-    const slot = getSlot($ref)
-
-    if (slot.state === 2) {
-      // Already built: return the built schema directly
-      return slot.value!
-    }
-
-    if (slot.state === 1) {
-      // Circular: we're currently building this identifier.
+    const resolved = resolvedReferences.get($ref)
+    if (resolved === null) {
       throw new Error(`Circular reference detected: ${$ref}`)
     }
+    if (resolved !== undefined) return resolved
 
-    // First time: build it.
-    slot.state = 1
+    resolvedReferences.set($ref, null)
     const value = recur(definition)
-
-    slot.value = value._tag === "Reference" ? resolveReference(value.$ref) : value
-    slot.state = 2
-    return slot.value
+    const out = value._tag === "Reference" ? resolveReference(value.$ref) : value
+    resolvedReferences.set($ref, out)
+    return out
   }
 
-  Object.entries(document.definitions).forEach(([identifier, definition]) => {
-    visited = new Set<string>([identifier])
+  for (const [identifier, definition] of Object.entries(document.definitions)) {
+    definitionIdentifier = identifier
     references[identifier] = unknownToJson(recur(definition))
-  })
+  }
 
-  visited = new Set<string>()
+  definitionIdentifier = undefined
   const representations = Arr.map(document.schemas, (schema) => unknownToJson(recur(schema)))
   return {
     representations,
@@ -3144,7 +3118,7 @@ export function fromJsonSchemaMultiDocument(document: JsonSchema.MultiDocument<"
       const $ref = js.$ref.slice(2).split("/").at(-1)
       if ($ref !== undefined) {
         const reference: Reference = { _tag: "Reference", $ref: unescapeToken($ref) }
-        if (visited.has($ref)) {
+        if (definitionIdentifier === $ref) {
           return { _tag: "Suspend", thunk: reference, checks: [] }
         } else {
           return reference
