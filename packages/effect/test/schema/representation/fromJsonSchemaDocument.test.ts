@@ -1456,6 +1456,12 @@ describe("fromJsonSchemaDocument", () => {
           Number("5e-102")
         ],
         ["multipleOf with a large scientific operand", { type: "number", multipleOf: 2 }, Number("1e21"), 1],
+        [
+          "multipleOf with a nonzero subnormal remainder",
+          { type: "number", multipleOf: Number("1e-323") },
+          0,
+          Number("1.042e-321")
+        ],
         ["minimum", { type: "number", minimum: 1 }, 1, 0],
         ["maximum", { type: "number", maximum: 1 }, 1, 2],
         ["exclusiveMinimum", { type: "number", exclusiveMinimum: 1 }, 2, 1],

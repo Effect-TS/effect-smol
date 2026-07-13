@@ -345,6 +345,13 @@ describe("remainder", () => {
     assert.strictEqual(N.remainder(min, min * 2), min)
   })
 
+  it("preserves nonzero subnormal remainders", () => {
+    const divisor = Number("1e-323")
+
+    assert.strictEqual(N.remainder(Number("1.042e-321"), divisor), Number.MIN_VALUE)
+    assert.strictEqual(N.remainder(Number("-1.042e-321"), divisor), -Number.MIN_VALUE)
+  })
+
   it("handles large values formatted in scientific notation", () => {
     const large = Number("1e21")
 

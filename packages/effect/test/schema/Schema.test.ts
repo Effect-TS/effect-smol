@@ -1448,6 +1448,12 @@ Expected a string including "c", got "ab"`
         )
       })
 
+      it("isMultipleOf rejects nonzero subnormal remainders", () => {
+        const is = Schema.is(Schema.Number.check(Schema.isMultipleOf(Number("1e-323"))))
+
+        assertFalse(is(Number("1.042e-321")))
+      })
+
       describe("isBetween", () => {
         it("included & included", async () => {
           const schema = Schema.Int.check(Schema.isBetween({ minimum: 1, maximum: 3 }))
