@@ -1,5 +1,292 @@
 # effect
 
+## 4.0.0-beta.98
+
+### Patch Changes
+
+- [#2587](https://github.com/Effect-TS/effect-smol/pull/2587) [`989603b`](https://github.com/Effect-TS/effect-smol/commit/989603b60ab1197b64acf214208e0d370cd1f842) Thanks @gcanti! - Expose `SchemaError` as a public module and re-export `Schema.isSchemaError`.
+
+  This gives consumers a stable import path and guard for schema failures without
+  depending on the internal schema implementation, while preserving the existing
+  `Schema.SchemaError` surface.
+
+- [#2592](https://github.com/Effect-TS/effect-smol/pull/2592) [`214c458`](https://github.com/Effect-TS/effect-smol/commit/214c458084bb6995d543cd37d1055f24be3d454e) Thanks @gcanti! - Apply `transformClient` when building an individual HttpApi endpoint client, preserving the supplied client's error and service channels.
+
+- [#2598](https://github.com/Effect-TS/effect-smol/pull/2598) [`a037273`](https://github.com/Effect-TS/effect-smol/commit/a0372736ac34796969b051bbba4717d7983f1ebe) Thanks @gcanti! - Preserve `__proto__` group and endpoint identifiers in HTTP APIs, generated clients, and URL builders.
+
+- [#2578](https://github.com/Effect-TS/effect-smol/pull/2578) [`97fdaa9`](https://github.com/Effect-TS/effect-smol/commit/97fdaa9c1f522c65e579365d314a07878e2b904f) Thanks @tim-smart! - Fix `Atom.kvs` async mode to retain its `AsyncResult` value shape after writes.
+
+- [#2612](https://github.com/Effect-TS/effect-smol/pull/2612) [`b24d248`](https://github.com/Effect-TS/effect-smol/commit/b24d248c8df44222ce642087cde2bd859a2dc709) Thanks @gptguy! - Fix replay of persisted `DurableDeferred.raceAll` results.
+
+- [#2580](https://github.com/Effect-TS/effect-smol/pull/2580) [`19c222c`](https://github.com/Effect-TS/effect-smol/commit/19c222cac2353a3d7b7733caecb00556fffe9a5c) Thanks @gcanti! - Fix HttpApi authorization decoding.
+
+  Previously, `HttpApiBuilder.securityDecode` removed the expected scheme length and one following character from the `Authorization` header without verifying either value. A Bearer decoder could therefore pass credentials from a different scheme such as `Basic`, accept a malformed header without a separating space, or retain leading spaces when more than one separator was present.
+
+  The decoder now validates the declared scheme before returning credentials, matches it case-insensitively as required by [RFC 9110 section 11.1](https://www.rfc-editor.org/rfc/rfc9110.html#section-11.1), and consumes one or more separating spaces. Missing, malformed, or mismatched headers produce the existing empty credential value so security middleware can reject them consistently.
+
+  Basic authentication previously split the decoded `user-pass` value at every colon, causing otherwise valid passwords containing `:` to be discarded. It now uses only the first colon as the separator and preserves the rest of the password, following [RFC 7617 section 2](https://www.rfc-editor.org/rfc/rfc7617.html#section-2).
+
+- [#2581](https://github.com/Effect-TS/effect-smol/pull/2581) [`eec85dd`](https://github.com/Effect-TS/effect-smol/commit/eec85ddba09ea326fd268ee33eeffd47e50d4671) Thanks @gcanti! - Fix HttpApi client error decoding.
+
+  Generated clients previously combined every error schema for a status into one union decoder. When schemas used different encodings, their declaration order could determine the decoded error instead of the response `Content-Type`; for example, a text decoder could accept a JSON response before the JSON decoder was tried.
+
+  Error responses are now grouped and selected by normalized content type, matching buffered success responses. Normalization happens before grouping, so declarations that differ only by casing or parameters such as `charset` share one union decoder instead of making later schemas unreachable.
+
+  No-content schemas are represented by a headerless alternative, allowing empty error responses without a `Content-Type` header to decode correctly. Unsupported content types preserve the existing combination of `StatusCodeError` and the response decoding failure.
+
+- [#2605](https://github.com/Effect-TS/effect-smol/pull/2605) [`0082f4f`](https://github.com/Effect-TS/effect-smol/commit/0082f4f74fb139fd578f87f0a790e845133983dc) Thanks @gcanti! - Fix `Number.remainder` for very small and large values formatted in scientific notation.
+
+- [#2611](https://github.com/Effect-TS/effect-smol/pull/2611) [`8849052`](https://github.com/Effect-TS/effect-smol/commit/884905232d1e9a365e046d8dde27bf9c5707f57f) Thanks @tim-smart! - Fix `PersistedQueue` to count schema decoding and malformed SQL payload failures as processing attempts.
+
+- [#2500](https://github.com/Effect-TS/effect-smol/pull/2500) [`c15e16a`](https://github.com/Effect-TS/effect-smol/commit/c15e16ad130d1fbde25d912b7ac55995066cb35b) Thanks @hsubra89! - Fix Redis-backed `PersistedQueue` reset and failed-item handling.
+
+- [#2602](https://github.com/Effect-TS/effect-smol/pull/2602) [`01d00a3`](https://github.com/Effect-TS/effect-smol/commit/01d00a3abfbf1f37996cdbe738ea5137c646cdd7) Thanks @gcanti! - Fix a bug where decoding bracket paths from FormData or URLSearchParams could mutate inherited object prototypes.
+
+- [#2588](https://github.com/Effect-TS/effect-smol/pull/2588) [`8bd4589`](https://github.com/Effect-TS/effect-smol/commit/8bd458975a1b3a8ed042eccf317b93d28ded91e7) Thanks @gcanti! - Fix `SchemaAST.isJson` to reject class instances and other non-record objects.
+
+- [#2605](https://github.com/Effect-TS/effect-smol/pull/2605) [`0082f4f`](https://github.com/Effect-TS/effect-smol/commit/0082f4f74fb139fd578f87f0a790e845133983dc) Thanks @gcanti! - Fix JSON Schema `allOf` imports for tuple intersections and preserve primitive refinements when combining literal constraints.
+
+- [#2604](https://github.com/Effect-TS/effect-smol/pull/2604) [`6e08428`](https://github.com/Effect-TS/effect-smol/commit/6e08428d980501b856f846ad3f3f0e4ea46e7786) Thanks @gcanti! - Fix `Schema.toFormatter` and `Schema.toEquivalence` indexing for tuples with multiple post-rest elements.
+
+- [#2603](https://github.com/Effect-TS/effect-smol/pull/2603) [`388dcf9`](https://github.com/Effect-TS/effect-smol/commit/388dcf953f65d317547f34d40e6443c5f264205f) Thanks @gcanti! - Fix union candidate selection and decoding order so that unions now:
+  - consider matches from every sentinel key instead of dropping valid members after the first match;
+  - reject ambiguous `oneOf` inputs when members with different sentinel keys both match;
+  - preserve declared member order when combining discriminated members with non-discriminated fallbacks;
+  - commit concurrent decoding results in declaration order instead of completion order.
+
+  Reserved SSE failure event names with non-`Cause` data are now emitted as application events instead of producing a runtime defect.
+
+- [#2609](https://github.com/Effect-TS/effect-smol/pull/2609) [`2b7ce2b`](https://github.com/Effect-TS/effect-smol/commit/2b7ce2b513e7ec2a77822f1116dc6ffb6ba93f4e) Thanks @tim-smart! - Fix SQL-backed persisted queues to refresh locks for actively acquired elements.
+
+- [#2583](https://github.com/Effect-TS/effect-smol/pull/2583) [`87bea7e`](https://github.com/Effect-TS/effect-smol/commit/87bea7e16259246f3bcdf565446394751abca953) Thanks @MrGovindan! - Fixed Clock.sleep handling of large durations
+
+- [#2582](https://github.com/Effect-TS/effect-smol/pull/2582) [`ce38dc3`](https://github.com/Effect-TS/effect-smol/commit/ce38dc33bda805a684432cca071f4dc3c6b9a1ba) Thanks @gcanti! - Harden HttpApi documentation HTML rendering.
+
+  Scalar descriptions and CDN versions were interpolated without attribute-safe escaping. Embedded OpenAPI JSON in Scalar and Swagger also handled only the exact `</script>` sequence, not other valid [script end-tag forms](https://html.spec.whatwg.org/multipage/parsing.html#script-data-end-tag-name-state).
+
+  Attribute values and CDN versions are now encoded for their contexts, and embedded JSON escapes `<` so it cannot close its script element.
+
+- [#2591](https://github.com/Effect-TS/effect-smol/pull/2591) [`a807cd1`](https://github.com/Effect-TS/effect-smol/commit/a807cd170341deca8a1cfb52c4222585f2431bb9) Thanks @gcanti! - Keep HttpApi composition immutable.
+
+  `HttpApi.addHttpApi` applied annotations from the added API by mutating its shared groups. It now creates annotated group copies, keeping the source API and independently annotated variants unchanged while preserving annotation precedence.
+
+- [#2584](https://github.com/Effect-TS/effect-smol/pull/2584) [`fd8a356`](https://github.com/Effect-TS/effect-smol/commit/fd8a356f06a8c9ce4e7e0a13fc4021c178ed31de) Thanks @gcanti! - Normalize HttpApi payload media types.
+
+  Payload schemas were stored under their exact declared `Content-Type`, but the server lowercased the incoming header and removed its parameters before looking it up. For example, a schema declared as `Application/Vnd.Effect+JSON; profile=declared` was stored under that value, while the server looked for `application/vnd.effect+json`. This could produce a `415` response even when the generated client and server used the same API.
+
+  The same mismatch allowed incompatible encodings for equivalent media types to bypass validation. Generated form-urlencoded requests also ignored custom content types and always used the default one.
+
+  Payload maps now use normalized keys for matching and conflict checks, while each encoding keeps its declared content type. Generated requests and OpenAPI use the declared values, including every parameterized variant, and custom form-urlencoded content types are preserved.
+
+- [#2476](https://github.com/Effect-TS/effect-smol/pull/2476) [`c2a5edc`](https://github.com/Effect-TS/effect-smol/commit/c2a5edc3abd31ad5bc123362bc1213e03e4095c3) Thanks @gcanti! - Improve unstable `HttpApi` type-level performance.
+
+  The implementation now uses identifier-keyed maps and lighter structural
+  constraints in several hot type-level paths. Generated group clients consume the
+  concrete endpoint map directly instead of rebuilding it from the endpoint union.
+
+  ## New Features
+  - Add `HttpApiBuilder.Handlers.handleAll`, which registers an identifier-keyed batch of endpoint handlers for a group. Each entry can be either a handler function or `{ handler, options }`, and the object can be supplied in multiple partial batches. Endpoint identifiers that were already handled are rejected across batches.
+  - `HttpApi.groups` now preserves the concrete group type for each group identifier. For example, `Api.groups.users` is typed as the `users` group instead of the full group union.
+  - `HttpApiGroup.endpoints` now preserves the concrete endpoint type for each endpoint identifier. For example, `Group.endpoints.getUser` is typed as the `getUser` endpoint instead of the full endpoint union.
+  - `HttpApiEndpoint` values can now be extended as classes, matching the class-like
+    runtime shape already used by `HttpApi` and `HttpApiGroup`.
+
+  ## Measured Type-Level Performance
+
+  Main/current comparisons use identical generated fixtures compiled once per
+  revision with TypeScript 7.0.2. The recorded revisions are `main` at
+  `97fdaa9c1f52` and the branch source at `5798fc5fafcd`. The focused pre/post
+  curves below were captured with the regular `httpapi` regression suite during
+  development. The retained suite uses representative stress points instead of
+  rerunning every point in those historical curves. All numbers are
+  type-instantiation deltas over the corresponding shared baseline.
+
+  Endpoint declaration costs now grow with a lower slope:
+
+  | endpoints |    main | current |
+  | --------: | ------: | ------: |
+  |        10 |   4,580 |   2,808 |
+  |        50 |  15,500 |   9,168 |
+  |       100 |  29,150 |  17,118 |
+  |       500 | 138,350 |  80,718 |
+
+  Class-like endpoint declarations are slightly cheaper than inline endpoint
+  values in the same 500-endpoint fixture shape:
+
+  | fixture       | inline | class-like |
+  | ------------- | -----: | ---------: |
+  | 500 endpoints | 82,207 |     71,850 |
+
+  `HttpApiBuilder` fluent handler registration avoids the previous non-linear
+  blow-up in the cross-ref comparison:
+
+  | fixture          |       main |   current |
+  | ---------------- | ---------: | --------: |
+  | 10 endpoints     |     37,856 |    11,582 |
+  | 50 endpoints     |    568,576 |    63,702 |
+  | 100 endpoints    |  2,154,476 |   182,852 |
+  | 500 endpoints    | 51,741,676 | 3,296,052 |
+  | 500 raw handlers | 51,734,176 | 3,294,550 |
+
+  In the recorded regular-suite measurements, `handleAll` remains the scalable
+  alternative to the equivalent fluent chain:
+
+  | fixture              |    fluent | `handleAll` |
+  | -------------------- | --------: | ----------: |
+  | 10 endpoints         |    11,579 |       9,146 |
+  | 50 endpoints         |    63,699 |      25,106 |
+  | 100 endpoints        |   182,849 |      45,056 |
+  | 500 endpoints        | 3,296,049 |     204,656 |
+  | 500 eps, two batches | 3,296,049 |     223,613 |
+
+  Generated-client type production also improves for the hot method-building
+  paths:
+
+  | fixture                                 |    main | current |
+  | --------------------------------------- | ------: | ------: |
+  | client methods, 500 endpoints           | 245,795 | 176,850 |
+  | top-level client methods, 500 endpoints | 243,651 | 179,809 |
+  | client endpoint method, 500 endpoints   |  56,738 |  46,294 |
+  | client groups, 100 groups x 5 endpoints |  49,019 |  25,893 |
+
+  The following focused curves were captured immediately before and after each
+  isolated type-level change.
+
+  The focused `Client.Group` curve shows the improvement from consuming the
+  identifier-keyed endpoint map directly:
+
+  | endpoints | union remapping | endpoint map |
+  | --------: | --------------: | -----------: |
+  |        10 |          12,448 |       12,294 |
+  |        50 |          19,169 |       18,935 |
+  |       100 |          27,570 |       27,236 |
+  |       500 |          94,770 |       93,636 |
+
+  The focused `Client.TopLevelMethods` curve improves by reading endpoint
+  identifiers directly from the endpoint union:
+
+  | endpoints | pre-change | post-change |
+  | --------: | ---------: | ----------: |
+  |        10 |     12,531 |      12,476 |
+  |        50 |     19,252 |      19,197 |
+  |       100 |     27,653 |      27,598 |
+  |       500 |     94,853 |      94,798 |
+
+  The focused `HttpApiClient.endpoint` selection curve improves by reading
+  endpoint identifiers directly from the selected endpoint union:
+
+  | endpoints | pre-change | post-change |
+  | --------: | ---------: | ----------: |
+  |        10 |      7,666 |       7,588 |
+  |        50 |      8,707 |       8,629 |
+  |       100 |     10,008 |       9,930 |
+  |       500 |     20,408 |      20,330 |
+
+  The focused `HttpApiBuilder.endpoint` selection curve improves by reading
+  endpoint identifiers directly from the selected endpoint union:
+
+  | endpoints | pre-change | post-change |
+  | --------: | ---------: | ----------: |
+  |        10 |     12,828 |      12,745 |
+  |        50 |     13,869 |      13,786 |
+  |       100 |     15,170 |      15,087 |
+  |       500 |     25,570 |      25,487 |
+
+  URL builder types now avoid repeatedly expanding the full API/group shape:
+
+  | fixture                              |    main | current |
+  | ------------------------------------ | ------: | ------: |
+  | URL builder, 500 endpoints           | 211,356 |  91,610 |
+  | top-level URL builder, 500 endpoints | 210,724 |  93,118 |
+  | builder endpoint, 500 endpoints      |  62,894 |  51,952 |
+
+  ## Breaking Changes
+
+  These changes affect unstable `HttpApi` type-level APIs and structural API,
+  group, and endpoint types.
+
+  ### Renamed Constraint Types
+  - Broad structural constraint exports have been renamed to align with
+    `Schema.Constraint` terminology: `HttpApi.Any` to `HttpApi.Constraint`,
+    `HttpApi.AnyWithProps` to `HttpApi.Top`, `HttpApiGroup.Any` to
+    `HttpApiGroup.Constraint`, `HttpApiGroup.AnyWithProps` to `HttpApiGroup.Top`,
+    and `HttpApiEndpoint.Any` to `HttpApiEndpoint.Constraint`.
+  - `HttpApiEndpoint.AnyWithProps` has been replaced by `HttpApiEndpoint.Top`, whose
+    schema parameters are constrained to `Schema.Top`, including success and error
+    schemas.
+  - Type guards now expose the widened runtime-prop shapes: `HttpApi.isHttpApi`
+    returns `HttpApi.Top`, `HttpApiGroup.isHttpApiGroup` returns
+    `HttpApiGroup.Top`, and `HttpApiEndpoint.isHttpApiEndpoint` returns
+    `HttpApiEndpoint.Top`.
+  - `HttpApiGroup.ApiGroup` has been renamed to `HttpApiGroup.Service`.
+
+  ### API, Group, And Endpoint Shapes
+  - `HttpApi.groups` is now typed as an identifier-keyed group map instead of
+    `ReadonlyRecord<string, Groups>`, and `HttpApi` tracks its group union
+    invariantly. Dynamic string indexing must refine the key first or cast to a
+    broad runtime record.
+  - `HttpApiGroup.endpoints` is now typed as an identifier-keyed endpoint map instead of
+    `ReadonlyRecord<string, Endpoints>`, and `HttpApiGroup` tracks its endpoint
+    union invariantly. Dynamic string indexing must refine the key first or cast to
+    a broad runtime record.
+  - `HttpApiEndpoint` now exposes its stable key as `identifier` instead of `name`,
+    aligning endpoints with APIs and groups and leaving `name` available for future
+    class-based endpoint patterns.
+  - `HttpApiEndpoint` values are now function objects instead of plain objects.
+    Runtime checks such as `typeof endpoint` now return `"function"`, and
+    `endpoint.name` is the native function name. Use `endpoint.identifier` for the
+    stable endpoint key.
+  - Identifier helper types have been renamed from `Name` / `WithName` to
+    `Identifier` / `WithIdentifier`; `HttpApiGroup.Service` now exposes
+    `identifier` instead of `name`.
+
+  ### Builder Handler Types
+  - `HttpApiBuilder.Handlers` now tracks endpoints through an identifier-keyed endpoint map and a set of handled endpoint identifiers, instead of tracking the remaining endpoint union. Its public type parameters changed from `Handlers<R, Endpoints>` to `Handlers<R, EndpointsByIdentifier, HandledIdentifiers>`, and its phantom fields changed from `_Endpoints` to `~EndpointsByIdentifier` / `~HandledIdentifiers`.
+  - The unused `HttpApiBuilder.Handlers.Any` helper type has been removed.
+  - The exported `HttpApiBuilder.HandlersTypeId` symbol has been removed; `Handlers`
+    now uses a private string type id.
+  - Duplicate `handle` / `handleRaw` registrations for the same endpoint are rejected
+    at the call site, and `handleAll` rejects endpoint identifiers that were already
+    handled by an earlier batch. Missing endpoint handlers are still rejected by
+    the final `HttpApiBuilder.group` return validation.
+
+  ### Client Types
+  - `HttpApiClient.Client.Group` now derives a client from a concrete group type: `Client.Group<Group, E, R>`. The previous group-union plus group-identifier form is no longer supported.
+  - `HttpApiClient.Client.TopLevelMethods` now returns an identifier-keyed method record instead of a union of `[identifier, method]` tuples.
+  - `HttpApiClient.makeWith` removes the default `HttpClientError.HttpClientError` from custom client error types in the returned `Client`, while preserving any additional custom client errors.
+
+  ### Endpoint Helper Types
+  - `HttpApiEndpoint.HttpApiEndpoint` now stores lightweight phantom metadata for middleware and request shapes: `~Middleware`, `~MiddlewareServices`, `~Request`, and `~RequestRaw`. Its type identifier field is now `readonly [TypeId]: typeof TypeId`.
+  - `HttpApiEndpoint.Constraint` is now a lightweight structural endpoint constraint and does not extend `Pipeable`; values typed only as `HttpApiEndpoint.Constraint` do not expose `.pipe`.
+  - `HttpApiEndpoint.AddError` has been removed; it was not used internally by the `HttpApi` implementation.
+  - `HttpApiEndpoint.Json` and `HttpApiEndpoint.StringTree` have been removed in
+    favor of the canonical `Schema.toCodecJson` and `Schema.toCodecStringTree`
+    types.
+  - Omitted request-part metadata now remains `never` instead of being wrapped as
+    `Schema.toCodecStringTree<never>`; codec metadata is applied only when
+    a params, query, payload, or headers schema is present.
+  - Success metadata now applies `Schema.toCodecJson` only to buffered
+    success schemas and preserves stream success schemas unchanged, including
+    mixed buffered and streaming success arrays.
+  - Handler request parts are now flattened with `Struct.Simplify`, improving
+    displayed request types while reducing handler instantiations.
+  - Endpoint helper types now read metadata fields directly instead of re-inferring all type parameters from the full `HttpApiEndpoint` interface. This affects helpers such as `Identifier`, `Success`, `Error`, `Params`, `Query`, `Payload`, `Headers`, `Middleware`, `MiddlewareServices`, `Errors`, `ErrorServicesEncode`, `ErrorServicesDecode`, `Request`, `RequestRaw`, `ServerServices`, and `ClientServices`.
+  - `HttpApiClient.Client.Method` and related generated-client helpers now require endpoint types that satisfy `HttpApiEndpoint.ConstraintRequest`. Endpoint-like structural types must include the lightweight request metadata fields to be accepted.
+
+- [#2585](https://github.com/Effect-TS/effect-smol/pull/2585) [`5946da3`](https://github.com/Effect-TS/effect-smol/commit/5946da3804a1be5e752b05b96bd058cdba50a1bf) Thanks @gcanti! - Reuse HttpApi response schemas.
+
+  `HttpApiBuilder` looked up cached response schemas by their source AST but stored them by the transformed AST, so the cache normally missed. It now uses the source AST consistently.
+
+- [#2590](https://github.com/Effect-TS/effect-smol/pull/2590) [`4ae0c5f`](https://github.com/Effect-TS/effect-smol/commit/4ae0c5ffcbe6c56ddfcb05c639112a079483539e) Thanks @IMax153! - Cleanup internals of CLI package
+
+- [#2607](https://github.com/Effect-TS/effect-smol/pull/2607) [`5b2a0bc`](https://github.com/Effect-TS/effect-smol/commit/5b2a0bceea3a28a33a58555210c90a415dc74a76) Thanks @tim-smart! - ensure WithTransaction wraps entire rpc handler
+
+- [#2613](https://github.com/Effect-TS/effect-smol/pull/2613) [`72ac585`](https://github.com/Effect-TS/effect-smol/commit/72ac585884befde6af9208da738699a93f1bae79) Thanks @tim-smart! - Add `HttpApiError.UnprocessableEntity` and `HttpApiError.UnprocessableEntityNoContent` for status 422 responses.
+
+- [#2594](https://github.com/Effect-TS/effect-smol/pull/2594) [`5e8c1b8`](https://github.com/Effect-TS/effect-smol/commit/5e8c1b82bfafa121311f987a49ab75395e3647a7) Thanks @gcanti! - Reject unknown and duplicate HttpApi handler registrations with descriptive errors.
+
+- [#2595](https://github.com/Effect-TS/effect-smol/pull/2595) [`0f9c078`](https://github.com/Effect-TS/effect-smol/commit/0f9c07841b04183f485ee6e6458de73b290b09f5) Thanks @gcanti! - Reject duplicate OpenAPI operations and operation identifiers, and reject incompatible security schemes that reuse a name.
+
 ## 4.0.0-beta.97
 
 ## 4.0.0-beta.96
