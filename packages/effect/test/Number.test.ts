@@ -327,6 +327,15 @@ describe("remainder", () => {
     assert.strictEqual(N.remainder(1.5e-7, divisor), 5e-8)
   })
 
+  it("preserves signs in scientific notation", () => {
+    const divisor = 1e-7
+
+    assert.strictEqual(N.remainder(-2.5e-7, divisor), -5e-8)
+    assert.strictEqual(N.remainder(2.5e-7, -divisor), 5e-8)
+    assert.strictEqual(N.remainder(-2.5e-7, -divisor), -5e-8)
+    assertNegativeZero(N.remainder(-0, divisor))
+  })
+
   it("handles scientific notation beyond the toFixed precision limit", () => {
     const divisor = Number("1e-101")
 

@@ -674,9 +674,7 @@ function remainderWithScientificNotation(self: number, divisor: number): number 
     return self < 0 || Object.is(self, -0) ? -0 : 0
   }
   const remainder = globalThis.Number(`${out}e${exponent}`)
-  return remainder === 0
-    ? out < BigInt(0) ? -globalThis.Number.MIN_VALUE : globalThis.Number.MIN_VALUE
-    : remainder
+  return remainder === 0 ? Math.sign(self) * globalThis.Number.MIN_VALUE : remainder
 }
 
 function toScientificInteger(n: number): readonly [coefficient: bigint, exponent: number] {
