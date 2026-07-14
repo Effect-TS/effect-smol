@@ -370,6 +370,21 @@ export type Error<C> = C extends Command<
   never
 
 /**
+ * A utility type to extract the required services type from a `Command`.
+ *
+ * @category utility types
+ * @since 4.0.0
+ */
+export type Services<C> = C extends Command<
+  infer _Name,
+  infer _Input,
+  infer _ContextInput,
+  infer _Error,
+  infer _Requirements
+> ? _Requirements :
+  never
+
+/**
  * Service context for a specific command, enabling subcommands to access their parent's parsed configuration.
  *
  * **Details**
@@ -930,10 +945,7 @@ type ExtractSubcommand<T> = T extends Command<infer _Name, infer _Input, infer _
   : T extends Command.SubcommandGroup<infer Commands> ? Commands[number]
   : never
 type ExtractSubcommandErrors<T extends ReadonlyArray<Command.SubcommandEntry>> = Error<ExtractSubcommand<T[number]>>
-type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> = ExtractSubcommand<T[number]> extends
-  infer C ? C extends Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? _R
-  : never
-  : never
+type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> = Services<ExtractSubcommand<T[number]>>
 
 /**
  * Sets the description for a command.
