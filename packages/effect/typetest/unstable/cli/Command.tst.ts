@@ -2,28 +2,23 @@ import { Context, Effect } from "effect"
 import { Argument, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { describe, expect, it } from "tstyche"
 
-// Fixtures
-class ServiceA extends Context.Service<ServiceA, string>()("ServiceA") {}
-class ServiceB extends Context.Service<ServiceB, string>()("ServiceB") {}
-class ServiceC extends Context.Service<ServiceC, string>()("ServiceC") {}
-
-declare const effectA: Effect.Effect<void, "err-a", ServiceA>
-declare const effectB: Effect.Effect<void, "err-b", ServiceB>
-declare const effectC: Effect.Effect<void, "err-c", ServiceC>
-
 describe("Command", () => {
   describe("withSubcommands", () => {
     it("unions errors and requirements across multiple subcommands", () => {
-      const childA = Command.make("child-a", {}, () => effectA)
-      const childB = Command.make("child-b", {}, () => effectB)
-      const childC = Command.make("child-c", {}, () => effectC)
+      class _ServiceA extends Context.Service<_ServiceA, string>()("ServiceA") {}
+      class _ServiceB extends Context.Service<_ServiceB, string>()("ServiceB") {}
+      class _ServiceC extends Context.Service<_ServiceC, string>()("ServiceC") {}
+
+      const childA = Command.make("child-a", {}, () => Effect.void as Effect.Effect<void, "err-a", _ServiceA>)
+      const childB = Command.make("child-b", {}, () => Effect.void as Effect.Effect<void, "err-b", _ServiceB>)
+      const childC = Command.make("child-c", {}, () => Effect.void as Effect.Effect<void, "err-c", _ServiceC>)
 
       const root = Command.make("root").pipe(
         Command.withSubcommands([childA, childB, childC])
       )
 
       expect(root).type.toBe<
-        Command.Command<"root", {}, {}, "err-a" | "err-b" | "err-c", ServiceA | ServiceB | ServiceC>
+        Command.Command<"root", {}, {}, "err-a" | "err-b" | "err-c", _ServiceA | _ServiceB | _ServiceC>
       >()
     })
   })
