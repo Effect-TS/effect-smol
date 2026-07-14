@@ -931,7 +931,9 @@ type ExtractSubcommand<T> = T extends Command<infer _Name, infer _Input, infer _
   : never
 type ExtractSubcommandErrors<T extends ReadonlyArray<Command.SubcommandEntry>> = Error<ExtractSubcommand<T[number]>>
 type ExtractSubcommandContext<T extends ReadonlyArray<Command.SubcommandEntry>> = ExtractSubcommand<T[number]> extends
-  Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? _R : never
+  infer C ? C extends Command<infer _Name, infer _Input, infer _CI, infer _E, infer _R> ? _R
+  : never
+  : never
 
 /**
  * Sets the description for a command.

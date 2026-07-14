@@ -1,8 +1,33 @@
-import { Effect } from "effect"
+import { Context, Effect } from "effect"
 import { Argument, Command, Flag, GlobalFlag } from "effect/unstable/cli"
 import { describe, expect, it } from "tstyche"
 
+// Fixtures
+class ServiceA extends Context.Service<ServiceA, string>()("ServiceA") {}
+class ServiceB extends Context.Service<ServiceB, string>()("ServiceB") {}
+class ServiceC extends Context.Service<ServiceC, string>()("ServiceC") {}
+
+declare const effectA: Effect.Effect<void, "err-a", ServiceA>
+declare const effectB: Effect.Effect<void, "err-b", ServiceB>
+declare const effectC: Effect.Effect<void, "err-c", ServiceC>
+
 describe("Command", () => {
+  describe("withSubcommands", () => {
+    it("unions errors and requirements across multiple subcommands", () => {
+      const childA = Command.make("child-a", {}, () => effectA)
+      const childB = Command.make("child-b", {}, () => effectB)
+      const childC = Command.make("child-c", {}, () => effectC)
+
+      const root = Command.make("root").pipe(
+        Command.withSubcommands([childA, childB, childC])
+      )
+
+      expect(root).type.toBe<
+        Command.Command<"root", {}, {}, "err-a" | "err-b" | "err-c", ServiceA | ServiceB | ServiceC>
+      >()
+    })
+  })
+
   describe("withSharedFlags", () => {
     it("adds shared flags to command input and parent context", () => {
       const root = Command.make("root", {
